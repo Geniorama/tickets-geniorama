@@ -48,14 +48,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     jwt({ token, user }) {
       if (user) {
-        token.id = user.id as string;
-        token.role = user.role;
+        token.id   = user.id as string;
+        token.name  = user.name;
+        token.email = user.email;
+        token.role  = user.role;
       }
       return token;
     },
     session({ session, token }) {
-      session.user.id = token.id as string;
-      session.user.role = token.role as import("@/generated/prisma").Role;
+      session.user.id    = token.id as string;
+      session.user.name  = token.name as string;
+      session.user.email = token.email as string;
+      session.user.role  = token.role as import("@/generated/prisma").Role;
       return session;
     },
   },
