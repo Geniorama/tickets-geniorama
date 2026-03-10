@@ -20,7 +20,17 @@
       "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsx scripts/test-r2.ts)",
       "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsx scripts/test-rds.ts)",
       "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsx scripts/migrate-data.ts)",
-      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsx -e \"\nimport { config } from 'dotenv';\nconfig\\({ path: '.env.local' }\\);\nimport { Client } from 'pg';\nconst c = new Client\\({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }\\);\nawait c.connect\\(\\);\nconst { rows } = await c.query\\(\\\\\"SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename\\\\\"\\);\nconsole.log\\(rows.map\\(\\(r: {tablename: string}\\) => r.tablename\\).join\\('\\\\n'\\)\\);\nawait c.end\\(\\);\n\")"
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsx -e \"\nimport { config } from 'dotenv';\nconfig\\({ path: '.env.local' }\\);\nimport { Client } from 'pg';\nconst c = new Client\\({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }\\);\nawait c.connect\\(\\);\nconst { rows } = await c.query\\(\\\\\"SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename\\\\\"\\);\nconsole.log\\(rows.map\\(\\(r: {tablename: string}\\) => r.tablename\\).join\\('\\\\n'\\)\\);\nawait c.end\\(\\);\n\")",
+      "Bash(find \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(dashboard\\)\" -name \"layout.tsx\" -type f)",
+      "Bash(find \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" -path \"*app*\\(dashboard\\)*tickets*\" -name \"page.tsx\" -type f)",
+      "Bash(find \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app\" -type d -name \"\\(dashboard\\)\" -o -type d -name \"admin\" -o -type d -name \"dashboard\" | head -20)",
+      "Bash(ls -la \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(dashboard\\)/\" | grep -E \"^d\")",
+      "Bash(mkdir -p \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(dashboard\\)/proyectos/new\" && mkdir -p \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(dashboard\\)/proyectos/[id]/edit\" && mkdir -p \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(dashboard\\)/proyectos/[id]/tareas/new\" && mkdir -p \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(dashboard\\)/proyectos/[id]/tareas/[taskId]/edit\")",
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsc --noEmit 2>&1; echo \"Exit code: $?\")",
+      "Bash(find \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src\" -path \"*/proyectos*\" -name \"*.tsx\" -o -path \"*/proyectos*\" -name \"*.ts\" 2>/dev/null | sort)",
+      "Bash(ls \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/components/services/\" && ls \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(dashboard\\)/admin/servicios/\" && ls \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(dashboard\\)/mis-servicios/\")",
+      "WebFetch(domain:www.developer.paymentsway.co)",
+      "WebFetch(domain:developer.paymentsway.co)"
     ]
   }
 }

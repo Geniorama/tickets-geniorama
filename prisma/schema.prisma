@@ -39,6 +39,35 @@ enum Priority {
   CRITICA
 }
 
+enum ProjectStatus {
+  PLANIFICACION
+  EN_DESARROLLO
+  EN_REVISION
+  COMPLETADO
+  PAUSADO
+}
+
+enum TaskStatus {
+  PENDIENTE
+  EN_PROGRESO
+  EN_REVISION
+  COMPLETADO
+}
+
+enum ServiceType {
+  DOMINIO
+  HOSTING
+  CORREO
+  SSL
+  MANTENIMIENTO
+  OTRO
+}
+
+enum ServiceProvider {
+  GENIORAMA
+  EXTERNO
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model Company {
@@ -58,6 +87,8 @@ model Company {
 
   users            User[]
   plans            Plan[]
+  projects         Project[]
+  services         Service[]
 
   @@map("companies")
 }
@@ -81,6 +112,14 @@ model User {
   attachments      TicketAttachment[]
   resetTokens      PasswordResetToken[]
   timeEntries      TimeEntry[]
+
+  managedProjects  Project[]            @relation("ProjectManager")
+  createdProjects  Project[]            @relation("ProjectCreatedBy")
+  assignedTasks    Task[]               @relation("TaskAssignedTo")
+  createdTasks     Task[]               @relation("TaskCreatedBy")
+  taskComments     TaskComment[]
+  taskAttachments  TaskAttachment[]
+  createdServices  Service[]            @relation("ServiceCreatedBy")
 
   @@map("users")
 }
@@ -197,4 +236,116 @@ model PasswordResetToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_reset_tokens")
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String
+  status      ProjectStatus @default(PLANIFICACION)
+  isActive    Boolean       @default(true) @map("is_active")
+  startDate   DateTime?     @map("start_date")
+  dueDate     DateTime?     @map("due_date")
+
+  companyId   String?       @map("company_id")
+  managerId   String?       @map("manager_id")
+  createdById String        @map("created_by_id")
+
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  company     Company?      @relation(fields: [companyId], references: [id])
+  manager     User?         @relation("ProjectManager", fields: [managerId], references: [id])
+  createdBy   User          @relation("ProjectCreatedBy", fields: [createdById], references: [id])
+  tasks       Task[]
+
+  @@map("projects")
+}
+
+model Task {
+  id             String     @id @default(cuid())
+  title          String
+  description    String
+  status         TaskStatus @default(PENDIENTE)
+  priority       Priority   @default(MEDIA)
+  category       String?
+
+  startDate      DateTime?  @map("start_date")
+  dueDate        DateTime?  @map("due_date")
+  estimatedHours Float?     @map("estimated_hours")
+
+  projectId    String  @map("project_id")
+  assignedToId String? @map("assigned_to_id")
+  createdById  String  @map("created_by_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo User?         @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+  createdBy  User          @relation("TaskCreatedBy", fields: [createdById], references: [id])
+  comments   TaskComment[]
+  attachments TaskAttachment[]
+
+  @@map("tasks")
+}
+
+model TaskComment {
+  id                    String   @id @default(cuid())
+  body                  String
+  attachmentType        String?  @map("attachment_type")
+  attachmentUrl         String?  @map("attachment_url")
+  attachmentName        String?  @map("attachment_name")
+  attachmentStoragePath String?  @map("attachment_storage_path")
+
+  taskId   String @map("task_id")
+  authorId String @map("author_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id])
+
+  @@map("task_comments")
+}
+
+model TaskAttachment {
+  id           String   @id @default(cuid())
+  fileUrl      String   @map("file_url")
+  fileName     String   @map("file_name")
+  storagePath  String   @map("storage_path")
+
+  taskId       String @map("task_id")
+  uploadedById String @map("uploaded_by_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy User @relation(fields: [uploadedById], references: [id])
+
+  @@map("task_attachments")
+}
+
+model Service {
+  id          String          @id @default(cuid())
+  name        String
+  type        ServiceType
+  provider    ServiceProvider @default(GENIORAMA)
+  description String?
+  dueDate     DateTime?       @map("due_date")
+  price       Float?
+  notes       String?
+  isActive    Boolean         @default(true) @map("is_active")
+
+  companyId   String          @map("company_id")
+  createdById String          @map("created_by_id")
+
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  company     Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy   User            @relation("ServiceCreatedBy", fields: [createdById], references: [id])
+
+  @@map("services")
 }

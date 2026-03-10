@@ -35,6 +35,14 @@ export async function createTicket(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
+  if (parsed.data.assignedToId) {
+    const assignee = await prisma.user.findUnique({
+      where: { id: parsed.data.assignedToId, isActive: true },
+      select: { id: true },
+    });
+    if (!assignee) return { error: "El usuario asignado no existe o está inactivo" };
+  }
+
   // Si el creador es CLIENTE, el clientId es él mismo
   const clientId =
     session.user.role === "CLIENTE"
@@ -112,6 +120,14 @@ export async function updateTicketStatus(ticketId: string, status: string) {
 export async function assignTicket(ticketId: string, userId: string | null) {
   await requireRole(["ADMINISTRADOR"]);
 
+  if (userId) {
+    const assignee = await prisma.user.findUnique({
+      where: { id: userId, isActive: true },
+      select: { id: true },
+    });
+    if (!assignee) return { error: "El usuario asignado no existe o está inactivo" };
+  }
+
   await prisma.ticket.update({
     where: { id: ticketId },
     data: { assignedToId: userId },
@@ -147,6 +163,14 @@ export async function updateTicket(ticketId: string, formData: FormData) {
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  if (parsed.data.assignedToId) {
+    const assignee = await prisma.user.findUnique({
+      where: { id: parsed.data.assignedToId, isActive: true },
+      select: { id: true },
+    });
+    if (!assignee) return { error: "El usuario asignado no existe o está inactivo" };
+  }
 
   await prisma.ticket.update({
     where: { id: ticketId },

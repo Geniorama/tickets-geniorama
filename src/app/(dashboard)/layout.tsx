@@ -2,6 +2,11 @@ import { getRequiredSession } from "@/lib/auth-helpers";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 
+// Evitar que Next.js cachee el layout protegido en el cliente.
+// Sin esto, después del logout el router cache puede servir el dashboard
+// sin pasar por el middleware de autenticación.
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: {

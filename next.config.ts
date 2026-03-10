@@ -10,11 +10,16 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "*.supabase.co",
+        hostname: "media.geniorama.co",
       },
       {
         protocol: "https",
         hostname: "i.imgur.com",
+      },
+      // Logos migrados desde Supabase — se puede eliminar una vez re-subidos a R2
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
       },
     ],
   },

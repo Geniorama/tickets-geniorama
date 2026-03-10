@@ -1,0 +1,149 @@
+import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
+import { isAdmin } from "@/lib/roles";
+import { prisma } from "@/lib/prisma";
+import { ProjectList } from "@/components/projects/project-list";
+import { ProjectFilters } from "@/components/projects/project-filters";
+import Link from "next/link";
+import { Plus } from "lucide-react";
+import type { ProjectStatus } from "@/generated/prisma";
+
+export const metadata = { title: "Proyectos — Geniorama Tickets" };
+
+export default async function ProyectosPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string>>;
+}) {
+  const session = await getRequiredSession();
+  const { id: userId, role } = session.user;
+  const params = await searchParams;
+  const staff = isStaff(role);
+  const admin = isAdmin(role);
+
+  const statusFilter    = params.status     as ProjectStatus | undefined;
+  const companyFilter   = params.companyId  as string | undefined;
+  const managerFilter   = params.managerId  as string | undefined;
+  const dueDateFrom     = params.dueDateFrom as string | undefined;
+  const dueDateTo       = params.dueDateTo   as string | undefined;
+
+  // Filtros aplicables a cualquier rol
+  const extraFilters = {
+    ...(statusFilter  ? { status: statusFilter }      : {}),
+    ...(companyFilter ? { companyId: companyFilter }  : {}),
+    ...(managerFilter ? { managerId: managerFilter }  : {}),
+    ...(dueDateFrom || dueDateTo
+      ? {
+          dueDate: {
+            ...(dueDateFrom ? { gte: new Date(dueDateFrom) } : {}),
+            ...(dueDateTo   ? { lte: new Date(dueDateTo + "T23:59:59") } : {}),
+          },
+        }
+      : {}),
+  };
+
+  // Filtro base por rol
+  let roleWhere: Record<string, unknown> = {};
+  if (admin) {
+    roleWhere = {};
+  } else if (staff) {
+    roleWhere = {
+      OR: [
+        { managerId: userId },
+        { tasks: { some: { assignedToId: userId } } },
+      ],
+    };
+  } else {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { companies: { select: { id: true } } },
+    });
+    const companyIds = (user?.companies ?? []).map((c) => c.id);
+    roleWhere = { companyId: { in: companyIds } };
+  }
+
+  const where = { ...roleWhere, ...extraFilters };
+
+  const [projects, companies, managers] = await Promise.all([
+    prisma.project.findMany({
+      where,
+      include: {
+        company: { select: { name: true } },
+        manager: { select: { name: true } },
+        createdBy: { select: { name: true } },
+        _count: { select: { tasks: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+    // Solo admins y staff ven el filtro de empresa
+    admin || staff
+      ? prisma.company.findMany({
+          where: { isActive: true },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        })
+      : Promise.resolve([]),
+    // Solo admins ven el filtro de encargado
+    admin
+      ? prisma.user.findMany({
+          where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  return (
+    <div style={{ padding: "1.5rem" }}>
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "1rem",
+        }}
+      >
+        <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
+          Proyectos
+        </h1>
+
+        {admin && (
+          <Link
+            href="/proyectos/new"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              backgroundColor: "#fd1384",
+              color: "#ffffff",
+              padding: "0.5rem 1rem",
+              borderRadius: "0.5rem",
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              textDecoration: "none",
+            }}
+          >
+            <Plus style={{ width: "1rem", height: "1rem" }} />
+            Nuevo proyecto
+          </Link>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div style={{ marginBottom: "1.25rem" }}>
+        <ProjectFilters
+          companies={companies}
+          managers={managers}
+          showCompany={admin || staff}
+          showManager={admin}
+        />
+      </div>
+
+      <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginBottom: "1rem" }}>
+        {projects.length} {projects.length === 1 ? "proyecto" : "proyectos"}
+      </p>
+
+      <ProjectList projects={projects} />
+    </div>
+  );
+}
