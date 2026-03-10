@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
+import { validateFile, uploadFile } from "@/lib/supabase";
 
 const addCommentSchema = z.object({
   body: z.string().min(1, "El comentario no puede estar vacío"),
@@ -14,7 +15,6 @@ export async function addComment(ticketId: string, formData: FormData) {
   const session = await getRequiredSession();
 
   const isInternalRaw = formData.get("isInternal") === "true";
-  // Solo staff puede hacer comentarios internos
   const isInternal = isStaff(session.user.role) ? isInternalRaw : false;
 
   const parsed = addCommentSchema.safeParse({
@@ -26,12 +26,51 @@ export async function addComment(ticketId: string, formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
+  const attachmentType = formData.get("attachmentType")?.toString() || null;
+  let attachmentUrl: string | null = null;
+  let attachmentName: string | null = null;
+  let attachmentStoragePath: string | null = null;
+
+  if (attachmentType === "link" && isStaff(session.user.role)) {
+    const url = formData.get("linkUrl")?.toString().trim() ?? "";
+    const label = formData.get("linkLabel")?.toString().trim() || null;
+
+    if (!url) return { error: "La URL del enlace es requerida" };
+    try { new URL(url); } catch { return { error: "La URL no es válida" }; }
+
+    attachmentUrl  = url;
+    attachmentName = label ?? url;
+  }
+
+  if (attachmentType === "file" && isStaff(session.user.role)) {
+    const file = formData.get("attachmentFile");
+    if (!(file instanceof File) || file.size === 0) {
+      return { error: "No se seleccionó ningún archivo" };
+    }
+    const validationError = validateFile(file);
+    if (validationError) return { error: validationError };
+
+    try {
+      const { storagePath, fileUrl } = await uploadFile(file, ticketId);
+      attachmentUrl         = fileUrl;
+      attachmentName        = file.name;
+      attachmentStoragePath = storagePath;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error al subir archivo";
+      return { error: message };
+    }
+  }
+
   await prisma.ticketComment.create({
     data: {
       ticketId,
-      authorId: session.user.id,
-      body: parsed.data.body,
-      isInternal: parsed.data.isInternal,
+      authorId:             session.user.id,
+      body:                 parsed.data.body,
+      isInternal:           parsed.data.isInternal,
+      attachmentType,
+      attachmentUrl,
+      attachmentName,
+      attachmentStoragePath,
     },
   });
 
@@ -49,7 +88,6 @@ export async function deleteComment(commentId: string, ticketId: string) {
 
   if (!comment) return { error: "Comentario no encontrado" };
 
-  // Solo el autor o un admin puede eliminar
   const isAdmin = session.user.role === "ADMINISTRADOR";
   if (!isAdmin && comment.authorId !== session.user.id) {
     return { error: "Sin permisos" };

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { TicketDetail } from "@/components/tickets/ticket-detail";
+import { BackButton } from "@/components/ui/back-button";
 
 export default async function TicketPage({
   params,
@@ -37,5 +38,12 @@ export default async function TicketPage({
   // Clientes solo ven tickets que crearon ellos o donde son el cliente asignado
   if (!isStaff(role) && ticket.createdById !== userId && ticket.clientId !== userId) notFound();
 
-  return <TicketDetail ticket={ticket} session={session} />;
+  return (
+    <div>
+      <div className="mb-4">
+        <BackButton fallback="/tickets" />
+      </div>
+      <TicketDetail ticket={ticket} session={session} />
+    </div>
+  );
 }

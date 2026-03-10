@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { TicketEditForm } from "@/components/tickets/ticket-edit-form";
+import { BackButton } from "@/components/ui/back-button";
 
 export const metadata = { title: "Editar ticket — Geniorama Tickets" };
 
@@ -25,7 +26,7 @@ export default async function EditTicketPage({
     prisma.user.findMany({
       where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, role: true },
+      select: { id: true, name: true, email: true, role: true },
     }),
     prisma.user.findMany({
       where: { role: "CLIENTE", isActive: true },
@@ -43,6 +44,9 @@ export default async function EditTicketPage({
 
   return (
     <div className="max-w-2xl">
+      <div className="mb-4">
+        <BackButton />
+      </div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Editar ticket</h1>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <TicketEditForm ticket={ticket} collaborators={collaborators} clients={clients} plans={plans} />

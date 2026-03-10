@@ -3,7 +3,7 @@
 import { useTransition, useState } from "react";
 import Link from "next/link";
 import { formatDateTimeLong, formatDateTime } from "@/lib/format-date";
-import { Pencil, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen } from "lucide-react";
+import { Pencil, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Link2, Paperclip, FileText, ExternalLink } from "lucide-react";
 import type { Session } from "next-auth";
 import type { Ticket, TicketComment, TicketAttachment, TimeEntry, User, TicketStatus, Priority } from "@/generated/prisma";
 import { TicketTimer } from "./ticket-timer";
@@ -182,6 +182,30 @@ export function TicketDetail({
                   </span>
                 </div>
                 <p className="text-gray-700 whitespace-pre-wrap">{comment.body}</p>
+
+                {/* Adjunto del comentario */}
+                {comment.attachmentUrl && comment.attachmentType === "link" && (
+                  <a
+                    href={comment.attachmentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                    {comment.attachmentName ?? comment.attachmentUrl}
+                  </a>
+                )}
+                {comment.attachmentUrl && comment.attachmentType === "file" && (
+                  <a
+                    href={comment.attachmentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
+                  >
+                    <FileText className="w-3.5 h-3.5 shrink-0" />
+                    {comment.attachmentName ?? "Archivo adjunto"}
+                  </a>
+                )}
               </div>
             ))}
           </div>
@@ -195,21 +219,36 @@ export function TicketDetail({
   );
 }
 
+type AttachmentMode = "none" | "link" | "file";
+
 function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean }) {
   const [isPending, startTransition] = useTransition();
   const [internal, setInternal] = useState(false);
+  const [attachMode, setAttachMode] = useState<AttachmentMode>("none");
+  const [error, setError] = useState<string | null>(null);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setError(null);
     const form = e.currentTarget;
     const formData = new FormData(form);
     formData.set("isInternal", String(internal));
+    formData.set("attachmentType", attachMode === "none" ? "" : attachMode);
+
     startTransition(async () => {
-      await addComment(ticketId, formData);
-      form.reset();
-      setInternal(false);
+      const result = await addComment(ticketId, formData);
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        form.reset();
+        setInternal(false);
+        setAttachMode("none");
+      }
     });
   }
+
+  const inputCls =
+    "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
@@ -217,9 +256,88 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
         name="body"
         required
         rows={3}
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        className={inputCls}
         placeholder="Escribe un comentario..."
       />
+
+      {/* Adjunto — solo staff */}
+      {isStaff && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Adjuntar:</span>
+            <button
+              type="button"
+              onClick={() => setAttachMode(attachMode === "link" ? "none" : "link")}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                attachMode === "link"
+                  ? "bg-indigo-50 border-indigo-300 text-indigo-700"
+                  : "border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700"
+              }`}
+            >
+              <Link2 className="w-3 h-3" />
+              Enlace
+            </button>
+            <button
+              type="button"
+              onClick={() => setAttachMode(attachMode === "file" ? "none" : "file")}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                attachMode === "file"
+                  ? "bg-indigo-50 border-indigo-300 text-indigo-700"
+                  : "border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700"
+              }`}
+            >
+              <Paperclip className="w-3 h-3" />
+              Archivo
+            </button>
+          </div>
+
+          {attachMode === "link" && (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">URL *</label>
+                <input
+                  name="linkUrl"
+                  type="url"
+                  required
+                  placeholder="https://..."
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Etiqueta (opcional)</label>
+                <input
+                  name="linkLabel"
+                  type="text"
+                  placeholder="Nombre del enlace"
+                  className={inputCls}
+                />
+              </div>
+            </div>
+          )}
+
+          {attachMode === "file" && (
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">
+                Archivo * (imágenes, PDF, Word — máx. 10 MB)
+              </label>
+              <input
+                name="attachmentFile"
+                type="file"
+                required
+                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx"
+                className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      )}
+
       <div className="flex items-center justify-between">
         {isStaff && (
           <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">

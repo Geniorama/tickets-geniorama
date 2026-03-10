@@ -2,6 +2,8 @@ import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { TicketList } from "@/components/tickets/ticket-list";
 import { TicketFilters } from "@/components/tickets/ticket-filters";
+import { TicketKanban } from "@/components/tickets/ticket-kanban";
+import { ViewToggle } from "@/components/tickets/view-toggle";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { fromZonedTime } from "date-fns-tz";
@@ -19,6 +21,7 @@ export default async function TicketsPage({
   const { id, role } = session.user;
   const params = await searchParams;
   const staff = isStaff(role);
+  const view = staff && params.view === "kanban" ? "kanban" : "list";
 
   // Base where: clientes ven tickets que crearon ellos O donde son el cliente asignado
   const baseWhere = staff ? {} : { OR: [{ createdById: id }, { clientId: id }] };
@@ -95,13 +98,16 @@ export default async function TicketsPage({
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Tickets</h1>
-        <Link
-          href="/tickets/new"
-          className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo ticket
-        </Link>
+        <div className="flex items-center gap-3">
+          {staff && <ViewToggle current={view} />}
+          <Link
+            href="/tickets/new"
+            className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Nuevo ticket
+          </Link>
+        </div>
       </div>
 
       {staff && (
@@ -113,7 +119,11 @@ export default async function TicketsPage({
         />
       )}
 
-      <TicketList tickets={tickets} role={role} sortBy={sortBy} sortDir={sortDir} />
+      {view === "kanban" ? (
+        <TicketKanban tickets={tickets} />
+      ) : (
+        <TicketList tickets={tickets} role={role} sortBy={sortBy} sortDir={sortDir} />
+      )}
     </div>
   );
 }

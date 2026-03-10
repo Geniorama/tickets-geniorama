@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateTicket } from "@/actions/ticket.actions";
 
-interface Collaborator { id: string; name: string; role: string; }
+interface Collaborator { id: string; name: string; email: string; role: string; }
 interface Client { id: string; name: string; companies: { id: string; name: string }[]; }
 interface Plan { id: string; name: string; type: string; companyId: string; company: { name: string }; }
 interface Ticket {
@@ -101,7 +101,7 @@ export function TicketEditForm({
           <select name="assignedToId" defaultValue={ticket.assignedToId ?? ""} className={inputClass}>
             <option value="">Sin asignar</option>
             {collaborators.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
+              <option key={c.id} value={c.id}>{c.name} — {c.email}</option>
             ))}
           </select>
         </div>

@@ -3,12 +3,13 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { formatDate } from "@/lib/format-date";
 import { ResendInvitationButton } from "@/components/admin/resend-invitation-button";
+import { ToggleUserActiveButton } from "@/components/admin/toggle-user-active-button";
 import { Plus, Pencil } from "lucide-react";
 
 export const metadata = { title: "Usuarios — Geniorama Tickets" };
 
 export default async function UsersPage() {
-  await requireRole(["ADMINISTRADOR"]);
+  const session = await requireRole(["ADMINISTRADOR"]);
 
   const users = await prisma.user.findMany({
     orderBy: { createdAt: "desc" },
@@ -57,7 +58,7 @@ export default async function UsersPage() {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
+              <tr key={user.id} className={`hover:bg-gray-50 ${!user.isActive ? "opacity-60" : ""}`}>
                 <td className="px-4 py-3 font-medium text-gray-900">
                   <Link href={`/admin/users/${user.id}`} className="hover:text-indigo-600">
                     {user.name}
@@ -90,9 +91,16 @@ export default async function UsersPage() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
+                    <ToggleUserActiveButton
+                      userId={user.id}
+                      isActive={user.isActive}
+                      isSelf={user.id === session.user.id}
+                    />
                     <ResendInvitationButton userId={user.id} />
-                    <Link href={`/admin/users/${user.id}/edit`}
-                      className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                    <Link
+                      href={`/admin/users/${user.id}/edit`}
+                      className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                    >
                       <Pencil className="w-3.5 h-3.5" />
                       Editar
                     </Link>

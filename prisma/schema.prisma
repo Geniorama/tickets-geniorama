@@ -138,6 +138,12 @@ model TicketComment {
   body       String
   isInternal Boolean  @default(false) @map("is_internal")
 
+  // Adjunto opcional (link externo o archivo)
+  attachmentType        String? @map("attachment_type")         // "link" | "file"
+  attachmentUrl         String? @map("attachment_url")
+  attachmentName        String? @map("attachment_name")
+  attachmentStoragePath String? @map("attachment_storage_path") // solo archivos Supabase
+
   ticketId   String   @map("ticket_id")
   authorId   String   @map("author_id")
 
