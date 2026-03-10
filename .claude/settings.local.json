@@ -15,7 +15,12 @@
       "Bash(find \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" -maxdepth 1 -name \".env*\" -o -name \"*.env*\" 2>/dev/null | head -20)",
       "Bash(find \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(auth\\)\" -name \"layout.tsx\" -o -name \"layout.ts\")",
       "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsc --noEmit 2>&1; echo \"exit: $?\")",
-      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsc --noEmit 2>&1; echo \"exit:$?\")"
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsc --noEmit 2>&1; echo \"exit:$?\")",
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npm install @aws-sdk/s3-request-presigner && npm uninstall @aws-sdk/cloudfront-signer)",
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsx scripts/test-r2.ts)",
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsx scripts/test-rds.ts)",
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsx scripts/migrate-data.ts)",
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsx -e \"\nimport { config } from 'dotenv';\nconfig\\({ path: '.env.local' }\\);\nimport { Client } from 'pg';\nconst c = new Client\\({ connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }\\);\nawait c.connect\\(\\);\nconst { rows } = await c.query\\(\\\\\"SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename\\\\\"\\);\nconsole.log\\(rows.map\\(\\(r: {tablename: string}\\) => r.tablename\\).join\\('\\\\n'\\)\\);\nawait c.end\\(\\);\n\")"
     ]
   }
 }

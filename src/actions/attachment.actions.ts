@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, requireRole } from "@/lib/auth-helpers";
-import { validateFile, uploadFile, deleteFile } from "@/lib/supabase";
+import { validateFile, uploadFile, deleteFile } from "@/lib/s3";
 
 export async function addAttachment(ticketId: string, formData: FormData) {
   const session = await getRequiredSession();

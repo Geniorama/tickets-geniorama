@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth-helpers";
-import { validateLogo, uploadLogo, deleteFile } from "@/lib/supabase";
+import { validateLogo, uploadLogo, deleteFile } from "@/lib/s3";
 
 const companySchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),

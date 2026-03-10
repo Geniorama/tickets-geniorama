@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, requireRole, isStaff } from "@/lib/auth-helpers";
-import { validateFile, uploadFile } from "@/lib/supabase";
+import { validateFile, uploadFile } from "@/lib/s3";
 import { getClientActivePlan } from "@/lib/plans.server";
 
 const createTicketSchema = z.object({

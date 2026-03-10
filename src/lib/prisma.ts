@@ -4,7 +4,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 function createPrismaClient() {
   const adapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL!,
-    max: 3, // evita superar el pool_size del Session Pooler de Supabase
+    max: 10,
+    ssl: { rejectUnauthorized: false },
   });
   return new PrismaClient({
     adapter,
