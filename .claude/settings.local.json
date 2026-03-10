@@ -14,7 +14,8 @@
       "Bash(ls \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(dashboard\\)/admin/\")",
       "Bash(find \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" -maxdepth 1 -name \".env*\" -o -name \"*.env*\" 2>/dev/null | head -20)",
       "Bash(find \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(auth\\)\" -name \"layout.tsx\" -o -name \"layout.ts\")",
-      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsc --noEmit 2>&1; echo \"exit: $?\")"
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsc --noEmit 2>&1; echo \"exit: $?\")",
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsc --noEmit 2>&1; echo \"exit:$?\")"
     ]
   }
 }

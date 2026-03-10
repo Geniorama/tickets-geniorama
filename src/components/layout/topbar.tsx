@@ -4,7 +4,6 @@ import Link from "next/link";
 import type { Session } from "next-auth";
 import { LogOut, UserCircle, KeyRound } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { logout } from "@/actions/auth.actions";
 
 const roleLabels = {
   ADMINISTRADOR: "Administrador",
@@ -39,19 +38,17 @@ export function Topbar({ user }: { user: Session["user"] }) {
         >
           <KeyRound className="w-4 h-4" />
         </Link>
-        <form action={logout}>
-          <button
-            type="submit"
-            className="flex items-center gap-1.5 text-sm transition-colors ml-1"
-            style={{ color: "var(--app-text-muted)" }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "#fd1384")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--app-text-muted)")}
-            title="Cerrar sesión"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Salir</span>
-          </button>
-        </form>
+        <a
+          href="/api/logout"
+          className="flex items-center gap-1.5 text-sm transition-colors ml-1"
+          style={{ color: "var(--app-text-muted)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "#fd1384")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--app-text-muted)")}
+          title="Cerrar sesión"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>Salir</span>
+        </a>
       </div>
     </header>
   );
