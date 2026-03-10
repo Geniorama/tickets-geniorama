@@ -1,8 +1,10 @@
 "use client";
 
 import { signOut } from "next-auth/react";
+import Link from "next/link";
 import type { Session } from "next-auth";
-import { LogOut, UserCircle } from "lucide-react";
+import { LogOut, UserCircle, KeyRound } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const roleLabels = {
   ADMINISTRADOR: "Administrador",
@@ -15,23 +17,34 @@ export function Topbar({ user }: { user: Session["user"] }) {
     <header
       className="h-14 flex items-center justify-between px-6"
       style={{
-        backgroundColor: "#000a3d",
-        borderBottom: "1px solid rgba(255,255,255,0.08)",
+        backgroundColor: "var(--app-header-bg)",
+        borderBottom: "1px solid var(--app-border)",
       }}
     >
       <div />
-      <div className="flex items-center gap-4">
-        <UserCircle className="w-8 h-8" style={{ color: "rgba(255,255,255,0.25)" }} />
+      <div className="flex items-center gap-3">
+        <ThemeToggle />
+        <UserCircle className="w-8 h-8" style={{ color: "var(--app-icon-color)" }} />
         <div className="text-right">
-          <p className="text-sm font-medium" style={{ color: "#ffffff" }}>{user.name}</p>
-          <p className="text-xs" style={{ color: "rgba(255,255,255,0.45)" }}>{roleLabels[user.role]}</p>
+          <p className="text-sm font-medium" style={{ color: "var(--app-body-text)" }}>{user.name}</p>
+          <p className="text-xs" style={{ color: "var(--app-text-muted)" }}>{roleLabels[user.role]}</p>
         </div>
+        <Link
+          href="/perfil"
+          className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+          style={{ color: "var(--app-icon-color)" }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--app-body-text)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--app-icon-color)")}
+          title="Mi perfil"
+        >
+          <KeyRound className="w-4 h-4" />
+        </Link>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex items-center gap-1.5 text-sm transition-colors ml-2"
-          style={{ color: "rgba(255,255,255,0.45)" }}
+          className="flex items-center gap-1.5 text-sm transition-colors ml-1"
+          style={{ color: "var(--app-text-muted)" }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "#fd1384")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.45)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--app-text-muted)")}
           title="Cerrar sesión"
         >
           <LogOut className="w-4 h-4" />

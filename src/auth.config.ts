@@ -16,7 +16,8 @@ export const authConfig = {
       const isApiAuth = nextUrl.pathname.startsWith("/api/auth");
       const isAuthRoute =
         nextUrl.pathname.startsWith("/login") ||
-        nextUrl.pathname.startsWith("/set-password");
+        nextUrl.pathname.startsWith("/set-password") ||
+        nextUrl.pathname.startsWith("/forgot-password");
 
       if (isApiAuth) return true;
 

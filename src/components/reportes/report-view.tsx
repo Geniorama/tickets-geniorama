@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   FileDown, Printer, Filter, Clock, Ticket,
-  CheckCircle2, AlertCircle, BarChart3,
+  CheckCircle2, AlertCircle, BarChart3, Building2,
 } from "lucide-react";
 import { formatDate } from "@/lib/format-date";
 import { formatHours } from "@/lib/plans";
@@ -27,6 +27,7 @@ export type PlanRow = {
   id: string;
   name: string;
   type: string;
+  companyId: string;
   company: { name: string };
   totalHours: number | null;
   usedHours: number;
@@ -34,6 +35,9 @@ export type PlanRow = {
   isActive: boolean;
   ticketCount: number;
 };
+
+export type CompanyOption = { id: string; name: string };
+export type PlanOption    = { id: string; name: string; companyId: string };
 
 // ── Helpers ──────────────────────────────────────────────────
 const STATUS_LABELS: Record<string, string> = {
@@ -59,14 +63,21 @@ function csvEscape(val: string | null | undefined): string {
 }
 
 // ── CSV export ───────────────────────────────────────────────
-function buildCSV(tickets: TicketRow[], plans: PlanRow[], isClient: boolean): string {
+function buildCSV(
+  tickets: TicketRow[],
+  plans: PlanRow[],
+  isClient: boolean,
+  companyLabel?: string,
+  planLabel?: string,
+): string {
   const lines: string[] = [];
 
   lines.push("REPORTE GENIORAMA TICKETS");
   lines.push(`Generado:,${new Date().toLocaleDateString("es-CO")}`);
+  if (companyLabel) lines.push(`Empresa:,${csvEscape(companyLabel)}`);
+  if (planLabel)    lines.push(`Plan:,${csvEscape(planLabel)}`);
   lines.push("");
 
-  // Plans section
   if (plans.length > 0) {
     lines.push("PLANES");
     const planHeaders = isClient
@@ -113,7 +124,6 @@ function buildCSV(tickets: TicketRow[], plans: PlanRow[], isClient: boolean): st
     lines.push("");
   }
 
-  // Tickets section
   lines.push("TICKETS");
   const ticketHeaders = isClient
     ? ["#", "Título", "Estado", "Prioridad", "Categoría", "Plan", "Tiempo total", "Fecha creación"]
@@ -167,38 +177,62 @@ export function ReportView({
   isClient,
   initialFrom,
   initialTo,
+  initialCompanyId = "",
+  initialPlanId = "",
+  companyOptions = [],
+  planOptions = [],
 }: {
-  tickets:     TicketRow[];
-  plans:       PlanRow[];
-  isClient:    boolean;
-  initialFrom: string;
-  initialTo:   string;
+  tickets:          TicketRow[];
+  plans:            PlanRow[];
+  isClient:         boolean;
+  initialFrom:      string;
+  initialTo:        string;
+  initialCompanyId?: string;
+  initialPlanId?:   string;
+  companyOptions?:  CompanyOption[];
+  planOptions?:     PlanOption[];
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const [from, setFrom] = useState(initialFrom);
-  const [to,   setTo]   = useState(initialTo);
+  const [from,      setFrom]      = useState(initialFrom);
+  const [to,        setTo]        = useState(initialTo);
+  const [companyId, setCompanyId] = useState(initialCompanyId);
+  const [planId,    setPlanId]    = useState(initialPlanId);
 
   const totalMs     = tickets.reduce((s, t) => s + t.totalMs, 0);
   const openCount   = tickets.filter((t) => t.status !== "CERRADO").length;
   const closedCount = tickets.filter((t) => t.status === "CERRADO").length;
 
+  // Plans available in the plan dropdown (filtered by selected company)
+  const filteredPlanOptions = companyId
+    ? planOptions.filter((p) => p.companyId === companyId)
+    : planOptions;
+
+  const selectedCompanyLabel = companyOptions.find((c) => c.id === companyId)?.name;
+  const selectedPlanLabel    = planOptions.find((p) => p.id === planId)?.name;
+
   function applyFilter() {
     startTransition(() => {
       const params = new URLSearchParams();
-      if (from) params.set("from", from);
-      if (to)   params.set("to", to);
+      if (from)      params.set("from",      from);
+      if (to)        params.set("to",        to);
+      if (companyId) params.set("companyId", companyId);
+      if (planId)    params.set("planId",    planId);
       router.push(`/reportes?${params.toString()}`);
     });
   }
 
   function clearFilter() {
-    setFrom(""); setTo("");
+    setFrom(""); setTo(""); setCompanyId(""); setPlanId("");
     startTransition(() => router.push("/reportes"));
   }
 
+  const hasActiveFilters = !!(initialFrom || initialTo || initialCompanyId || initialPlanId);
+
   const inputCls =
     "border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500";
+  const selectCls =
+    "border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[160px]";
 
   return (
     <div>
@@ -207,7 +241,7 @@ export function ReportView({
         <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => downloadCSV(buildCSV(tickets, plans, isClient))}
+            onClick={() => downloadCSV(buildCSV(tickets, plans, isClient, selectedCompanyLabel, selectedPlanLabel))}
             className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
           >
             <FileDown className="w-4 h-4" />
@@ -227,6 +261,8 @@ export function ReportView({
       <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 no-print">
         <div className="flex items-end gap-3 flex-wrap">
           <Filter className="w-4 h-4 text-gray-400 mb-2 shrink-0" />
+
+          {/* Date filters */}
           <div>
             <label className="block text-xs text-gray-500 mb-1">Desde</label>
             <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inputCls} />
@@ -235,23 +271,77 @@ export function ReportView({
             <label className="block text-xs text-gray-500 mb-1">Hasta</label>
             <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inputCls} />
           </div>
+
+          {/* Company / Plan filters (staff only) */}
+          {!isClient && (
+            <>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  <span className="inline-flex items-center gap-1">
+                    <Building2 className="w-3 h-3" /> Empresa
+                  </span>
+                </label>
+                <select
+                  value={companyId}
+                  onChange={(e) => { setCompanyId(e.target.value); setPlanId(""); }}
+                  className={selectCls}
+                >
+                  <option value="">Todas las empresas</option>
+                  {companyOptions.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Plan</label>
+                <select
+                  value={planId}
+                  onChange={(e) => setPlanId(e.target.value)}
+                  className={selectCls}
+                  disabled={filteredPlanOptions.length === 0}
+                >
+                  <option value="">Todos los planes</option>
+                  {filteredPlanOptions.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+
           <button
             onClick={applyFilter}
             className="px-4 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
           >
             Aplicar
           </button>
-          {(initialFrom || initialTo) && (
+          {hasActiveFilters && (
             <button onClick={clearFilter} className="text-sm text-gray-400 hover:text-gray-600">
               Limpiar filtros
             </button>
           )}
-          {(initialFrom || initialTo) && (
-            <span className="text-xs text-gray-500 ml-auto">
-              Período: {initialFrom ? formatDate(initialFrom) : "—"} → {initialTo ? formatDate(initialTo) : "—"}
-            </span>
-          )}
         </div>
+
+        {/* Active filter summary */}
+        {hasActiveFilters && (
+          <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-2 text-xs text-gray-500">
+            {(initialFrom || initialTo) && (
+              <span>
+                Período: {initialFrom ? formatDate(initialFrom) : "—"} → {initialTo ? formatDate(initialTo) : "—"}
+              </span>
+            )}
+            {selectedCompanyLabel && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full">
+                <Building2 className="w-3 h-3" /> {selectedCompanyLabel}
+              </span>
+            )}
+            {selectedPlanLabel && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full">
+                {selectedPlanLabel}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Print header (only visible on print) ── */}
@@ -260,15 +350,17 @@ export function ReportView({
         <p className="text-sm text-gray-500">
           Generado el {formatDate(new Date().toISOString())}
           {(initialFrom || initialTo) && ` · Período: ${initialFrom ? formatDate(initialFrom) : "inicio"} — ${initialTo ? formatDate(initialTo) : "hoy"}`}
+          {selectedCompanyLabel && ` · Empresa: ${selectedCompanyLabel}`}
+          {selectedPlanLabel    && ` · Plan: ${selectedPlanLabel}`}
         </p>
       </div>
 
       {/* ── Summary cards ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <SummaryCard icon={<Ticket className="w-5 h-5" />} label="Total tickets" value={String(tickets.length)} color="indigo" />
-        <SummaryCard icon={<Clock className="w-5 h-5" />} label="Tiempo total" value={msToHHMM(totalMs)} color="purple" />
-        <SummaryCard icon={<AlertCircle className="w-5 h-5" />} label="Abiertos" value={String(openCount)} color="amber" />
-        <SummaryCard icon={<CheckCircle2 className="w-5 h-5" />} label="Cerrados" value={String(closedCount)} color="green" />
+        <SummaryCard icon={<Ticket className="w-5 h-5" />}       label="Total tickets" value={String(tickets.length)} color="indigo" />
+        <SummaryCard icon={<Clock className="w-5 h-5" />}        label="Tiempo total"  value={msToHHMM(totalMs)}      color="purple" />
+        <SummaryCard icon={<AlertCircle className="w-5 h-5" />}  label="Abiertos"      value={String(openCount)}      color="amber"  />
+        <SummaryCard icon={<CheckCircle2 className="w-5 h-5" />} label="Cerrados"      value={String(closedCount)}    color="green"  />
       </div>
 
       {/* ── Plans ── */}
@@ -296,9 +388,9 @@ export function ReportView({
                   const pct = p.type === "BOLSA_HORAS" && p.totalHours
                     ? Math.min(100, Math.round((p.usedHours / p.totalHours) * 100))
                     : null;
-                  const expired = p.effectiveExpiresAt && new Date(p.effectiveExpiresAt) < new Date();
+                  const expired   = p.effectiveExpiresAt && new Date(p.effectiveExpiresAt) < new Date();
                   const exhausted = p.type === "BOLSA_HORAS" && p.totalHours && p.usedHours >= p.totalHours;
-                  const estado = !p.isActive ? "Inactivo" : expired ? "Expirado" : exhausted ? "Agotado" : "Activo";
+                  const estado    = !p.isActive ? "Inactivo" : expired ? "Expirado" : exhausted ? "Agotado" : "Activo";
                   const estadoColor: Record<string, string> = {
                     Activo:   "bg-green-50 text-green-700",
                     Expirado: "bg-red-50 text-red-700",
@@ -384,12 +476,8 @@ export function ReportView({
                     <td className="px-4 py-3 font-medium text-gray-900 max-w-[220px]">
                       <span className="line-clamp-2">{t.title}</span>
                     </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={t.status} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <PriorityBadge priority={t.priority} />
-                    </td>
+                    <td className="px-4 py-3"><StatusBadge status={t.status} /></td>
+                    <td className="px-4 py-3"><PriorityBadge priority={t.priority} /></td>
                     <td className="px-4 py-3 text-gray-600">{t.category ?? <span className="text-gray-400">—</span>}</td>
                     {!isClient && <td className="px-4 py-3 text-gray-600">{t.client?.name ?? <span className="text-gray-400">—</span>}</td>}
                     {!isClient && <td className="px-4 py-3 text-gray-600">{t.assignedTo?.name ?? <span className="text-gray-400">—</span>}</td>}

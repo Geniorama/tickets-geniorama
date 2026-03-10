@@ -26,19 +26,22 @@
   font-display: swap;
 }
 
+/* ── Tipografías (inline: valores estáticos, no cambian por tema) ── */
 @theme inline {
-  /* ── Tipografías ── */
   --font-sans:    'Poppins', system-ui, sans-serif;
   --font-heading: 'Qanelas', 'Poppins', system-ui, sans-serif;
   --font-mono:    ui-monospace, 'Cascadia Code', monospace;
+}
 
-  /* ── Paleta de marca ── */
+/* ── Colores (sin inline → genera CSS vars sobreescribibles en runtime) ── */
+@theme {
+  /* Marca y acento (invariantes de tema) */
   --color-brand:       #000a3d;
   --color-brand-light: #0d1a5c;
   --color-accent:      #fd1384;
   --color-accent-dark: #d40069;
 
-  /* ── Indigo → Rosa (aplica a todos los componentes existentes) ── */
+  /* ── Indigo → Rosa (modo oscuro por defecto) ── */
   --color-indigo-50:  #2a0f1e;
   --color-indigo-100: #3d0f27;
   --color-indigo-200: #5e1038;
@@ -50,15 +53,12 @@
   --color-indigo-800: #a3004f;
   --color-indigo-900: #85003f;
 
-  /* ── Escala de grises invertida (dark theme) ── */
-  /* bg-white  → superficie de tarjeta */
+  /* ── Grises invertidos (modo oscuro por defecto) ── */
   --color-white:     #0f1e6a;
-  /* gray oscuro → fondo/secciones más oscuras */
   --color-gray-50:   #0c1960;
   --color-gray-100:  #182878;
   --color-gray-200:  #1f3080;
   --color-gray-300:  #2e4090;
-  /* gray claro → texto */
   --color-gray-400:  #5a70a8;
   --color-gray-500:  #7a8ec0;
   --color-gray-600:  #9aabd5;
@@ -66,7 +66,7 @@
   --color-gray-800:  #d8e0f5;
   --color-gray-900:  #eef2fc;
 
-  /* ── Colores de estado adaptados al dark theme ── */
+  /* ── Colores de estado (modo oscuro por defecto) ── */
   --color-green-50:  color-mix(in srgb, #4ade80 12%, transparent);
   --color-green-100: color-mix(in srgb, #4ade80 20%, transparent);
   --color-green-600: #4ade80;
@@ -98,10 +98,107 @@
   --color-purple-700: #c084fc;
 }
 
+/* ── Variables de layout — modo oscuro por defecto ── */
+:root {
+  --app-body-bg:        #000a3d;
+  --app-body-text:      #eef2fc;
+  --app-sidebar-bg:     #000a3d;
+  --app-header-bg:      #000a3d;
+  --app-content-bg:     #071245;
+  --app-border:         rgba(255, 255, 255, 0.08);
+  --app-text-muted:     rgba(255, 255, 255, 0.45);
+  --app-nav-text:       rgba(255, 255, 255, 0.6);
+  --app-nav-hover-bg:   rgba(255, 255, 255, 0.07);
+  --app-icon-color:     rgba(255, 255, 255, 0.25);
+  --app-footer-text:    rgba(255, 255, 255, 0.25);
+  --app-input-bg:       #0a1550;
+  --app-input-text:     #eef2fc;
+  --app-placeholder:    #5a70a8;
+  --app-scrollbar-track: #071245;
+  --app-scrollbar-thumb: #1f3080;
+}
+
+/* ── Overrides modo claro ── */
+html.light {
+  /* Colores Tailwind — paleta estándar */
+  --color-white:     #ffffff;
+  --color-gray-50:   #f9fafb;
+  --color-gray-100:  #f3f4f6;
+  --color-gray-200:  #e5e7eb;
+  --color-gray-300:  #d1d5db;
+  --color-gray-400:  #9ca3af;
+  --color-gray-500:  #6b7280;
+  --color-gray-600:  #4b5563;
+  --color-gray-700:  #374151;
+  --color-gray-800:  #1f2937;
+  --color-gray-900:  #111827;
+
+  /* Indigo — estándar en modo claro */
+  --color-indigo-50:  #eef2ff;
+  --color-indigo-100: #e0e7ff;
+  --color-indigo-200: #c7d2fe;
+  --color-indigo-300: #a5b4fc;
+  --color-indigo-400: #818cf8;
+  --color-indigo-500: #6366f1;
+  --color-indigo-600: #4f46e5;
+  --color-indigo-700: #4338ca;
+  --color-indigo-800: #3730a3;
+  --color-indigo-900: #312e81;
+
+  /* Estado — colores estándar modo claro */
+  --color-green-50:  #f0fdf4;
+  --color-green-100: #dcfce7;
+  --color-green-600: #16a34a;
+  --color-green-700: #15803d;
+  --color-green-800: #166534;
+
+  --color-amber-50:  #fffbeb;
+  --color-amber-100: #fef3c7;
+  --color-amber-200: #fde68a;
+  --color-amber-700: #b45309;
+  --color-amber-800: #92400e;
+
+  --color-red-50:  #fef2f2;
+  --color-red-100: #fee2e2;
+  --color-red-200: #fecaca;
+  --color-red-600: #dc2626;
+  --color-red-700: #b91c1c;
+
+  --color-orange-50:  #fff7ed;
+  --color-orange-100: #ffedd5;
+  --color-orange-700: #c2410c;
+
+  --color-blue-50:  #eff6ff;
+  --color-blue-100: #dbeafe;
+  --color-blue-700: #1d4ed8;
+
+  --color-purple-50:  #faf5ff;
+  --color-purple-100: #f3e8ff;
+  --color-purple-700: #7e22ce;
+
+  /* Variables de layout — modo claro */
+  --app-body-bg:        #f0f4ff;
+  --app-body-text:      #1a1a3e;
+  --app-sidebar-bg:     #ffffff;
+  --app-header-bg:      #ffffff;
+  --app-content-bg:     #eef2ff;
+  --app-border:         rgba(0, 10, 61, 0.1);
+  --app-text-muted:     rgba(0, 10, 61, 0.5);
+  --app-nav-text:       rgba(0, 10, 61, 0.65);
+  --app-nav-hover-bg:   rgba(0, 10, 61, 0.06);
+  --app-icon-color:     rgba(0, 10, 61, 0.35);
+  --app-footer-text:    rgba(0, 10, 61, 0.3);
+  --app-input-bg:       #ffffff;
+  --app-input-text:     #1a1a3e;
+  --app-placeholder:    #9aa5c8;
+  --app-scrollbar-track: #dde5ff;
+  --app-scrollbar-thumb: #b0bfe8;
+}
+
 body {
   font-family: 'Poppins', system-ui, sans-serif;
-  background: #000a3d;
-  color: #eef2fc;
+  background: var(--app-body-bg);
+  color: var(--app-body-text);
 }
 
 /* text-white debe ser blanco real, independiente del override de --color-white */
@@ -113,28 +210,27 @@ h1, h2, h3, h4, h5, h6 {
   font-family: 'Qanelas', 'Poppins', system-ui, sans-serif;
 }
 
-/* ── Inputs / selects / textareas más oscuros que la tarjeta ── */
+/* ── Inputs / selects / textareas ── */
 input:not([type="file"]),
 select,
 textarea {
-  background-color: #0a1550 !important;
-  color: #eef2fc !important;
+  background-color: var(--app-input-bg) !important;
+  color: var(--app-input-text) !important;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: #5a70a8 !important;
+  color: var(--app-placeholder) !important;
 }
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #071245; }
-::-webkit-scrollbar-thumb { background: #1f3080; border-radius: 3px; }
+::-webkit-scrollbar-track { background: var(--app-scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--app-scrollbar-thumb); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #fd1384; }
 
 /* ── Impresión / PDF ── */
 @media print {
-  /* Restaurar paleta clara para impresión */
   :root {
     --color-white:    #ffffff;
     --color-gray-50:  #f9fafb;

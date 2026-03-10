@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
+import { ThemeProvider } from "@/providers/theme-provider";
 import { auth } from "@/auth";
 import "./globals.css";
 
@@ -24,9 +25,11 @@ export default async function RootLayout({
   const session = await auth();
 
   return (
-    <html lang="es" className="[color-scheme:light]">
+    <html lang="es" suppressHydrationWarning>
       <body className={`${poppins.variable} antialiased`}>
-        <SessionProvider session={session}>{children}</SessionProvider>
+        <ThemeProvider>
+          <SessionProvider session={session}>{children}</SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

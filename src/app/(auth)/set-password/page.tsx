@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SetPasswordForm } from "@/components/auth/set-password-form";
 
-export const metadata = { title: "Activar cuenta — Geniorama Tickets" };
+export const metadata = { title: "Establecer contraseña — Geniorama Tickets" };
 
 export default async function SetPasswordPage({
   searchParams,
@@ -53,9 +53,9 @@ export default async function SetPasswordPage({
           <p className="text-gray-500 mt-1">Sistema de Tickets</p>
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-xl font-semibold text-gray-800 mb-1">Activar cuenta</h2>
+          <h2 className="text-xl font-semibold text-gray-800 mb-1">Establecer contraseña</h2>
           <p className="text-sm text-gray-500 mb-6">
-            Hola <strong>{record.user.name}</strong>, establece tu contraseña para continuar.
+            Hola <strong>{record.user.name}</strong>, elige una contraseña para continuar.
           </p>
           <SetPasswordForm token={token} />
         </div>
