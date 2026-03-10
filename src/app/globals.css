@@ -1,26 +1,193 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ── Qanelas (coloca los archivos en /public/fonts/) ── */
+@font-face {
+  font-family: 'Qanelas';
+  src: url('/fonts/Qanelas-Regular.woff2') format('woff2'),
+       url('/fonts/Qanelas-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Qanelas';
+  src: url('/fonts/Qanelas-SemiBold.woff2') format('woff2'),
+       url('/fonts/Qanelas-SemiBold.woff') format('woff');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Qanelas';
+  src: url('/fonts/Qanelas-Bold.woff2') format('woff2'),
+       url('/fonts/Qanelas-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* ── Tipografías ── */
+  --font-sans:    'Poppins', system-ui, sans-serif;
+  --font-heading: 'Qanelas', 'Poppins', system-ui, sans-serif;
+  --font-mono:    ui-monospace, 'Cascadia Code', monospace;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* ── Paleta de marca ── */
+  --color-brand:       #000a3d;
+  --color-brand-light: #0d1a5c;
+  --color-accent:      #fd1384;
+  --color-accent-dark: #d40069;
+
+  /* ── Indigo → Rosa (aplica a todos los componentes existentes) ── */
+  --color-indigo-50:  #2a0f1e;
+  --color-indigo-100: #3d0f27;
+  --color-indigo-200: #5e1038;
+  --color-indigo-300: #911054;
+  --color-indigo-400: #c4116e;
+  --color-indigo-500: #fd1384;
+  --color-indigo-600: #e0006e;
+  --color-indigo-700: #c20060;
+  --color-indigo-800: #a3004f;
+  --color-indigo-900: #85003f;
+
+  /* ── Escala de grises invertida (dark theme) ── */
+  /* bg-white  → superficie de tarjeta */
+  --color-white:     #0f1e6a;
+  /* gray oscuro → fondo/secciones más oscuras */
+  --color-gray-50:   #0c1960;
+  --color-gray-100:  #182878;
+  --color-gray-200:  #1f3080;
+  --color-gray-300:  #2e4090;
+  /* gray claro → texto */
+  --color-gray-400:  #5a70a8;
+  --color-gray-500:  #7a8ec0;
+  --color-gray-600:  #9aabd5;
+  --color-gray-700:  #becae5;
+  --color-gray-800:  #d8e0f5;
+  --color-gray-900:  #eef2fc;
+
+  /* ── Colores de estado adaptados al dark theme ── */
+  --color-green-50:  color-mix(in srgb, #4ade80 12%, transparent);
+  --color-green-100: color-mix(in srgb, #4ade80 20%, transparent);
+  --color-green-600: #4ade80;
+  --color-green-700: #4ade80;
+  --color-green-800: #86efac;
+
+  --color-amber-50:  color-mix(in srgb, #fbbf24 12%, transparent);
+  --color-amber-100: color-mix(in srgb, #fbbf24 20%, transparent);
+  --color-amber-200: color-mix(in srgb, #fbbf24 30%, transparent);
+  --color-amber-700: #fbbf24;
+  --color-amber-800: #f59e0b;
+
+  --color-red-50:  color-mix(in srgb, #f87171 12%, transparent);
+  --color-red-100: color-mix(in srgb, #f87171 20%, transparent);
+  --color-red-200: color-mix(in srgb, #f87171 30%, transparent);
+  --color-red-600: #f87171;
+  --color-red-700: #fca5a5;
+
+  --color-orange-50:  color-mix(in srgb, #fb923c 12%, transparent);
+  --color-orange-100: color-mix(in srgb, #fb923c 20%, transparent);
+  --color-orange-700: #fb923c;
+
+  --color-blue-50:  color-mix(in srgb, #60a5fa 12%, transparent);
+  --color-blue-100: color-mix(in srgb, #60a5fa 20%, transparent);
+  --color-blue-700: #60a5fa;
+
+  --color-purple-50:  color-mix(in srgb, #c084fc 12%, transparent);
+  --color-purple-100: color-mix(in srgb, #c084fc 20%, transparent);
+  --color-purple-700: #c084fc;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Poppins', system-ui, sans-serif;
+  background: #000a3d;
+  color: #eef2fc;
+}
+
+/* text-white debe ser blanco real, independiente del override de --color-white */
+.text-white {
+  color: #ffffff;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Qanelas', 'Poppins', system-ui, sans-serif;
+}
+
+/* ── Inputs / selects / textareas más oscuros que la tarjeta ── */
+input:not([type="file"]),
+select,
+textarea {
+  background-color: #0a1550 !important;
+  color: #eef2fc !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #5a70a8 !important;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #071245; }
+::-webkit-scrollbar-thumb { background: #1f3080; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #fd1384; }
+
+/* ── Impresión / PDF ── */
+@media print {
+  /* Restaurar paleta clara para impresión */
+  :root {
+    --color-white:    #ffffff;
+    --color-gray-50:  #f9fafb;
+    --color-gray-100: #f3f4f6;
+    --color-gray-200: #e5e7eb;
+    --color-gray-300: #d1d5db;
+    --color-gray-400: #9ca3af;
+    --color-gray-500: #6b7280;
+    --color-gray-600: #4b5563;
+    --color-gray-700: #374151;
+    --color-gray-800: #1f2937;
+    --color-gray-900: #111827;
+    --color-indigo-50:  #eef2ff;
+    --color-indigo-500: #6366f1;
+    --color-indigo-600: #4f46e5;
+    --color-indigo-700: #4338ca;
+    --color-green-50:  #f0fdf4;
+    --color-green-700: #15803d;
+    --color-amber-50:  #fffbeb;
+    --color-amber-700: #b45309;
+    --color-red-50:    #fef2f2;
+    --color-red-700:   #b91c1c;
+    --color-blue-50:   #eff6ff;
+    --color-blue-700:  #1d4ed8;
+    --color-purple-50: #faf5ff;
+    --color-purple-700:#7e22ce;
+    --color-orange-50: #fff7ed;
+    --color-orange-700:#c2410c;
+  }
+
+  body { background: #fff !important; color: #111 !important; }
+  aside, header, .no-print { display: none !important; }
+  main { background: #fff !important; padding: 1.5rem !important; max-width: 100% !important; }
+
+  input, select, textarea {
+    background-color: #f9fafb !important;
+    color: #111 !important;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  .print-block { display: block !important; }
+
+  @page { margin: 1.5cm; size: A4 landscape; }
+}
+
+.print-block { display: none; }
+
+/* ── Animaciones ── */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
 }

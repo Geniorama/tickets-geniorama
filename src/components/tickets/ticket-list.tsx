@@ -1,0 +1,137 @@
+"use client";
+
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import type { Role, Ticket, TicketStatus, Priority } from "@/generated/prisma";
+import { formatDateTime } from "@/lib/format-date";
+import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
+import { isStaff } from "@/lib/roles";
+
+type TicketWithRelations = Ticket & {
+  createdBy: { name: string; companies: { name: string }[] };
+  assignedTo: { name: string } | null;
+};
+
+function SortableHeader({
+  label,
+  column,
+  sortBy,
+  sortDir,
+}: {
+  label: string;
+  column: string;
+  sortBy: string;
+  sortDir: string;
+}) {
+  const searchParams = useSearchParams();
+  const isActive = sortBy === column;
+  const nextDir = isActive && sortDir === "asc" ? "desc" : "asc";
+
+  const params = new URLSearchParams(searchParams.toString());
+  params.set("sortBy", column);
+  params.set("sortDir", nextDir);
+
+  const Icon = isActive
+    ? sortDir === "asc"
+      ? ArrowUp
+      : ArrowDown
+    : ArrowUpDown;
+
+  return (
+    <th className="text-left px-4 py-3 text-gray-600 font-medium">
+      <Link
+        href={`/tickets?${params.toString()}`}
+        className={`inline-flex items-center gap-1 hover:text-indigo-600 transition-colors ${
+          isActive ? "text-indigo-600" : ""
+        }`}
+      >
+        {label}
+        <Icon className={`w-3.5 h-3.5 ${isActive ? "opacity-100" : "opacity-30"}`} />
+      </Link>
+    </th>
+  );
+}
+
+export function TicketList({
+  tickets,
+  role,
+  sortBy = "createdAt",
+  sortDir = "desc",
+}: {
+  tickets: TicketWithRelations[];
+  role: Role;
+  sortBy?: string;
+  sortDir?: string;
+}) {
+  const staff = isStaff(role);
+
+  if (tickets.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+        <p className="text-gray-400 text-sm">No hay tickets que coincidan con los filtros.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <table className="w-full text-sm">
+        <thead className="bg-gray-50 border-b border-gray-200">
+          <tr>
+            <SortableHeader label="Título"     column="title"      sortBy={sortBy} sortDir={sortDir} />
+            <SortableHeader label="Estado"     column="status"     sortBy={sortBy} sortDir={sortDir} />
+            <SortableHeader label="Prioridad"  column="priority"   sortBy={sortBy} sortDir={sortDir} />
+            <SortableHeader label="Creado por" column="createdBy"  sortBy={sortBy} sortDir={sortDir} />
+            {staff && (
+              <th className="text-left px-4 py-3 text-gray-600 font-medium">Empresa</th>
+            )}
+            <SortableHeader label="Asignado a" column="assignedTo" sortBy={sortBy} sortDir={sortDir} />
+            <SortableHeader label="Creado"     column="createdAt"  sortBy={sortBy} sortDir={sortDir} />
+            <SortableHeader label="Actualizado" column="updatedAt" sortBy={sortBy} sortDir={sortDir} />
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {tickets.map((ticket) => (
+            <tr key={ticket.id} className="hover:bg-gray-50">
+              <td className="px-4 py-3">
+                <Link
+                  href={`/tickets/${ticket.id}`}
+                  className="font-medium text-gray-900 hover:text-indigo-600"
+                >
+                  {ticket.title}
+                </Link>
+                {ticket.category && (
+                  <span className="ml-2 text-xs text-gray-400">{ticket.category}</span>
+                )}
+              </td>
+              <td className="px-4 py-3">
+                <StatusBadge status={ticket.status as TicketStatus} />
+              </td>
+              <td className="px-4 py-3">
+                <PriorityBadge priority={ticket.priority as Priority} />
+              </td>
+              <td className="px-4 py-3 text-gray-600">{ticket.createdBy.name}</td>
+              {staff && (
+                <td className="px-4 py-3 text-gray-500 text-xs">
+                  {ticket.createdBy.companies.length > 0
+                    ? ticket.createdBy.companies.map((c) => c.name).join(", ")
+                    : "—"}
+                </td>
+              )}
+              <td className="px-4 py-3 text-gray-500">
+                {ticket.assignedTo?.name ?? "—"}
+              </td>
+              <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                {formatDateTime(ticket.createdAt)}
+              </td>
+              <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                {formatDateTime(ticket.updatedAt)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}

@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(node:*)",
+      "Bash(mkdir:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm list:*)",
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && rm -rf .next && echo \"Cache limpiado\")",
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx prisma db execute --stdin 2>&1 <<'EOF'\nSELECT column_name FROM information_schema.columns WHERE table_name = 'users' ORDER BY column_name;\nEOF)",
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx prisma db execute --file - 2>&1 <<'EOF'\nSELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND table_schema = 'public' ORDER BY column_name;\nEOF)",
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsc --noEmit 2>&1; echo \"EXIT:$?\")",
+      "Bash(ls \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(dashboard\\)/admin/\")",
+      "Bash(find \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" -maxdepth 1 -name \".env*\" -o -name \"*.env*\" 2>/dev/null | head -20)",
+      "Bash(find \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(auth\\)\" -name \"layout.tsx\" -o -name \"layout.ts\")"
+    ]
+  }
+}
