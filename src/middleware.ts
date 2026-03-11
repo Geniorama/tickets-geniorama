@@ -6,5 +6,7 @@ const { auth } = NextAuth(authConfig);
 export default auth;
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png$).*)"],
+  // api/logout se excluye para que el middleware de NextAuth no interfiera
+  // con los Set-Cookie de borrado de sesión que envía ese route handler.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png$|api/logout).*)"],
 };

@@ -2,48 +2,33 @@ import { NextResponse } from "next/server";
 
 /**
  * GET /api/logout
- * Limpia las cookies de sesión de NextAuth v5 (authjs.*) con atributos exactos
- * y redirige al login. Más fiable que signOut() desde Server Action o cliente.
+ * Excluido del middleware de NextAuth (ver matcher en middleware.ts) para que
+ * los Set-Cookie de borrado no sean sobreescritos por el wrapper de auth.
  */
 export async function GET(request: Request) {
   const loginUrl = new URL("/login", request.url);
   const response = NextResponse.redirect(loginUrl);
 
-  // NextAuth v5 usa prefijo "authjs" (no "next-auth" que era v4).
-  // __Host- requiere: Secure, Path=/, sin Domain.
-  // __Secure- requiere: Secure.
-  // Usamos Set-Cookie raw para controlar atributos exactos.
-  const secureCookies = [
-    "__Secure-authjs.session-token",
-    "__Secure-authjs.callback-url",
-  ];
-  const hostCookies = [
-    "__Host-authjs.csrf-token",
-  ];
-  // Fallback HTTP (desarrollo local sin HTTPS)
-  const plainCookies = [
-    "authjs.session-token",
-    "authjs.csrf-token",
-    "authjs.callback-url",
+  // No cachear bajo ninguna circunstancia.
+  response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate");
+  response.headers.set("Pragma", "no-cache");
+
+  // NextAuth v5 usa prefijo "authjs" (v4 usaba "next-auth").
+  // __Host-  → requiere: Secure, Path=/, sin Domain attribute.
+  // __Secure-→ requiere: Secure.
+  const cookiesToClear = [
+    // HTTPS (producción)
+    `__Secure-authjs.session-token=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`,
+    `__Secure-authjs.callback-url=; Path=/; Max-Age=0; Secure; SameSite=Lax`,
+    `__Host-authjs.csrf-token=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`,
+    // HTTP (desarrollo local)
+    `authjs.session-token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`,
+    `authjs.callback-url=; Path=/; Max-Age=0; SameSite=Lax`,
+    `authjs.csrf-token=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`,
   ];
 
-  for (const name of secureCookies) {
-    response.headers.append(
-      "Set-Cookie",
-      `${name}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`,
-    );
-  }
-  for (const name of hostCookies) {
-    response.headers.append(
-      "Set-Cookie",
-      `${name}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`,
-    );
-  }
-  for (const name of plainCookies) {
-    response.headers.append(
-      "Set-Cookie",
-      `${name}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`,
-    );
+  for (const cookie of cookiesToClear) {
+    response.headers.append("Set-Cookie", cookie);
   }
 
   return response;

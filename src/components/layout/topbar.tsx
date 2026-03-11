@@ -38,9 +38,9 @@ export function Topbar({ user }: { user: Session["user"] }) {
         >
           <KeyRound className="w-4 h-4" />
         </Link>
-        <button
-          type="button"
-          onClick={() => { window.location.href = "/api/logout"; }}
+        {/* Usar <a> nativo para garantizar navegación completa sin intercepción del router de React */}
+        <a
+          href="/api/logout"
           className="flex items-center gap-1.5 text-sm transition-colors ml-1 cursor-pointer"
           style={{ color: "var(--app-text-muted)" }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "#fd1384")}
@@ -49,7 +49,7 @@ export function Topbar({ user }: { user: Session["user"] }) {
         >
           <LogOut className="w-4 h-4" />
           <span>Salir</span>
-        </button>
+        </a>
       </div>
     </header>
   );
