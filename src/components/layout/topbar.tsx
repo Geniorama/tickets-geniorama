@@ -4,7 +4,6 @@ import Link from "next/link";
 import type { Session } from "next-auth";
 import { LogOut, UserCircle, KeyRound } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { signOut } from "next-auth/react";
 
 const roleLabels = {
   ADMINISTRADOR: "Administrador",
@@ -41,7 +40,7 @@ export function Topbar({ user }: { user: Session["user"] }) {
         </Link>
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => { window.location.href = "/api/logout"; }}
           className="flex items-center gap-1.5 text-sm transition-colors ml-1 cursor-pointer"
           style={{ color: "var(--app-text-muted)" }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "#fd1384")}

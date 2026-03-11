@@ -1,28 +1,50 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 /**
  * GET /api/logout
- * Borra todos los cookies de sesión de NextAuth y redirige al login.
- * Más fiable que signOut() desde un Server Action en NextAuth v5 beta.
+ * Limpia las cookies de sesión de NextAuth v5 (authjs.*) con atributos exactos
+ * y redirige al login. Más fiable que signOut() desde Server Action o cliente.
  */
 export async function GET(request: Request) {
-  const cookieStore = await cookies();
+  const loginUrl = new URL("/login", request.url);
+  const response = NextResponse.redirect(loginUrl);
 
-  // NextAuth v5 usa estos nombres de cookie (HTTP y HTTPS)
-  const authCookies = [
-    "next-auth.session-token",
-    "__Secure-next-auth.session-token",
-    "next-auth.csrf-token",
-    "__Host-next-auth.csrf-token",
-    "next-auth.callback-url",
-    "__Secure-next-auth.callback-url",
+  // NextAuth v5 usa prefijo "authjs" (no "next-auth" que era v4).
+  // __Host- requiere: Secure, Path=/, sin Domain.
+  // __Secure- requiere: Secure.
+  // Usamos Set-Cookie raw para controlar atributos exactos.
+  const secureCookies = [
+    "__Secure-authjs.session-token",
+    "__Secure-authjs.callback-url",
+  ];
+  const hostCookies = [
+    "__Host-authjs.csrf-token",
+  ];
+  // Fallback HTTP (desarrollo local sin HTTPS)
+  const plainCookies = [
+    "authjs.session-token",
+    "authjs.csrf-token",
+    "authjs.callback-url",
   ];
 
-  for (const name of authCookies) {
-    cookieStore.delete(name);
+  for (const name of secureCookies) {
+    response.headers.append(
+      "Set-Cookie",
+      `${name}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`,
+    );
+  }
+  for (const name of hostCookies) {
+    response.headers.append(
+      "Set-Cookie",
+      `${name}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax`,
+    );
+  }
+  for (const name of plainCookies) {
+    response.headers.append(
+      "Set-Cookie",
+      `${name}=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax`,
+    );
   }
 
-  const loginUrl = new URL("/login", request.url);
-  return NextResponse.redirect(loginUrl);
+  return response;
 }
