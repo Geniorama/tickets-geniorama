@@ -3,7 +3,7 @@
 import { useTransition, useState } from "react";
 import Link from "next/link";
 import { formatDateTimeLong, formatDateTime } from "@/lib/format-date";
-import { Pencil, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Link2, Paperclip, FileText, ExternalLink, Globe } from "lucide-react";
+import { Pencil, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Link2, Paperclip, FileText, ExternalLink, Globe, ChevronDown } from "lucide-react";
 import type { Session } from "next-auth";
 import type { Ticket, TicketComment, TicketAttachment, TimeEntry, User, TicketStatus, Priority } from "@/generated/prisma";
 import { TicketTimer } from "./ticket-timer";
@@ -141,29 +141,7 @@ export function TicketDetail({
       </div>
 
       {staff && ticket.site && (ticket.site.documentation || ticket.site.architecture) && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-          <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-            <Globe className="w-4 h-4 text-indigo-500" />
-            Contexto del sitio: {ticket.site.name}
-            <span className="text-sm font-normal text-gray-400">({ticket.site.domain})</span>
-          </h2>
-          {ticket.site.documentation && (
-            <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Documentación</p>
-              <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
-                {ticket.site.documentation}
-              </pre>
-            </div>
-          )}
-          {ticket.site.architecture && (
-            <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Arquitectura</p>
-              <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
-                {ticket.site.architecture}
-              </pre>
-            </div>
-          )}
-        </div>
+        <SiteContextPanel site={ticket.site} />
       )}
 
       {(staff || (ticket.status === "CERRADO" && ticket.timeEntries.length > 0)) && (
@@ -250,6 +228,55 @@ export function TicketDetail({
 
         <CommentForm ticketId={ticket.id} isStaff={staff} />
       </div>
+    </div>
+  );
+}
+
+function SiteContextPanel({
+  site,
+}: {
+  site: { name: string; domain: string; documentation: string | null; architecture: string | null };
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 px-6 py-4 text-left hover:bg-gray-50 transition-colors"
+      >
+        <span className="flex items-center gap-2 text-base font-semibold text-gray-800">
+          <Globe className="w-4 h-4 text-indigo-500 shrink-0" />
+          Contexto del sitio: {site.name}
+          <span className="text-sm font-normal text-gray-400">({site.domain})</span>
+        </span>
+        <ChevronDown
+          className="w-4 h-4 text-gray-400 shrink-0 transition-transform"
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+        />
+      </button>
+
+      {open && (
+        <div className="px-6 pb-6 space-y-4 border-t border-gray-100">
+          {site.documentation && (
+            <div className="pt-4">
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Documentación</p>
+              <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+                {site.documentation}
+              </pre>
+            </div>
+          )}
+          {site.architecture && (
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Arquitectura</p>
+              <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+                {site.architecture}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
