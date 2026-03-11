@@ -7,6 +7,7 @@ import { Pencil, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOp
 import type { Session } from "next-auth";
 import type { Ticket, TicketComment, TicketAttachment, TimeEntry, User, TicketStatus, Priority } from "@/generated/prisma";
 import { TicketTimer } from "./ticket-timer";
+import { TicketAiAssistant } from "./ticket-ai-assistant";
 import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
 import { updateTicketStatus } from "@/actions/ticket.actions";
 import { addComment } from "@/actions/comment.actions";
@@ -143,6 +144,8 @@ export function TicketDetail({
       {staff && ticket.site && (ticket.site.documentation || ticket.site.architecture) && (
         <SiteContextPanel site={ticket.site} />
       )}
+
+      {staff && <TicketAiAssistant ticketId={ticket.id} />}
 
       {(staff || (ticket.status === "CERRADO" && ticket.timeEntries.length > 0)) && (
         <TicketTimer
