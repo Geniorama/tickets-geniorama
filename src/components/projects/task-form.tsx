@@ -4,6 +4,7 @@ import { useState, useTransition, useRef } from "react";
 import { createTask, updateTask } from "@/actions/task.actions";
 import type { TaskConflict } from "@/actions/task.actions";
 import type { Task } from "@/generated/prisma";
+import { MarkdownEditor } from "@/components/ui/markdown-editor";
 
 interface StaffUser {
   id: string;
@@ -90,13 +91,10 @@ export function TaskForm({ projectId, staffUsers, task }: TaskFormProps) {
 
       <div>
         <label style={labelStyle}>Descripción</label>
-        <textarea
+        <MarkdownEditor
           name="description"
-          required
-          rows={4}
           defaultValue={task?.description ?? ""}
           placeholder="Describe la tarea en detalle..."
-          style={inputStyle}
         />
       </div>
 

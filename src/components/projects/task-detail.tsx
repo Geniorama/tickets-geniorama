@@ -12,6 +12,7 @@ import { TaskTimer } from "./task-timer";
 import { formatDate, formatDateTimeLong } from "@/lib/format-date";
 import { isStaff, isAdmin } from "@/lib/roles";
 import { ExternalLink, FileText } from "lucide-react";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 
 type TaskWithDetails = Task & {
   project: { id: string; name: string };
@@ -176,16 +177,9 @@ export function TaskDetail({
           </div>
         </div>
 
-        <p
-          style={{
-            marginTop: "1rem",
-            fontSize: "0.875rem",
-            color: "var(--app-body-text)",
-            whiteSpace: "pre-wrap",
-          }}
-        >
-          {task.description}
-        </p>
+        <div style={{ marginTop: "1rem", fontSize: "0.875rem" }}>
+          <MarkdownRenderer content={task.description} />
+        </div>
 
         <div
           style={{
