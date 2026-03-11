@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth-helpers";
@@ -116,4 +117,19 @@ export async function togglePlanActive(planId: string, isActive: boolean) {
 
   revalidatePath("/admin/plans");
   return { success: true };
+}
+
+export async function deletePlan(planId: string) {
+  await requireRole(["ADMINISTRADOR"]);
+
+  // Nullify planId on tickets linked to this plan before deleting
+  await prisma.ticket.updateMany({
+    where: { planId },
+    data: { planId: null },
+  });
+
+  await prisma.plan.delete({ where: { id: planId } });
+
+  revalidatePath("/admin/plans");
+  redirect("/admin/plans");
 }

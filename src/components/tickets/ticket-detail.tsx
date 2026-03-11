@@ -9,7 +9,7 @@ import type { Ticket, TicketComment, TicketAttachment, TimeEntry, User, TicketSt
 import { TicketTimer } from "./ticket-timer";
 import { TicketAiAssistant } from "./ticket-ai-assistant";
 import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
-import { updateTicketStatus } from "@/actions/ticket.actions";
+import { updateTicketStatus, deleteTicket } from "@/actions/ticket.actions";
 import { addComment } from "@/actions/comment.actions";
 import { isStaff, isAdmin } from "@/lib/roles";
 import { AttachmentList } from "./attachment-list";
@@ -55,6 +55,11 @@ export function TicketDetail({
     });
   }
 
+  function handleDeleteTicket() {
+    if (!confirm(`¿Eliminar el ticket "${ticket.title}"? Esta acción no se puede deshacer.`)) return;
+    startTransition(() => deleteTicket(ticket.id));
+  }
+
   return (
     <div className="max-w-3xl space-y-6">
       <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -62,13 +67,22 @@ export function TicketDetail({
           <h1 className="text-xl font-bold text-gray-900">{ticket.title}</h1>
           <div className="flex items-center gap-2 shrink-0">
             {isAdmin(role) && (
-              <Link
-                href={`/tickets/${ticket.id}/edit`}
-                className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium border border-indigo-200 rounded px-2 py-1"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-                Editar
-              </Link>
+              <>
+                <Link
+                  href={`/tickets/${ticket.id}/edit`}
+                  className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium border border-indigo-200 rounded px-2 py-1"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Editar
+                </Link>
+                <button
+                  onClick={handleDeleteTicket}
+                  disabled={isPending}
+                  className="inline-flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 font-medium border border-red-200 rounded px-2 py-1 disabled:opacity-50"
+                >
+                  Eliminar
+                </button>
+              </>
             )}
             <PriorityBadge priority={ticket.priority as Priority} />
             {staff ? (

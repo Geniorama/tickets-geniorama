@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/auth-helpers";
@@ -174,4 +175,50 @@ export async function toggleCompanyActive(companyId: string, isActive: boolean) 
 
   revalidatePath("/admin/companies");
   return { success: true };
+}
+
+export async function deleteCompany(companyId: string) {
+  await requireRole(["ADMINISTRADOR"]);
+
+  const company = await prisma.company.findUnique({
+    where: { id: companyId },
+    select: {
+      logoStoragePath: true,
+      _count: {
+        select: {
+          subCompanies: true,
+          users: true,
+          plans: true,
+          projects: true,
+        },
+      },
+    },
+  });
+
+  if (!company) return { error: "Empresa no encontrada." };
+
+  const { subCompanies, users, plans, projects } = company._count;
+
+  if (subCompanies > 0) {
+    return { error: "No se puede eliminar la agencia porque tiene subempresas asociadas." };
+  }
+  if (users > 0) {
+    return { error: "No se puede eliminar la empresa porque tiene usuarios asociados." };
+  }
+  if (plans > 0) {
+    return { error: "No se puede eliminar la empresa porque tiene planes asociados." };
+  }
+  if (projects > 0) {
+    return { error: "No se puede eliminar la empresa porque tiene proyectos asociados." };
+  }
+
+  // Delete logo from storage if exists
+  if (company.logoStoragePath) {
+    await deleteFile(company.logoStoragePath).catch(() => {});
+  }
+
+  await prisma.company.delete({ where: { id: companyId } });
+
+  revalidatePath("/admin/companies");
+  redirect("/admin/companies");
 }

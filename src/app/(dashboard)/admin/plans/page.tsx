@@ -5,6 +5,7 @@ import { getEffectiveExpiresAt, isPlanEffectivelyActive, formatHours } from "@/l
 import { formatDate } from "@/lib/format-date";
 import Link from "next/link";
 import { Plus, Pencil } from "lucide-react";
+import { DeletePlanButton } from "@/components/admin/delete-plan-button";
 
 export const metadata = { title: "Planes — Geniorama Tickets" };
 
@@ -132,13 +133,16 @@ export default async function PlansPage() {
                   </td>
                   <td className="px-4 py-3">{getStatusBadge(plan, usedHours)}</td>
                   <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/plans/${plan.id}/edit`}
-                      className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Editar
-                    </Link>
+                    <div className="flex items-center gap-3">
+                      <Link
+                        href={`/admin/plans/${plan.id}/edit`}
+                        className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Editar
+                      </Link>
+                      <DeletePlanButton planId={plan.id} planName={plan.name} />
+                    </div>
                   </td>
                 </tr>
               );

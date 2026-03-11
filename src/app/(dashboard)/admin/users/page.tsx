@@ -4,6 +4,7 @@ import Link from "next/link";
 import { formatDate } from "@/lib/format-date";
 import { ResendInvitationButton } from "@/components/admin/resend-invitation-button";
 import { ToggleUserActiveButton } from "@/components/admin/toggle-user-active-button";
+import { DeleteUserButton } from "@/components/admin/delete-user-button";
 import { Plus, Pencil } from "lucide-react";
 
 export const metadata = { title: "Usuarios — Geniorama Tickets" };
@@ -104,6 +105,11 @@ export default async function UsersPage() {
                       <Pencil className="w-3.5 h-3.5" />
                       Editar
                     </Link>
+                    <DeleteUserButton
+                      userId={user.id}
+                      userName={user.name}
+                      isSelf={user.id === session.user.id}
+                    />
                   </div>
                 </td>
               </tr>

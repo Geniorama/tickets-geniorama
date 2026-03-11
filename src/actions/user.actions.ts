@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
@@ -139,4 +140,46 @@ export async function toggleUserActive(userId: string, isActive: boolean) {
 
   revalidatePath("/admin/users");
   return { success: true };
+}
+
+export async function deleteUser(userId: string) {
+  const session = await requireRole(["ADMINISTRADOR"]);
+
+  if (session.user.id === userId) {
+    return { error: "No puedes eliminar tu propio usuario." };
+  }
+
+  const counts = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      _count: {
+        select: {
+          createdTickets: true,
+          assignedTickets: true,
+          clientTickets: true,
+          comments: true,
+          createdProjects: true,
+          managedProjects: true,
+          createdTasks: true,
+          assignedTasks: true,
+          taskComments: true,
+        },
+      },
+    },
+  });
+
+  if (!counts) return { error: "Usuario no encontrado." };
+
+  const total = Object.values(counts._count).reduce((sum, n) => sum + n, 0);
+  if (total > 0) {
+    return {
+      error:
+        "No se puede eliminar el usuario porque tiene datos asociados (tickets, proyectos, comentarios, etc.). Desactívalo en su lugar.",
+    };
+  }
+
+  await prisma.user.delete({ where: { id: userId } });
+
+  revalidatePath("/admin/users");
+  redirect("/admin/users");
 }

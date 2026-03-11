@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Project, ProjectStatus, Task, TaskStatus, Priority } from "@/generated/prisma";
 import { ProjectStatusBadge } from "./project-status-badge";
@@ -9,6 +10,7 @@ import { TaskKanban } from "./task-kanban";
 import { TaskCalendar } from "./task-calendar";
 import { formatDate } from "@/lib/format-date";
 import { Plus, Pencil, List, LayoutGrid, CalendarDays, User2, Building2, Calendar } from "lucide-react";
+import { deleteProject } from "@/actions/project.actions";
 
 type TaskWithRelations = Task & {
   assignedTo: { name: string } | null;
@@ -41,6 +43,12 @@ export function ProjectDetail({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+
+  function handleDeleteProject() {
+    if (!confirm(`¿Eliminar el proyecto "${project.name}"? Se eliminarán también todas sus tareas. Esta acción no se puede deshacer.`)) return;
+    startTransition(() => deleteProject(project.id));
+  }
 
   function setView(v: ViewType) {
     const params = new URLSearchParams(searchParams.toString());
@@ -99,24 +107,45 @@ export function ProjectDetail({
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
             <ProjectStatusBadge status={project.status as ProjectStatus} />
             {isAdmin && (
-              <Link
-                href={`/proyectos/${project.id}/edit`}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.25rem",
-                  fontSize: "0.8125rem",
-                  color: "#fd1384",
-                  border: "1px solid rgba(253,19,132,0.3)",
-                  borderRadius: "0.375rem",
-                  padding: "0.25rem 0.625rem",
-                  textDecoration: "none",
-                  fontWeight: 500,
-                }}
-              >
-                <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />
-                Editar
-              </Link>
+              <>
+                <Link
+                  href={`/proyectos/${project.id}/edit`}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.25rem",
+                    fontSize: "0.8125rem",
+                    color: "#fd1384",
+                    border: "1px solid rgba(253,19,132,0.3)",
+                    borderRadius: "0.375rem",
+                    padding: "0.25rem 0.625rem",
+                    textDecoration: "none",
+                    fontWeight: 500,
+                  }}
+                >
+                  <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />
+                  Editar
+                </Link>
+                <button
+                  onClick={handleDeleteProject}
+                  disabled={isPending}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    fontSize: "0.8125rem",
+                    color: "#dc2626",
+                    background: "none",
+                    border: "1px solid rgba(239,68,68,0.3)",
+                    borderRadius: "0.375rem",
+                    padding: "0.25rem 0.625rem",
+                    cursor: isPending ? "not-allowed" : "pointer",
+                    opacity: isPending ? 0.6 : 1,
+                    fontWeight: 500,
+                  }}
+                >
+                  {isPending ? "Eliminando…" : "Eliminar"}
+                </button>
+              </>
             )}
           </div>
         </div>

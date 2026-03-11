@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import Image from "next/image";
 import { Plus, Pencil, Building2 } from "lucide-react";
+import { DeleteCompanyButton } from "@/components/admin/delete-company-button";
 
 export const metadata = { title: "Empresas — Geniorama Tickets" };
 
@@ -162,11 +163,14 @@ export default async function CompaniesPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <Link href={`/admin/companies/${row.id}/edit`}
-                    className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
-                    <Pencil className="w-3.5 h-3.5" />
-                    Editar
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <Link href={`/admin/companies/${row.id}/edit`}
+                      className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                      <Pencil className="w-3.5 h-3.5" />
+                      Editar
+                    </Link>
+                    <DeleteCompanyButton companyId={row.id} companyName={row.name} />
+                  </div>
                 </td>
               </tr>
             ))}
