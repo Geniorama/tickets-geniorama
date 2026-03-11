@@ -32,6 +32,10 @@ export default async function TaskPage({
         include: { uploadedBy: { select: { name: true } } },
         orderBy: { createdAt: "asc" },
       },
+      timeEntries: {
+        include: { user: { select: { name: true } } },
+        orderBy: { startedAt: "asc" },
+      },
     },
   });
 

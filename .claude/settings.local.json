@@ -30,7 +30,8 @@
       "Bash(find \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src\" -path \"*/proyectos*\" -name \"*.tsx\" -o -path \"*/proyectos*\" -name \"*.ts\" 2>/dev/null | sort)",
       "Bash(ls \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/components/services/\" && ls \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(dashboard\\)/admin/servicios/\" && ls \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(dashboard\\)/mis-servicios/\")",
       "WebFetch(domain:www.developer.paymentsway.co)",
-      "WebFetch(domain:developer.paymentsway.co)"
+      "WebFetch(domain:developer.paymentsway.co)",
+      "Bash(cd \"/c/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsc --noEmit 2>&1; echo \"exit: $?\")"
     ]
   }
 }

@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { Pencil, User2, UserCheck, Calendar, Clock, FolderOpen, Check, Trash2 } from "lucide-react";
-import type { Task, TaskComment, TaskAttachment, TaskStatus, Priority, User } from "@/generated/prisma";
+import type { Task, TaskComment, TaskAttachment, TaskTimeEntry, TaskStatus, Priority, User } from "@/generated/prisma";
 import type { Session } from "next-auth";
 import { TaskStatusBadge, TaskPriorityBadge } from "./project-status-badge";
 import { TaskCommentSection } from "./task-comment-form";
 import { updateTaskStatus, deleteTask } from "@/actions/task.actions";
+import { TaskTimer } from "./task-timer";
 import { formatDate, formatDateTimeLong } from "@/lib/format-date";
 import { isStaff, isAdmin } from "@/lib/roles";
 import { ExternalLink, FileText } from "lucide-react";
@@ -18,6 +19,7 @@ type TaskWithDetails = Task & {
   createdBy: Pick<User, "id" | "name">;
   comments: (TaskComment & { author: Pick<User, "name"> })[];
   attachments: TaskAttachment[];
+  timeEntries: (TaskTimeEntry & { user: Pick<User, "name"> })[];
 };
 
 const taskStatusOptions: { value: TaskStatus; label: string }[] = [
@@ -289,6 +291,17 @@ export function TaskDetail({
             ))}
           </div>
         </div>
+      )}
+
+      {/* Timer — solo visible para staff */}
+      {staff && (
+        <TaskTimer
+          taskId={task.id}
+          projectId={task.project.id}
+          entries={task.timeEntries}
+          canControl={staff}
+          isAdmin={admin}
+        />
       )}
 
       {/* Comments */}
