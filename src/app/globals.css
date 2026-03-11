@@ -282,7 +282,7 @@ textarea::placeholder {
 
 /* ── Tiptap / ProseMirror editor ── */
 .markdown-editor-content .ProseMirror {
-  min-height: 8rem;
+  min-height: 14rem;
   padding: 0.5rem 0.75rem;
   outline: none;
   font-size: 0.875rem;
