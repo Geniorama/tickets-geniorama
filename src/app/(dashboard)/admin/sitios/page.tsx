@@ -7,7 +7,7 @@ import { DeleteSiteButton } from "@/components/sites/delete-site-button";
 export const metadata = { title: "Sitios y apps — Geniorama Tickets" };
 
 export default async function SitiosPage() {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
 
   const sites = await prisma.site.findMany({
     include: { company: { select: { name: true } } },

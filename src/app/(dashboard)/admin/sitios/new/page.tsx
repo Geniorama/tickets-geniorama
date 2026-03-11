@@ -6,7 +6,7 @@ import { BackButton } from "@/components/ui/back-button";
 export const metadata = { title: "Nuevo sitio — Geniorama Tickets" };
 
 export default async function NewSitioPage() {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
 
   const companies = await prisma.company.findMany({
     where: { isActive: true },

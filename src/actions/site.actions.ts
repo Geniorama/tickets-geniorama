@@ -16,7 +16,7 @@ const siteSchema = z.object({
 });
 
 export async function createSite(formData: FormData) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
 
   const parsed = siteSchema.safeParse({
     name: formData.get("name"),
@@ -45,7 +45,7 @@ export async function createSite(formData: FormData) {
 }
 
 export async function updateSite(siteId: string, formData: FormData) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
 
   const parsed = siteSchema.safeParse({
     name: formData.get("name"),
@@ -75,7 +75,7 @@ export async function updateSite(siteId: string, formData: FormData) {
 }
 
 export async function deleteSite(siteId: string) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
   await prisma.site.delete({ where: { id: siteId } });
   revalidatePath("/admin/sitios");
   return { success: true };

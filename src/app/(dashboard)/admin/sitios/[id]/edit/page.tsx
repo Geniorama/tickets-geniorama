@@ -11,7 +11,7 @@ export default async function EditSitioPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
   const { id } = await params;
 
   const [site, companies] = await Promise.all([
