@@ -14,13 +14,13 @@ export default async function EditTicketPage({
   await requireRole(["ADMINISTRADOR"]);
   const { id } = await params;
 
-  const [ticket, collaborators, clients, plans] = await Promise.all([
+  const [ticket, collaborators, clients, plans, sites] = await Promise.all([
     prisma.ticket.findUnique({
       where: { id },
       select: {
         id: true, title: true, description: true,
         status: true, priority: true, category: true,
-        assignedToId: true, clientId: true, planId: true,
+        assignedToId: true, clientId: true, planId: true, siteId: true,
       },
     }),
     prisma.user.findMany({
@@ -38,6 +38,11 @@ export default async function EditTicketPage({
       orderBy: { name: "asc" },
       select: { id: true, name: true, type: true, companyId: true, company: { select: { name: true } } },
     }),
+    prisma.site.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, domain: true, companyId: true },
+    }),
   ]);
 
   if (!ticket) notFound();
@@ -49,7 +54,7 @@ export default async function EditTicketPage({
       </div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Editar ticket</h1>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <TicketEditForm ticket={ticket} collaborators={collaborators} clients={clients} plans={plans} />
+        <TicketEditForm ticket={ticket} collaborators={collaborators} clients={clients} plans={plans} sites={sites} />
       </div>
     </div>
   );

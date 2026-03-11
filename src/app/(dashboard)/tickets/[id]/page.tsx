@@ -20,6 +20,7 @@ export default async function TicketPage({
       assignedTo: { select: { id: true, name: true } },
       client: { select: { id: true, name: true, companies: { select: { name: true } } } },
       plan: { select: { id: true, name: true, type: true } },
+      site: { select: { id: true, name: true, domain: true, documentation: true, architecture: true } },
       attachments: { orderBy: { createdAt: "asc" } },
       timeEntries: {
         orderBy: { startedAt: "asc" },

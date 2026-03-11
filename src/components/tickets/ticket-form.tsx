@@ -6,15 +6,18 @@ import { createTicket } from "@/actions/ticket.actions";
 interface Collaborator { id: string; name: string; role: string; }
 interface Client { id: string; name: string; companies: { id: string; name: string }[]; }
 interface Plan { id: string; name: string; type: string; companyId: string; company: { name: string }; }
+interface Site { id: string; name: string; domain: string; companyId: string; }
 
 export function TicketForm({
   collaborators = [],
   clients = [],
   plans = [],
+  sites = [],
 }: {
   collaborators?: Collaborator[];
   clients?: Client[];
   plans?: Plan[];
+  sites?: Site[];
 }) {
   const [isPending, startTransition] = useTransition();
   const [selectedClientId, setSelectedClientId] = useState("");
@@ -26,6 +29,11 @@ export function TicketForm({
   const availablePlans = selectedClient
     ? plans.filter((p) => selectedClient.companies.some((co) => co.id === p.companyId))
     : [];
+  // Filtrar sitios: si hay cliente seleccionado, mostrar solo los de sus empresas;
+  // si no hay cliente (o no hay lista de clientes = CLIENTE role), mostrar todos.
+  const availableSites = selectedClientId && selectedClient
+    ? sites.filter((s) => selectedClient.companies.some((co) => co.id === s.companyId))
+    : sites;
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -130,6 +138,30 @@ export function TicketForm({
             )}
           </div>
         </>
+      )}
+
+      {sites.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Sitio / app afectado <span className="text-gray-400 font-normal">(opcional)</span>
+          </label>
+          <select
+            name="siteId"
+            defaultValue=""
+            className={inputClass}
+            disabled={clients.length > 0 && !selectedClientId}
+          >
+            <option value="">Sin sitio vinculado</option>
+            {availableSites.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} — {s.domain}
+              </option>
+            ))}
+          </select>
+          {clients.length > 0 && !selectedClientId && (
+            <p className="text-xs text-gray-400 mt-1">Selecciona un cliente para ver sus sitios.</p>
+          )}
+        </div>
       )}
 
       <div>

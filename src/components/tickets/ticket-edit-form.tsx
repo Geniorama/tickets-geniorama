@@ -7,10 +7,11 @@ import { updateTicket } from "@/actions/ticket.actions";
 interface Collaborator { id: string; name: string; email: string; role: string; }
 interface Client { id: string; name: string; companies: { id: string; name: string }[]; }
 interface Plan { id: string; name: string; type: string; companyId: string; company: { name: string }; }
+interface Site { id: string; name: string; domain: string; companyId: string; }
 interface Ticket {
   id: string; title: string; description: string;
   status: string; priority: string; category: string | null;
-  assignedToId: string | null; clientId: string | null; planId: string | null;
+  assignedToId: string | null; clientId: string | null; planId: string | null; siteId: string | null;
 }
 
 export function TicketEditForm({
@@ -18,11 +19,13 @@ export function TicketEditForm({
   collaborators,
   clients,
   plans,
+  sites = [],
 }: {
   ticket: Ticket;
   collaborators: Collaborator[];
   clients: Client[];
   plans: Plan[];
+  sites?: Site[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -36,6 +39,9 @@ export function TicketEditForm({
   const availablePlans = selectedClient
     ? plans.filter((p) => selectedClient.companies.some((co) => co.id === p.companyId))
     : [];
+  const availableSites = selectedClientId && selectedClient
+    ? sites.filter((s) => selectedClient.companies.some((co) => co.id === s.companyId))
+    : sites;
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -146,6 +152,28 @@ export function TicketEditForm({
           <p className="text-xs text-gray-400 mt-1">Selecciona un cliente para ver sus planes.</p>
         )}
       </div>
+
+      {sites.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Sitio / app afectado <span className="text-gray-400 font-normal">(opcional)</span>
+          </label>
+          <select
+            name="siteId"
+            defaultValue={ticket.siteId ?? ""}
+            className={inputClass}
+            disabled={!selectedClientId}
+          >
+            <option value="">Sin sitio vinculado</option>
+            {availableSites.map((s) => (
+              <option key={s.id} value={s.id}>{s.name} — {s.domain}</option>
+            ))}
+          </select>
+          {!selectedClientId && (
+            <p className="text-xs text-gray-400 mt-1">Selecciona un cliente para ver sus sitios.</p>
+          )}
+        </div>
+      )}
 
       {error && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>

@@ -28,7 +28,7 @@ export default async function NewTicketPage() {
     }
   }
 
-  const [collaborators, clients, plans] = await Promise.all([
+  const [collaborators, clients, plans, sites] = await Promise.all([
     prisma.user.findMany({
       where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
       orderBy: { name: "asc" },
@@ -48,13 +48,29 @@ export default async function NewTicketPage() {
           select: { id: true, name: true, type: true, companyId: true, company: { select: { name: true } } },
         })
       : Promise.resolve([]),
+    // Para CLIENTE: sitios de sus propias empresas
+    // Para ADMIN: todos los sitios activos (el form filtra por cliente seleccionado)
+    session.user.role === "CLIENTE"
+      ? prisma.site.findMany({
+          where: {
+            isActive: true,
+            company: { users: { some: { id: session.user.id } } },
+          },
+          orderBy: { name: "asc" },
+          select: { id: true, name: true, domain: true, companyId: true },
+        })
+      : prisma.site.findMany({
+          where: { isActive: true },
+          orderBy: { name: "asc" },
+          select: { id: true, name: true, domain: true, companyId: true },
+        }),
   ]);
 
   return (
     <div className="max-w-2xl">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Nuevo ticket</h1>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <TicketForm collaborators={collaborators} clients={clients} plans={plans} />
+        <TicketForm collaborators={collaborators} clients={clients} plans={plans} sites={sites} />
       </div>
     </div>
   );

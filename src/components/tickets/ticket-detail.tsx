@@ -3,7 +3,7 @@
 import { useTransition, useState } from "react";
 import Link from "next/link";
 import { formatDateTimeLong, formatDateTime } from "@/lib/format-date";
-import { Pencil, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Link2, Paperclip, FileText, ExternalLink } from "lucide-react";
+import { Pencil, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Link2, Paperclip, FileText, ExternalLink, Globe } from "lucide-react";
 import type { Session } from "next-auth";
 import type { Ticket, TicketComment, TicketAttachment, TimeEntry, User, TicketStatus, Priority } from "@/generated/prisma";
 import { TicketTimer } from "./ticket-timer";
@@ -19,6 +19,7 @@ type TicketWithDetails = Ticket & {
   assignedTo: Pick<User, "id" | "name"> | null;
   client: (Pick<User, "id" | "name"> & { companies: { name: string }[] }) | null;
   plan: { id: string; name: string; type: string } | null;
+  site: { id: string; name: string; domain: string; documentation: string | null; architecture: string | null } | null;
   attachments: TicketAttachment[];
   timeEntries: (TimeEntry & { user: Pick<User, "name"> })[];
   comments: (TicketComment & {
@@ -124,12 +125,46 @@ export function TicketDetail({
               </span>
             </span>
           )}
+          {ticket.site && (
+            <span className="flex items-center gap-1">
+              <Globe className="w-3.5 h-3.5" />
+              Sitio:{" "}
+              <strong className="text-gray-600">{ticket.site.name}</strong>
+              <span className="ml-1 text-gray-400">({ticket.site.domain})</span>
+            </span>
+          )}
           <span className="flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5" />
             {formatDateTimeLong(ticket.createdAt)}
           </span>
         </div>
       </div>
+
+      {staff && ticket.site && (ticket.site.documentation || ticket.site.architecture) && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+          <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+            <Globe className="w-4 h-4 text-indigo-500" />
+            Contexto del sitio: {ticket.site.name}
+            <span className="text-sm font-normal text-gray-400">({ticket.site.domain})</span>
+          </h2>
+          {ticket.site.documentation && (
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Documentación</p>
+              <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+                {ticket.site.documentation}
+              </pre>
+            </div>
+          )}
+          {ticket.site.architecture && (
+            <div>
+              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Arquitectura</p>
+              <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+                {ticket.site.architecture}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
 
       {(staff || (ticket.status === "CERRADO" && ticket.timeEntries.length > 0)) && (
         <TicketTimer

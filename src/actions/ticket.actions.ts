@@ -16,6 +16,7 @@ const createTicketSchema = z.object({
   assignedToId: z.string().optional(),
   clientId: z.string().optional(),
   planId: z.string().optional(),
+  siteId: z.string().optional(),
 });
 
 export async function createTicket(formData: FormData) {
@@ -29,6 +30,7 @@ export async function createTicket(formData: FormData) {
     assignedToId: formData.get("assignedToId") || undefined,
     clientId: formData.get("clientId") || undefined,
     planId: formData.get("planId") || undefined,
+    siteId: formData.get("siteId") || undefined,
   });
 
   if (!parsed.success) {
@@ -71,6 +73,7 @@ export async function createTicket(formData: FormData) {
       clientId,
       createdById: session.user.id,
       planId,
+      siteId: parsed.data.siteId ?? null,
     },
   });
 
@@ -149,6 +152,7 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     assignedToId: z.string().optional(),
     clientId: z.string().optional(),
     planId: z.string().optional(),
+    siteId: z.string().optional(),
   });
 
   const parsed = schema.safeParse({
@@ -160,6 +164,7 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     assignedToId: formData.get("assignedToId") || undefined,
     clientId: formData.get("clientId") || undefined,
     planId: formData.get("planId") || undefined,
+    siteId: formData.get("siteId") || undefined,
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -183,6 +188,7 @@ export async function updateTicket(ticketId: string, formData: FormData) {
       assignedToId: parsed.data.assignedToId ?? null,
       clientId: parsed.data.clientId ?? null,
       planId: parsed.data.planId ?? null,
+      siteId: parsed.data.siteId ?? null,
     },
   });
 

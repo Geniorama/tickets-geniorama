@@ -89,6 +89,7 @@ model Company {
   plans            Plan[]
   projects         Project[]
   services         Service[]
+  sites            Site[]
 
   @@map("companies")
 }
@@ -137,6 +138,7 @@ model Ticket {
   assignedToId String?  @map("assigned_to_id")
   clientId     String?  @map("client_id")
   planId       String?  @map("plan_id")
+  siteId       String?  @map("site_id")
 
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -145,6 +147,7 @@ model Ticket {
   assignedTo   User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
   client       User?              @relation("TicketClient", fields: [clientId], references: [id])
   plan         Plan?              @relation(fields: [planId], references: [id])
+  site         Site?              @relation(fields: [siteId], references: [id])
   comments     TicketComment[]
   attachments  TicketAttachment[]
   timeEntries  TimeEntry[]
@@ -364,4 +367,23 @@ model Service {
   createdBy   User            @relation("ServiceCreatedBy", fields: [createdById], references: [id])
 
   @@map("services")
+}
+
+model Site {
+  id            String   @id @default(cuid())
+  name          String
+  domain        String
+  documentation String?  @db.Text
+  architecture  String?  @db.Text
+  isActive      Boolean  @default(true) @map("is_active")
+
+  companyId     String   @map("company_id")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tickets  Ticket[]
+
+  @@map("sites")
 }
