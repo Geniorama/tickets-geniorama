@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireRole, getRequiredSession } from "@/lib/auth-helpers";
 import { generateInvitationToken } from "@/actions/invitation.actions";
 import { sendInvitationEmail } from "@/lib/email";
 
@@ -182,4 +182,15 @@ export async function deleteUser(userId: string) {
 
   revalidatePath("/admin/users");
   redirect("/admin/users");
+}
+
+// ─── getMentionableUsers ──────────────────────────────────────────────────────
+
+export async function getMentionableUsers(): Promise<{ id: string; name: string }[]> {
+  await getRequiredSession();
+  return prisma.user.findMany({
+    where: { isActive: true },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
 }

@@ -334,6 +334,7 @@ export function TaskDetail({
           comments={task.comments.map((c) => ({
             id: c.id,
             body: c.body,
+            authorId: c.authorId,
             attachmentType: c.attachmentType,
             attachmentUrl: c.attachmentUrl,
             attachmentName: c.attachmentName,

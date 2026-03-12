@@ -6,6 +6,14 @@ import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { validateFile } from "@/lib/s3";
 import { notifyMany } from "@/lib/notify";
+
+function extractMentionIds(body: string): string[] {
+  const regex = /@\[[^\]]+\]\(([^)]+)\)/g;
+  const ids: string[] = [];
+  let m;
+  while ((m = regex.exec(body)) !== null) ids.push(m[1]);
+  return [...new Set(ids)];
+}
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -114,6 +122,24 @@ export async function addTaskComment(
     },
   });
 
+  // Notificar a usuarios mencionados
+  const mentionedIds = extractMentionIds(parsed.data.body).filter(
+    (id) => id !== session.user.id
+  );
+  if (mentionedIds.length > 0) {
+    const taskForMention = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { title: true },
+    });
+    await notifyMany(
+      mentionedIds,
+      "mention",
+      `${session.user.name} te mencionó`,
+      `En la tarea: "${taskForMention?.title ?? ""}"`,
+      `/proyectos/${projectId}/tareas/${taskId}`
+    );
+  }
+
   // Notificar al creador y asignado de la tarea (excepto el comentarista)
   const task = await prisma.task.findUnique({
     where: { id: taskId },
@@ -131,6 +157,32 @@ export async function addTaskComment(
     );
   }
 
+  revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);
+  return { success: true };
+}
+
+export async function editTaskComment(
+  commentId: string,
+  taskId: string,
+  projectId: string,
+  body: string
+) {
+  const session = await getRequiredSession();
+
+  const comment = await prisma.taskComment.findUnique({
+    where: { id: commentId },
+    select: { authorId: true },
+  });
+
+  if (!comment) return { error: "Comentario no encontrado" };
+
+  const isAdmin = session.user.role === "ADMINISTRADOR";
+  if (!isAdmin && comment.authorId !== session.user.id) return { error: "Sin permisos" };
+
+  const parsed = z.string().min(1, "El comentario no puede estar vacío").safeParse(body);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  await prisma.taskComment.update({ where: { id: commentId }, data: { body: parsed.data } });
   revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);
   return { success: true };
 }

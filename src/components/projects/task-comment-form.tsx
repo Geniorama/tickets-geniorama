@@ -1,14 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { addTaskComment } from "@/actions/task-comment.actions";
-import { Link2, Paperclip, ExternalLink, FileText } from "lucide-react";
+import { addTaskComment, deleteTaskComment, editTaskComment } from "@/actions/task-comment.actions";
+import { Link2, Paperclip, ExternalLink, FileText, Pencil, Trash2 } from "lucide-react";
+import { MentionTextarea } from "@/components/ui/mention-textarea";
+import { CommentBody } from "@/components/ui/comment-body";
 
 type AttachmentMode = "none" | "link" | "file";
 
 interface Comment {
   id: string;
   body: string;
+  authorId: string;
   attachmentType: string | null;
   attachmentUrl: string | null;
   attachmentName: string | null;
@@ -45,90 +48,14 @@ export function TaskCommentSection({
       {comments.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1.5rem" }}>
           {comments.map((comment) => (
-            <div
+            <TaskCommentItem
               key={comment.id}
-              style={{
-                backgroundColor: "var(--app-content-bg)",
-                border: "1px solid var(--app-border)",
-                borderRadius: "0.5rem",
-                padding: "0.75rem",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  marginBottom: "0.375rem",
-                }}
-              >
-                <span
-                  style={{
-                    fontWeight: 500,
-                    fontSize: "0.875rem",
-                    color: "var(--app-body-text)",
-                  }}
-                >
-                  {comment.author.name}
-                </span>
-                <span
-                  style={{
-                    marginLeft: "auto",
-                    fontSize: "0.75rem",
-                    color: "var(--app-text-muted)",
-                  }}
-                >
-                  {formatDateTime(comment.createdAt)}
-                </span>
-              </div>
-              <p
-                style={{
-                  fontSize: "0.875rem",
-                  color: "var(--app-body-text)",
-                  whiteSpace: "pre-wrap",
-                }}
-              >
-                {comment.body}
-              </p>
-              {comment.attachmentUrl && comment.attachmentType === "link" && (
-                <a
-                  href={comment.attachmentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    marginTop: "0.5rem",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.375rem",
-                    fontSize: "0.75rem",
-                    color: "#fd1384",
-                    textDecoration: "none",
-                  }}
-                >
-                  <ExternalLink style={{ width: "0.875rem", height: "0.875rem" }} />
-                  {comment.attachmentName ?? comment.attachmentUrl}
-                </a>
-              )}
-              {comment.attachmentUrl && comment.attachmentType === "file" && (
-                <a
-                  href={comment.attachmentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    marginTop: "0.5rem",
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.375rem",
-                    fontSize: "0.75rem",
-                    color: "#fd1384",
-                    textDecoration: "none",
-                  }}
-                >
-                  <FileText style={{ width: "0.875rem", height: "0.875rem" }} />
-                  {comment.attachmentName ?? "Archivo adjunto"}
-                </a>
-              )}
-            </div>
+              comment={comment}
+              taskId={taskId}
+              projectId={projectId}
+              currentUserId={currentUserId}
+              isAdmin={isAdmin}
+            />
           ))}
         </div>
       ) : (
@@ -144,6 +71,218 @@ export function TaskCommentSection({
       )}
 
       <TaskCommentForm taskId={taskId} projectId={projectId} />
+    </div>
+  );
+}
+
+function TaskCommentItem({
+  comment,
+  taskId,
+  projectId,
+  currentUserId,
+  isAdmin,
+}: {
+  comment: Comment;
+  taskId: string;
+  projectId: string;
+  currentUserId: string;
+  isAdmin: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editBody, setEditBody] = useState(comment.body);
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const canModify = comment.authorId === currentUserId;
+
+  function handleDelete() {
+    if (!confirm("¿Eliminar este comentario?")) return;
+    startTransition(async () => {
+      await deleteTaskComment(comment.id, taskId, projectId);
+    });
+  }
+
+  function handleSaveEdit() {
+    setError(null);
+    startTransition(async () => {
+      const result = await editTaskComment(comment.id, taskId, projectId, editBody);
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        setEditing(false);
+      }
+    });
+  }
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    border: "1px solid var(--app-border)",
+    borderRadius: "0.5rem",
+    padding: "0.5rem 0.75rem",
+    fontSize: "0.875rem",
+    color: "var(--app-body-text)",
+    backgroundColor: "var(--app-card-bg)",
+    outline: "none",
+    boxSizing: "border-box",
+    resize: "vertical" as const,
+  };
+
+  return (
+    <div
+      style={{
+        backgroundColor: "var(--app-content-bg)",
+        border: "1px solid var(--app-border)",
+        borderRadius: "0.5rem",
+        padding: "0.75rem",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          marginBottom: "0.375rem",
+        }}
+      >
+        <span style={{ fontWeight: 500, fontSize: "0.875rem", color: "var(--app-body-text)" }}>
+          {comment.author.name}
+        </span>
+        <span style={{ marginLeft: "auto", fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
+          {formatDateTime(comment.createdAt)}
+        </span>
+        {canModify && !editing && (
+          <div style={{ display: "flex", gap: "0.25rem" }}>
+            <button
+              type="button"
+              onClick={() => { setEditBody(comment.body); setEditing(true); }}
+              title="Editar"
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                padding: "0.2rem",
+                color: "var(--app-text-muted)",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isPending}
+              title="Eliminar"
+              style={{
+                background: "none",
+                border: "none",
+                cursor: isPending ? "not-allowed" : "pointer",
+                padding: "0.2rem",
+                color: "var(--app-text-muted)",
+                display: "flex",
+                alignItems: "center",
+                opacity: isPending ? 0.5 : 1,
+              }}
+            >
+              <Trash2 style={{ width: "0.875rem", height: "0.875rem" }} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {editing ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          <textarea
+            value={editBody}
+            onChange={(e) => setEditBody(e.target.value)}
+            rows={3}
+            style={inputStyle}
+          />
+          {error && (
+            <p style={{ fontSize: "0.75rem", color: "#b91c1c" }}>{error}</p>
+          )}
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <button
+              type="button"
+              onClick={handleSaveEdit}
+              disabled={isPending}
+              style={{
+                backgroundColor: "#fd1384",
+                color: "#fff",
+                border: "none",
+                borderRadius: "0.375rem",
+                padding: "0.375rem 0.875rem",
+                fontSize: "0.75rem",
+                fontWeight: 500,
+                cursor: isPending ? "not-allowed" : "pointer",
+                opacity: isPending ? 0.6 : 1,
+              }}
+            >
+              {isPending ? "Guardando..." : "Guardar"}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setEditing(false); setError(null); }}
+              style={{
+                backgroundColor: "transparent",
+                color: "var(--app-body-text)",
+                border: "1px solid var(--app-border)",
+                borderRadius: "0.375rem",
+                padding: "0.375rem 0.875rem",
+                fontSize: "0.75rem",
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <CommentBody
+          body={comment.body}
+          style={{ fontSize: "0.875rem", color: "var(--app-body-text)" }}
+        />
+      )}
+
+      {!editing && comment.attachmentUrl && comment.attachmentType === "link" && (
+        <a
+          href={comment.attachmentUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            marginTop: "0.5rem",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.375rem",
+            fontSize: "0.75rem",
+            color: "#fd1384",
+            textDecoration: "none",
+          }}
+        >
+          <ExternalLink style={{ width: "0.875rem", height: "0.875rem" }} />
+          {comment.attachmentName ?? comment.attachmentUrl}
+        </a>
+      )}
+      {!editing && comment.attachmentUrl && comment.attachmentType === "file" && (
+        <a
+          href={comment.attachmentUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            marginTop: "0.5rem",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.375rem",
+            fontSize: "0.75rem",
+            color: "#fd1384",
+            textDecoration: "none",
+          }}
+        >
+          <FileText style={{ width: "0.875rem", height: "0.875rem" }} />
+          {comment.attachmentName ?? "Archivo adjunto"}
+        </a>
+      )}
     </div>
   );
 }
@@ -191,11 +330,10 @@ function TaskCommentForm({
 
   return (
     <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-      <textarea
-        name="body"
+      <MentionTextarea
         required
         rows={3}
-        placeholder="Escribe un comentario..."
+        placeholder="Escribe un comentario… usa @ para mencionar a alguien"
         style={inputStyle}
       />
 

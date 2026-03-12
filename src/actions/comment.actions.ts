@@ -7,6 +7,14 @@ import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { validateFile, uploadFile } from "@/lib/s3";
 import { notifyMany } from "@/lib/notify";
 
+function extractMentionIds(body: string): string[] {
+  const regex = /@\[[^\]]+\]\(([^)]+)\)/g;
+  const ids: string[] = [];
+  let m;
+  while ((m = regex.exec(body)) !== null) ids.push(m[1]);
+  return [...new Set(ids)];
+}
+
 const addCommentSchema = z.object({
   body: z.string().min(1, "El comentario no puede estar vacío"),
   isInternal: z.boolean().default(false),
@@ -75,6 +83,24 @@ export async function addComment(ticketId: string, formData: FormData) {
     },
   });
 
+  // Notificar a usuarios mencionados
+  const mentionedIds = extractMentionIds(parsed.data.body).filter(
+    (id) => id !== session.user.id
+  );
+  if (mentionedIds.length > 0) {
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { title: true },
+    });
+    await notifyMany(
+      mentionedIds,
+      "mention",
+      `${session.user.name} te mencionó`,
+      `En el ticket: "${ticket?.title ?? ""}"`,
+      `/tickets/${ticketId}`
+    );
+  }
+
   // Notificar a los participantes del ticket (excepto el comentarista)
   if (!parsed.data.isInternal) {
     const ticket = await prisma.ticket.findUnique({
@@ -94,6 +120,27 @@ export async function addComment(ticketId: string, formData: FormData) {
     }
   }
 
+  revalidatePath(`/tickets/${ticketId}`);
+  return { success: true };
+}
+
+export async function editComment(commentId: string, ticketId: string, body: string) {
+  const session = await getRequiredSession();
+
+  const comment = await prisma.ticketComment.findUnique({
+    where: { id: commentId },
+    select: { authorId: true },
+  });
+
+  if (!comment) return { error: "Comentario no encontrado" };
+
+  const isAdmin = session.user.role === "ADMINISTRADOR";
+  if (!isAdmin && comment.authorId !== session.user.id) return { error: "Sin permisos" };
+
+  const parsed = z.string().min(1, "El comentario no puede estar vacío").safeParse(body);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  await prisma.ticketComment.update({ where: { id: commentId }, data: { body: parsed.data } });
   revalidatePath(`/tickets/${ticketId}`);
   return { success: true };
 }

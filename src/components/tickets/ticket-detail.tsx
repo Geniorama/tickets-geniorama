@@ -3,18 +3,20 @@
 import { useTransition, useState } from "react";
 import Link from "next/link";
 import { formatDateTimeLong, formatDateTime } from "@/lib/format-date";
-import { Pencil, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Link2, Paperclip, FileText, ExternalLink, Globe, ChevronDown } from "lucide-react";
+import { Pencil, Trash2, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Link2, Paperclip, FileText, ExternalLink, Globe, ChevronDown } from "lucide-react";
 import type { Session } from "next-auth";
 import type { Ticket, TicketComment, TicketAttachment, TimeEntry, User, TicketStatus, Priority } from "@/generated/prisma";
 import { TicketTimer } from "./ticket-timer";
 import { TicketAiAssistant } from "./ticket-ai-assistant";
 import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
 import { updateTicketStatus, deleteTicket } from "@/actions/ticket.actions";
-import { addComment } from "@/actions/comment.actions";
+import { addComment, deleteComment, editComment } from "@/actions/comment.actions";
 import { isStaff, isAdmin } from "@/lib/roles";
 import { AttachmentList } from "./attachment-list";
 import { AttachmentUploader } from "./attachment-uploader";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import { MentionTextarea } from "@/components/ui/mention-textarea";
+import { CommentBody } from "@/components/ui/comment-body";
 
 type TicketWithDetails = Ticket & {
   createdBy: Pick<User, "id" | "name" | "email">;
@@ -195,51 +197,13 @@ export function TicketDetail({
         {ticket.comments.length > 0 ? (
           <div className="space-y-4 mb-6">
             {ticket.comments.map((comment) => (
-              <div
+              <TicketCommentItem
                 key={comment.id}
-                className={`p-3 rounded-lg text-sm ${
-                  comment.isInternal
-                    ? "bg-amber-50 border border-amber-200"
-                    : "bg-gray-50 border border-gray-200"
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium text-gray-800">{comment.author.name}</span>
-                  {comment.isInternal && (
-                    <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
-                      Interno
-                    </span>
-                  )}
-                  <span className="text-gray-400 text-xs ml-auto">
-                    {formatDateTime(comment.createdAt)}
-                  </span>
-                </div>
-                <p className="text-gray-700 whitespace-pre-wrap">{comment.body}</p>
-
-                {/* Adjunto del comentario */}
-                {comment.attachmentUrl && comment.attachmentType === "link" && (
-                  <a
-                    href={comment.attachmentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-                    {comment.attachmentName ?? comment.attachmentUrl}
-                  </a>
-                )}
-                {comment.attachmentUrl && comment.attachmentType === "file" && (
-                  <a
-                    href={comment.attachmentUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
-                  >
-                    <FileText className="w-3.5 h-3.5 shrink-0" />
-                    {comment.attachmentName ?? "Archivo adjunto"}
-                  </a>
-                )}
-              </div>
+                comment={comment}
+                ticketId={ticket.id}
+                currentUserId={session.user.id}
+                isAdmin={isAdmin(role)}
+              />
             ))}
           </div>
         ) : (
@@ -248,6 +212,135 @@ export function TicketDetail({
 
         <CommentForm ticketId={ticket.id} isStaff={staff} />
       </div>
+    </div>
+  );
+}
+
+function TicketCommentItem({
+  comment,
+  ticketId,
+  currentUserId,
+  isAdmin,
+}: {
+  comment: TicketComment & { author: Pick<User, "name" | "role"> };
+  ticketId: string;
+  currentUserId: string;
+  isAdmin: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editBody, setEditBody] = useState(comment.body);
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const canModify = comment.authorId === currentUserId;
+
+  function handleDelete() {
+    if (!confirm("¿Eliminar este comentario?")) return;
+    startTransition(async () => {
+      await deleteComment(comment.id, ticketId);
+    });
+  }
+
+  function handleSaveEdit() {
+    setError(null);
+    startTransition(async () => {
+      const result = await editComment(comment.id, ticketId, editBody);
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        setEditing(false);
+      }
+    });
+  }
+
+  return (
+    <div
+      className={`p-3 rounded-lg text-sm ${
+        comment.isInternal
+          ? "bg-amber-50 border border-amber-200"
+          : "bg-gray-50 border border-gray-200"
+      }`}
+    >
+      <div className="flex items-center gap-2 mb-1">
+        <span className="font-medium text-gray-800">{comment.author.name}</span>
+        {comment.isInternal && (
+          <span className="text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+            Interno
+          </span>
+        )}
+        <span className="text-gray-400 text-xs ml-auto">{formatDateTime(comment.createdAt)}</span>
+        {canModify && !editing && (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => { setEditBody(comment.body); setEditing(true); }}
+              className="p-1 text-gray-400 hover:text-indigo-600 rounded transition-colors"
+              title="Editar"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={isPending}
+              className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors disabled:opacity-50"
+              title="Eliminar"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="space-y-2 mt-1">
+          <textarea
+            value={editBody}
+            onChange={(e) => setEditBody(e.target.value)}
+            rows={3}
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+          />
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={handleSaveEdit}
+              disabled={isPending}
+              className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+            >
+              {isPending ? "Guardando..." : "Guardar"}
+            </button>
+            <button
+              onClick={() => { setEditing(false); setError(null); }}
+              className="px-3 py-1.5 text-gray-600 text-xs font-medium rounded-lg border border-gray-300 hover:bg-gray-100 transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      ) : (
+        <CommentBody body={comment.body} className="text-gray-700" />
+      )}
+
+      {!editing && comment.attachmentUrl && comment.attachmentType === "link" && (
+        <a
+          href={comment.attachmentUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
+        >
+          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+          {comment.attachmentName ?? comment.attachmentUrl}
+        </a>
+      )}
+      {!editing && comment.attachmentUrl && comment.attachmentType === "file" && (
+        <a
+          href={comment.attachmentUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-2 inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
+        >
+          <FileText className="w-3.5 h-3.5 shrink-0" />
+          {comment.attachmentName ?? "Archivo adjunto"}
+        </a>
+      )}
     </div>
   );
 }
@@ -334,12 +427,11 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      <textarea
-        name="body"
+      <MentionTextarea
         required
         rows={3}
         className={inputCls}
-        placeholder="Escribe un comentario..."
+        placeholder="Escribe un comentario… usa @ para mencionar a alguien"
       />
 
       {/* Adjunto — solo staff */}
