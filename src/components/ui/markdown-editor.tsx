@@ -3,7 +3,7 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
-import { useRef, useState } from "react";
+import { useReducer, useRef, useState } from "react";
 import { Bold, Italic, List, ListOrdered, Heading2, Code } from "lucide-react";
 
 interface MarkdownEditorProps {
@@ -15,6 +15,8 @@ interface MarkdownEditorProps {
 export function MarkdownEditor({ name, defaultValue = "", placeholder }: MarkdownEditorProps) {
   const hiddenRef = useRef<HTMLInputElement>(null);
   const [isEmpty, setIsEmpty] = useState(!defaultValue?.trim());
+  // Fuerza re-render del toolbar cuando cambia selección o transacción
+  const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
   const editor = useEditor({
     extensions: [
@@ -23,6 +25,12 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder }: Markdow
     ],
     content: defaultValue,
     immediatelyRender: false,
+    onSelectionUpdate() {
+      forceUpdate();
+    },
+    onTransaction() {
+      forceUpdate();
+    },
     onUpdate({ editor }) {
       setIsEmpty(editor.isEmpty);
       if (hiddenRef.current) {
@@ -54,6 +62,12 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder }: Markdow
     margin: "0 0.25rem",
   };
 
+  // onMouseDown + preventDefault evita que el editor pierda el foco al pulsar la toolbar
+  const cmd = (fn: () => void) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    fn();
+  };
+
   return (
     <div style={{
       border: "1px solid var(--app-border)",
@@ -72,7 +86,7 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder }: Markdow
         <button
           type="button"
           title="Negrita"
-          onClick={() => editor?.chain().focus().toggleBold().run()}
+          onMouseDown={cmd(() => editor?.chain().focus().toggleBold().run())}
           style={toolbarBtnStyle(isActive("bold"))}
         >
           <Bold size={14} />
@@ -80,7 +94,7 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder }: Markdow
         <button
           type="button"
           title="Cursiva"
-          onClick={() => editor?.chain().focus().toggleItalic().run()}
+          onMouseDown={cmd(() => editor?.chain().focus().toggleItalic().run())}
           style={toolbarBtnStyle(isActive("italic"))}
         >
           <Italic size={14} />
@@ -89,7 +103,7 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder }: Markdow
         <button
           type="button"
           title="Encabezado"
-          onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+          onMouseDown={cmd(() => editor?.chain().focus().toggleHeading({ level: 2 }).run())}
           style={toolbarBtnStyle(isActive("heading", { level: 2 }))}
         >
           <Heading2 size={14} />
@@ -98,7 +112,7 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder }: Markdow
         <button
           type="button"
           title="Lista con viñetas"
-          onClick={() => editor?.chain().focus().toggleBulletList().run()}
+          onMouseDown={cmd(() => editor?.chain().focus().toggleBulletList().run())}
           style={toolbarBtnStyle(isActive("bulletList"))}
         >
           <List size={14} />
@@ -106,7 +120,7 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder }: Markdow
         <button
           type="button"
           title="Lista numerada"
-          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+          onMouseDown={cmd(() => editor?.chain().focus().toggleOrderedList().run())}
           style={toolbarBtnStyle(isActive("orderedList"))}
         >
           <ListOrdered size={14} />
@@ -115,7 +129,7 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder }: Markdow
         <button
           type="button"
           title="Código"
-          onClick={() => editor?.chain().focus().toggleCode().run()}
+          onMouseDown={cmd(() => editor?.chain().focus().toggleCode().run())}
           style={toolbarBtnStyle(isActive("code"))}
         >
           <Code size={14} />
