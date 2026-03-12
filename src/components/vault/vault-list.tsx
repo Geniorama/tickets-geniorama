@@ -10,8 +10,8 @@ interface VaultEntry {
   title: string;
   username: string | null;
   url: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   company:    { name: string } | null;
   site:       { name: string } | null;
   service:    { name: string } | null;
@@ -193,7 +193,7 @@ export function VaultList({ entries, currentUserId }: VaultListProps) {
                         title={formatDateTime(e.createdAt)}>
                         Creado: <span style={{ color: "var(--app-body-text)" }}>{formatDate(e.createdAt)}</span>
                       </span>
-                      {e.updatedAt.getTime() !== e.createdAt.getTime() && (
+                      {e.updatedAt !== e.createdAt && (
                         <span className="text-xs" style={{ color: "var(--app-text-muted)" }}
                           title={formatDateTime(e.updatedAt)}>
                           Editado: <span style={{ color: "var(--app-body-text)" }}>{formatDate(e.updatedAt)}</span>

@@ -49,7 +49,14 @@ export default async function BovedaPage() {
         </Link>
       </div>
 
-      <VaultList entries={entries} currentUserId={session.user.id} />
+      <VaultList
+        entries={entries.map((e) => ({
+          ...e,
+          createdAt: e.createdAt.toISOString(),
+          updatedAt: e.updatedAt.toISOString(),
+        }))}
+        currentUserId={session.user.id}
+      />
     </div>
   );
 }

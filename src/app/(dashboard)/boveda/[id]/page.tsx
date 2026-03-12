@@ -17,7 +17,7 @@ export default async function VaultEntryPage({ params }: { params: Promise<{ id:
   const session = await getRequiredSession();
   const admin = isAdmin(session.user.role);
 
-  const entry = await prisma.vaultEntry.findUnique({
+  const entry = await prisma.vaultEntry.findFirst({
     where: admin
       ? { id }
       : {
@@ -26,7 +26,7 @@ export default async function VaultEntryPage({ params }: { params: Promise<{ id:
             { createdById: session.user.id },
             { sharedWith: { some: { userId: session.user.id } } },
           ],
-        } as never,
+        },
     include: {
       company:    { select: { id: true, name: true } },
       site:       { select: { id: true, name: true, domain: true } },
