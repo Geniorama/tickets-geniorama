@@ -37,7 +37,10 @@ export async function createTicket(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  if (parsed.data.assignedToId) {
+  // Los clientes no pueden asignar tickets a ningún usuario
+  if (session.user.role === "CLIENTE") {
+    parsed.data.assignedToId = undefined;
+  } else if (parsed.data.assignedToId) {
     const assignee = await prisma.user.findUnique({
       where: { id: parsed.data.assignedToId, isActive: true },
       select: { id: true },

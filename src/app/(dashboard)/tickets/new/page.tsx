@@ -29,11 +29,13 @@ export default async function NewTicketPage() {
   }
 
   const [collaborators, clients, plans, sites] = await Promise.all([
-    prisma.user.findMany({
-      where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true, role: true },
-    }),
+    admin
+      ? prisma.user.findMany({
+          where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
+          orderBy: { name: "asc" },
+          select: { id: true, name: true, role: true },
+        })
+      : Promise.resolve([]),
     admin
       ? prisma.user.findMany({
           where: { role: "CLIENTE", isActive: true },
