@@ -14,6 +14,11 @@ interface VaultEntry {
   companyId: string | null; siteId: string | null; serviceId: string | null;
 }
 
+const SERVICE_TYPE_LABELS: Record<string, string> = {
+  DOMINIO: "Dominio", HOSTING: "Hosting", CORREO: "Correo",
+  SSL: "SSL", MANTENIMIENTO: "Mantenimiento", OTRO: "Otro",
+};
+
 interface VaultFormProps {
   companies: Company[];
   sites: Site[];
@@ -128,7 +133,11 @@ export function VaultForm({ companies, sites, services, entry, decryptedPassword
           <select name="serviceId" defaultValue={entry?.serviceId ?? ""} style={inputStyle}
             disabled={!selectedCompanyId && services.length === 0}>
             <option value="">Sin servicio</option>
-            {filteredServices.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            {filteredServices.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} ({SERVICE_TYPE_LABELS[s.type] ?? s.type})
+              </option>
+            ))}
           </select>
         </div>
       </div>
