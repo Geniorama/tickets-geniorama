@@ -3,7 +3,7 @@
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { Markdown } from "tiptap-markdown";
-import { useReducer, useRef, useState } from "react";
+import { useReducer, useState } from "react";
 import { Bold, Italic, List, ListOrdered, Heading2, Code } from "lucide-react";
 
 interface MarkdownEditorProps {
@@ -13,7 +13,7 @@ interface MarkdownEditorProps {
 }
 
 export function MarkdownEditor({ name, defaultValue = "", placeholder }: MarkdownEditorProps) {
-  const hiddenRef = useRef<HTMLInputElement>(null);
+  const [mdValue, setMdValue] = useState(defaultValue);
   const [isEmpty, setIsEmpty] = useState(!defaultValue?.trim());
   // Fuerza re-render del toolbar cuando cambia selección o transacción
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
@@ -32,11 +32,10 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder }: Markdow
       forceUpdate();
     },
     onUpdate({ editor }) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const md = (editor.storage as any).markdown.getMarkdown();
+      setMdValue(md);
       setIsEmpty(editor.isEmpty);
-      if (hiddenRef.current) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        hiddenRef.current.value = (editor.storage as any).markdown.getMarkdown();
-      }
     },
   });
 
@@ -158,7 +157,7 @@ export function MarkdownEditor({ name, defaultValue = "", placeholder }: Markdow
       </div>
 
       {/* Hidden input carries the markdown value for FormData */}
-      <input ref={hiddenRef} type="hidden" name={name} defaultValue={defaultValue} />
+      <input type="hidden" name={name} value={mdValue} onChange={() => {}} />
     </div>
   );
 }

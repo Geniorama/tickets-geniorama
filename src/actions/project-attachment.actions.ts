@@ -5,6 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { validateFile, uploadFile, deleteFile } from "@/lib/s3";
 
+async function nextPosition(projectId: string) {
+  const last = await prisma.projectAttachment.findFirst({
+    where: { projectId },
+    orderBy: { position: "desc" },
+    select: { position: true },
+  });
+  return (last?.position ?? -1) + 1;
+}
+
 export async function addProjectFile(projectId: string, formData: FormData) {
   const session = await getRequiredSession();
 
@@ -18,6 +27,7 @@ export async function addProjectFile(projectId: string, formData: FormData) {
 
   try {
     const { storagePath, fileUrl } = await uploadFile(file, `projects/${projectId}`);
+    const position = await nextPosition(projectId);
 
     await prisma.projectAttachment.create({
       data: {
@@ -27,6 +37,7 @@ export async function addProjectFile(projectId: string, formData: FormData) {
         fileName: file.name,
         fileUrl,
         storagePath,
+        position,
       },
     });
   } catch (err) {
@@ -54,6 +65,8 @@ export async function addProjectLink(projectId: string, formData: FormData) {
   }
 
   try {
+    const position = await nextPosition(projectId);
+
     await prisma.projectAttachment.create({
       data: {
         type: "link",
@@ -62,6 +75,7 @@ export async function addProjectLink(projectId: string, formData: FormData) {
         fileName: name,
         fileUrl: url,
         storagePath: null,
+        position,
       },
     });
   } catch (err) {
@@ -83,7 +97,6 @@ export async function deleteProjectAttachment(attachmentId: string, projectId: s
 
   if (!attachment) return { error: "Adjunto no encontrado" };
 
-  // Solo el creador o un admin puede borrar
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { role: true },
@@ -102,6 +115,22 @@ export async function deleteProjectAttachment(attachmentId: string, projectId: s
     const message = err instanceof Error ? err.message : "Error desconocido";
     return { error: message };
   }
+
+  revalidatePath(`/proyectos/${projectId}`);
+  return { success: true };
+}
+
+export async function reorderProjectAttachments(projectId: string, orderedIds: string[]) {
+  await getRequiredSession();
+
+  await prisma.$transaction(
+    orderedIds.map((id, index) =>
+      prisma.projectAttachment.update({
+        where: { id },
+        data: { position: index },
+      })
+    )
+  );
 
   revalidatePath(`/proyectos/${projectId}`);
   return { success: true };

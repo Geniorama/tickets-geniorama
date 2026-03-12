@@ -294,6 +294,8 @@ model ProjectAttachment {
   fileName     String   @map("file_name")    // Nombre a mostrar
   storagePath  String?  @map("storage_path") // Solo para archivos en R2
 
+  position     Int      @default(0)
+
   projectId    String   @map("project_id")
   uploadedById String   @map("uploaded_by_id")
 

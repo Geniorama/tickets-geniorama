@@ -44,7 +44,7 @@ export default async function ProjectPage({
       },
       attachments: {
         include: { uploadedBy: { select: { name: true } } },
-        orderBy: { createdAt: "asc" },
+        orderBy: { position: "asc" },
       },
     },
   });
