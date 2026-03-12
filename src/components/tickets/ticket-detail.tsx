@@ -14,6 +14,7 @@ import { addComment } from "@/actions/comment.actions";
 import { isStaff, isAdmin } from "@/lib/roles";
 import { AttachmentList } from "./attachment-list";
 import { AttachmentUploader } from "./attachment-uploader";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 
 type TicketWithDetails = Ticket & {
   createdBy: Pick<User, "id" | "name" | "email">;
@@ -110,7 +111,9 @@ export function TicketDetail({
           </div>
         </div>
 
-        <div className="mt-4 text-sm text-gray-600 whitespace-pre-wrap">{ticket.description}</div>
+        <div className="mt-4 text-sm">
+          <MarkdownRenderer content={ticket.description} />
+        </div>
 
         <div className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400 flex flex-wrap gap-4">
           <span className="flex items-center gap-1">

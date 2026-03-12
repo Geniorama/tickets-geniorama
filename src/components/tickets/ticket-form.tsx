@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { createTicket } from "@/actions/ticket.actions";
+import { MarkdownEditor } from "@/components/ui/markdown-editor";
 
 interface Collaborator { id: string; name: string; role: string; }
 interface Client { id: string; name: string; companies: { id: string; name: string }[]; }
@@ -55,11 +56,8 @@ export function TicketForm({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-        <textarea
+        <MarkdownEditor
           name="description"
-          required
-          rows={5}
-          className={inputClass}
           placeholder="Describe el problema en detalle..."
         />
       </div>

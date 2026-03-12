@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateTicket } from "@/actions/ticket.actions";
+import { MarkdownEditor } from "@/components/ui/markdown-editor";
 
 interface Collaborator { id: string; name: string; email: string; role: string; }
 interface Client { id: string; name: string; companies: { id: string; name: string }[]; }
@@ -63,7 +64,10 @@ export function TicketEditForm({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-        <textarea name="description" required rows={5} defaultValue={ticket.description} className={inputClass} />
+        <MarkdownEditor
+          name="description"
+          defaultValue={ticket.description}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-4">
