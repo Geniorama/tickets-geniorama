@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { Project, ProjectStatus, Task, TaskStatus, Priority } from "@/generated/prisma";
+import type { Project, ProjectStatus, Task, TaskStatus, Priority, ProjectAttachment } from "@/generated/prisma";
 import { ProjectStatusBadge } from "./project-status-badge";
 import { TaskList } from "./task-list";
 import { TaskKanban } from "./task-kanban";
@@ -12,6 +12,8 @@ import { formatDate } from "@/lib/format-date";
 import { Plus, Pencil, List, LayoutGrid, CalendarDays, User2, Building2, Calendar } from "lucide-react";
 import { deleteProject } from "@/actions/project.actions";
 import { ProjectVaultPanel } from "@/components/vault/project-vault-panel";
+import { ProjectAttachmentsPanel } from "@/components/projects/project-attachments-panel";
+import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 
 type TaskWithRelations = Task & {
   assignedTo: { name: string } | null;
@@ -20,11 +22,16 @@ type TaskWithRelations = Task & {
   _count: { comments: number };
 };
 
+type AttachmentWithUser = ProjectAttachment & {
+  uploadedBy: { name: string };
+};
+
 type ProjectWithDetails = Project & {
   company: { name: string } | null;
   manager: { name: string } | null;
   createdBy: { name: string };
   tasks: TaskWithRelations[];
+  attachments: AttachmentWithUser[];
 };
 
 interface VaultEntry {
@@ -106,15 +113,16 @@ export function ProjectDetail({
             >
               {project.name}
             </h1>
-            <p
+            <div
               style={{
                 fontSize: "0.875rem",
-                color: "var(--app-text-muted)",
+                color: "var(--app-body-text)",
                 maxWidth: "42rem",
+                marginTop: "0.25rem",
               }}
             >
-              {project.description}
-            </p>
+              <MarkdownRenderer content={project.description} />
+            </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
             <ProjectStatusBadge status={project.status as ProjectStatus} />
@@ -296,6 +304,13 @@ export function ProjectDetail({
           canManage={isStaff || isAdmin}
         />
       )}
+
+      {/* Adjuntos del proyecto */}
+      <ProjectAttachmentsPanel
+        projectId={project.id}
+        attachments={project.attachments}
+        canManage={isStaff || isAdmin}
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { createProject, updateProject } from "@/actions/project.actions";
 import type { Project } from "@/generated/prisma";
+import { MarkdownEditor } from "@/components/ui/markdown-editor";
 
 interface Company {
   id: string;
@@ -79,13 +80,10 @@ export function ProjectForm({ companies, staffUsers, project }: ProjectFormProps
 
       <div>
         <label style={labelStyle}>Descripción</label>
-        <textarea
+        <MarkdownEditor
           name="description"
-          required
-          rows={4}
           defaultValue={project?.description ?? ""}
           placeholder="Describe el proyecto..."
-          style={inputStyle}
         />
       </div>
 
