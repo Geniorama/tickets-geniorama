@@ -90,6 +90,7 @@ model Company {
   projects         Project[]
   services         Service[]
   sites            Site[]
+  vaultEntries     VaultEntry[]
 
   @@map("companies")
 }
@@ -122,6 +123,9 @@ model User {
   taskAttachments  TaskAttachment[]
   createdServices  Service[]            @relation("ServiceCreatedBy")
   taskTimeEntries  TaskTimeEntry[]
+
+  createdVaultEntries VaultEntry[]      @relation("VaultCreatedBy")
+  vaultShares         VaultShare[]      @relation("VaultSharedWith")
 
   @@map("users")
 }
@@ -363,10 +367,52 @@ model Service {
   createdAt   DateTime        @default(now()) @map("created_at")
   updatedAt   DateTime        @updatedAt @map("updated_at")
 
-  company     Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  createdBy   User            @relation("ServiceCreatedBy", fields: [createdById], references: [id])
+  company      Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy    User            @relation("ServiceCreatedBy", fields: [createdById], references: [id])
+  vaultEntries VaultEntry[]
 
   @@map("services")
+}
+
+// ─── Bóveda ──────────────────────────────────────────────────────────────────
+
+model VaultEntry {
+  id          String   @id @default(cuid())
+  title       String
+  username    String?
+  password    String   // AES-256-GCM cifrado: "<iv_hex>:<tag_hex>:<cipher_hex>"
+  url         String?
+  notes       String?  @db.Text
+
+  companyId   String?  @map("company_id")
+  siteId      String?  @map("site_id")
+  serviceId   String?  @map("service_id")
+  createdById String   @map("created_by_id")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  company     Company?   @relation(fields: [companyId], references: [id])
+  site        Site?      @relation(fields: [siteId], references: [id])
+  service     Service?   @relation(fields: [serviceId], references: [id])
+  createdBy   User       @relation("VaultCreatedBy", fields: [createdById], references: [id])
+  sharedWith  VaultShare[]
+
+  @@map("vault_entries")
+}
+
+model VaultShare {
+  id           String     @id @default(cuid())
+  vaultEntryId String     @map("vault_entry_id")
+  userId       String     @map("user_id")
+
+  vaultEntry   VaultEntry @relation(fields: [vaultEntryId], references: [id], onDelete: Cascade)
+  user         User       @relation("VaultSharedWith", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@unique([vaultEntryId, userId])
+  @@map("vault_shares")
 }
 
 model Site {
@@ -382,8 +428,9 @@ model Site {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  company  Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  tickets  Ticket[]
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  tickets      Ticket[]
+  vaultEntries VaultEntry[]
 
   @@map("sites")
 }
