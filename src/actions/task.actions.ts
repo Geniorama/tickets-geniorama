@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
-import { validateFile, uploadFile } from "@/lib/s3";
+import { validateFile, uploadFile, deleteFile } from "@/lib/s3";
 import type { TaskStatus } from "@/generated/prisma";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -266,6 +266,49 @@ export async function updateTask(taskId: string, projectId: string, formData: Fo
       `Se te asignó: "${parsed.data.title}"${project ? ` en ${project.name}` : ""}`,
       `/proyectos/${projectId}/tareas/${taskId}`
     );
+  }
+
+  // Borrar adjuntos marcados para eliminar
+  const deletedIdsRaw = formData.get("deletedAttachmentIds") as string | null;
+  if (deletedIdsRaw) {
+    try {
+      const ids = JSON.parse(deletedIdsRaw) as string[];
+      for (const id of ids) {
+        const att = await prisma.taskAttachment.findUnique({ where: { id }, select: { storagePath: true } });
+        if (!att) continue;
+        if (att.storagePath && att.storagePath !== "link") {
+          try { await deleteFile(att.storagePath); } catch { /* continuar */ }
+        }
+        await prisma.taskAttachment.delete({ where: { id } });
+      }
+    } catch { /* JSON inválido */ }
+  }
+
+  // Subir nuevos archivos
+  const files = formData.getAll("files") as File[];
+  for (const file of files) {
+    if (file.size === 0) continue;
+    if (validateFile(file)) continue;
+    try {
+      const { storagePath, fileUrl } = await uploadFile(file, taskId);
+      await prisma.taskAttachment.create({
+        data: { taskId, uploadedById: session.user.id, fileName: file.name, fileUrl, storagePath },
+      });
+    } catch { /* continuar */ }
+  }
+
+  // Agregar nuevos enlaces
+  const linksRaw = formData.get("links") as string | null;
+  if (linksRaw) {
+    try {
+      const linksList = JSON.parse(linksRaw) as { url: string; label: string }[];
+      for (const { url, label } of linksList) {
+        if (!url) continue;
+        await prisma.taskAttachment.create({
+          data: { taskId, uploadedById: session.user.id, fileName: label || url, fileUrl: url, storagePath: "link" },
+        });
+      }
+    } catch { /* JSON inválido */ }
   }
 
   revalidatePath(`/proyectos/${projectId}`);

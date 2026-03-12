@@ -12,10 +12,18 @@ interface StaffUser {
   name: string;
 }
 
+interface ExistingAttachment {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  storagePath: string;
+}
+
 interface TaskFormProps {
   projectId: string;
   staffUsers: StaffUser[];
   task?: Task;
+  existingAttachments?: ExistingAttachment[];
 }
 
 interface LinkEntry {
@@ -49,20 +57,21 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function TaskForm({ projectId, staffUsers, task }: TaskFormProps) {
+export function TaskForm({ projectId, staffUsers, task, existingAttachments = [] }: TaskFormProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<TaskConflict[] | null>(null);
   const savedFormData = useRef<FormData | null>(null);
   const isEdit = !!task;
 
-  // Attachment state (only for create)
+  // Attachment state
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [links, setLinks] = useState<LinkEntry[]>([]);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkLabel, setLinkLabel] = useState("");
   const [linkError, setLinkError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [deletedAttachmentIds, setDeletedAttachmentIds] = useState<string[]>([]);
 
   const toInputDate = (d: Date | null | undefined) => {
     if (!d) return "";
@@ -111,10 +120,11 @@ export function TaskForm({ projectId, staffUsers, task }: TaskFormProps) {
     setError(null);
     setConflicts(null);
     const formData = new FormData(e.currentTarget);
-    if (!isEdit) {
-      formData.delete("files");
-      for (const file of selectedFiles) formData.append("files", file);
-      formData.set("links", JSON.stringify(links));
+    formData.delete("files");
+    for (const file of selectedFiles) formData.append("files", file);
+    formData.set("links", JSON.stringify(links));
+    if (isEdit) {
+      formData.set("deletedAttachmentIds", JSON.stringify(deletedAttachmentIds));
     }
     savedFormData.current = formData;
     submit(formData);
@@ -242,21 +252,70 @@ export function TaskForm({ projectId, staffUsers, task }: TaskFormProps) {
         </div>
       </div>
 
-      {/* ── Adjuntos (solo en creación) ── */}
-      {!isEdit && (
-        <div
-          style={{
-            border: "1px solid var(--app-border)",
-            borderRadius: "0.75rem",
-            padding: "1rem",
-            display: "flex",
-            flexDirection: "column",
-            gap: "1rem",
-          }}
-        >
+      {/* ── Adjuntos ── */}
+      <div
+        style={{
+          border: "1px solid var(--app-border)",
+          borderRadius: "0.75rem",
+          padding: "1rem",
+          display: "flex",
+          flexDirection: "column",
+          gap: "1rem",
+        }}
+      >
           <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--app-body-text)", margin: 0 }}>
             Adjuntos <span style={{ fontWeight: 400, color: "var(--app-text-muted)" }}>(opcional)</span>
           </p>
+
+          {/* ── Adjuntos existentes (solo edición) ── */}
+          {isEdit && existingAttachments.filter((a) => !deletedAttachmentIds.includes(a.id)).length > 0 && (
+            <div>
+              <p style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--app-body-text)", marginBottom: "0.5rem" }}>
+                Adjuntos actuales
+              </p>
+              <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+                {existingAttachments
+                  .filter((a) => !deletedAttachmentIds.includes(a.id))
+                  .map((att) => (
+                    <li
+                      key={att.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        fontSize: "0.8125rem",
+                        backgroundColor: "var(--app-bg)",
+                        border: "1px solid var(--app-border)",
+                        borderRadius: "0.375rem",
+                        padding: "0.375rem 0.625rem",
+                      }}
+                    >
+                      {att.storagePath === "link" ? (
+                        <Link2 style={{ width: "0.875rem", height: "0.875rem", color: "var(--app-text-muted)", flexShrink: 0 }} />
+                      ) : (
+                        <FileText style={{ width: "0.875rem", height: "0.875rem", color: "var(--app-text-muted)", flexShrink: 0 }} />
+                      )}
+                      <a
+                        href={att.fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "#fd1384", textDecoration: "none", fontSize: "0.8125rem" }}
+                      >
+                        {att.fileName}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => setDeletedAttachmentIds((prev) => [...prev, att.id])}
+                        style={{ display: "flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", padding: "0.125rem", color: "var(--app-text-muted)", flexShrink: 0 }}
+                        aria-label="Quitar adjunto"
+                      >
+                        <X style={{ width: "0.875rem", height: "0.875rem" }} />
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
 
           {/* ── Archivos ── */}
           <div>
@@ -450,8 +509,7 @@ export function TaskForm({ projectId, staffUsers, task }: TaskFormProps) {
               </ul>
             )}
           </div>
-        </div>
-      )}
+      </div>
 
       {error && (
         <p

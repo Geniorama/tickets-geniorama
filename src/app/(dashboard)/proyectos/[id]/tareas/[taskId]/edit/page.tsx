@@ -17,7 +17,10 @@ export default async function EditTaskPage({
   const [task, staffUsers] = await Promise.all([
     prisma.task.findUnique({
       where: { id: taskId },
-      include: { project: { select: { id: true, name: true } } },
+      include: {
+        project: { select: { id: true, name: true } },
+        attachments: { orderBy: { createdAt: "asc" } },
+      },
     }),
     prisma.user.findMany({
       where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
@@ -56,7 +59,7 @@ export default async function EditTaskPage({
           padding: "1.5rem",
         }}
       >
-        <TaskForm projectId={projectId} staffUsers={staffUsers} task={task} />
+        <TaskForm projectId={projectId} staffUsers={staffUsers} task={task} existingAttachments={task.attachments} />
       </div>
     </div>
   );
