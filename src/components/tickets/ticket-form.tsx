@@ -84,6 +84,9 @@ export function TicketForm({
             <option value="Desarrollo">Desarrollo</option>
             <option value="Diseño">Diseño</option>
             <option value="Consultoría">Consultoría</option>
+            <option value="Hosting">Hosting</option>
+            <option value="Dominio">Dominio</option>
+            <option value="Correos">Correos</option>
             <option value="Otro">Otro</option>
           </select>
         </div>
