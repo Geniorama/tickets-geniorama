@@ -11,7 +11,7 @@ import { updateTaskStatus, deleteTask } from "@/actions/task.actions";
 import { TaskTimer } from "./task-timer";
 import { formatDate, formatDateTimeLong } from "@/lib/format-date";
 import { isStaff, isAdmin } from "@/lib/roles";
-import { ExternalLink, FileText } from "lucide-react";
+import { ExternalLink, FileText, Link2 } from "lucide-react";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 
 type TaskWithDetails = Task & {
@@ -264,25 +264,36 @@ export function TaskDetail({
             Archivos adjuntos ({task.attachments.length})
           </h2>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-            {task.attachments.map((att) => (
-              <a
-                key={att.id}
-                href={att.fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  fontSize: "0.875rem",
-                  color: "#fd1384",
-                  textDecoration: "none",
-                }}
-              >
-                <FileText style={{ width: "1rem", height: "1rem" }} />
-                {att.fileName}
-              </a>
-            ))}
+            {task.attachments.map((att) => {
+              const isLink = att.storagePath === "link";
+              return (
+                <a
+                  key={att.id}
+                  href={att.fileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    fontSize: "0.875rem",
+                    color: "#fd1384",
+                    textDecoration: "none",
+                  }}
+                >
+                  {isLink
+                    ? <Link2 style={{ width: "1rem", height: "1rem", flexShrink: 0 }} />
+                    : <FileText style={{ width: "1rem", height: "1rem", flexShrink: 0 }} />
+                  }
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {att.fileName}
+                  </span>
+                  {isLink && (
+                    <ExternalLink style={{ width: "0.75rem", height: "0.75rem", opacity: 0.6, flexShrink: 0 }} />
+                  )}
+                </a>
+              );
+            })}
           </div>
         </div>
       )}

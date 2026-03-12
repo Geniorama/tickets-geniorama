@@ -9,6 +9,7 @@ import { validateFile, uploadFile } from "@/lib/s3";
 import type { TaskStatus } from "@/generated/prisma";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { notify } from "@/lib/notify";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -163,6 +164,34 @@ export async function createTask(projectId: string, formData: FormData) {
     } catch { /* continuar aunque falle un archivo */ }
   }
 
+  const linksRaw = formData.get("links") as string | null;
+  if (linksRaw) {
+    try {
+      const linksList = JSON.parse(linksRaw) as { url: string; label: string }[];
+      for (const { url, label } of linksList) {
+        if (!url) continue;
+        await prisma.taskAttachment.create({
+          data: { taskId: task.id, uploadedById: session.user.id, fileName: label || url, fileUrl: url, storagePath: "link" },
+        });
+      }
+    } catch { /* JSON inválido, ignorar */ }
+  }
+
+  // Notificar al asignado si no es el creador
+  if (task.assignedToId && task.assignedToId !== session.user.id) {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { name: true },
+    });
+    await notify(
+      task.assignedToId,
+      "task_assigned",
+      "Tarea asignada",
+      `Se te asignó: "${task.title}"${project ? ` en ${project.name}` : ""}`,
+      `/proyectos/${projectId}/tareas/${task.id}`
+    );
+  }
+
   revalidatePath(`/proyectos/${projectId}`);
   redirect(`/proyectos/${projectId}/tareas/${task.id}`);
 }
@@ -203,6 +232,11 @@ export async function updateTask(taskId: string, projectId: string, formData: Fo
     }
   }
 
+  const oldTask = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { assignedToId: true, title: true },
+  });
+
   await prisma.task.update({
     where: { id: taskId },
     data: {
@@ -217,6 +251,22 @@ export async function updateTask(taskId: string, projectId: string, formData: Fo
       estimatedHours: parsed.data.estimatedHours ? parseFloat(parsed.data.estimatedHours) : null,
     },
   });
+
+  // Notificar al nuevo asignado si cambió y no es quien edita
+  const newAssigneeId = parsed.data.assignedToId ?? null;
+  if (newAssigneeId && newAssigneeId !== oldTask?.assignedToId && newAssigneeId !== session.user.id) {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: { name: true },
+    });
+    await notify(
+      newAssigneeId,
+      "task_assigned",
+      "Tarea asignada",
+      `Se te asignó: "${parsed.data.title}"${project ? ` en ${project.name}` : ""}`,
+      `/proyectos/${projectId}/tareas/${taskId}`
+    );
+  }
 
   revalidatePath(`/proyectos/${projectId}`);
   revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);

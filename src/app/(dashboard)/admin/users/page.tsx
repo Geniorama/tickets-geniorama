@@ -6,24 +6,38 @@ import { ResendInvitationButton } from "@/components/admin/resend-invitation-but
 import { ToggleUserActiveButton } from "@/components/admin/toggle-user-active-button";
 import { DeleteUserButton } from "@/components/admin/delete-user-button";
 import { Plus, Pencil } from "lucide-react";
+import { Pagination } from "@/components/ui/pagination";
 
 export const metadata = { title: "Usuarios — Geniorama Tickets" };
 
-export default async function UsersPage() {
-  const session = await requireRole(["ADMINISTRADOR"]);
+const PAGE_SIZE = 25;
 
-  const users = await prisma.user.findMany({
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      isActive: true,
-      companies: { select: { name: true } },
-      createdAt: true,
-    },
-  });
+export default async function UsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string>>;
+}) {
+  const session = await requireRole(["ADMINISTRADOR"]);
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page ?? "1", 10));
+
+  const [users, totalUsers] = await Promise.all([
+    prisma.user.findMany({
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        companies: { select: { name: true } },
+        createdAt: true,
+      },
+      take: PAGE_SIZE,
+      skip: (page - 1) * PAGE_SIZE,
+    }),
+    prisma.user.count(),
+  ]);
 
   const roleLabels = {
     ADMINISTRADOR: "Administrador",
@@ -117,6 +131,14 @@ export default async function UsersPage() {
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        totalItems={totalUsers}
+        currentPage={page}
+        pageSize={PAGE_SIZE}
+        params={params}
+        basePath="/admin/users"
+      />
     </div>
   );
 }

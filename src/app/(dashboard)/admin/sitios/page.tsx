@@ -3,16 +3,30 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Plus, Globe, Building2, Pencil } from "lucide-react";
 import { DeleteSiteButton } from "@/components/sites/delete-site-button";
+import { Pagination } from "@/components/ui/pagination";
 
 export const metadata = { title: "Sitios y apps — Geniorama Tickets" };
 
-export default async function SitiosPage() {
-  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
+const PAGE_SIZE = 30;
 
-  const sites = await prisma.site.findMany({
-    include: { company: { select: { name: true } } },
-    orderBy: [{ company: { name: "asc" } }, { name: "asc" }],
-  });
+export default async function SitiosPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string>>;
+}) {
+  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page ?? "1", 10));
+
+  const [sites, totalSites] = await Promise.all([
+    prisma.site.findMany({
+      include: { company: { select: { name: true } } },
+      orderBy: [{ company: { name: "asc" } }, { name: "asc" }],
+      take: PAGE_SIZE,
+      skip: (page - 1) * PAGE_SIZE,
+    }),
+    prisma.site.count(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -116,6 +130,14 @@ export default async function SitiosPage() {
           </table>
         </div>
       )}
+
+      <Pagination
+        totalItems={totalSites}
+        currentPage={page}
+        pageSize={PAGE_SIZE}
+        params={params}
+        basePath="/admin/sitios"
+      />
     </div>
   );
 }

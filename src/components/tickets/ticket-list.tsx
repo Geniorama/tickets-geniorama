@@ -31,6 +31,7 @@ function SortableHeader({
   const params = new URLSearchParams(searchParams.toString());
   params.set("sortBy", column);
   params.set("sortDir", nextDir);
+  params.delete("page");
 
   const Icon = isActive
     ? sortDir === "asc"

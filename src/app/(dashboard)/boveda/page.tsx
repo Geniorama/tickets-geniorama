@@ -4,31 +4,47 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { VaultList } from "@/components/vault/vault-list";
+import { Pagination } from "@/components/ui/pagination";
 
 export const metadata = { title: "Bóveda — Geniorama Tickets" };
 
-export default async function BovedaPage() {
+const PAGE_SIZE = 20;
+
+export default async function BovedaPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string>>;
+}) {
   const session = await getRequiredSession();
   const admin = isAdmin(session.user.role);
+  const params = await searchParams;
+  const page = Math.max(1, parseInt(params.page ?? "1", 10));
 
-  const entries = await prisma.vaultEntry.findMany({
-    where: admin
-      ? {}
-      : {
-          OR: [
-            { createdById: session.user.id },
-            { sharedWith: { some: { userId: session.user.id } } },
-          ],
-        },
-    include: {
-      company:    { select: { name: true } },
-      site:       { select: { name: true } },
-      service:    { select: { name: true } },
-      createdBy:  { select: { name: true } },
-      sharedWith: { select: { userId: true } },
-    },
-    orderBy: { updatedAt: "desc" },
-  });
+  const where = admin
+    ? {}
+    : {
+        OR: [
+          { createdById: session.user.id },
+          { sharedWith: { some: { userId: session.user.id } } },
+        ],
+      };
+
+  const [entries, totalEntries] = await Promise.all([
+    prisma.vaultEntry.findMany({
+      where,
+      include: {
+        company:    { select: { name: true } },
+        site:       { select: { name: true } },
+        service:    { select: { name: true } },
+        createdBy:  { select: { name: true } },
+        sharedWith: { select: { userId: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: PAGE_SIZE,
+      skip: (page - 1) * PAGE_SIZE,
+    }),
+    prisma.vaultEntry.count({ where }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -56,6 +72,14 @@ export default async function BovedaPage() {
           updatedAt: e.updatedAt.toISOString(),
         }))}
         currentUserId={session.user.id}
+      />
+
+      <Pagination
+        totalItems={totalEntries}
+        currentPage={page}
+        pageSize={PAGE_SIZE}
+        params={params}
+        basePath="/boveda"
       />
     </div>
   );

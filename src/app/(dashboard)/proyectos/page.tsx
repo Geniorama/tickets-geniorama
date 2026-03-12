@@ -6,6 +6,9 @@ import { ProjectFilters } from "@/components/projects/project-filters";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import type { ProjectStatus } from "@/generated/prisma";
+import { Pagination } from "@/components/ui/pagination";
+
+const PAGE_SIZE = 20;
 
 export const metadata = { title: "Proyectos — Geniorama Tickets" };
 
@@ -62,8 +65,9 @@ export default async function ProyectosPage({
   }
 
   const where = { ...roleWhere, ...extraFilters };
+  const page = Math.max(1, parseInt(params.page ?? "1", 10));
 
-  const [projects, companies, managers] = await Promise.all([
+  const [projects, totalProjects, companies, managers] = await Promise.all([
     prisma.project.findMany({
       where,
       include: {
@@ -73,7 +77,10 @@ export default async function ProyectosPage({
         _count: { select: { tasks: true } },
       },
       orderBy: { createdAt: "desc" },
+      take: PAGE_SIZE,
+      skip: (page - 1) * PAGE_SIZE,
     }),
+    prisma.project.count({ where }),
     // Solo admins y staff ven el filtro de empresa
     admin || staff
       ? prisma.company.findMany({
@@ -140,10 +147,18 @@ export default async function ProyectosPage({
       </div>
 
       <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginBottom: "1rem" }}>
-        {projects.length} {projects.length === 1 ? "proyecto" : "proyectos"}
+        {totalProjects} {totalProjects === 1 ? "proyecto" : "proyectos"}
       </p>
 
       <ProjectList projects={projects} />
+
+      <Pagination
+        totalItems={totalProjects}
+        currentPage={page}
+        pageSize={PAGE_SIZE}
+        params={params}
+        basePath="/proyectos"
+      />
     </div>
   );
 }

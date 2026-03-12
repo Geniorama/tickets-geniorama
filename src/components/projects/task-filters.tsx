@@ -49,6 +49,7 @@ export function TaskFilters({
     const next = new URLSearchParams(params.toString());
     if (value) next.set(key, value);
     else next.delete(key);
+    next.delete("page");
     startTransition(() => router.push(`/tareas?${next.toString()}`));
   }
 

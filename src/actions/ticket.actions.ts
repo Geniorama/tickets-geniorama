@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getRequiredSession, requireRole, isStaff } from "@/lib/auth-helpers";
 import { validateFile, uploadFile } from "@/lib/s3";
 import { getClientActivePlan } from "@/lib/plans.server";
+import { notify, notifyMany } from "@/lib/notify";
 
 const createTicketSchema = z.object({
   title: z.string().min(1, "El título es requerido").max(200),
@@ -103,9 +104,27 @@ export async function createTicket(formData: FormData) {
     }
   }
 
+  // Notificar al asignado si no es el creador
+  if (ticket.assignedToId && ticket.assignedToId !== session.user.id) {
+    await notify(
+      ticket.assignedToId,
+      "ticket_assigned",
+      "Ticket asignado",
+      `Se te asignó: "${ticket.title}"`,
+      `/tickets/${ticket.id}`
+    );
+  }
+
   revalidatePath("/tickets");
   redirect(`/tickets/${ticket.id}`);
 }
+
+const ticketStatusLabels: Record<string, string> = {
+  ABIERTO: "Abierto",
+  EN_PROGRESO: "En progreso",
+  EN_REVISION: "En revisión",
+  CERRADO: "Cerrado",
+};
 
 export async function updateTicketStatus(ticketId: string, status: string) {
   const session = await getRequiredSession();
@@ -113,10 +132,28 @@ export async function updateTicketStatus(ticketId: string, status: string) {
     return { error: "Sin permisos" };
   }
 
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    select: { title: true, clientId: true, createdById: true, assignedToId: true },
+  });
+
   await prisma.ticket.update({
     where: { id: ticketId },
     data: { status: status as never },
   });
+
+  if (ticket) {
+    const label = ticketStatusLabels[status] ?? status;
+    const recipients = [ticket.clientId, ticket.createdById, ticket.assignedToId]
+      .filter((id): id is string => !!id && id !== session.user.id);
+    await notifyMany(
+      recipients,
+      "ticket_status",
+      "Ticket actualizado",
+      `"${ticket.title}" cambió a: ${label}`,
+      `/tickets/${ticketId}`
+    );
+  }
 
   revalidatePath(`/tickets/${ticketId}`);
   revalidatePath("/tickets");
@@ -134,10 +171,25 @@ export async function assignTicket(ticketId: string, userId: string | null) {
     if (!assignee) return { error: "El usuario asignado no existe o está inactivo" };
   }
 
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    select: { title: true },
+  });
+
   await prisma.ticket.update({
     where: { id: ticketId },
     data: { assignedToId: userId },
   });
+
+  if (userId && ticket) {
+    await notify(
+      userId,
+      "ticket_assigned",
+      "Ticket asignado",
+      `Se te asignó: "${ticket.title}"`,
+      `/tickets/${ticketId}`
+    );
+  }
 
   revalidatePath(`/tickets/${ticketId}`);
   return { success: true };

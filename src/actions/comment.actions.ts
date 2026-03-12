@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { validateFile, uploadFile } from "@/lib/s3";
+import { notifyMany } from "@/lib/notify";
 
 const addCommentSchema = z.object({
   body: z.string().min(1, "El comentario no puede estar vacío"),
@@ -73,6 +74,25 @@ export async function addComment(ticketId: string, formData: FormData) {
       attachmentStoragePath,
     },
   });
+
+  // Notificar a los participantes del ticket (excepto el comentarista)
+  if (!parsed.data.isInternal) {
+    const ticket = await prisma.ticket.findUnique({
+      where: { id: ticketId },
+      select: { title: true, createdById: true, assignedToId: true, clientId: true },
+    });
+    if (ticket) {
+      const recipients = [ticket.createdById, ticket.assignedToId, ticket.clientId]
+        .filter((id): id is string => !!id && id !== session.user.id);
+      await notifyMany(
+        recipients,
+        "ticket_comment",
+        "Nuevo comentario en ticket",
+        `${session.user.name} comentó en: "${ticket.title}"`,
+        `/tickets/${ticketId}`
+      );
+    }
+  }
 
   revalidatePath(`/tickets/${ticketId}`);
   return { success: true };

@@ -127,6 +127,7 @@ model User {
   createdVaultEntries VaultEntry[]      @relation("VaultCreatedBy")
   vaultShares         VaultShare[]      @relation("VaultSharedWith")
   projectAttachments  ProjectAttachment[]
+  notifications       Notification[]
 
   @@map("users")
 }
@@ -470,4 +471,22 @@ model Site {
   vaultEntries VaultEntry[]
 
   @@map("sites")
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  type      String
+  title     String
+  message   String
+  link      String?
+  isRead    Boolean   @default(false) @map("is_read")
+  readAt    DateTime? @map("read_at")
+
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("notifications")
 }

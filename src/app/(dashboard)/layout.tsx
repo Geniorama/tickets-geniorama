@@ -1,4 +1,5 @@
 import { getRequiredSession } from "@/lib/auth-helpers";
+import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 
@@ -13,12 +14,15 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const session = await getRequiredSession();
+  const unreadCount = await prisma.notification.count({
+    where: { userId: session.user.id, isRead: false },
+  });
 
   return (
     <div className="flex h-screen" style={{ backgroundColor: "var(--app-sidebar-bg)" }}>
       <Sidebar role={session.user.role} />
       <div className="flex flex-col flex-1 overflow-hidden">
-        <Topbar user={session.user} />
+        <Topbar user={session.user} unreadCount={unreadCount} />
         <main
           className="flex-1 overflow-y-auto p-6"
           style={{ backgroundColor: "var(--app-content-bg)" }}

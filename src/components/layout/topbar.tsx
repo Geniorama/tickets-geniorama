@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Session } from "next-auth";
 import { LogOut, UserCircle, KeyRound } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { NotificationBell } from "@/components/layout/notification-bell";
 
 const roleLabels = {
   ADMINISTRADOR: "Administrador",
@@ -11,7 +12,7 @@ const roleLabels = {
   CLIENTE: "Cliente",
 };
 
-export function Topbar({ user }: { user: Session["user"] }) {
+export function Topbar({ user, unreadCount }: { user: Session["user"]; unreadCount: number }) {
   return (
     <header
       className="h-14 flex items-center justify-between px-6"
@@ -22,6 +23,7 @@ export function Topbar({ user }: { user: Session["user"] }) {
     >
       <div />
       <div className="flex items-center gap-3">
+        <NotificationBell initialUnreadCount={unreadCount} />
         <ThemeToggle />
         <UserCircle className="w-8 h-8" style={{ color: "var(--app-icon-color)" }} />
         <div className="text-right">

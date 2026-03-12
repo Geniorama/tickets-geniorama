@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
+import { Paperclip, Link2, X, Plus, FileText } from "lucide-react";
 import { createTask, updateTask } from "@/actions/task.actions";
 import type { TaskConflict } from "@/actions/task.actions";
 import type { Task } from "@/generated/prisma";
@@ -15,6 +16,11 @@ interface TaskFormProps {
   projectId: string;
   staffUsers: StaffUser[];
   task?: Task;
+}
+
+interface LinkEntry {
+  url: string;
+  label: string;
 }
 
 const inputStyle: React.CSSProperties = {
@@ -37,6 +43,12 @@ const labelStyle: React.CSSProperties = {
   marginBottom: "0.25rem",
 };
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 export function TaskForm({ projectId, staffUsers, task }: TaskFormProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -44,16 +56,66 @@ export function TaskForm({ projectId, staffUsers, task }: TaskFormProps) {
   const savedFormData = useRef<FormData | null>(null);
   const isEdit = !!task;
 
+  // Attachment state (only for create)
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [links, setLinks] = useState<LinkEntry[]>([]);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkLabel, setLinkLabel] = useState("");
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const toInputDate = (d: Date | null | undefined) => {
     if (!d) return "";
     return new Date(d).toISOString().split("T")[0];
   };
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const incoming = Array.from(e.target.files ?? []);
+    setSelectedFiles((prev) => [...prev, ...incoming]);
+    e.target.value = "";
+  }
+
+  function removeFile(idx: number) {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function addLink() {
+    setLinkError(null);
+    const url = linkUrl.trim();
+    if (!url) return;
+    try {
+      new URL(url.startsWith("http") ? url : `https://${url}`);
+    } catch {
+      setLinkError("URL inválida");
+      return;
+    }
+    const normalized = url.startsWith("http") ? url : `https://${url}`;
+    setLinks((prev) => [...prev, { url: normalized, label: linkLabel.trim() || normalized }]);
+    setLinkUrl("");
+    setLinkLabel("");
+  }
+
+  function removeLink(idx: number) {
+    setLinks((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function handleLinkKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addLink();
+    }
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setConflicts(null);
     const formData = new FormData(e.currentTarget);
+    if (!isEdit) {
+      formData.delete("files");
+      for (const file of selectedFiles) formData.append("files", file);
+      formData.set("links", JSON.stringify(links));
+    }
     savedFormData.current = formData;
     submit(formData);
   }
@@ -180,28 +242,214 @@ export function TaskForm({ projectId, staffUsers, task }: TaskFormProps) {
         </div>
       </div>
 
+      {/* ── Adjuntos (solo en creación) ── */}
       {!isEdit && (
-        <div>
-          <label style={labelStyle}>
-            Archivos adjuntos{" "}
-            <span style={{ color: "var(--app-text-muted)", fontWeight: 400 }}>
-              (opcional)
-            </span>
-          </label>
-          <input
-            type="file"
-            name="files"
-            multiple
-            accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx"
-            style={{
-              width: "100%",
-              fontSize: "0.875rem",
-              color: "var(--app-text-muted)",
-            }}
-          />
-          <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
-            Imágenes, PDF o documentos Word. Máx. 10 MB por archivo.
+        <div
+          style={{
+            border: "1px solid var(--app-border)",
+            borderRadius: "0.75rem",
+            padding: "1rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "1rem",
+          }}
+        >
+          <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--app-body-text)", margin: 0 }}>
+            Adjuntos <span style={{ fontWeight: 400, color: "var(--app-text-muted)" }}>(opcional)</span>
           </p>
+
+          {/* ── Archivos ── */}
+          <div>
+            <p style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--app-body-text)", marginBottom: "0.5rem" }}>
+              Archivos
+            </p>
+
+            {/* Archivo oculto */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx"
+              style={{ display: "none" }}
+              onChange={handleFileChange}
+            />
+
+            {/* Botón estilizado */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.375rem",
+                fontSize: "0.8125rem",
+                fontWeight: 500,
+                color: "var(--app-body-text)",
+                backgroundColor: "var(--app-bg)",
+                border: "1px dashed var(--app-border)",
+                borderRadius: "0.5rem",
+                padding: "0.5rem 0.875rem",
+                cursor: "pointer",
+              }}
+            >
+              <Paperclip style={{ width: "0.875rem", height: "0.875rem" }} />
+              Seleccionar archivos
+            </button>
+            <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", marginTop: "0.375rem" }}>
+              Imágenes, PDF o Word · máx. 10 MB por archivo · puedes agregar varios uno a uno
+            </p>
+
+            {/* Lista de archivos seleccionados */}
+            {selectedFiles.length > 0 && (
+              <ul style={{ listStyle: "none", margin: "0.5rem 0 0", padding: 0, display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+                {selectedFiles.map((file, idx) => (
+                  <li
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      fontSize: "0.8125rem",
+                      backgroundColor: "var(--app-bg)",
+                      border: "1px solid var(--app-border)",
+                      borderRadius: "0.375rem",
+                      padding: "0.375rem 0.625rem",
+                    }}
+                  >
+                    <FileText style={{ width: "0.875rem", height: "0.875rem", color: "var(--app-text-muted)", flexShrink: 0 }} />
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--app-body-text)" }}>
+                      {file.name}
+                    </span>
+                    <span style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", flexShrink: 0 }}>
+                      {formatFileSize(file.size)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(idx)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "0.125rem",
+                        color: "var(--app-text-muted)",
+                        flexShrink: 0,
+                      }}
+                      aria-label="Quitar archivo"
+                    >
+                      <X style={{ width: "0.875rem", height: "0.875rem" }} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* ── Divider ── */}
+          <div style={{ borderTop: "1px solid var(--app-border)" }} />
+
+          {/* ── Enlaces ── */}
+          <div>
+            <p style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--app-body-text)", marginBottom: "0.5rem" }}>
+              Enlaces
+            </p>
+
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
+              <div style={{ flex: 1 }}>
+                <input
+                  type="url"
+                  value={linkUrl}
+                  onChange={(e) => { setLinkUrl(e.target.value); setLinkError(null); }}
+                  onKeyDown={handleLinkKeyDown}
+                  placeholder="https://ejemplo.com"
+                  style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <input
+                  type="text"
+                  value={linkLabel}
+                  onChange={(e) => setLinkLabel(e.target.value)}
+                  onKeyDown={handleLinkKeyDown}
+                  placeholder="Etiqueta (opcional)"
+                  style={{ ...inputStyle, width: "100%", boxSizing: "border-box" }}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={addLink}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.25rem",
+                  fontSize: "0.8125rem",
+                  fontWeight: 500,
+                  color: "#fd1384",
+                  backgroundColor: "transparent",
+                  border: "1px solid rgba(253,19,132,0.35)",
+                  borderRadius: "0.5rem",
+                  padding: "0.5rem 0.75rem",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                }}
+              >
+                <Plus style={{ width: "0.875rem", height: "0.875rem" }} />
+                Agregar
+              </button>
+            </div>
+
+            {linkError && (
+              <p style={{ fontSize: "0.75rem", color: "#b91c1c", marginTop: "0.25rem" }}>{linkError}</p>
+            )}
+
+            {/* Lista de enlaces */}
+            {links.length > 0 && (
+              <ul style={{ listStyle: "none", margin: "0.5rem 0 0", padding: 0, display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+                {links.map((link, idx) => (
+                  <li
+                    key={idx}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      fontSize: "0.8125rem",
+                      backgroundColor: "var(--app-bg)",
+                      border: "1px solid var(--app-border)",
+                      borderRadius: "0.375rem",
+                      padding: "0.375rem 0.625rem",
+                    }}
+                  >
+                    <Link2 style={{ width: "0.875rem", height: "0.875rem", color: "var(--app-text-muted)", flexShrink: 0 }} />
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--app-body-text)" }}>
+                      {link.label}
+                    </span>
+                    <span style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "12rem" }}>
+                      {link.url}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeLink(idx)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        padding: "0.125rem",
+                        color: "var(--app-text-muted)",
+                        flexShrink: 0,
+                      }}
+                      aria-label="Quitar enlace"
+                    >
+                      <X style={{ width: "0.875rem", height: "0.875rem" }} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       )}
 

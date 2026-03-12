@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 import { TaskList } from "@/components/projects/task-list";
 import { TaskFilters } from "@/components/projects/task-filters";
 import type { TaskStatus, Priority } from "@/generated/prisma";
+import { Pagination } from "@/components/ui/pagination";
+
+const PAGE_SIZE = 25;
 
 export const metadata = { title: "Tareas — Geniorama Tickets" };
 
@@ -71,7 +74,9 @@ export default async function TareasPage({
     projectsWhere = { companyId: { in: companyIds } };
   }
 
-  const [tasks, projects, staffUsers] = await Promise.all([
+  const page = Math.max(1, parseInt(params.page ?? "1", 10));
+
+  const [tasks, totalTasks, projects, staffUsers] = await Promise.all([
     prisma.task.findMany({
       where,
       include: {
@@ -81,7 +86,10 @@ export default async function TareasPage({
         _count:     { select: { comments: true } },
       },
       orderBy: { createdAt: "desc" },
+      take: PAGE_SIZE,
+      skip: (page - 1) * PAGE_SIZE,
     }),
+    prisma.task.count({ where }),
     prisma.project.findMany({
       where: projectsWhere,
       select: { id: true, name: true },
@@ -119,10 +127,18 @@ export default async function TareasPage({
       </div>
 
       <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginBottom: "1rem" }}>
-        {tasks.length} {tasks.length === 1 ? "tarea" : "tareas"}
+        {totalTasks} {totalTasks === 1 ? "tarea" : "tareas"}
       </p>
 
       <TaskList tasks={tasks} />
+
+      <Pagination
+        totalItems={totalTasks}
+        currentPage={page}
+        pageSize={PAGE_SIZE}
+        params={params}
+        basePath="/tareas"
+      />
     </div>
   );
 }

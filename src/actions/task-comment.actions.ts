@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { validateFile } from "@/lib/s3";
+import { notifyMany } from "@/lib/notify";
 import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -112,6 +113,23 @@ export async function addTaskComment(
       attachmentStoragePath,
     },
   });
+
+  // Notificar al creador y asignado de la tarea (excepto el comentarista)
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { title: true, createdById: true, assignedToId: true },
+  });
+  if (task) {
+    const recipients = [task.createdById, task.assignedToId]
+      .filter((id): id is string => !!id && id !== session.user.id);
+    await notifyMany(
+      recipients,
+      "task_comment",
+      "Nuevo comentario en tarea",
+      `${session.user.name} comentó en: "${task.title}"`,
+      `/proyectos/${projectId}/tareas/${taskId}`
+    );
+  }
 
   revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);
   return { success: true };

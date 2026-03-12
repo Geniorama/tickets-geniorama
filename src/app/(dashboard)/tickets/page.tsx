@@ -7,6 +7,9 @@ import { ViewToggle } from "@/components/tickets/view-toggle";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { fromZonedTime } from "date-fns-tz";
+import { Pagination } from "@/components/ui/pagination";
+
+const PAGE_SIZE = 25;
 
 const TZ = "America/Bogota";
 
@@ -22,6 +25,7 @@ export default async function TicketsPage({
   const params = await searchParams;
   const staff = isStaff(role);
   const view = staff && params.view === "kanban" ? "kanban" : "list";
+  const page = Math.max(1, parseInt(params.page ?? "1", 10));
 
   // Base where: clientes ven tickets que crearon ellos O donde son el cliente asignado
   const baseWhere = staff ? {} : { OR: [{ createdById: id }, { clientId: id }] };
@@ -66,7 +70,7 @@ export default async function TicketsPage({
     }
   })();
 
-  const [tickets, collaborators, creators, companies] = await Promise.all([
+  const [tickets, totalTickets, collaborators, creators, companies] = await Promise.all([
     prisma.ticket.findMany({
       where,
       include: {
@@ -74,7 +78,10 @@ export default async function TicketsPage({
         assignedTo: { select: { name: true } },
       },
       orderBy,
+      take: PAGE_SIZE,
+      skip: (page - 1) * PAGE_SIZE,
     }),
+    prisma.ticket.count({ where }),
     staff
       ? prisma.user.findMany({
           where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
@@ -115,7 +122,7 @@ export default async function TicketsPage({
           collaborators={collaborators}
           creators={creators}
           companies={companies}
-          current={params}
+          current={Object.fromEntries(Object.entries(params).filter(([k]) => k !== "page"))}
         />
       )}
 
@@ -124,6 +131,14 @@ export default async function TicketsPage({
       ) : (
         <TicketList tickets={tickets} role={role} sortBy={sortBy} sortDir={sortDir} />
       )}
+
+      <Pagination
+        totalItems={totalTickets}
+        currentPage={page}
+        pageSize={PAGE_SIZE}
+        params={params}
+        basePath="/tickets"
+      />
     </div>
   );
 }
