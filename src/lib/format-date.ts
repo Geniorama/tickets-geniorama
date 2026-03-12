@@ -15,8 +15,11 @@ export function formatDateTimeLong(date: Date | string): string {
   return format(toZonedTime(d, TZ), "dd MMM yyyy, HH:mm", { locale: es, timeZone: TZ });
 }
 
-/** dd/MM/yyyy — solo fecha */
+/** dd/MM/yyyy — solo fecha (usa partes UTC para evitar desfase en fechas sin hora) */
 export function formatDate(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return format(toZonedTime(d, TZ), "dd/MM/yyyy", { locale: es, timeZone: TZ });
+  const day = String(d.getUTCDate()).padStart(2, "0");
+  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const year = d.getUTCFullYear();
+  return `${day}/${month}/${year}`;
 }
