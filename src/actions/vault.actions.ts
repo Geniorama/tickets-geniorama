@@ -125,6 +125,46 @@ export async function addVaultShare(entryId: string, userId: string) {
   return { success: true };
 }
 
+export async function linkVaultToProject(projectId: string, vaultEntryId: string) {
+  const session = await getRequiredSession();
+  const admin = isAdmin(session.user.role);
+
+  // Verificar acceso a la entrada
+  const entry = await prisma.vaultEntry.findFirst({
+    where: admin
+      ? { id: vaultEntryId }
+      : { id: vaultEntryId, OR: [{ createdById: session.user.id }, { sharedWith: { some: { userId: session.user.id } } }] },
+  });
+  if (!entry) return { error: "Sin acceso a esta entrada de Bóveda" };
+
+  await prisma.projectVaultEntry.upsert({
+    where: { projectId_vaultEntryId: { projectId, vaultEntryId } },
+    create: { projectId, vaultEntryId },
+    update: {},
+  });
+
+  revalidatePath(`/proyectos/${projectId}`);
+  return { success: true };
+}
+
+export async function unlinkVaultFromProject(projectId: string, vaultEntryId: string) {
+  const session = await getRequiredSession();
+  const admin = isAdmin(session.user.role);
+
+  // Solo admin o quien tenga acceso a la entrada puede desvinculara
+  const entry = await prisma.vaultEntry.findFirst({
+    where: admin
+      ? { id: vaultEntryId }
+      : { id: vaultEntryId, OR: [{ createdById: session.user.id }, { sharedWith: { some: { userId: session.user.id } } }] },
+  });
+  if (!entry) return { error: "Sin acceso a esta entrada de Bóveda" };
+
+  await prisma.projectVaultEntry.deleteMany({ where: { projectId, vaultEntryId } });
+
+  revalidatePath(`/proyectos/${projectId}`);
+  return { success: true };
+}
+
 export async function removeVaultShare(entryId: string, userId: string) {
   const session = await getRequiredSession();
   const admin = isAdmin(session.user.role);

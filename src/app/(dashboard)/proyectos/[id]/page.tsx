@@ -47,6 +47,38 @@ export default async function ProjectPage({
 
   if (!project) notFound();
 
+  // Vault entries linked to this project, filtered by user visibility
+  const linkedVaultEntries = await prisma.vaultEntry.findMany({
+    where: {
+      projects: { some: { projectId } },
+      ...(admin ? {} : {
+        OR: [
+          { createdById: userId },
+          { sharedWith: { some: { userId } } },
+        ],
+      }),
+    },
+    select: { id: true, title: true, username: true, url: true },
+    orderBy: { title: "asc" },
+  });
+
+  // Available vault entries to link (only for staff/admin)
+  const availableVaultEntries = (staff || admin)
+    ? await prisma.vaultEntry.findMany({
+        where: {
+          projects: { none: { projectId } },
+          ...(admin ? {} : {
+            OR: [
+              { createdById: userId },
+              { sharedWith: { some: { userId } } },
+            ],
+          }),
+        },
+        select: { id: true, title: true, username: true, url: true },
+        orderBy: { title: "asc" },
+      })
+    : [];
+
   // Access control
   if (admin) {
     // always allowed
@@ -78,6 +110,8 @@ export default async function ProjectPage({
         isAdmin={admin}
         isStaff={staff}
         isClient={!staff && !admin}
+        linkedVaultEntries={linkedVaultEntries}
+        availableVaultEntries={availableVaultEntries}
       />
     </div>
   );

@@ -11,6 +11,7 @@ import { TaskCalendar } from "./task-calendar";
 import { formatDate } from "@/lib/format-date";
 import { Plus, Pencil, List, LayoutGrid, CalendarDays, User2, Building2, Calendar } from "lucide-react";
 import { deleteProject } from "@/actions/project.actions";
+import { ProjectVaultPanel } from "@/components/vault/project-vault-panel";
 
 type TaskWithRelations = Task & {
   assignedTo: { name: string } | null;
@@ -26,6 +27,13 @@ type ProjectWithDetails = Project & {
   tasks: TaskWithRelations[];
 };
 
+interface VaultEntry {
+  id: string;
+  title: string;
+  username: string | null;
+  url: string | null;
+}
+
 type ViewType = "lista" | "kanban" | "calendario";
 
 export function ProjectDetail({
@@ -34,12 +42,16 @@ export function ProjectDetail({
   isAdmin,
   isStaff,
   isClient,
+  linkedVaultEntries = [],
+  availableVaultEntries = [],
 }: {
   project: ProjectWithDetails;
   view: ViewType;
   isAdmin: boolean;
   isStaff: boolean;
   isClient: boolean;
+  linkedVaultEntries?: VaultEntry[];
+  availableVaultEntries?: VaultEntry[];
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -273,6 +285,16 @@ export function ProjectDetail({
             <TaskCalendar tasks={project.tasks} projectId={project.id} />
           )}
         </>
+      )}
+
+      {/* Vault panel: visible si hay accesos o si puede gestionar */}
+      {(linkedVaultEntries.length > 0 || isStaff || isAdmin) && (
+        <ProjectVaultPanel
+          projectId={project.id}
+          linkedEntries={linkedVaultEntries}
+          availableEntries={availableVaultEntries}
+          canManage={isStaff || isAdmin}
+        />
       )}
     </div>
   );
