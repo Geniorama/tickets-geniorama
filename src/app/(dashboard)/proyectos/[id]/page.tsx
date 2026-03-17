@@ -33,6 +33,7 @@ export default async function ProjectPage({
       company: { select: { id: true, name: true } },
       manager: { select: { name: true } },
       createdBy: { select: { name: true } },
+      members: { select: { userId: true } },
       tasks: {
         include: {
           assignedTo: { select: { name: true } },
@@ -84,16 +85,20 @@ export default async function ProjectPage({
     : [];
 
   // Access control
+  const memberIds = project.members.map((m) => m.userId);
   if (admin) {
     // always allowed
+  } else if (project.isPrivate) {
+    // Proyecto privado: solo miembros explícitos
+    if (!memberIds.includes(userId)) notFound();
   } else if (staff) {
-    // Must be manager or have assigned tasks
+    // Proyecto público: debe ser manager o tener tareas asignadas
     const hasAccess =
       project.managerId === userId ||
       project.tasks.some((t) => t.assignedToId === userId);
     if (!hasAccess) notFound();
   } else {
-    // CLIENTE: must belong to project's company
+    // CLIENTE proyecto público: debe pertenecer a la empresa del proyecto
     if (!project.companyId) notFound();
     const user = await prisma.user.findUnique({
       where: { id: userId },

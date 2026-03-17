@@ -9,7 +9,7 @@ import { TaskList } from "./task-list";
 import { TaskKanban } from "./task-kanban";
 import { TaskCalendar } from "./task-calendar";
 import { formatDate } from "@/lib/format-date";
-import { Plus, Pencil, List, LayoutGrid, CalendarDays, User2, Building2, Calendar } from "lucide-react";
+import { Plus, Pencil, List, LayoutGrid, CalendarDays, User2, Building2, Calendar, Lock } from "lucide-react";
 import { deleteProject } from "@/actions/project.actions";
 import { ProjectVaultPanel } from "@/components/vault/project-vault-panel";
 import { ProjectAttachmentsPanel } from "@/components/projects/project-attachments-panel";
@@ -111,7 +111,15 @@ export function ProjectDetail({
                 marginBottom: "0.25rem",
               }}
             >
-              {project.name}
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+                {project.name}
+                {project.isPrivate && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.75rem", fontWeight: 600, color: "#7c3aed", backgroundColor: "#ede9fe", borderRadius: "0.375rem", padding: "0.2rem 0.5rem", verticalAlign: "middle" }}>
+                    <Lock style={{ width: "0.75rem", height: "0.75rem" }} />
+                    Privado
+                  </span>
+                )}
+              </span>
             </h1>
             <div
               style={{

@@ -7,6 +7,7 @@ import { es } from "date-fns/locale";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import styles from "./task-calendar.module.css";
 import type { Task, TaskStatus } from "@/generated/prisma";
+import { taskCode } from "@/lib/task-code";
 
 const locales = { es };
 
@@ -85,7 +86,7 @@ export function TaskCalendar({
   const events: CalendarEvent[] = tasks
     .filter((t) => t.dueDate)
     .map((task) => ({
-      title: task.title,
+      title: task.number > 0 ? `${taskCode(task.project.name, task.number)} ${task.title}` : task.title,
       start: task.startDate ? new Date(task.startDate) : new Date(task.dueDate!),
       end: new Date(task.dueDate!),
       taskId: task.id,

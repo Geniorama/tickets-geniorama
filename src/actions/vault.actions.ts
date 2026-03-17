@@ -165,6 +165,44 @@ export async function unlinkVaultFromProject(projectId: string, vaultEntryId: st
   return { success: true };
 }
 
+export async function linkVaultToTicket(ticketId: string, vaultEntryId: string) {
+  const session = await getRequiredSession();
+  const admin = isAdmin(session.user.role);
+
+  const entry = await prisma.vaultEntry.findFirst({
+    where: admin
+      ? { id: vaultEntryId }
+      : { id: vaultEntryId, OR: [{ createdById: session.user.id }, { sharedWith: { some: { userId: session.user.id } } }] },
+  });
+  if (!entry) return { error: "Sin acceso a esta entrada de Bóveda" };
+
+  await prisma.ticketVaultEntry.upsert({
+    where: { ticketId_vaultEntryId: { ticketId, vaultEntryId } },
+    create: { ticketId, vaultEntryId },
+    update: {},
+  });
+
+  revalidatePath(`/tickets/${ticketId}`);
+  return { success: true };
+}
+
+export async function unlinkVaultFromTicket(ticketId: string, vaultEntryId: string) {
+  const session = await getRequiredSession();
+  const admin = isAdmin(session.user.role);
+
+  const entry = await prisma.vaultEntry.findFirst({
+    where: admin
+      ? { id: vaultEntryId }
+      : { id: vaultEntryId, OR: [{ createdById: session.user.id }, { sharedWith: { some: { userId: session.user.id } } }] },
+  });
+  if (!entry) return { error: "Sin acceso a esta entrada de Bóveda" };
+
+  await prisma.ticketVaultEntry.deleteMany({ where: { ticketId, vaultEntryId } });
+
+  revalidatePath(`/tickets/${ticketId}`);
+  return { success: true };
+}
+
 export async function removeVaultShare(entryId: string, userId: string) {
   const session = await getRequiredSession();
   const admin = isAdmin(session.user.role);

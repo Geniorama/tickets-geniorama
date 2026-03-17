@@ -7,6 +7,8 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import type { ProjectStatus } from "@/generated/prisma";
 import { Pagination } from "@/components/ui/pagination";
+import { Suspense } from "react";
+import { SearchInput } from "@/components/ui/search-input";
 
 const PAGE_SIZE = 20;
 
@@ -23,6 +25,7 @@ export default async function ProyectosPage({
   const staff = isStaff(role);
   const admin = isAdmin(role);
 
+  const q = params.q?.trim() || undefined;
   const statusFilter    = params.status     as ProjectStatus | undefined;
   const companyFilter   = params.companyId  as string | undefined;
   const managerFilter   = params.managerId  as string | undefined;
@@ -42,6 +45,7 @@ export default async function ProyectosPage({
           },
         }
       : {}),
+    ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
   };
 
   // Filtro base por rol
@@ -51,8 +55,10 @@ export default async function ProyectosPage({
   } else if (staff) {
     roleWhere = {
       OR: [
-        { managerId: userId },
-        { tasks: { some: { assignedToId: userId } } },
+        // Proyectos públicos donde es manager o tiene tareas asignadas
+        { isPrivate: false, OR: [{ managerId: userId }, { tasks: { some: { assignedToId: userId } } }] },
+        // Proyectos privados donde es miembro
+        { isPrivate: true, members: { some: { userId } } },
       ],
     };
   } else {
@@ -61,7 +67,14 @@ export default async function ProyectosPage({
       select: { companies: { select: { id: true } } },
     });
     const companyIds = (user?.companies ?? []).map((c) => c.id);
-    roleWhere = { companyId: { in: companyIds } };
+    roleWhere = {
+      OR: [
+        // Proyectos públicos de su empresa
+        { isPrivate: false, companyId: { in: companyIds } },
+        // Proyectos privados donde es miembro explícito
+        { isPrivate: true, members: { some: { userId } } },
+      ],
+    };
   }
 
   const where = { ...roleWhere, ...extraFilters };
@@ -137,7 +150,10 @@ export default async function ProyectosPage({
       </div>
 
       {/* Filters */}
-      <div style={{ marginBottom: "1.25rem" }}>
+      <div style={{ marginBottom: "1.25rem", display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+        <Suspense fallback={<div style={{ height: "2.375rem", width: "220px" }} />}>
+          <SearchInput placeholder="Buscar proyectos..." />
+        </Suspense>
         <ProjectFilters
           companies={companies}
           managers={managers}

@@ -1,9 +1,11 @@
 import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { Plus, Globe, Building2, Pencil } from "lucide-react";
-import { DeleteSiteButton } from "@/components/sites/delete-site-button";
+import { Plus, Globe } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
+import { Suspense } from "react";
+import { SearchInput } from "@/components/ui/search-input";
+import { SitesTable } from "@/components/admin/sites-table";
 
 export const metadata = { title: "Sitios y apps — Geniorama Tickets" };
 
@@ -17,15 +19,38 @@ export default async function SitiosPage({
   await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const sortBy  = params.sortBy  ?? "name";
+  const sortDir = (params.sortDir === "asc" ? "asc" : "desc") as "asc" | "desc";
+  const q = params.q?.trim() || undefined;
+  const siteWhere = q
+    ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { domain: { contains: q, mode: "insensitive" as const } }] }
+    : {};
+
+  const sitesOrderBy: Record<string, unknown> = (() => {
+    const d = sortDir;
+    switch (sortBy) {
+      case "domain":   return { domain: d };
+      case "company":  return { company: { name: d } };
+      case "isActive": return { isActive: d };
+      default:         return { name: d };
+    }
+  })();
+
+  const baseParams = new URLSearchParams(params as Record<string, string>);
+  baseParams.delete("sortBy");
+  baseParams.delete("sortDir");
+  baseParams.delete("page");
+  const paramsStr = baseParams.toString();
 
   const [sites, totalSites] = await Promise.all([
     prisma.site.findMany({
+      where: siteWhere,
       include: { company: { select: { name: true } } },
-      orderBy: [{ company: { name: "asc" } }, { name: "asc" }],
+      orderBy: sitesOrderBy,
       take: PAGE_SIZE,
       skip: (page - 1) * PAGE_SIZE,
     }),
-    prisma.site.count(),
+    prisma.site.count({ where: siteWhere }),
   ]);
 
   return (
@@ -46,7 +71,13 @@ export default async function SitiosPage({
         </Link>
       </div>
 
-      {sites.length === 0 ? (
+      <div>
+        <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
+          <SearchInput placeholder="Buscar por nombre o dominio..." />
+        </Suspense>
+      </div>
+
+      {totalSites === 0 && !q ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
           <Globe className="w-10 h-10 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 font-medium">No hay sitios creados aún</p>
@@ -62,73 +93,7 @@ export default async function SitiosPage({
           </Link>
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Sitio / App</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Dominio</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Empresa</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Docs</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Estado</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {sites.map((site) => (
-                <tr key={site.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-gray-900">{site.name}</td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1 text-gray-600">
-                      <Globe className="w-3.5 h-3.5 text-gray-400" />
-                      {site.domain}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1 text-gray-600">
-                      <Building2 className="w-3.5 h-3.5 text-gray-400" />
-                      {site.company.name}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1.5">
-                      {site.documentation && (
-                        <span className="px-1.5 py-0.5 rounded text-xs bg-blue-50 text-blue-700 font-medium">Docs</span>
-                      )}
-                      {site.architecture && (
-                        <span className="px-1.5 py-0.5 rounded text-xs bg-purple-50 text-purple-700 font-medium">Arq.</span>
-                      )}
-                      {!site.documentation && !site.architecture && (
-                        <span className="text-gray-300 text-xs">—</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      site.isActive
-                        ? "bg-green-50 text-green-700"
-                        : "bg-gray-100 text-gray-500"
-                    }`}>
-                      {site.isActive ? "Activo" : "Inactivo"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2 justify-end">
-                      <Link
-                        href={`/admin/sitios/${site.id}/edit`}
-                        className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                        Editar
-                      </Link>
-                      <DeleteSiteButton siteId={site.id} siteName={site.name} />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <SitesTable sites={sites} sortBy={sortBy} sortDir={sortDir} paramsStr={paramsStr} />
       )}
 
       <Pagination

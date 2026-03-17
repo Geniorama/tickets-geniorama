@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { ServiceForm } from "@/components/services/service-form";
 import { DeleteServiceButton } from "@/components/services/delete-service-button";
+import { DuplicateServiceButton } from "@/components/services/duplicate-service-button";
 
 export const metadata = { title: "Editar servicio — Geniorama Tickets" };
 
@@ -37,7 +38,8 @@ export default async function EditServicioPage({
         <ServiceForm companies={companies} service={service} />
       </div>
 
-      <div style={{ marginTop: "1.5rem", display: "flex", justifyContent: "flex-end" }}>
+      <div style={{ marginTop: "1.5rem", display: "flex", justifyContent: "space-between" }}>
+        <DuplicateServiceButton serviceId={id} />
         <DeleteServiceButton serviceId={id} />
       </div>
     </div>

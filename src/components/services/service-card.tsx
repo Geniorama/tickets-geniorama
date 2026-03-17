@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Globe, Server, Mail, Shield, Wrench, Package, ExternalLink } from "lucide-react";
+import { DuplicateServiceButton } from "@/components/services/duplicate-service-button";
+import { DeleteServiceButton } from "@/components/services/delete-service-button";
 
 type ServiceType     = "DOMINIO" | "HOSTING" | "CORREO" | "SSL" | "MANTENIMIENTO" | "OTRO";
 type ServiceProvider = "GENIORAMA" | "EXTERNO";
@@ -43,11 +45,15 @@ export function ServiceCard({
   showCompany = false,
   showNotes = false,
   editHref,
+  showDuplicate = false,
+  showDelete = false,
 }: {
   service: ServiceCardService;
   showCompany?: boolean;
   showNotes?: boolean;
   editHref?: string;
+  showDuplicate?: boolean;
+  showDelete?: boolean;
 }) {
   const meta   = TYPE_META[service.type];
   const status = getServiceStatus(service.dueDate, service.isActive);
@@ -124,12 +130,18 @@ export function ServiceCard({
         </div>
       )}
 
-      {/* Edit link */}
-      {editHref && (
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <Link href={editHref} style={{ fontSize: "0.8125rem", color: "#fd1384", fontWeight: 500, textDecoration: "none" }}>
-            Editar →
-          </Link>
+      {/* Actions */}
+      {(editHref || showDuplicate || showDelete) && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "0.375rem" }}>
+            {showDuplicate && <DuplicateServiceButton serviceId={service.id} />}
+            {showDelete && <DeleteServiceButton serviceId={service.id} />}
+          </div>
+          {editHref && (
+            <Link href={editHref} style={{ fontSize: "0.8125rem", color: "#fd1384", fontWeight: 500, textDecoration: "none" }}>
+              Editar →
+            </Link>
+          )}
         </div>
       )}
     </div>

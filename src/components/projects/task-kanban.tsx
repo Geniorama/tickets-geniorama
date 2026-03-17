@@ -19,9 +19,11 @@ import type { Task, TaskStatus, Priority } from "@/generated/prisma";
 import { TaskPriorityBadge } from "./project-status-badge";
 import { formatDate } from "@/lib/format-date";
 import { updateTaskStatus } from "@/actions/task.actions";
+import { taskCode } from "@/lib/task-code";
 
 type TaskWithRelations = Task & {
   assignedTo: { name: string } | null;
+  project: { id: string; name: string };
   _count: { comments: number };
 };
 
@@ -86,6 +88,11 @@ function TaskCard({
         opacity: isDragging ? 0.4 : 1,
       }}
     >
+      {task.number > 0 && (
+        <span style={{ display: "inline-block", fontSize: "0.625rem", fontWeight: 600, color: "var(--app-text-muted)", background: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.25rem", padding: "0.1rem 0.3rem", marginBottom: "0.25rem", letterSpacing: "0.03em" }}>
+          {taskCode(task.project.name, task.number)}
+        </span>
+      )}
       <p
         style={{
           fontSize: "0.875rem",

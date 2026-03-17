@@ -4,7 +4,7 @@ import Link from "next/link";
 import type { Project, ProjectStatus } from "@/generated/prisma";
 import { ProjectStatusBadge } from "./project-status-badge";
 import { formatDate } from "@/lib/format-date";
-import { FolderOpen, Calendar, User2, Building2 } from "lucide-react";
+import { FolderOpen, Calendar, User2, Building2, Lock } from "lucide-react";
 
 type ProjectWithRelations = Project & {
   company: { name: string } | null;
@@ -91,7 +91,15 @@ export function ProjectList({ projects }: { projects: ProjectWithRelations[] }) 
               >
                 {project.name}
               </h3>
-              <ProjectStatusBadge status={project.status as ProjectStatus} />
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                {project.isPrivate && (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.6875rem", fontWeight: 600, color: "#7c3aed", backgroundColor: "#ede9fe", borderRadius: "0.25rem", padding: "0.15rem 0.4rem" }}>
+                    <Lock style={{ width: "0.625rem", height: "0.625rem" }} />
+                    Privado
+                  </span>
+                )}
+                <ProjectStatusBadge status={project.status as ProjectStatus} />
+              </div>
             </div>
 
             <p

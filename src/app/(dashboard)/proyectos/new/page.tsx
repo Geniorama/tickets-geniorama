@@ -7,7 +7,7 @@ export const metadata = { title: "Nuevo proyecto — Geniorama Tickets" };
 export default async function NewProjectPage() {
   await requireRole(["ADMINISTRADOR"]);
 
-  const [companies, staffUsers] = await Promise.all([
+  const [companies, staffUsers, allUsers] = await Promise.all([
     prisma.company.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
@@ -17,6 +17,11 @@ export default async function NewProjectPage() {
       where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
+    }),
+    prisma.user.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, role: true },
     }),
   ]);
 
@@ -50,7 +55,7 @@ export default async function NewProjectPage() {
           padding: "1.5rem",
         }}
       >
-        <ProjectForm companies={companies} staffUsers={staffUsers} />
+        <ProjectForm companies={companies} staffUsers={staffUsers} allUsers={allUsers} />
       </div>
     </div>
   );

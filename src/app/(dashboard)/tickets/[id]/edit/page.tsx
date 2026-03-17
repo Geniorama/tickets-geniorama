@@ -21,6 +21,7 @@ export default async function EditTicketPage({
         id: true, title: true, description: true,
         status: true, priority: true, category: true,
         assignedToId: true, clientId: true, planId: true, siteId: true,
+        dueDate: true,
       },
     }),
     prisma.user.findMany({
@@ -47,6 +48,13 @@ export default async function EditTicketPage({
 
   if (!ticket) notFound();
 
+  const ticketForForm = {
+    ...ticket,
+    status: ticket.status as string,
+    priority: ticket.priority as string,
+    dueDate: ticket.dueDate ? ticket.dueDate.toISOString() : null,
+  };
+
   return (
     <div className="max-w-2xl">
       <div className="mb-4">
@@ -54,7 +62,7 @@ export default async function EditTicketPage({
       </div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Editar ticket</h1>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <TicketEditForm ticket={ticket} collaborators={collaborators} clients={clients} plans={plans} sites={sites} />
+        <TicketEditForm ticket={ticketForForm} collaborators={collaborators} clients={clients} plans={plans} sites={sites} />
       </div>
     </div>
   );

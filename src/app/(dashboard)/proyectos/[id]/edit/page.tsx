@@ -14,8 +14,11 @@ export default async function EditProjectPage({
   await requireRole(["ADMINISTRADOR"]);
   const { id: projectId } = await params;
 
-  const [project, companies, staffUsers] = await Promise.all([
-    prisma.project.findUnique({ where: { id: projectId } }),
+  const [project, companies, staffUsers, allUsers] = await Promise.all([
+    prisma.project.findUnique({
+      where: { id: projectId },
+      include: { members: { select: { userId: true } } },
+    }),
     prisma.company.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
@@ -25,6 +28,11 @@ export default async function EditProjectPage({
       where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
+    }),
+    prisma.user.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, role: true },
     }),
   ]);
 
@@ -55,7 +63,7 @@ export default async function EditProjectPage({
           padding: "1.5rem",
         }}
       >
-        <ProjectForm companies={companies} staffUsers={staffUsers} project={project} />
+        <ProjectForm companies={companies} staffUsers={staffUsers} allUsers={allUsers} project={project} />
       </div>
     </div>
   );

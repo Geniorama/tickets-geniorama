@@ -19,8 +19,11 @@ interface ExistingAttachment {
   storagePath: string;
 }
 
+interface Project { id: string; name: string; }
+
 interface TaskFormProps {
-  projectId: string;
+  projectId?: string;
+  projects?: Project[];   // si se pasa, muestra selector de proyecto
   staffUsers: StaffUser[];
   task?: Task;
   existingAttachments?: ExistingAttachment[];
@@ -57,7 +60,7 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function TaskForm({ projectId, staffUsers, task, existingAttachments = [] }: TaskFormProps) {
+export function TaskForm({ projectId, projects, staffUsers, task, existingAttachments = [] }: TaskFormProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<TaskConflict[] | null>(null);
@@ -133,8 +136,8 @@ export function TaskForm({ projectId, staffUsers, task, existingAttachments = []
   function submit(formData: FormData) {
     startTransition(async () => {
       const result = isEdit
-        ? await updateTask(task.id, projectId, formData)
-        : await createTask(projectId, formData);
+        ? await updateTask(task.id, projectId!, formData)
+        : await createTask(projectId ?? null, formData);
       if (result?.error) setError(result.error);
       if (result?.conflicts) setConflicts(result.conflicts);
     });
@@ -150,6 +153,18 @@ export function TaskForm({ projectId, staffUsers, task, existingAttachments = []
 
   return (
     <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      {projects && !projectId && (
+        <div>
+          <label style={labelStyle}>Proyecto <span style={{ color: "#b91c1c" }}>*</span></label>
+          <select name="projectId" required style={inputStyle}>
+            <option value="">Seleccionar proyecto...</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div>
         <label style={labelStyle}>Título</label>
         <input
@@ -170,7 +185,7 @@ export function TaskForm({ projectId, staffUsers, task, existingAttachments = []
         />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem" }}>
         <div>
           <label style={labelStyle}>Estado</label>
           <select name="status" defaultValue={task?.status ?? "PENDIENTE"} style={inputStyle}>
@@ -189,9 +204,6 @@ export function TaskForm({ projectId, staffUsers, task, existingAttachments = []
             <option value="CRITICA">Crítica</option>
           </select>
         </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
         <div>
           <label style={labelStyle}>Categoría</label>
           <select name="category" defaultValue={task?.category ?? ""} style={inputStyle}>
@@ -219,26 +231,77 @@ export function TaskForm({ projectId, staffUsers, task, existingAttachments = []
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
-        <div>
-          <label style={labelStyle}>Fecha inicio</label>
-          <input
-            name="startDate"
-            type="date"
-            defaultValue={toInputDate(task?.startDate)}
-            style={inputStyle}
-          />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "1rem", alignItems: "end" }}>
+        {/* Inicio */}
+        <div
+          style={{
+            border: "1px solid var(--app-border)",
+            borderRadius: "0.5rem",
+            padding: "0.75rem",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "0.75rem",
+          }}
+        >
+          <p style={{ gridColumn: "1 / -1", margin: 0, fontSize: "0.75rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Inicio
+          </p>
+          <div>
+            <label style={labelStyle}>Fecha</label>
+            <input
+              name="startDate"
+              type="date"
+              defaultValue={toInputDate(task?.startDate)}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Hora</label>
+            <input
+              name="startTime"
+              type="time"
+              defaultValue={task?.startTime ?? ""}
+              style={inputStyle}
+            />
+          </div>
         </div>
-        <div>
-          <label style={labelStyle}>Fecha límite</label>
-          <input
-            name="dueDate"
-            type="date"
-            defaultValue={toInputDate(task?.dueDate)}
-            style={inputStyle}
-          />
+
+        {/* Fin */}
+        <div
+          style={{
+            border: "1px solid var(--app-border)",
+            borderRadius: "0.5rem",
+            padding: "0.75rem",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "0.75rem",
+          }}
+        >
+          <p style={{ gridColumn: "1 / -1", margin: 0, fontSize: "0.75rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Fin
+          </p>
+          <div>
+            <label style={labelStyle}>Fecha límite</label>
+            <input
+              name="dueDate"
+              type="date"
+              defaultValue={toInputDate(task?.dueDate)}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Hora</label>
+            <input
+              name="endTime"
+              type="time"
+              defaultValue={task?.endTime ?? ""}
+              style={inputStyle}
+            />
+          </div>
         </div>
-        <div>
+
+        {/* Horas estimadas */}
+        <div style={{ minWidth: "9rem" }}>
           <label style={labelStyle}>Horas estimadas</label>
           <input
             name="estimatedHours"

@@ -14,7 +14,7 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Circle, Clock, Eye, CheckCircle2, GripVertical } from "lucide-react";
+import { Circle, Clock, Eye, CheckCircle2, GripVertical, Inbox } from "lucide-react";
 import type { Ticket, TicketStatus, Priority } from "@/generated/prisma";
 import { PriorityBadge } from "./ticket-status-badge";
 import { formatDateTime } from "@/lib/format-date";
@@ -34,6 +34,15 @@ const columns: {
   dropClass: string;
   dropActiveClass: string;
 }[] = [
+  {
+    status: "POR_ASIGNAR",
+    label: "Por asignar",
+    icon: Inbox,
+    topBorder: "border-t-gray-400",
+    countClass: "bg-gray-100 text-gray-600",
+    dropClass: "bg-white",
+    dropActiveClass: "bg-gray-50 ring-2 ring-gray-300",
+  },
   {
     status: "ABIERTO",
     label: "Abierto",
@@ -255,7 +264,7 @@ export function TicketKanban({ tickets: initialTickets }: { tickets: TicketWithR
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 items-start">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 items-start">
         {columns.map((col) => (
           <KanbanColumn
             key={col.status}

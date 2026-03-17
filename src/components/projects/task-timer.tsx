@@ -14,6 +14,7 @@ interface TimeEntryRow {
   id: string;
   startedAt: Date | string;
   stoppedAt: Date | string | null;
+  userId: string;
   user: { name: string };
 }
 
@@ -32,12 +33,14 @@ export function TaskTimer({
   entries,
   canControl,
   isAdmin,
+  currentUserId,
 }: {
   taskId: string;
   projectId: string;
   entries: TimeEntryRow[];
   canControl: boolean;
   isAdmin: boolean;
+  currentUserId: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const [now, setNow] = useState(() => Date.now());
@@ -144,7 +147,7 @@ export function TaskTimer({
           {formatDuration(totalMs)}
         </span>
 
-        {canControl && (
+        {canControl && (!activeEntry || activeEntry.userId === currentUserId) && (
           <button
             onClick={handleToggle}
             disabled={isPending}

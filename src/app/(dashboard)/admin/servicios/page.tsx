@@ -3,6 +3,10 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { ServiceCard } from "@/components/services/service-card";
+import { ServiceRow } from "@/components/services/service-row";
+import { Suspense } from "react";
+import { SearchInput } from "@/components/ui/search-input";
+import { ViewToggle } from "@/components/ui/view-toggle";
 
 export const metadata = { title: "Servicios — Geniorama Tickets" };
 
@@ -15,12 +19,15 @@ export default async function ServiciosPage({
   const params = await searchParams;
   const companyFilter = params.companyId;
   const typeFilter    = params.type;
+  const q = params.q?.trim() || undefined;
+  const view = params.view === "list" ? "list" : "grid";
 
   const [services, companies] = await Promise.all([
     prisma.service.findMany({
       where: {
         ...(companyFilter ? { companyId: companyFilter } : {}),
         ...(typeFilter    ? { type: typeFilter as never } : {}),
+        ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
       },
       include: {
         company: { select: { id: true, name: true } },
@@ -62,8 +69,20 @@ export default async function ServiciosPage({
         </Link>
       </div>
 
+      <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginBottom: "1rem" }}>
+        <div style={{ flex: 1 }}>
+          <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
+            <SearchInput placeholder="Buscar servicios..." />
+          </Suspense>
+        </div>
+        <Suspense fallback={<div style={{ width: "4.5rem", height: "2rem" }} />}>
+          <ViewToggle current={view} />
+        </Suspense>
+      </div>
+
       {/* Filters */}
       <form method="GET" style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+        <input type="hidden" name="view" value={view} />
         <select name="companyId" defaultValue={companyFilter ?? ""}
           style={{ border: "1px solid var(--app-border)", borderRadius: "0.5rem", padding: "0.4rem 0.75rem", fontSize: "0.875rem", backgroundColor: "var(--app-card-bg)", color: "var(--app-body-text)", cursor: "pointer" }}>
           <option value="">Todas las empresas</option>
@@ -79,7 +98,7 @@ export default async function ServiciosPage({
           Filtrar
         </button>
         {(companyFilter || typeFilter) && (
-          <Link href="/admin/servicios"
+          <Link href={`/admin/servicios${view === "list" ? "?view=list" : ""}`}
             style={{ padding: "0.4rem 0.875rem", fontSize: "0.875rem", color: "var(--app-text-muted)", textDecoration: "none" }}>
             Limpiar
           </Link>
@@ -104,16 +123,54 @@ export default async function ServiciosPage({
                   ({companyServices.length})
                 </span>
               </h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "0.75rem" }}>
-                {companyServices.map((s) => (
-                  <ServiceCard
-                    key={s.id}
-                    service={s}
-                    showNotes
-                    editHref={`/admin/servicios/${s.id}/edit`}
-                  />
-                ))}
-              </div>
+
+              {view === "grid" ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "0.75rem" }}>
+                  {companyServices.map((s) => (
+                    <ServiceCard
+                      key={s.id}
+                      service={s}
+                      showNotes
+                      showDuplicate
+                      showDelete
+                      editHref={`/admin/servicios/${s.id}/edit`}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div style={{ backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.75rem", overflow: "hidden" }}>
+                  {/* List header */}
+                  <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "1.5rem 1fr auto auto auto auto",
+                    gap: "0 1rem",
+                    padding: "0.5rem 1rem",
+                    backgroundColor: "var(--app-content-bg)",
+                    borderBottom: "1px solid var(--app-border)",
+                    fontSize: "0.6875rem",
+                    fontWeight: 600,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    color: "var(--app-text-muted)",
+                  }}>
+                    <span />
+                    <span>Servicio</span>
+                    <span>Vencimiento</span>
+                    <span>Valor</span>
+                    <span>Estado</span>
+                    <span />
+                  </div>
+                  {companyServices.map((s) => (
+                    <ServiceRow
+                      key={s.id}
+                      service={s}
+                      showDuplicate
+                      showDelete
+                      editHref={`/admin/servicios/${s.id}/edit`}
+                    />
+                  ))}
+                </div>
+              )}
             </section>
           ))}
         </div>

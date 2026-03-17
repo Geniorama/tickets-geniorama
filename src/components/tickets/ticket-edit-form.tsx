@@ -13,6 +13,7 @@ interface Ticket {
   id: string; title: string; description: string;
   status: string; priority: string; category: string | null;
   assignedToId: string | null; clientId: string | null; planId: string | null; siteId: string | null;
+  dueDate: string | null;
 }
 
 export function TicketEditForm({
@@ -74,6 +75,7 @@ export function TicketEditForm({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
           <select name="status" defaultValue={ticket.status} className={inputClass}>
+            <option value="POR_ASIGNAR">Por asignar</option>
             <option value="ABIERTO">Abierto</option>
             <option value="EN_PROGRESO">En progreso</option>
             <option value="EN_REVISION">En revisión</option>
@@ -118,6 +120,16 @@ export function TicketEditForm({
             ))}
           </select>
         </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Fecha límite <span className="text-gray-400 font-normal">(opcional)</span></label>
+        <input
+          type="date"
+          name="dueDate"
+          defaultValue={ticket.dueDate ? new Date(ticket.dueDate).toISOString().split("T")[0] : ""}
+          className={inputClass}
+        />
       </div>
 
       <div>

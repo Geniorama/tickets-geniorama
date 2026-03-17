@@ -8,6 +8,8 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { fromZonedTime } from "date-fns-tz";
 import { Pagination } from "@/components/ui/pagination";
+import { Suspense } from "react";
+import { SearchInput } from "@/components/ui/search-input";
 
 const PAGE_SIZE = 25;
 
@@ -26,6 +28,7 @@ export default async function TicketsPage({
   const staff = isStaff(role);
   const view = staff && params.view === "kanban" ? "kanban" : "list";
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const q = params.q?.trim() || undefined;
 
   // Base where: clientes ven tickets que crearon ellos O donde son el cliente asignado
   const baseWhere = staff ? {} : { OR: [{ createdById: id }, { clientId: id }] };
@@ -51,6 +54,8 @@ export default async function TicketsPage({
     ...(params.assignedToId ? { assignedToId: params.assignedToId } : {}),
     ...(params.createdById ? { createdById: params.createdById } : {}),
     ...(params.companyId ? { createdBy: { companies: { some: { id: params.companyId } } } } : {}),
+    ...(params.status ? { status: params.status as never } : {}),
+    ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
   };
 
   const sortBy = params.sortBy ?? "createdAt";
@@ -66,6 +71,7 @@ export default async function TicketsPage({
       case "createdBy":  return { createdBy: { name: d } };
       case "assignedTo": return { assignedTo: { name: d } };
       case "updatedAt":  return { updatedAt: d };
+      case "dueDate":    return { dueDate: d };
       default:           return { createdAt: d };
     }
   })();
@@ -115,6 +121,12 @@ export default async function TicketsPage({
             Nuevo ticket
           </Link>
         </div>
+      </div>
+
+      <div style={{ marginBottom: "1rem" }}>
+        <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
+          <SearchInput placeholder="Buscar tickets..." />
+        </Suspense>
       </div>
 
       {staff && (

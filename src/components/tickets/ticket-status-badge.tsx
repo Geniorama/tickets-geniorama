@@ -1,7 +1,8 @@
 import type { TicketStatus, Priority } from "@/generated/prisma";
-import { Circle, Clock, Eye, CheckCircle2, ArrowDown, Minus, ArrowUp, Zap } from "lucide-react";
+import { Circle, Clock, Eye, CheckCircle2, ArrowDown, Minus, ArrowUp, Zap, Inbox } from "lucide-react";
 
 const statusConfig: Record<TicketStatus, { label: string; className: string; icon: React.ElementType }> = {
+  POR_ASIGNAR: { label: "Por asignar",  className: "bg-gray-100 text-gray-600 border-gray-300",     icon: Inbox },
   ABIERTO:     { label: "Abierto",      className: "bg-yellow-50 text-yellow-700 border-yellow-200", icon: Circle },
   EN_PROGRESO: { label: "En progreso",  className: "bg-blue-50 text-blue-700 border-blue-200",       icon: Clock },
   EN_REVISION: { label: "En revisión",  className: "bg-purple-50 text-purple-700 border-purple-200", icon: Eye },

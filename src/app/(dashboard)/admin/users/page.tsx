@@ -1,12 +1,12 @@
 import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { formatDate } from "@/lib/format-date";
-import { ResendInvitationButton } from "@/components/admin/resend-invitation-button";
-import { ToggleUserActiveButton } from "@/components/admin/toggle-user-active-button";
-import { DeleteUserButton } from "@/components/admin/delete-user-button";
-import { Plus, Pencil } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
+import { Suspense } from "react";
+import { SearchInput } from "@/components/ui/search-input";
+import { UsersTable } from "@/components/admin/users-table";
+import { UserFilters } from "@/components/admin/user-filters";
 
 export const metadata = { title: "Usuarios — Geniorama Tickets" };
 
@@ -20,10 +20,43 @@ export default async function UsersPage({
   const session = await requireRole(["ADMINISTRADOR"]);
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const sortBy  = params.sortBy  ?? "createdAt";
+  const sortDir = (params.sortDir === "asc" ? "asc" : "desc") as "asc" | "desc";
+  const q         = params.q?.trim() || undefined;
+  const roleFilter     = params.role     || undefined;
+  const isActiveFilter = params.isActive !== undefined && params.isActive !== ""
+    ? params.isActive === "true"
+    : undefined;
+  const companyFilter  = params.companyId || undefined;
 
-  const [users, totalUsers] = await Promise.all([
+  const userWhere = {
+    ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { email: { contains: q, mode: "insensitive" as const } }] } : {}),
+    ...(roleFilter     ? { role: roleFilter as never }            : {}),
+    ...(isActiveFilter !== undefined ? { isActive: isActiveFilter } : {}),
+    ...(companyFilter  ? { companies: { some: { id: companyFilter } } } : {}),
+  };
+
+  const usersOrderBy: Record<string, unknown> = (() => {
+    const d = sortDir;
+    switch (sortBy) {
+      case "name":      return { name: d };
+      case "email":     return { email: d };
+      case "role":      return { role: d };
+      case "isActive":  return { isActive: d };
+      default:          return { createdAt: d };
+    }
+  })();
+
+  const baseParams = new URLSearchParams(params as Record<string, string>);
+  baseParams.delete("sortBy");
+  baseParams.delete("sortDir");
+  baseParams.delete("page");
+  const paramsStr = baseParams.toString();
+
+  const [users, totalUsers, companies] = await Promise.all([
     prisma.user.findMany({
-      orderBy: { createdAt: "desc" },
+      where: userWhere,
+      orderBy: usersOrderBy,
       select: {
         id: true,
         name: true,
@@ -36,14 +69,12 @@ export default async function UsersPage({
       take: PAGE_SIZE,
       skip: (page - 1) * PAGE_SIZE,
     }),
-    prisma.user.count(),
+    prisma.user.count({ where: userWhere }),
+    prisma.company.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
   ]);
-
-  const roleLabels = {
-    ADMINISTRADOR: "Administrador",
-    COLABORADOR: "Colaborador",
-    CLIENTE: "Cliente",
-  };
 
   return (
     <div>
@@ -58,79 +89,22 @@ export default async function UsersPage({
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Nombre</th>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Email</th>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Empresa</th>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Rol</th>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Estado</th>
-              <th className="text-left px-4 py-3 text-gray-600 font-medium">Creado</th>
-              <th className="px-4 py-3"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {users.map((user) => (
-              <tr key={user.id} className={`hover:bg-gray-50 ${!user.isActive ? "opacity-60" : ""}`}>
-                <td className="px-4 py-3 font-medium text-gray-900">
-                  <Link href={`/admin/users/${user.id}`} className="hover:text-indigo-600">
-                    {user.name}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-gray-600">{user.email}</td>
-                <td className="px-4 py-3 text-gray-500 text-sm">
-                  {user.companies.length > 0
-                    ? user.companies.map((c) => c.name).join(", ")
-                    : "—"}
-                </td>
-                <td className="px-4 py-3">
-                  <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded text-xs font-medium">
-                    {roleLabels[user.role]}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`px-2 py-0.5 rounded text-xs font-medium ${
-                      user.isActive
-                        ? "bg-green-50 text-green-700"
-                        : "bg-red-50 text-red-700"
-                    }`}
-                  >
-                    {user.isActive ? "Activo" : "Inactivo"}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-gray-500">
-                  {formatDate(user.createdAt)}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <ToggleUserActiveButton
-                      userId={user.id}
-                      isActive={user.isActive}
-                      isSelf={user.id === session.user.id}
-                    />
-                    <ResendInvitationButton userId={user.id} />
-                    <Link
-                      href={`/admin/users/${user.id}/edit`}
-                      className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Editar
-                    </Link>
-                    <DeleteUserButton
-                      userId={user.id}
-                      userName={user.name}
-                      isSelf={user.id === session.user.id}
-                    />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div style={{ marginBottom: "1rem", display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
+        <Suspense fallback={<div style={{ height: "2.375rem", width: "220px" }} />}>
+          <SearchInput placeholder="Buscar por nombre o email..." />
+        </Suspense>
+        <Suspense fallback={null}>
+          <UserFilters companies={companies} />
+        </Suspense>
       </div>
+
+      <UsersTable
+        users={users}
+        currentUserId={session.user.id}
+        sortBy={sortBy}
+        sortDir={sortDir}
+        paramsStr={paramsStr}
+      />
 
       <Pagination
         totalItems={totalUsers}

@@ -16,6 +16,8 @@ const projectSchema = z.object({
   managerId: z.string().optional(),
   startDate: z.string().optional(),
   dueDate: z.string().optional(),
+  isPrivate: z.boolean().default(false),
+  memberIds: z.array(z.string()).default([]),
 });
 
 export async function createProject(formData: FormData) {
@@ -30,6 +32,8 @@ export async function createProject(formData: FormData) {
     managerId: formData.get("managerId") || undefined,
     startDate: formData.get("startDate") || undefined,
     dueDate: formData.get("dueDate") || undefined,
+    isPrivate: formData.get("isPrivate") === "true",
+    memberIds: formData.getAll("memberIds").map(String).filter(Boolean),
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -44,6 +48,10 @@ export async function createProject(formData: FormData) {
       createdById: session.user.id,
       startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : null,
       dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
+      isPrivate: parsed.data.isPrivate,
+      members: parsed.data.isPrivate && parsed.data.memberIds.length > 0
+        ? { create: parsed.data.memberIds.map((userId) => ({ userId })) }
+        : undefined,
     },
   });
 
@@ -62,21 +70,33 @@ export async function updateProject(projectId: string, formData: FormData) {
     managerId: formData.get("managerId") || undefined,
     startDate: formData.get("startDate") || undefined,
     dueDate: formData.get("dueDate") || undefined,
+    isPrivate: formData.get("isPrivate") === "true",
+    memberIds: formData.getAll("memberIds").map(String).filter(Boolean),
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  await prisma.project.update({
-    where: { id: projectId },
-    data: {
-      name: parsed.data.name,
-      description: parsed.data.description,
-      status: parsed.data.status,
-      companyId: parsed.data.companyId ?? null,
-      managerId: parsed.data.managerId ?? null,
-      startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : null,
-      dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.project.update({
+      where: { id: projectId },
+      data: {
+        name: parsed.data.name,
+        description: parsed.data.description,
+        status: parsed.data.status,
+        companyId: parsed.data.companyId ?? null,
+        managerId: parsed.data.managerId ?? null,
+        startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : null,
+        dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
+        isPrivate: parsed.data.isPrivate,
+      },
+    });
+    // Sync members: delete all + re-create
+    await tx.projectMember.deleteMany({ where: { projectId } });
+    if (parsed.data.isPrivate && parsed.data.memberIds.length > 0) {
+      await tx.projectMember.createMany({
+        data: parsed.data.memberIds.map((userId) => ({ projectId, userId })),
+      });
+    }
   });
 
   revalidatePath("/proyectos");

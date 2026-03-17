@@ -8,6 +8,7 @@ interface TimeEntryRow {
   id: string;
   startedAt: Date | string;
   stoppedAt: Date | string | null;
+  userId: string;
   user: { name: string };
 }
 
@@ -25,11 +26,13 @@ export function TicketTimer({
   entries,
   canControl,
   isAdmin,
+  currentUserId,
 }: {
   ticketId: string;
   entries: TimeEntryRow[];
   canControl: boolean;
   isAdmin: boolean;
+  currentUserId: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const [now, setNow] = useState(() => Date.now());
@@ -111,7 +114,7 @@ export function TicketTimer({
           {formatDuration(totalMs)}
         </span>
 
-        {canControl && (
+        {canControl && (!activeEntry || activeEntry.userId === currentUserId) && (
           <button
             onClick={handleToggle}
             disabled={isPending}

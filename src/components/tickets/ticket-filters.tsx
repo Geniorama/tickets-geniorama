@@ -106,6 +106,17 @@ export function TicketFilters({
               </select>
             </div>
             <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1">Estado</label>
+              <select name="status" defaultValue={current.status ?? ""} className={inputClass}>
+                <option value="">Todos</option>
+                <option value="POR_ASIGNAR">Por asignar</option>
+                <option value="ABIERTO">Abierto</option>
+                <option value="EN_PROGRESO">En progreso</option>
+                <option value="EN_REVISION">En revisión</option>
+                <option value="CERRADO">Cerrado</option>
+              </select>
+            </div>
+            <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Empresa</label>
               <select name="companyId" defaultValue={current.companyId ?? ""} className={inputClass}>
                 <option value="">Todas</option>

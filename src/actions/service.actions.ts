@@ -100,3 +100,30 @@ export async function deleteService(serviceId: string) {
   revalidatePath("/mis-servicios");
   redirect("/admin/servicios");
 }
+
+export async function duplicateService(serviceId: string) {
+  const session = await getRequiredSession();
+  await requireRole(["ADMINISTRADOR"]);
+
+  const original = await prisma.service.findUnique({ where: { id: serviceId } });
+  if (!original) return { error: "Servicio no encontrado" };
+
+  const copy = await prisma.service.create({
+    data: {
+      name:        `Copia de ${original.name}`,
+      type:        original.type,
+      provider:    original.provider,
+      description: original.description,
+      dueDate:     original.dueDate,
+      price:       original.price,
+      notes:       original.notes,
+      isActive:    original.isActive,
+      companyId:   original.companyId,
+      createdById: session.user.id,
+    },
+  });
+
+  revalidatePath("/admin/servicios");
+  revalidatePath("/mis-servicios");
+  redirect(`/admin/servicios/${copy.id}/edit`);
+}
