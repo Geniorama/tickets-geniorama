@@ -231,6 +231,9 @@ export function Sidebar({ role }: { role: Role }) {
         <p className="text-xs text-center" style={{ color: "var(--app-footer-text)" }}>
           Sistema de Tickets
         </p>
+        <p className="text-xs text-center mt-0.5" style={{ color: "var(--app-footer-text)", opacity: 0.5 }}>
+          v{process.env.NEXT_PUBLIC_APP_VERSION}
+        </p>
       </div>
     </aside>
   );

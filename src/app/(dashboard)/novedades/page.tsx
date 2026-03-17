@@ -15,36 +15,35 @@ interface Section {
 }
 
 interface Release {
+  version: string;
   date: string;
   sections: Section[];
-  isUnreleased: boolean;
 }
 
 function parseChangelog(content: string): Release[] {
   const releases: Release[] = [];
 
-  // Split by level-2 headings (## )
   const blocks = content.split(/\n(?=## )/);
 
   for (const block of blocks) {
     const lines = block.split("\n");
     const heading = lines[0];
     if (!heading.startsWith("## ")) continue;
+    if (heading.includes("[Unreleased]")) continue;
 
-    const isUnreleased = heading.includes("[Unreleased]");
-    if (isUnreleased) continue; // Skip unreleased section
+    // Extract version from "## [1.4.0] — 2026-03-17"
+    const versionMatch = heading.match(/\[(\d+\.\d+\.\d+)\]/);
+    if (!versionMatch) continue;
+    const version = versionMatch[1];
 
-    // Extract date from "## 2026-03-16 — `hash`"
-    const dateMatch = heading.match(/## (\d{4}-\d{2}-\d{2})/);
-    if (!dateMatch) continue;
-
-    const rawDate = dateMatch[1];
-    const date = new Date(`${rawDate}T12:00:00Z`).toLocaleDateString("es-CO", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      timeZone: "UTC",
-    });
+    // Extract date
+    const dateMatch = heading.match(/(\d{4}-\d{2}-\d{2})/);
+    const rawDate = dateMatch?.[1];
+    const date = rawDate
+      ? new Date(`${rawDate}T12:00:00Z`).toLocaleDateString("es-CO", {
+          day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+        })
+      : "";
 
     const sections: Section[] = [];
     let currentSection: Section | null = null;
@@ -77,7 +76,7 @@ function parseChangelog(content: string): Release[] {
     }
 
     if (currentSection) sections.push(currentSection);
-    if (sections.length > 0) releases.push({ date, sections, isUnreleased: false });
+    if (sections.length > 0) releases.push({ version, date, sections });
   }
 
   return releases;
@@ -134,7 +133,7 @@ export default async function NovedadesPage() {
   const releases = parseChangelog(content);
 
   return (
-    <div style={{ maxWidth: "48rem" }}>
+    <div>
       {/* Header */}
       <div style={{ marginBottom: "2rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.375rem" }}>
@@ -177,11 +176,24 @@ export default async function NovedadesPage() {
 
               {/* Card */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                {/* Date + badge */}
+                {/* Version + date + badge */}
                 <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.875rem", flexWrap: "wrap" }}>
-                  <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--app-body-text)" }}>
-                    {release.date}
+                  <span
+                    style={{
+                      fontSize: "1rem",
+                      fontWeight: 700,
+                      color: isFirst ? "#6366f1" : "var(--app-body-text)",
+                      opacity: isFirst ? 1 : 0.7,
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    v{release.version}
                   </span>
+                  {release.date && (
+                    <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", opacity: 0.7 }}>
+                      {release.date}
+                    </span>
+                  )}
                   {isFirst && (
                     <span
                       style={{
@@ -194,7 +206,7 @@ export default async function NovedadesPage() {
                         letterSpacing: "0.03em",
                       }}
                     >
-                      Última actualización
+                      Última versión
                     </span>
                   )}
                 </div>
@@ -239,12 +251,12 @@ export default async function NovedadesPage() {
                         </div>
 
                         {/* Items */}
-                        <ul style={{ margin: 0, padding: "0.75rem 1rem", listStyle: "none", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                        <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3" style={{ margin: 0, padding: "0.75rem 1rem", listStyle: "none", gap: "0.5rem" }}>
                           {section.items.map((item, ii) => (
                             <li key={ii}>
                               <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
-                                <span style={{ color: style.accent, marginTop: "0.1rem", flexShrink: 0, fontWeight: 700 }}>—</span>
-                                <span style={{ fontSize: "0.875rem", color: "var(--app-body-text)", lineHeight: 1.55 }}>
+                                <span style={{ color: style.accent, marginTop: "0.1rem", flexShrink: 0, fontWeight: 700, opacity: 0.6 }}>—</span>
+                                <span style={{ fontSize: "0.875rem", color: "var(--app-body-text)", lineHeight: 1.55, opacity: 0.8 }}>
                                   <InlineText text={item.text} />
                                 </span>
                               </div>
@@ -253,7 +265,7 @@ export default async function NovedadesPage() {
                                   {item.children.map((child, ci) => (
                                     <li key={ci} style={{ display: "flex", gap: "0.375rem", alignItems: "flex-start" }}>
                                       <span style={{ color: "var(--app-text-muted)", flexShrink: 0, fontSize: "0.75rem", marginTop: "0.2rem" }}>›</span>
-                                      <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", lineHeight: 1.5 }}>
+                                      <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", lineHeight: 1.5, opacity: 0.75 }}>
                                         <InlineText text={child} />
                                       </span>
                                     </li>
@@ -273,5 +285,6 @@ export default async function NovedadesPage() {
         })}
       </div>
     </div>
+
   );
 }
