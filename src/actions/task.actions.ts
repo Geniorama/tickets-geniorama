@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
+import { getRequiredSession, isStaff, isAdmin } from "@/lib/auth-helpers";
 import { validateFile, uploadFile, deleteFile } from "@/lib/s3";
 import type { TaskStatus } from "@/generated/prisma";
 import { format } from "date-fns";
@@ -418,4 +418,27 @@ export async function deleteTask(taskId: string, projectId: string) {
   await prisma.task.delete({ where: { id: taskId } });
   revalidatePath(`/proyectos/${projectId}`);
   redirect(`/proyectos/${projectId}`);
+}
+
+// ─── moveTask ─────────────────────────────────────────────────────────────────
+
+export async function moveTask(taskId: string, fromProjectId: string, toProjectId: string) {
+  const session = await getRequiredSession();
+  if (!isAdmin(session.user.role)) return { error: "Sin permisos" };
+
+  const maxTask = await prisma.task.findFirst({
+    where: { projectId: toProjectId },
+    orderBy: { number: "desc" },
+    select: { number: true },
+  });
+  const newNumber = (maxTask?.number ?? 0) + 1;
+
+  await prisma.task.update({
+    where: { id: taskId },
+    data: { projectId: toProjectId, number: newNumber },
+  });
+
+  revalidatePath(`/proyectos/${fromProjectId}`);
+  revalidatePath(`/proyectos/${toProjectId}`);
+  redirect(`/proyectos/${toProjectId}/tareas/${taskId}`);
 }

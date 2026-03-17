@@ -2,12 +2,12 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Pencil, User2, UserCheck, Calendar, Clock, FolderOpen, Check, Trash2 } from "lucide-react";
+import { Pencil, User2, UserCheck, Calendar, Clock, FolderOpen, Check, Trash2, MoveRight } from "lucide-react";
 import type { Task, TaskComment, TaskAttachment, TaskTimeEntry, TaskStatus, Priority, User } from "@/generated/prisma";
 import type { Session } from "next-auth";
 import { TaskStatusBadge, TaskPriorityBadge } from "./project-status-badge";
 import { TaskCommentSection } from "./task-comment-form";
-import { updateTaskStatus, deleteTask } from "@/actions/task.actions";
+import { updateTaskStatus, deleteTask, moveTask } from "@/actions/task.actions";
 import { TaskTimer } from "./task-timer";
 import { formatDate, formatDateTimeLong } from "@/lib/format-date";
 import { taskCode } from "@/lib/task-code";
@@ -37,12 +37,16 @@ const taskStatusOptions: { value: TaskStatus; label: string }[] = [
 export function TaskDetail({
   task,
   session,
+  projects = [],
 }: {
   task: TaskWithDetails;
   session: Session;
+  projects?: { id: string; name: string }[];
 }) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [showMove, setShowMove] = useState(false);
+  const [moveTarget, setMoveTarget] = useState("");
   const role = session.user.role;
   const staff = isStaff(role);
   const admin = isAdmin(role);
@@ -59,6 +63,14 @@ export function TaskDetail({
     if (!confirm("¿Eliminar esta tarea? Esta acción no se puede deshacer.")) return;
     startTransition(async () => {
       await deleteTask(task.id, task.project.id);
+    });
+  }
+
+  function handleMove() {
+    if (!moveTarget) return;
+    if (!confirm("¿Mover esta tarea al proyecto seleccionado?")) return;
+    startTransition(async () => {
+      await moveTask(task.id, task.project.id, moveTarget);
     });
   }
 
@@ -145,6 +157,28 @@ export function TaskDetail({
                     Eliminar
                   </button>
                 )}
+                {admin && projects.length > 0 && (
+                  <button
+                    onClick={() => setShowMove((v) => !v)}
+                    disabled={isPending}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "0.25rem",
+                      fontSize: "0.8125rem",
+                      color: "#7c3aed",
+                      border: "1px solid rgba(124,58,237,0.3)",
+                      borderRadius: "0.375rem",
+                      padding: "0.25rem 0.625rem",
+                      background: "none",
+                      cursor: "pointer",
+                      fontWeight: 500,
+                    }}
+                  >
+                    <MoveRight style={{ width: "0.875rem", height: "0.875rem" }} />
+                    Mover
+                  </button>
+                )}
                 <TaskPriorityBadge priority={task.priority as Priority} />
                 {staff ? (
                   <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
@@ -193,6 +227,77 @@ export function TaskDetail({
             <div style={{ marginTop: "1rem", fontSize: "0.875rem" }}>
               <MarkdownRenderer content={task.description} />
             </div>
+
+            {showMove && (
+              <div
+                style={{
+                  marginTop: "1rem",
+                  padding: "0.75rem",
+                  border: "1px solid rgba(124,58,237,0.3)",
+                  borderRadius: "0.5rem",
+                  backgroundColor: "rgba(124,58,237,0.05)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  flexWrap: "wrap",
+                }}
+              >
+                <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", fontWeight: 500 }}>
+                  Mover a:
+                </span>
+                <select
+                  value={moveTarget}
+                  onChange={(e) => setMoveTarget(e.target.value)}
+                  disabled={isPending}
+                  style={{
+                    fontSize: "0.8125rem",
+                    color: "var(--app-body-text)",
+                    backgroundColor: "var(--app-card-bg)",
+                    border: "1px solid var(--app-border)",
+                    borderRadius: "0.375rem",
+                    padding: "0.25rem 0.5rem",
+                    outline: "none",
+                    flex: 1,
+                    minWidth: "10rem",
+                  }}
+                >
+                  <option value="">Seleccionar proyecto…</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleMove}
+                  disabled={isPending || !moveTarget}
+                  style={{
+                    fontSize: "0.8125rem",
+                    color: "#fff",
+                    backgroundColor: moveTarget ? "#7c3aed" : "#a78bfa",
+                    border: "none",
+                    borderRadius: "0.375rem",
+                    padding: "0.25rem 0.75rem",
+                    cursor: moveTarget ? "pointer" : "default",
+                    fontWeight: 500,
+                  }}
+                >
+                  Confirmar
+                </button>
+                <button
+                  onClick={() => { setShowMove(false); setMoveTarget(""); }}
+                  disabled={isPending}
+                  style={{
+                    fontSize: "0.8125rem",
+                    color: "var(--app-text-muted)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "0.25rem",
+                  }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
 
             <div
               style={{

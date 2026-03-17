@@ -44,6 +44,14 @@ export default async function TaskPage({
 
   if (!task || task.projectId !== projectId) notFound();
 
+  const moveableProjects = admin
+    ? await prisma.project.findMany({
+        where: { id: { not: projectId }, isActive: true },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
+
   // Access control
   if (admin) {
     // always allowed
@@ -72,7 +80,7 @@ export default async function TaskPage({
       <div style={{ marginBottom: "1rem" }}>
         <BackButton fallback={`/proyectos/${projectId}`} />
       </div>
-      <TaskDetail task={task} session={session} />
+      <TaskDetail task={task} session={session} projects={moveableProjects} />
     </div>
   );
 }
