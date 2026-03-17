@@ -9,6 +9,13 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.4.3] — 2026-03-17
+
+### Añadido
+- **Mover tareas entre proyectos** — los administradores pueden mover una tarea a otro proyecto activo directamente desde el detalle de la tarea. El botón "Mover" despliega un selector de proyecto destino; al confirmar, la tarea se reasigna y se redirige automáticamente a su nueva URL.
+
+---
+
 ## [1.4.2] — 2026-03-17
 
 ### Mejorado
