@@ -9,6 +9,7 @@ import { isAdmin } from "@/lib/roles";
 import { validateFile, uploadFile } from "@/lib/s3";
 import { getClientActivePlan } from "@/lib/plans.server";
 import { notify, notifyMany } from "@/lib/notify";
+import { sendGChatNotification } from "@/lib/gchat";
 
 const createTicketSchema = z.object({
   title: z.string().min(1, "El título es requerido").max(200),
@@ -106,6 +107,15 @@ export async function createTicket(formData: FormData) {
     }
   }
 
+  // Resolver nombre del asignado para enriquecer notificaciones
+  const assignee = ticket.assignedToId
+    ? await prisma.user.findUnique({ where: { id: ticket.assignedToId }, select: { name: true } })
+    : null;
+
+  const gchatParts: string[] = [`"${ticket.title}"`];
+  if (assignee?.name) gchatParts.push(`Asignado a: ${assignee.name}`);
+  // dueDate no está disponible al crear un ticket, se omite
+
   // Notificar al asignado si no es el creador
   if (ticket.assignedToId && ticket.assignedToId !== session.user.id) {
     await notify(
@@ -117,8 +127,8 @@ export async function createTicket(formData: FormData) {
     );
   }
 
-  // Notificar a admins cuando un cliente abre un ticket nuevo
   if (session.user.role === "CLIENTE") {
+    // Cliente crea ticket → notificar a admins en-app + GChat
     const admins = await prisma.user.findMany({
       where: { role: "ADMINISTRADOR", isActive: true },
       select: { id: true },
@@ -127,7 +137,15 @@ export async function createTicket(formData: FormData) {
       admins.map((a) => a.id),
       "ticket_new",
       "Nuevo ticket",
-      `${session.user.name} abrió: "${ticket.title}"`,
+      `${session.user.name} abrió: ${gchatParts.join(" · ")}`,
+      `/tickets/${ticket.id}`
+    );
+  } else {
+    // Staff crea ticket → solo GChat (no in-app)
+    await sendGChatNotification(
+      "ticket_new",
+      "Nuevo ticket",
+      `${session.user.name} creó: ${gchatParts.join(" · ")}`,
       `/tickets/${ticket.id}`
     );
   }

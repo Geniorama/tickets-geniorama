@@ -191,16 +191,23 @@ export async function createTask(projectIdArg: string | null, formData: FormData
     } catch { /* JSON inválido, ignorar */ }
   }
 
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { name: true },
-  });
+  const [project, assignee] = await Promise.all([
+    prisma.project.findUnique({ where: { id: projectId }, select: { name: true } }),
+    task.assignedToId
+      ? prisma.user.findUnique({ where: { id: task.assignedToId }, select: { name: true } })
+      : null,
+  ]);
+
+  // Construir mensaje enriquecido para GChat
+  const msgParts: string[] = [`"${task.title}"${project ? ` en ${project.name}` : ""}`];
+  if (assignee?.name) msgParts.push(`Asignado a: ${assignee.name}`);
+  if (task.dueDate) msgParts.push(`Vence: ${fmt(task.dueDate)}`);
 
   // Notificar creación de tarea al webhook (sin destinatario en-app)
   await sendGChatNotification(
     "task_new",
     "Nueva tarea",
-    `"${task.title}"${project ? ` en ${project.name}` : ""}`,
+    msgParts.join(" · "),
     `/proyectos/${projectId}/tareas/${task.id}`
   );
 
