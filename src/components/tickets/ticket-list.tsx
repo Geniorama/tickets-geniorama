@@ -4,13 +4,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import type { Role, Ticket, TicketStatus, Priority } from "@/generated/prisma";
-import { formatDateTime } from "@/lib/format-date";
+import { formatDateTime, formatDate } from "@/lib/format-date";
 import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
 import { isStaff } from "@/lib/roles";
 
 type TicketWithRelations = Ticket & {
   createdBy: { name: string; companies: { name: string }[] };
   assignedTo: { name: string } | null;
+  dueDate: Date | null;
 };
 
 function SortableHeader({
@@ -90,6 +91,7 @@ export function TicketList({
             <SortableHeader label="Asignado a" column="assignedTo" sortBy={sortBy} sortDir={sortDir} />
             <SortableHeader label="Creado"     column="createdAt"  sortBy={sortBy} sortDir={sortDir} />
             <SortableHeader label="Actualizado" column="updatedAt" sortBy={sortBy} sortDir={sortDir} />
+            {staff && <SortableHeader label="Fecha límite" column="dueDate" sortBy={sortBy} sortDir={sortDir} />}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
@@ -129,6 +131,11 @@ export function TicketList({
               <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
                 {formatDateTime(ticket.updatedAt)}
               </td>
+              {staff && (
+                <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                  {ticket.dueDate ? formatDate(ticket.dueDate) : "—"}
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

@@ -25,7 +25,10 @@ export default async function TaskPage({
       assignedTo: { select: { id: true, name: true } },
       createdBy: { select: { id: true, name: true } },
       comments: {
-        include: { author: { select: { name: true } } },
+        include: {
+          author: { select: { name: true } },
+          reactions: { select: { type: true, userId: true } },
+        },
         orderBy: { createdAt: "asc" },
       },
       attachments: {
@@ -65,7 +68,7 @@ export default async function TaskPage({
   }
 
   return (
-    <div style={{ padding: "1.5rem" }}>
+    <div>
       <div style={{ marginBottom: "1rem" }}>
         <BackButton fallback={`/proyectos/${projectId}`} />
       </div>

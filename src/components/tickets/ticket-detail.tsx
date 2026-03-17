@@ -2,7 +2,7 @@
 
 import { useTransition, useState } from "react";
 import Link from "next/link";
-import { formatDateTimeLong, formatDateTime } from "@/lib/format-date";
+import { formatDateTimeLong, formatDateTime, formatDate } from "@/lib/format-date";
 import { Pencil, Trash2, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Link2, Paperclip, FileText, ExternalLink, Globe, ChevronDown } from "lucide-react";
 import type { Session } from "next-auth";
 import type { Ticket, TicketComment, TicketAttachment, TimeEntry, User, TicketStatus, Priority } from "@/generated/prisma";
@@ -14,9 +14,16 @@ import { addComment, deleteComment, editComment } from "@/actions/comment.action
 import { isStaff, isAdmin } from "@/lib/roles";
 import { AttachmentList } from "./attachment-list";
 import { AttachmentUploader } from "./attachment-uploader";
+import { TicketVaultPanel } from "@/components/vault/ticket-vault-panel";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { CommentBody } from "@/components/ui/comment-body";
+import { TicketAssignPanel } from "./ticket-assign-panel";
+import { CommentReactions, type ReactionEntry } from "@/components/ui/comment-reactions";
+import { toggleTicketCommentReaction } from "@/actions/reaction.actions";
+import type { ReactionType } from "@/generated/prisma";
+import { ReportGenerator } from "@/components/ui/report-generator";
+import { generateTicketReport } from "@/actions/report.actions";
 
 type TicketWithDetails = Ticket & {
   createdBy: Pick<User, "id" | "name" | "email">;
@@ -28,22 +35,37 @@ type TicketWithDetails = Ticket & {
   timeEntries: (TimeEntry & { user: Pick<User, "name"> })[];
   comments: (TicketComment & {
     author: Pick<User, "name" | "role">;
+    reactions: ReactionEntry[];
   })[];
 };
 
 const statusOptions: { value: TicketStatus; label: string }[] = [
+  { value: "POR_ASIGNAR", label: "Por asignar" },
   { value: "ABIERTO", label: "Abierto" },
   { value: "EN_PROGRESO", label: "En progreso" },
   { value: "EN_REVISION", label: "En revisión" },
   { value: "CERRADO", label: "Cerrado" },
 ];
 
+interface VaultEntry {
+  id: string;
+  title: string;
+  username: string | null;
+  url: string | null;
+}
+
 export function TicketDetail({
   ticket,
   session,
+  linkedVaultEntries = [],
+  availableVaultEntries = [],
+  collaborators = [],
 }: {
   ticket: TicketWithDetails;
   session: Session;
+  linkedVaultEntries?: VaultEntry[];
+  availableVaultEntries?: VaultEntry[];
+  collaborators?: { id: string; name: string }[];
 }) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -64,153 +86,201 @@ export function TicketDetail({
   }
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="text-xl font-bold text-gray-900">{ticket.title}</h1>
-          <div className="flex items-center gap-2 shrink-0">
-            {isAdmin(role) && (
-              <>
-                <Link
-                  href={`/tickets/${ticket.id}/edit`}
-                  className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium border border-indigo-200 rounded px-2 py-1"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  Editar
-                </Link>
-                <button
-                  onClick={handleDeleteTicket}
-                  disabled={isPending}
-                  className="inline-flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 font-medium border border-red-200 rounded px-2 py-1 disabled:opacity-50"
-                >
-                  Eliminar
-                </button>
-              </>
-            )}
-            <PriorityBadge priority={ticket.priority as Priority} />
-            {staff ? (
-              <div className="relative flex items-center gap-1.5">
-                <select
-                  defaultValue={ticket.status}
-                  onChange={handleStatusChange}
-                  disabled={isPending}
-                  className="text-xs text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  {statusOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-                {saved && (
-                  <span className="flex items-center gap-1 text-xs text-green-600 font-medium animate-fade-in">
-                    <Check className="w-3.5 h-3.5" />
-                    Guardado
-                  </span>
+    <div>
+      {/* Full-width top panel */}
+      {isAdmin(role) && ticket.status === "POR_ASIGNAR" && (
+        <div className="mb-6">
+          <TicketAssignPanel
+            ticketId={ticket.id}
+            collaborators={collaborators}
+            currentPriority={ticket.priority}
+            currentDueDate={ticket.dueDate ?? null}
+            currentAssignedToId={ticket.assignedToId ?? null}
+          />
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* ── Left column ── */}
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-start justify-between gap-4">
+              <h1 className="text-xl font-bold text-gray-900">{ticket.title}</h1>
+              <div className="flex items-center gap-2 shrink-0">
+                {isAdmin(role) && (
+                  <>
+                    <Link
+                      href={`/tickets/${ticket.id}/edit`}
+                      className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium border border-indigo-200 rounded px-2 py-1"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      Editar
+                    </Link>
+                    <button
+                      onClick={handleDeleteTicket}
+                      disabled={isPending}
+                      className="inline-flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 font-medium border border-red-200 rounded px-2 py-1 disabled:opacity-50"
+                    >
+                      Eliminar
+                    </button>
+                  </>
+                )}
+                <PriorityBadge priority={ticket.priority as Priority} />
+                {staff ? (
+                  <div className="relative flex items-center gap-1.5">
+                    <select
+                      defaultValue={ticket.status}
+                      onChange={handleStatusChange}
+                      disabled={isPending}
+                      className="text-xs text-gray-900 bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      {statusOptions.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                    {saved && (
+                      <span className="flex items-center gap-1 text-xs text-green-600 font-medium animate-fade-in">
+                        <Check className="w-3.5 h-3.5" />
+                        Guardado
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <StatusBadge status={ticket.status as TicketStatus} />
                 )}
               </div>
-            ) : (
-              <StatusBadge status={ticket.status as TicketStatus} />
-            )}
-          </div>
-        </div>
+            </div>
 
-        <div className="mt-4 text-sm">
-          <MarkdownRenderer content={ticket.description} />
-        </div>
+            <div className="mt-4 text-sm">
+              <MarkdownRenderer content={ticket.description} />
+            </div>
 
-        <div className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400 flex flex-wrap gap-4">
-          <span className="flex items-center gap-1">
-            <UserIcon className="w-3.5 h-3.5" />
-            Creado por: <strong className="text-gray-600">{ticket.createdBy.name}</strong>
-          </span>
-          <span className="flex items-center gap-1">
-            <Building2 className="w-3.5 h-3.5" />
-            Cliente:{" "}
-            <strong className="text-gray-600">
-              {ticket.client
-                ? `${ticket.client.name}${ticket.client.companies.length > 0 ? ` (${ticket.client.companies.map((c) => c.name).join(", ")})` : ""}`
-                : "Sin asignar"}
-            </strong>
-          </span>
-          <span className="flex items-center gap-1">
-            <UserCheck className="w-3.5 h-3.5" />
-            Asignado a: <strong className="text-gray-600">{ticket.assignedTo?.name ?? "Sin asignar"}</strong>
-          </span>
-          {ticket.plan && (
-            <span className="flex items-center gap-1">
-              <BookOpen className="w-3.5 h-3.5" />
-              Plan:{" "}
-              <strong className="text-gray-600">{ticket.plan.name}</strong>
-              <span className="ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
-                {ticket.plan.type === "BOLSA_HORAS" ? "Bolsa de horas" : "Soporte mensual"}
+            <div className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400 flex flex-wrap gap-4">
+              <span className="flex items-center gap-1">
+                <UserIcon className="w-3.5 h-3.5" />
+                Creado por: <strong className="text-gray-600">{ticket.createdBy.name}</strong>
               </span>
-            </span>
-          )}
-          {ticket.site && (
-            <span className="flex items-center gap-1">
-              <Globe className="w-3.5 h-3.5" />
-              Sitio:{" "}
-              <strong className="text-gray-600">{ticket.site.name}</strong>
-              <span className="ml-1 text-gray-400">({ticket.site.domain})</span>
-            </span>
-          )}
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" />
-            {formatDateTimeLong(ticket.createdAt)}
-          </span>
-        </div>
-      </div>
-
-      {staff && ticket.site && (ticket.site.documentation || ticket.site.architecture) && (
-        <SiteContextPanel site={ticket.site} />
-      )}
-
-      {staff && <TicketAiAssistant ticketId={ticket.id} />}
-
-      {(staff || (ticket.status === "CERRADO" && ticket.timeEntries.length > 0)) && (
-        <TicketTimer
-          ticketId={ticket.id}
-          entries={ticket.timeEntries}
-          canControl={staff}
-          isAdmin={isAdmin(role)}
-        />
-      )}
-
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-base font-semibold text-gray-800 mb-4">
-          Archivos adjuntos ({ticket.attachments.length})
-        </h2>
-        <AttachmentList
-          attachments={ticket.attachments}
-          ticketId={ticket.id}
-          isAdmin={isAdmin(role)}
-        />
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <AttachmentUploader ticketId={ticket.id} />
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-base font-semibold text-gray-800 mb-4">
-          Comentarios ({ticket.comments.length})
-        </h2>
-
-        {ticket.comments.length > 0 ? (
-          <div className="space-y-4 mb-6">
-            {ticket.comments.map((comment) => (
-              <TicketCommentItem
-                key={comment.id}
-                comment={comment}
-                ticketId={ticket.id}
-                currentUserId={session.user.id}
-                isAdmin={isAdmin(role)}
-              />
-            ))}
+              <span className="flex items-center gap-1">
+                <Building2 className="w-3.5 h-3.5" />
+                Cliente:{" "}
+                <strong className="text-gray-600">
+                  {ticket.client
+                    ? `${ticket.client.name}${ticket.client.companies.length > 0 ? ` (${ticket.client.companies.map((c) => c.name).join(", ")})` : ""}`
+                    : "Sin asignar"}
+                </strong>
+              </span>
+              <span className="flex items-center gap-1">
+                <UserCheck className="w-3.5 h-3.5" />
+                Asignado a: <strong className="text-gray-600">{ticket.assignedTo?.name ?? "Sin asignar"}</strong>
+              </span>
+              {ticket.plan && (
+                <span className="flex items-center gap-1">
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Plan:{" "}
+                  <strong className="text-gray-600">{ticket.plan.name}</strong>
+                  <span className="ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
+                    {ticket.plan.type === "BOLSA_HORAS" ? "Bolsa de horas" : "Soporte mensual"}
+                  </span>
+                </span>
+              )}
+              {ticket.site && (
+                <span className="flex items-center gap-1">
+                  <Globe className="w-3.5 h-3.5" />
+                  Sitio:{" "}
+                  <strong className="text-gray-600">{ticket.site.name}</strong>
+                  <span className="ml-1 text-gray-400">({ticket.site.domain})</span>
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5" />
+                {formatDateTimeLong(ticket.createdAt)}
+              </span>
+              {ticket.dueDate && (() => {
+                const days = Math.ceil((new Date(ticket.dueDate!).getTime() - Date.now()) / 86400000);
+                const dueDateColor = days < 0 ? "text-red-600" : days <= 3 ? "text-amber-600" : "text-gray-600";
+                return (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5" />
+                    Fecha límite: <strong className={dueDateColor}>{formatDate(ticket.dueDate)}</strong>
+                  </span>
+                );
+              })()}
+            </div>
           </div>
-        ) : (
-          <p className="text-sm text-gray-400 mb-6">No hay comentarios aún.</p>
-        )}
 
-        <CommentForm ticketId={ticket.id} isStaff={staff} />
+          {staff && ticket.site && (ticket.site.documentation || ticket.site.architecture) && (
+            <SiteContextPanel site={ticket.site} />
+          )}
+
+          {(staff || (ticket.status === "CERRADO" && ticket.timeEntries.length > 0)) && (
+            <TicketTimer
+              ticketId={ticket.id}
+              entries={ticket.timeEntries}
+              canControl={staff}
+              isAdmin={isAdmin(role)}
+              currentUserId={session.user.id}
+            />
+          )}
+
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="text-base font-semibold text-gray-800 mb-4">
+              Archivos adjuntos ({ticket.attachments.length})
+            </h2>
+            <AttachmentList
+              attachments={ticket.attachments}
+              ticketId={ticket.id}
+              isAdmin={isAdmin(role)}
+            />
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <AttachmentUploader ticketId={ticket.id} />
+            </div>
+          </div>
+
+          {(linkedVaultEntries.length > 0 || staff) && (
+            <TicketVaultPanel
+              ticketId={ticket.id}
+              linkedEntries={linkedVaultEntries}
+              availableEntries={availableVaultEntries}
+              canManage={staff}
+            />
+          )}
+        </div>
+
+        {/* ── Right column ── */}
+        <div className="space-y-6">
+          {staff && <TicketAiAssistant ticketId={ticket.id} />}
+
+          {staff && (
+            <ReportGenerator
+              label="Informe IA"
+              generateFn={() => generateTicketReport(ticket.id)}
+            />
+          )}
+
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="text-base font-semibold text-gray-800 mb-4">
+              Comentarios ({ticket.comments.length})
+            </h2>
+
+            {ticket.comments.length > 0 ? (
+              <div className="space-y-4 mb-6">
+                {ticket.comments.map((comment) => (
+                  <TicketCommentItem
+                    key={comment.id}
+                    comment={comment}
+                    ticketId={ticket.id}
+                    currentUserId={session.user.id}
+                    isAdmin={isAdmin(role)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 mb-6">No hay comentarios aún.</p>
+            )}
+
+            <CommentForm ticketId={ticket.id} isStaff={staff} />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -222,7 +292,7 @@ function TicketCommentItem({
   currentUserId,
   isAdmin,
 }: {
-  comment: TicketComment & { author: Pick<User, "name" | "role"> };
+  comment: TicketComment & { author: Pick<User, "name" | "role">; reactions: ReactionEntry[] };
   ticketId: string;
   currentUserId: string;
   isAdmin: boolean;
@@ -340,6 +410,16 @@ function TicketCommentItem({
           <FileText className="w-3.5 h-3.5 shrink-0" />
           {comment.attachmentName ?? "Archivo adjunto"}
         </a>
+      )}
+
+      {!editing && (
+        <CommentReactions
+          reactions={comment.reactions}
+          currentUserId={currentUserId}
+          onToggle={(type: ReactionType) =>
+            toggleTicketCommentReaction(comment.id, ticketId, type)
+          }
+        />
       )}
     </div>
   );

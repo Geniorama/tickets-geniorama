@@ -9,7 +9,7 @@ import { validateFile, uploadFile, deleteFile } from "@/lib/s3";
 import type { TaskStatus } from "@/generated/prisma";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { notify } from "@/lib/notify";
+import { notify, notifyMany } from "@/lib/notify";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -94,16 +94,21 @@ const taskSchema = z.object({
   category:       z.string().optional(),
   assignedToId:   z.string().optional(),
   startDate:      z.string().optional(),
+  startTime:      z.string().optional(),
   dueDate:        z.string().optional(),
+  endTime:        z.string().optional(),
   estimatedHours: z.string().optional(),
   force:          z.boolean().default(false), // omitir verificación de conflictos
 });
 
 // ─── createTask ───────────────────────────────────────────────────────────────
 
-export async function createTask(projectId: string, formData: FormData) {
+export async function createTask(projectIdArg: string | null, formData: FormData) {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+
+  const projectId = projectIdArg ?? (formData.get("projectId") as string | null) ?? "";
+  if (!projectId) return { error: "Debes seleccionar un proyecto" };
 
   const parsed = taskSchema.safeParse({
     title:          formData.get("title"),
@@ -113,7 +118,9 @@ export async function createTask(projectId: string, formData: FormData) {
     category:       formData.get("category")       || undefined,
     assignedToId:   formData.get("assignedToId")   || undefined,
     startDate:      formData.get("startDate")      || undefined,
+    startTime:      formData.get("startTime")      || undefined,
     dueDate:        formData.get("dueDate")         || undefined,
+    endTime:        formData.get("endTime")         || undefined,
     estimatedHours: formData.get("estimatedHours") || undefined,
     force:          formData.get("force") === "true",
   });
@@ -136,20 +143,26 @@ export async function createTask(projectId: string, formData: FormData) {
     }
   }
 
-  const task = await prisma.task.create({
-    data: {
-      title:          parsed.data.title,
-      description:    parsed.data.description,
-      status:         parsed.data.status,
-      priority:       parsed.data.priority,
-      category:       parsed.data.category       ?? null,
-      projectId,
-      assignedToId:   parsed.data.assignedToId   ?? null,
-      createdById:    session.user.id,
-      startDate:      parsed.data.startDate      ? new Date(parsed.data.startDate) : null,
-      dueDate:        parsed.data.dueDate         ? new Date(parsed.data.dueDate)   : null,
-      estimatedHours: parsed.data.estimatedHours ? parseFloat(parsed.data.estimatedHours) : null,
-    },
+  const task = await prisma.$transaction(async (tx) => {
+    const count = await tx.task.count({ where: { projectId } });
+    return tx.task.create({
+      data: {
+        number:         count + 1,
+        title:          parsed.data.title,
+        description:    parsed.data.description,
+        status:         parsed.data.status,
+        priority:       parsed.data.priority,
+        category:       parsed.data.category       ?? null,
+        projectId,
+        assignedToId:   parsed.data.assignedToId   ?? null,
+        createdById:    session.user.id,
+        startDate:      parsed.data.startDate      ? new Date(parsed.data.startDate) : null,
+        startTime:      parsed.data.startTime      ?? null,
+        dueDate:        parsed.data.dueDate         ? new Date(parsed.data.dueDate)   : null,
+        endTime:        parsed.data.endTime         ?? null,
+        estimatedHours: parsed.data.estimatedHours ? parseFloat(parsed.data.estimatedHours) : null,
+      },
+    });
   });
 
   const files = formData.getAll("files") as File[];
@@ -210,7 +223,9 @@ export async function updateTask(taskId: string, projectId: string, formData: Fo
     category:       formData.get("category")       || undefined,
     assignedToId:   formData.get("assignedToId")   || undefined,
     startDate:      formData.get("startDate")      || undefined,
+    startTime:      formData.get("startTime")      || undefined,
     dueDate:        formData.get("dueDate")         || undefined,
+    endTime:        formData.get("endTime")         || undefined,
     estimatedHours: formData.get("estimatedHours") || undefined,
     force:          formData.get("force") === "true",
   });
@@ -234,8 +249,11 @@ export async function updateTask(taskId: string, projectId: string, formData: Fo
 
   const oldTask = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { assignedToId: true, title: true },
+    select: { assignedToId: true, createdById: true, title: true, startDate: true, dueDate: true },
   });
+
+  const newStartDate = parsed.data.startDate ? new Date(parsed.data.startDate) : null;
+  const newDueDate   = parsed.data.dueDate   ? new Date(parsed.data.dueDate)   : null;
 
   await prisma.task.update({
     where: { id: taskId },
@@ -246,8 +264,10 @@ export async function updateTask(taskId: string, projectId: string, formData: Fo
       priority:       parsed.data.priority,
       category:       parsed.data.category       ?? null,
       assignedToId:   parsed.data.assignedToId   ?? null,
-      startDate:      parsed.data.startDate      ? new Date(parsed.data.startDate) : null,
-      dueDate:        parsed.data.dueDate         ? new Date(parsed.data.dueDate)   : null,
+      startDate:      newStartDate,
+      startTime:      parsed.data.startTime      ?? null,
+      dueDate:        newDueDate,
+      endTime:        parsed.data.endTime         ?? null,
       estimatedHours: parsed.data.estimatedHours ? parseFloat(parsed.data.estimatedHours) : null,
     },
   });
@@ -264,6 +284,28 @@ export async function updateTask(taskId: string, projectId: string, formData: Fo
       "task_assigned",
       "Tarea asignada",
       `Se te asignó: "${parsed.data.title}"${project ? ` en ${project.name}` : ""}`,
+      `/proyectos/${projectId}/tareas/${taskId}`
+    );
+  }
+
+  // Notificar cambio de fechas
+  const fmt = (d: Date | null) =>
+    d ? d.toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" }) : "Sin fecha";
+
+  const startChanged = newStartDate?.toDateString() !== oldTask?.startDate?.toDateString();
+  const dueChanged   = newDueDate?.toDateString()   !== oldTask?.dueDate?.toDateString();
+
+  if (startChanged || dueChanged) {
+    const recipients = [oldTask?.createdById, oldTask?.assignedToId ?? newAssigneeId]
+      .filter((id): id is string => !!id && id !== session.user.id);
+    const parts: string[] = [];
+    if (startChanged) parts.push(`Inicio: ${fmt(newStartDate)}`);
+    if (dueChanged)   parts.push(`Límite: ${fmt(newDueDate)}`);
+    await notifyMany(
+      recipients,
+      "task_date_changed",
+      "Fechas actualizadas",
+      `"${parsed.data.title}" — ${parts.join(" · ")}`,
       `/proyectos/${projectId}/tareas/${taskId}`
     );
   }
@@ -322,10 +364,28 @@ export async function updateTaskStatus(taskId: string, projectId: string, status
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
+  const oldTask = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: { title: true, status: true, createdById: true, assignedToId: true },
+  });
+
   await prisma.task.update({
     where: { id: taskId },
     data: { status: status as TaskStatus },
   });
+
+  // Notificar tarea completada si es un cambio nuevo a COMPLETADO
+  if (status === "COMPLETADO" && oldTask?.status !== "COMPLETADO") {
+    const recipients = [oldTask?.createdById, oldTask?.assignedToId]
+      .filter((id): id is string => !!id && id !== session.user.id);
+    await notifyMany(
+      recipients,
+      "task_completed",
+      "Tarea completada",
+      `"${oldTask?.title}" marcada como completada`,
+      `/proyectos/${projectId}/tareas/${taskId}`
+    );
+  }
 
   revalidatePath(`/proyectos/${projectId}`);
   revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);

@@ -26,6 +26,7 @@ enum PlanType {
 }
 
 enum TicketStatus {
+  POR_ASIGNAR
   ABIERTO
   EN_PROGRESO
   EN_REVISION
@@ -66,6 +67,13 @@ enum ServiceType {
 enum ServiceProvider {
   GENIORAMA
   EXTERNO
+}
+
+enum ReactionType {
+  LIKE
+  GENIO
+  DISLIKE
+  REVISANDO
 }
 
 // ─── Models ──────────────────────────────────────────────────────────────────
@@ -127,7 +135,10 @@ model User {
   createdVaultEntries VaultEntry[]      @relation("VaultCreatedBy")
   vaultShares         VaultShare[]      @relation("VaultSharedWith")
   projectAttachments  ProjectAttachment[]
-  notifications       Notification[]
+  projectMemberships        ProjectMember[]
+  ticketCommentReactions    TicketCommentReaction[]
+  taskCommentReactions      TaskCommentReaction[]
+  notifications             Notification[]
 
   @@map("users")
 }
@@ -148,6 +159,7 @@ model Ticket {
 
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
+  dueDate      DateTime? @map("due_date")
 
   createdBy    User               @relation("CreatedBy", fields: [createdById], references: [id])
   assignedTo   User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
@@ -157,6 +169,7 @@ model Ticket {
   comments     TicketComment[]
   attachments  TicketAttachment[]
   timeEntries  TimeEntry[]
+  vaultEntries TicketVaultEntry[]
 
   @@map("tickets")
 }
@@ -201,8 +214,23 @@ model TicketComment {
 
   ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   author     User     @relation(fields: [authorId], references: [id])
+  reactions  TicketCommentReaction[]
 
   @@map("ticket_comments")
+}
+
+model TicketCommentReaction {
+  commentId String       @map("comment_id")
+  userId    String       @map("user_id")
+  type      ReactionType
+
+  comment   TicketComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([commentId, userId])
+  @@map("ticket_comment_reactions")
 }
 
 model TicketAttachment {
@@ -268,6 +296,7 @@ model Project {
   description String        @db.Text
   status      ProjectStatus @default(PLANIFICACION)
   isActive    Boolean       @default(true) @map("is_active")
+  isPrivate   Boolean       @default(false) @map("is_private")
   startDate   DateTime?     @map("start_date")
   dueDate     DateTime?     @map("due_date")
 
@@ -284,8 +313,22 @@ model Project {
   tasks        Task[]
   vaultEntries ProjectVaultEntry[]
   attachments  ProjectAttachment[]
+  members      ProjectMember[]
 
   @@map("projects")
+}
+
+model ProjectMember {
+  projectId String @map("project_id")
+  userId    String @map("user_id")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  addedAt DateTime @default(now()) @map("added_at")
+
+  @@id([projectId, userId])
+  @@map("project_members")
 }
 
 model ProjectAttachment {
@@ -329,8 +372,12 @@ model Task {
   priority       Priority   @default(MEDIA)
   category       String?
 
+  number         Int        @default(0)
+
   startDate      DateTime?  @map("start_date")
+  startTime      String?    @map("start_time")
   dueDate        DateTime?  @map("due_date")
+  endTime        String?    @map("end_time")
   estimatedHours Float?     @map("estimated_hours")
 
   projectId    String  @map("project_id")
@@ -364,10 +411,25 @@ model TaskComment {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  task   Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  author User @relation(fields: [authorId], references: [id])
+  task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author    User @relation(fields: [authorId], references: [id])
+  reactions TaskCommentReaction[]
 
   @@map("task_comments")
+}
+
+model TaskCommentReaction {
+  commentId String       @map("comment_id")
+  userId    String       @map("user_id")
+  type      ReactionType
+
+  comment   TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@id([commentId, userId])
+  @@map("task_comment_reactions")
 }
 
 model TaskAttachment {
@@ -435,8 +497,22 @@ model VaultEntry {
   createdBy   User       @relation("VaultCreatedBy", fields: [createdById], references: [id])
   sharedWith  VaultShare[]
   projects    ProjectVaultEntry[]
+  tickets     TicketVaultEntry[]
 
   @@map("vault_entries")
+}
+
+model TicketVaultEntry {
+  ticketId     String     @map("ticket_id")
+  vaultEntryId String     @map("vault_entry_id")
+
+  ticket       Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  vaultEntry   VaultEntry @relation(fields: [vaultEntryId], references: [id], onDelete: Cascade)
+
+  addedAt      DateTime   @default(now()) @map("added_at")
+
+  @@id([ticketId, vaultEntryId])
+  @@map("ticket_vault_entries")
 }
 
 model VaultShare {
@@ -489,4 +565,12 @@ model Notification {
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("notifications")
+}
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
 }

@@ -2,9 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { addTaskComment, deleteTaskComment, editTaskComment } from "@/actions/task-comment.actions";
+import { toggleTaskCommentReaction } from "@/actions/reaction.actions";
 import { Link2, Paperclip, ExternalLink, FileText, Pencil, Trash2 } from "lucide-react";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { CommentBody } from "@/components/ui/comment-body";
+import { CommentReactions, type ReactionEntry } from "@/components/ui/comment-reactions";
+import type { ReactionType } from "@/generated/prisma";
 
 type AttachmentMode = "none" | "link" | "file";
 
@@ -17,6 +20,7 @@ interface Comment {
   attachmentName: string | null;
   createdAt: Date;
   author: { name: string };
+  reactions: ReactionEntry[];
 }
 
 function formatDateTime(date: Date | string) {
@@ -282,6 +286,16 @@ function TaskCommentItem({
           <FileText style={{ width: "0.875rem", height: "0.875rem" }} />
           {comment.attachmentName ?? "Archivo adjunto"}
         </a>
+      )}
+
+      {!editing && (
+        <CommentReactions
+          reactions={comment.reactions}
+          currentUserId={currentUserId}
+          onToggle={(type: ReactionType) =>
+            toggleTaskCommentReaction(comment.id, taskId, projectId, type)
+          }
+        />
       )}
     </div>
   );

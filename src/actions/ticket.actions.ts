@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, requireRole, isStaff } from "@/lib/auth-helpers";
+import { isAdmin } from "@/lib/roles";
 import { validateFile, uploadFile } from "@/lib/s3";
 import { getClientActivePlan } from "@/lib/plans.server";
 import { notify, notifyMany } from "@/lib/notify";
@@ -78,6 +79,7 @@ export async function createTicket(formData: FormData) {
       createdById: session.user.id,
       planId,
       siteId: parsed.data.siteId ?? null,
+      ...(session.user.role === "CLIENTE" ? { status: "POR_ASIGNAR" as never } : {}),
     },
   });
 
@@ -115,11 +117,27 @@ export async function createTicket(formData: FormData) {
     );
   }
 
+  // Notificar a admins cuando un cliente abre un ticket nuevo
+  if (session.user.role === "CLIENTE") {
+    const admins = await prisma.user.findMany({
+      where: { role: "ADMINISTRADOR", isActive: true },
+      select: { id: true },
+    });
+    await notifyMany(
+      admins.map((a) => a.id),
+      "ticket_new",
+      "Nuevo ticket",
+      `${session.user.name} abrió: "${ticket.title}"`,
+      `/tickets/${ticket.id}`
+    );
+  }
+
   revalidatePath("/tickets");
   redirect(`/tickets/${ticket.id}`);
 }
 
 const ticketStatusLabels: Record<string, string> = {
+  POR_ASIGNAR: "Por asignar",
   ABIERTO: "Abierto",
   EN_PROGRESO: "En progreso",
   EN_REVISION: "En revisión",
@@ -201,13 +219,14 @@ export async function updateTicket(ticketId: string, formData: FormData) {
   const schema = z.object({
     title: z.string().min(1, "El título es requerido").max(200),
     description: z.string().min(1, "La descripción es requerida"),
-    status: z.enum(["ABIERTO", "EN_PROGRESO", "EN_REVISION", "CERRADO"]),
+    status: z.enum(["POR_ASIGNAR", "ABIERTO", "EN_PROGRESO", "EN_REVISION", "CERRADO"]),
     priority: z.enum(["BAJA", "MEDIA", "ALTA", "CRITICA"]),
     category: z.string().optional(),
     assignedToId: z.string().optional(),
     clientId: z.string().optional(),
     planId: z.string().optional(),
     siteId: z.string().optional(),
+    dueDate: z.string().optional(),
   });
 
   const parsed = schema.safeParse({
@@ -220,6 +239,7 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     clientId: formData.get("clientId") || undefined,
     planId: formData.get("planId") || undefined,
     siteId: formData.get("siteId") || undefined,
+    dueDate: formData.get("dueDate") || undefined,
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -231,6 +251,13 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     });
     if (!assignee) return { error: "El usuario asignado no existe o está inactivo" };
   }
+
+  const oldTicket = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    select: { title: true, dueDate: true, assignedToId: true, clientId: true, createdById: true },
+  });
+
+  const newDueDate = parsed.data.dueDate ? new Date(parsed.data.dueDate) : null;
 
   await prisma.ticket.update({
     where: { id: ticketId },
@@ -244,11 +271,90 @@ export async function updateTicket(ticketId: string, formData: FormData) {
       clientId: parsed.data.clientId ?? null,
       planId: parsed.data.planId ?? null,
       siteId: parsed.data.siteId ?? null,
+      dueDate: newDueDate,
     },
   });
 
+  // Notificar cambio de fecha límite
+  if (newDueDate?.toDateString() !== oldTicket?.dueDate?.toDateString()) {
+    const fmt = (d: Date | null) =>
+      d ? d.toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" }) : "Sin fecha";
+    const recipients = [oldTicket?.createdById, oldTicket?.assignedToId, oldTicket?.clientId]
+      .filter((id): id is string => Boolean(id));
+    await notifyMany(
+      recipients,
+      "ticket_date_changed",
+      "Fecha límite actualizada",
+      `"${parsed.data.title}" — Límite: ${fmt(newDueDate)}`,
+      `/tickets/${ticketId}`
+    );
+  }
+
   revalidatePath(`/tickets/${ticketId}`);
   revalidatePath(`/tickets/${ticketId}/edit`);
+  revalidatePath("/tickets");
+  return { success: true };
+}
+
+export async function configureTicket(ticketId: string, formData: FormData) {
+  const session = await getRequiredSession();
+  if (!isAdmin(session.user.role as never)) return { error: "Sin permisos" };
+
+  const assignedToId = (formData.get("assignedToId") as string) || null;
+  const dueDateStr = (formData.get("dueDate") as string) || null;
+  const priority = formData.get("priority") as string;
+  const status = (formData.get("status") as string) || "ABIERTO";
+
+  const validPriorities = ["BAJA", "MEDIA", "ALTA", "CRITICA"];
+  const validStatuses = ["POR_ASIGNAR", "ABIERTO", "EN_PROGRESO", "EN_REVISION", "CERRADO"];
+  if (!validPriorities.includes(priority)) return { error: "Prioridad inválida" };
+  if (!validStatuses.includes(status)) return { error: "Estado inválido" };
+
+  if (assignedToId) {
+    const assignee = await prisma.user.findUnique({
+      where: { id: assignedToId, isActive: true },
+      select: { id: true },
+    });
+    if (!assignee) return { error: "El usuario asignado no existe o está inactivo" };
+  }
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    select: { title: true, assignedToId: true, dueDate: true, clientId: true, createdById: true },
+  });
+
+  const newDueDate = dueDateStr ? new Date(dueDateStr) : null;
+
+  await prisma.ticket.update({
+    where: { id: ticketId },
+    data: {
+      dueDate: newDueDate,
+      assignedToId,
+      priority: priority as never,
+      status: status as never,
+    },
+  });
+
+  if (assignedToId && assignedToId !== ticket?.assignedToId && assignedToId !== session.user.id) {
+    await notify(assignedToId, "ticket_assigned", "Ticket asignado", `Se te asignó: "${ticket?.title}"`, `/tickets/${ticketId}`);
+  }
+
+  // Notificar cambio de fecha límite
+  if (newDueDate?.toDateString() !== ticket?.dueDate?.toDateString()) {
+    const fmt = (d: Date | null) =>
+      d ? d.toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" }) : "Sin fecha";
+    const recipients = [ticket?.createdById, assignedToId ?? ticket?.assignedToId, ticket?.clientId]
+      .filter((id): id is string => Boolean(id));
+    await notifyMany(
+      recipients,
+      "ticket_date_changed",
+      "Fecha límite actualizada",
+      `"${ticket?.title}" — Límite: ${fmt(newDueDate)}`,
+      `/tickets/${ticketId}`
+    );
+  }
+
+  revalidatePath(`/tickets/${ticketId}`);
   revalidatePath("/tickets");
   return { success: true };
 }
