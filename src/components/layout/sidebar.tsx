@@ -9,7 +9,7 @@ import type { Role } from "@/generated/prisma";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Ticket, Building2, Users, BookOpen, CreditCard,
-  BarChart3, FolderKanban, ListTodo, TrendingUp, ChevronDown, Server as ServerIcon, Globe, KeyRound, Plug,
+  BarChart3, FolderKanban, ListTodo, TrendingUp, ChevronDown, Server as ServerIcon, Globe, KeyRound, Plug, Sparkles,
 } from "lucide-react";
 
 type NavChild = {
@@ -53,6 +53,7 @@ const navItems: NavItem[] = [
   { href: "/admin/estadisticas", label: "Productividad",  icon: TrendingUp,      roles: ["ADMINISTRADOR"] },
   { href: "/admin/plans",        label: "Planes",         icon: BookOpen,        roles: ["ADMINISTRADOR"] },
   { href: "/admin/integraciones", label: "Integraciones", icon: Plug,            roles: ["ADMINISTRADOR"] },
+  { href: "/novedades",           label: "Novedades",     icon: Sparkles,        roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"] },
 ];
 
 const LOGO_DARK  = "https://i.imgur.com/pTemb33.png";
