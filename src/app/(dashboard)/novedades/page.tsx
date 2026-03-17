@@ -251,7 +251,7 @@ export default async function NovedadesPage() {
                         </div>
 
                         {/* Items */}
-                        <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3" style={{ margin: 0, padding: "0.75rem 1rem", listStyle: "none", gap: "0.5rem" }}>
+                        <ul style={{ margin: 0, padding: "0.75rem 1rem", listStyle: "none", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                           {section.items.map((item, ii) => (
                             <li key={ii}>
                               <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start" }}>
