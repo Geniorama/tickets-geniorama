@@ -9,6 +9,13 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.4.1] — 2026-03-17
+
+### Corregido
+- **Notificación webhook al crear tarea** — al crear una tarea se envía ahora una notificación al canal de Google Chat configurado para tareas (`gchat_webhook_tasks`), con el tipo de evento `task_new`.
+
+---
+
 ## [1.4.0] — 2026-03-17
 
 ### Añadido

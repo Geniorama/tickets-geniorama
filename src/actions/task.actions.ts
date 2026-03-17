@@ -10,6 +10,7 @@ import type { TaskStatus } from "@/generated/prisma";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { notify, notifyMany } from "@/lib/notify";
+import { sendGChatNotification } from "@/lib/gchat";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -190,12 +191,21 @@ export async function createTask(projectIdArg: string | null, formData: FormData
     } catch { /* JSON inválido, ignorar */ }
   }
 
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { name: true },
+  });
+
+  // Notificar creación de tarea al webhook (sin destinatario en-app)
+  await sendGChatNotification(
+    "task_new",
+    "Nueva tarea",
+    `"${task.title}"${project ? ` en ${project.name}` : ""}`,
+    `/proyectos/${projectId}/tareas/${task.id}`
+  );
+
   // Notificar al asignado si no es el creador
   if (task.assignedToId && task.assignedToId !== session.user.id) {
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { name: true },
-    });
     await notify(
       task.assignedToId,
       "task_assigned",
