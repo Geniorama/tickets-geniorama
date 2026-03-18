@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import {
   Ticket, FolderKanban, ListTodo, Users,
-  AlertTriangle, Clock, CheckCircle2, TrendingUp,
+  AlertTriangle, Clock, CalendarClock, CheckCircle2, TrendingUp,
 } from "lucide-react";
 import type { TaskStatus, Priority, ProjectStatus } from "@/generated/prisma";
 import { formatDate } from "@/lib/format-date";
@@ -75,7 +75,12 @@ export default async function DashboardPage() {
   const { id: userId, role, name } = session.user;
   const admin = isAdmin(role);
   const staff = isStaff(role);
-  const now   = new Date();
+  const now             = new Date();
+  // Usar fecha LOCAL (no UTC) para que "hoy" sea el día que el usuario experimenta,
+  // pero construir en UTC midnight para coincidir con cómo Prisma almacena los dates.
+  const today           = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+  const tomorrow        = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 1));
+  const dayAfterTomorrow = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 2));
 
   // ── Filters by role ────────────────────────────────────────────────────────
   const ticketWhere  = staff ? {} : { OR: [{ createdById: userId }, { clientId: userId }] };
@@ -106,6 +111,7 @@ export default async function DashboardPage() {
     tasks,
     recentTickets,
     recentTasks,
+    upcomingTasksList,
     userCount,
   ] = await Promise.all([
     // Ticket counts
@@ -133,6 +139,15 @@ export default async function DashboardPage() {
           take: 6,
         })
       : Promise.resolve([] as { id: string; title: string; status: string; priority: string; dueDate: Date | null; project: { id: string; name: string } }[]),
+    // Tasks due today or tomorrow (staff/admin only)
+    staff || admin
+      ? prisma.task.findMany({
+          where: { ...taskWhere, dueDate: { gte: today, lt: dayAfterTomorrow }, status: { notIn: ["COMPLETADO", "EN_REVISION"] } },
+          select: { id: true, title: true, status: true, dueDate: true, project: { select: { id: true, name: true } } },
+          orderBy: { dueDate: "asc" },
+          take: 5,
+        })
+      : Promise.resolve([] as { id: string; title: string; status: string; dueDate: Date | null; project: { id: string; name: string } }[]),
     // User count (admin only)
     admin
       ? prisma.user.count({ where: { isActive: true } })
@@ -159,14 +174,16 @@ export default async function DashboardPage() {
     total:     tasks.length,
     completadas: tasks.filter((t) => t.status === "COMPLETADO").length,
     activas:   tasks.filter((t) => t.status !== "COMPLETADO").length,
-    vencidas:  tasks.filter((t) => t.dueDate && t.dueDate < now && t.status !== "COMPLETADO").length,
+    enRevision: tasks.filter((t) => t.status === "EN_REVISION").length,
+    porVencer:  tasks.filter((t) => t.dueDate && t.dueDate >= today && t.dueDate < dayAfterTomorrow && t.status !== "COMPLETADO" && t.status !== "EN_REVISION").length,
+    vencidas:  tasks.filter((t) => t.dueDate && t.dueDate < today && t.status !== "COMPLETADO" && t.status !== "EN_REVISION").length,
     criticas:  tasks.filter((t) => (t.priority === "CRITICA" || t.priority === "ALTA") && t.status !== "COMPLETADO").length,
   };
 
   const taskRate = pct(taskStats.completadas, taskStats.total);
 
   const overdueTasks = recentTasks
-    .filter((t) => t.dueDate && new Date(t.dueDate) < now && t.status !== "COMPLETADO")
+    .filter((t) => t.dueDate && new Date(t.dueDate) < today && t.status !== "COMPLETADO" && t.status !== "EN_REVISION")
     .slice(0, 4);
 
   return (
@@ -191,9 +208,10 @@ export default async function DashboardPage() {
           href="/tickets"
           accent="#3b82f6"
           sub={[
-            { label: "Abiertos",    value: ticketStats.abiertos, color: "#64748b" },
-            { label: "En progreso", value: ticketStats.progreso,  color: "#3b82f6" },
-            { label: "Cerrados",    value: ticketStats.cerrados,  color: "#22c55e" },
+            { label: "Abiertos",    value: ticketStats.abiertos,  color: "#64748b" },
+            { label: "En progreso", value: ticketStats.progreso,   color: "#3b82f6" },
+            { label: "En revisión", value: ticketStats.revision,   color: "#8b5cf6" },
+            { label: "Cerrados",    value: ticketStats.cerrados,   color: "#22c55e" },
           ]}
         />
         <KpiCard
@@ -216,9 +234,10 @@ export default async function DashboardPage() {
             href="/tareas"
             accent="#22c55e"
             sub={[
-              { label: "Activas",     value: taskStats.activas,     color: "#3b82f6" },
-              { label: "Completadas", value: taskStats.completadas, color: "#22c55e" },
-              { label: "Vencidas",    value: taskStats.vencidas,    color: taskStats.vencidas > 0 ? "#dc2626" : "var(--app-text-muted)" },
+              { label: "Activas",     value: taskStats.activas,      color: "#3b82f6" },
+              { label: "En revisión", value: taskStats.enRevision,   color: "#8b5cf6" },
+              { label: "Por vencer",  value: taskStats.porVencer,    color: taskStats.porVencer > 0 ? "#f59e0b" : "var(--app-text-muted)" },
+              { label: "Vencidas",    value: taskStats.vencidas,     color: taskStats.vencidas > 0 ? "#dc2626" : "var(--app-text-muted)" },
             ]}
           />
         )}
@@ -280,7 +299,7 @@ export default async function DashboardPage() {
             emptyText="No hay tareas asignadas."
           >
             {recentTasks.map((t) => {
-              const isOverdue = t.dueDate && new Date(t.dueDate) < now && t.status !== "COMPLETADO";
+              const isOverdue = t.dueDate && new Date(t.dueDate) < today && t.status !== "COMPLETADO" && t.status !== "EN_REVISION";
               return (
                 <Link
                   key={t.id}
@@ -333,7 +352,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Bottom row — solo staff/admin ── */}
-      {(staff || admin) && <div style={{ display: "grid", gridTemplateColumns: overdueTasks.length > 0 ? "1fr 1fr" : "1fr", gap: "1rem" }}>
+      {(staff || admin) && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem" }}>
 
         {/* Task breakdown */}
         {taskStats.total > 0 && (
@@ -404,6 +423,47 @@ export default async function DashboardPage() {
             {taskStats.vencidas > overdueTasks.length && (
               <Link href="/tareas" style={{ display: "block", marginTop: "0.75rem", fontSize: "0.8125rem", color: "#dc2626", textDecoration: "none", fontWeight: 500 }}>
                 Ver {taskStats.vencidas - overdueTasks.length} más →
+              </Link>
+            )}
+          </div>
+        )}
+
+        {/* Upcoming tasks */}
+        {upcomingTasksList.length > 0 && (
+          <div style={{ backgroundColor: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "0.75rem", padding: "1.25rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+              <CalendarClock style={{ width: "1rem", height: "1rem", color: "#d97706", flexShrink: 0 }} />
+              <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#d97706", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Por vencer ({taskStats.porVencer})
+              </p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+              {upcomingTasksList.map((t) => {
+                const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+                const isToday = t.dueDate && t.dueDate.toISOString().slice(0, 10) < tomorrowStr;
+                return (
+                  <Link
+                    key={t.id}
+                    href={`/proyectos/${t.project.id}/tareas/${t.id}`}
+                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", textDecoration: "none" }}
+                  >
+                    <div style={{ overflow: "hidden" }}>
+                      <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {t.title}
+                      </p>
+                      <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{t.project.name}</p>
+                    </div>
+                    <span style={{ fontSize: "0.75rem", color: isToday ? "#dc2626" : "#d97706", whiteSpace: "nowrap", flexShrink: 0 }}>
+                      <Clock style={{ width: "0.75rem", height: "0.75rem", display: "inline", verticalAlign: "middle", marginRight: "0.2rem" }} />
+                      {isToday ? "Hoy" : "Mañana"}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+            {taskStats.porVencer > upcomingTasksList.length && (
+              <Link href="/tareas" style={{ display: "block", marginTop: "0.75rem", fontSize: "0.8125rem", color: "#d97706", textDecoration: "none", fontWeight: 500 }}>
+                Ver {taskStats.porVencer - upcomingTasksList.length} más →
               </Link>
             )}
           </div>

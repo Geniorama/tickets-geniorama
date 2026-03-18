@@ -29,7 +29,8 @@ function Bar({ value, max, color }: { value: number; max: number; color: string 
 export default async function EstadisticasPage() {
   await requireRole(["ADMINISTRADOR"]);
 
-  const now = new Date();
+  const now   = new Date();
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
   const users = await prisma.user.findMany({
     where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] } },
@@ -53,7 +54,7 @@ export default async function EstadisticasPage() {
     const pending   = u.assignedTasks.filter((t) => t.status === "PENDIENTE").length;
     const inReview  = u.assignedTasks.filter((t) => t.status === "EN_REVISION").length;
     const overdue   = u.assignedTasks.filter(
-      (t) => t.dueDate && t.dueDate < now && t.status !== "COMPLETADO"
+      (t) => t.dueDate && t.dueDate < today && t.status !== "COMPLETADO" && t.status !== "EN_REVISION"
     ).length;
     const rate      = pct(completed, total);
     const critical  = u.assignedTasks.filter((t) => t.priority === "CRITICA" || t.priority === "ALTA").length;
@@ -66,6 +67,7 @@ export default async function EstadisticasPage() {
   // Totales globales
   const globalTotal     = rows.reduce((s, r) => s + r.total, 0);
   const globalCompleted = rows.reduce((s, r) => s + r.completed, 0);
+  const globalInReview  = rows.reduce((s, r) => s + r.inReview, 0);
   const globalOverdue   = rows.reduce((s, r) => s + r.overdue, 0);
   const globalRate      = pct(globalCompleted, globalTotal);
 
@@ -85,9 +87,10 @@ export default async function EstadisticasPage() {
         }}
       >
         {[
-          { label: "Tareas totales",    value: globalTotal,     color: "var(--app-body-text)" },
-          { label: "Completadas",       value: globalCompleted, color: "#22c55e" },
-          { label: "Vencidas",          value: globalOverdue,   color: "#ef4444" },
+          { label: "Tareas totales",    value: globalTotal,      color: "var(--app-body-text)" },
+          { label: "Completadas",       value: globalCompleted,  color: "#22c55e" },
+          { label: "En revisión",       value: globalInReview,   color: "#8b5cf6" },
+          { label: "Vencidas",          value: globalOverdue,    color: "#ef4444" },
           { label: "Tasa global",       value: `${globalRate}%`, color: "#fd1384" },
         ].map(({ label, value, color }) => (
           <div
