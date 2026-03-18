@@ -35,20 +35,33 @@ export function CompanyTable({ rows }: { rows: CompanyRow[] }) {
     : rows;
 
   function sortedRows(rowList: CompanyRow[]) {
-    return [...rowList].sort((a, b) => {
-      let av: string | number = "";
-      let bv: string | number = "";
+    function val(r: CompanyRow): string | number {
       switch (sortCol) {
-        case "name":     av = a.name;              bv = b.name;              break;
-        case "type":     av = a.type;              bv = b.type;              break;
-        case "parent":   av = a.parentName ?? "";  bv = b.parentName ?? "";  break;
-        case "users":    av = a.userCount;         bv = b.userCount;         break;
-        case "isActive": av = a.isActive ? 1 : 0;  bv = b.isActive ? 1 : 0;  break;
-        default:         av = a.name;              bv = b.name;
+        case "name":     return r.name;
+        case "type":     return r.type;
+        case "parent":   return r.parentName ?? "";
+        case "users":    return r.userCount;
+        case "isActive": return r.isActive ? 1 : 0;
+        default:         return r.name;
       }
+    }
+    function cmp(a: CompanyRow, b: CompanyRow) {
+      const av = val(a), bv = val(b);
       if (typeof av === "number") return sortAsc ? av - (bv as number) : (bv as number) - av;
       return sortAsc ? av.localeCompare(bv as string) : (bv as string).localeCompare(av);
-    });
+    }
+
+    // Ordenar preservando jerarquía: agencia → sus subempresas → empresas sueltas
+    const agencies    = rowList.filter((r) => r.type === "AGENCIA");
+    const standalones = rowList.filter((r) => !r.indent && r.type === "EMPRESA");
+    const result: CompanyRow[] = [];
+    for (const agency of [...agencies].sort(cmp)) {
+      result.push(agency);
+      const subs = rowList.filter((r) => r.indent && r.parentName === agency.name);
+      result.push(...[...subs].sort(cmp));
+    }
+    result.push(...[...standalones].sort(cmp));
+    return result;
   }
 
   function ColHeader({ label, col }: { label: string; col: string }) {
