@@ -76,11 +76,12 @@ export default async function DashboardPage() {
   const admin = isAdmin(role);
   const staff = isStaff(role);
   const now             = new Date();
-  // Usar fecha LOCAL (no UTC) para que "hoy" sea el día que el usuario experimenta,
-  // pero construir en UTC midnight para coincidir con cómo Prisma almacena los dates.
-  const today           = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-  const tomorrow        = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 1));
-  const dayAfterTomorrow = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate() + 2));
+  // Extraer la fecha actual en Colombia (funciona en cualquier servidor, incluido Netlify UTC).
+  const bogotaDateStr   = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(now); // "2026-03-17"
+  const [by, bm, bd]    = bogotaDateStr.split("-").map(Number);
+  const today           = new Date(Date.UTC(by, bm - 1, bd));
+  const tomorrow        = new Date(Date.UTC(by, bm - 1, bd + 1));
+  const dayAfterTomorrow = new Date(Date.UTC(by, bm - 1, bd + 2));
 
   // ── Filters by role ────────────────────────────────────────────────────────
   const ticketWhere  = staff ? {} : { OR: [{ createdById: userId }, { clientId: userId }] };

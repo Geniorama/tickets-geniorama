@@ -29,8 +29,10 @@ function Bar({ value, max, color }: { value: number; max: number; color: string 
 export default async function EstadisticasPage() {
   await requireRole(["ADMINISTRADOR"]);
 
-  const now   = new Date();
-  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const now           = new Date();
+  const bogotaDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(now);
+  const [by, bm, bd]  = bogotaDateStr.split("-").map(Number);
+  const today         = new Date(Date.UTC(by, bm - 1, bd));
 
   const users = await prisma.user.findMany({
     where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] } },
