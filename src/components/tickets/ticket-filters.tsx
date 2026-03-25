@@ -70,7 +70,7 @@ export function TicketFilters({
       {/* Collapsible body */}
       {open && (
         <form onSubmit={handleSubmit} className="border-t border-gray-100 p-4 space-y-3">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Creado desde</label>
               <input type="date" name="createdFrom" defaultValue={current.createdFrom ?? ""} className={inputClass} />

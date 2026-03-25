@@ -113,16 +113,9 @@ export default async function ProyectosPage({
   ]);
 
   return (
-    <div style={{ padding: "1.5rem" }}>
+    <div>
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: "1rem",
-        }}
-      >
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
           Proyectos
         </h1>
@@ -150,8 +143,8 @@ export default async function ProyectosPage({
       </div>
 
       {/* Filters */}
-      <div style={{ marginBottom: "1.25rem", display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
-        <Suspense fallback={<div style={{ height: "2.375rem", width: "220px" }} />}>
+      <div className="flex flex-col gap-3 mb-5">
+        <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
           <SearchInput placeholder="Buscar proyectos..." />
         </Suspense>
         <ProjectFilters

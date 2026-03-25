@@ -59,7 +59,15 @@ const navItems: NavItem[] = [
 const LOGO_DARK  = "https://i.imgur.com/pTemb33.png";
 const LOGO_LIGHT = "https://i.imgur.com/BFg780c.png";
 
-export function Sidebar({ role }: { role: Role }) {
+export function Sidebar({
+  role,
+  isOpen = false,
+  onClose,
+}: {
+  role: Role;
+  isOpen?: boolean;
+  onClose?: () => void;
+}) {
   const pathname  = usePathname();
   const { theme } = useTheme();
   const [mounted, setMounted]         = useState(false);
@@ -88,20 +96,40 @@ export function Sidebar({ role }: { role: Role }) {
     (item.roles as readonly string[]).includes(role);
 
   return (
-    <aside className="w-60 flex flex-col" style={{ backgroundColor: "var(--app-sidebar-bg)" }}>
+    <aside
+      className={cn(
+        "w-60 flex flex-col shrink-0 transition-transform duration-300 ease-in-out",
+        // Mobile: overlay fijo, se desliza desde la izquierda
+        "fixed inset-y-0 left-0 z-40",
+        // Desktop: vuelve al flujo normal del documento
+        "lg:static lg:inset-auto lg:z-auto lg:translate-x-0 lg:transition-none",
+        // Visibilidad en móvil controlada por isOpen
+        !isOpen && "-translate-x-full lg:translate-x-0",
+      )}
+      style={{ backgroundColor: "var(--app-sidebar-bg)" }}
+    >
       {/* Logo */}
       <div
-        className="h-14 px-5 flex items-center justify-center"
+        className="h-14 px-5 flex items-center justify-between"
         style={{ borderBottom: "1px solid var(--app-border)" }}
       >
         <Image
           src={logoSrc}
           alt="Geniorama"
-          width={160}
-          height={48}
+          width={140}
+          height={40}
           className="object-contain"
           priority
         />
+        {/* Botón cerrar — solo en móvil */}
+        <button
+          className="lg:hidden p-1 rounded-lg"
+          onClick={onClose}
+          aria-label="Cerrar menú"
+          style={{ color: "var(--app-icon-color)" }}
+        >
+          ✕
+        </button>
       </div>
 
       {/* Nav */}
@@ -126,6 +154,7 @@ export function Sidebar({ role }: { role: Role }) {
                     href={item.href}
                     className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all flex-1")}
                     style={selfActive ? { backgroundColor: "#fd1384", color: "#ffffff" } : { color: "var(--app-nav-text)" }}
+                    onClick={onClose}
                     onMouseEnter={(e) => {
                       if (!selfActive) {
                         e.currentTarget.style.backgroundColor = "var(--app-nav-hover-bg)";
@@ -196,6 +225,7 @@ export function Sidebar({ role }: { role: Role }) {
                             href={child.href}
                             className={cn("flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all")}
                             style={childActive ? { backgroundColor: "#fd1384", color: "#ffffff" } : { color: "var(--app-nav-text)" }}
+                            onClick={onClose}
                             onMouseEnter={(e) => {
                               if (!childActive) {
                                 e.currentTarget.style.backgroundColor = "var(--app-nav-hover-bg)";

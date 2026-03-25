@@ -109,16 +109,17 @@ export default async function TicketsPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Tickets</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {staff && <ViewToggle current={view} />}
           <Link
             href="/tickets/new"
-            className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center gap-2 bg-indigo-600 text-white px-3 py-2 sm:px-4 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Nuevo ticket
+            <span className="hidden sm:inline">Nuevo ticket</span>
+            <span className="sm:hidden">Nuevo</span>
           </Link>
         </div>
       </div>

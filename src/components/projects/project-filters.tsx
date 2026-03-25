@@ -53,65 +53,82 @@ export function ProjectFilters({
     startTransition(() => router.push(`/proyectos?${next.toString()}`));
   }
 
-  return (
-    <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
-      <select
-        value={params.get("status") ?? ""}
-        onChange={(e) => update("status", e.target.value)}
-        style={SELECT_STYLE}
-      >
-        {STATUS_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
+  const fieldStyle: React.CSSProperties = { width: "100%" };
 
-      {showCompany && companies.length > 0 && (
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 w-full">
+      <div>
+        <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
+          Estado
+        </label>
         <select
-          value={params.get("companyId") ?? ""}
-          onChange={(e) => update("companyId", e.target.value)}
-          style={SELECT_STYLE}
+          value={params.get("status") ?? ""}
+          onChange={(e) => update("status", e.target.value)}
+          style={{ ...SELECT_STYLE, ...fieldStyle }}
         >
-          <option value="">Todas las empresas</option>
-          {companies.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
+          {STATUS_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
+      </div>
+
+      {showCompany && companies.length > 0 && (
+        <div>
+          <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
+            Empresa
+          </label>
+          <select
+            value={params.get("companyId") ?? ""}
+            onChange={(e) => update("companyId", e.target.value)}
+            style={{ ...SELECT_STYLE, ...fieldStyle }}
+          >
+            <option value="">Todas las empresas</option>
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+        </div>
       )}
 
       {showManager && managers.length > 0 && (
-        <select
-          value={params.get("managerId") ?? ""}
-          onChange={(e) => update("managerId", e.target.value)}
-          style={SELECT_STYLE}
-        >
-          <option value="">Todos los encargados</option>
-          {managers.map((m) => (
-            <option key={m.id} value={m.id}>{m.name}</option>
-          ))}
-        </select>
+        <div>
+          <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
+            Encargado
+          </label>
+          <select
+            value={params.get("managerId") ?? ""}
+            onChange={(e) => update("managerId", e.target.value)}
+            style={{ ...SELECT_STYLE, ...fieldStyle }}
+          >
+            <option value="">Todos los encargados</option>
+            {managers.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+        </div>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
-        <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", whiteSpace: "nowrap" }}>
+      <div>
+        <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
           Entrega desde
-        </span>
+        </label>
         <input
           type="date"
           value={params.get("dueDateFrom") ?? ""}
           onChange={(e) => update("dueDateFrom", e.target.value)}
-          style={INPUT_STYLE}
+          style={{ ...INPUT_STYLE, ...fieldStyle }}
         />
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
-        <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", whiteSpace: "nowrap" }}>
-          hasta
-        </span>
+      <div>
+        <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
+          Entrega hasta
+        </label>
         <input
           type="date"
           value={params.get("dueDateTo") ?? ""}
           onChange={(e) => update("dueDateTo", e.target.value)}
-          style={INPUT_STYLE}
+          style={{ ...INPUT_STYLE, ...fieldStyle }}
         />
       </div>
     </div>

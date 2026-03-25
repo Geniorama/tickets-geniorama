@@ -5,10 +5,12 @@ import { getPlanUsedHours } from "@/lib/plans.server";
 import {
   getEffectiveExpiresAt,
   isPlanEffectivelyActive,
+  daysUntilExpiry,
+  PLAN_EXPIRY_WARNING_DAYS,
   formatHours,
 } from "@/lib/plans";
 import { formatDate } from "@/lib/format-date";
-import { Clock, CalendarClock, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Clock, CalendarClock, CheckCircle2, XCircle, AlertCircle, AlertTriangle } from "lucide-react";
 
 export const metadata = { title: "Mis planes — Geniorama Tickets" };
 
@@ -123,9 +125,88 @@ export default async function MisplanesPage() {
     return aActive === bActive ? 0 : aActive ? -1 : 1;
   });
 
+  // ── Clasificar planes para alertas ─────────────────────────────────────────
+  const now = new Date();
+  const expiredPlans    = plans.filter((p) => {
+    const expiry = getEffectiveExpiresAt(p);
+    return p.isActive && expiry !== null && expiry < now;
+  });
+  const exhaustedPlans  = plans.filter((p) => {
+    const usedHours = usedHoursMap[p.id] ?? 0;
+    return p.isActive && p.type === "BOLSA_HORAS" && p.totalHours !== null && usedHours >= p.totalHours;
+  });
+  const expiringPlans   = plans.filter((p) => {
+    const days = daysUntilExpiry(p);
+    return p.isActive && days !== null && days > 0 && days <= PLAN_EXPIRY_WARNING_DAYS;
+  }).sort((a, b) => (daysUntilExpiry(a) ?? 0) - (daysUntilExpiry(b) ?? 0));
+
   return (
     <div className="max-w-3xl">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Mis planes</h1>
+
+      {/* ── Alertas ── */}
+      {(expiredPlans.length > 0 || exhaustedPlans.length > 0 || expiringPlans.length > 0) && (
+        <div className="space-y-3 mb-6">
+          {expiredPlans.length > 0 && (
+            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl">
+              <XCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-red-800">
+                  {expiredPlans.length === 1 ? "1 plan vencido" : `${expiredPlans.length} planes vencidos`}
+                </p>
+                <ul className="mt-1 space-y-0.5">
+                  {expiredPlans.map((p) => (
+                    <li key={p.id} className="text-sm text-red-700">
+                      {p.name} — {p.company.name}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-red-600 mt-1.5">Contacta a tu agente para renovar.</p>
+              </div>
+            </div>
+          )}
+
+          {exhaustedPlans.length > 0 && (
+            <div className="flex items-start gap-3 p-4 bg-orange-50 border border-orange-200 rounded-xl">
+              <AlertCircle className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-orange-800">
+                  {exhaustedPlans.length === 1 ? "Bolsa de horas agotada" : `${exhaustedPlans.length} bolsas de horas agotadas`}
+                </p>
+                <ul className="mt-1 space-y-0.5">
+                  {exhaustedPlans.map((p) => (
+                    <li key={p.id} className="text-sm text-orange-700">
+                      {p.name} — {p.company.name}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-xs text-orange-600 mt-1.5">Contacta a tu agente para recargar horas.</p>
+              </div>
+            </div>
+          )}
+
+          {expiringPlans.length > 0 && (
+            <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-amber-800">
+                  {expiringPlans.length === 1 ? "1 plan próximo a vencer" : `${expiringPlans.length} planes próximos a vencer`}
+                </p>
+                <ul className="mt-1 space-y-0.5">
+                  {expiringPlans.map((p) => {
+                    const days = daysUntilExpiry(p)!;
+                    return (
+                      <li key={p.id} className="text-sm text-amber-700">
+                        {p.name} — vence en {days} día{days !== 1 ? "s" : ""}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {plans.length === 0 ? (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
@@ -149,12 +230,16 @@ export default async function MisplanesPage() {
                 ? Math.min(100, Math.round((usedHours / plan.totalHours) * 100))
                 : null;
             const isActive = isPlanEffectivelyActive(plan, usedHours);
+            const days = daysUntilExpiry(plan);
+            const isExpiringSoon = isActive && days !== null && days > 0 && days <= PLAN_EXPIRY_WARNING_DAYS;
 
             return (
               <div
                 key={plan.id}
                 className={`bg-white rounded-xl border p-6 ${
-                  isActive ? "border-gray-200" : "border-gray-100 opacity-70"
+                  !isActive          ? "border-gray-100 opacity-70" :
+                  isExpiringSoon     ? "border-amber-300" :
+                                       "border-gray-200"
                 }`}
               >
                 {/* Header */}

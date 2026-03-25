@@ -75,15 +75,50 @@ export function TaskList({
   const bp = basePath ?? "";
   const ps = paramsStr ?? "";
 
+  const container: React.CSSProperties = {
+    backgroundColor: "var(--app-card-bg)",
+    border: "1px solid var(--app-border)",
+    borderRadius: "0.75rem",
+    overflow: "hidden",
+  };
+
   return (
-    <div
-      style={{
-        backgroundColor: "var(--app-card-bg)",
-        border: "1px solid var(--app-border)",
-        borderRadius: "0.75rem",
-        overflow: "hidden",
-      }}
-    >
+    <div style={container}>
+      {/* ── Vista mobile: cards ── */}
+      <ul className="md:hidden divide-y" style={{ borderColor: "var(--app-border)" }}>
+        {tasks.map((task) => {
+          const href = `/proyectos/${task.project.id}/tareas/${task.id}`;
+          return (
+            <li key={task.id}>
+              <Link href={href} style={{ display: "block", padding: "0.875rem 1rem", textDecoration: "none" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.375rem" }}>
+                  <span style={{ fontWeight: 600, color: "var(--app-body-text)", fontSize: "0.875rem", lineHeight: 1.4 }}>
+                    {task.number > 0 && (
+                      <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--app-text-muted)", background: "var(--app-content-bg)", border: "1px solid var(--app-border)", borderRadius: "0.25rem", padding: "0.1rem 0.35rem", marginRight: "0.375rem" }}>
+                        {taskCode(task.project.name, task.number)}
+                      </span>
+                    )}
+                    {task.title}
+                  </span>
+                  <TaskPriorityBadge priority={task.priority as Priority} />
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "0.375rem" }}>
+                  <TaskStatusBadge status={task.status as TaskStatus} />
+                  {task.category && <span style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{task.category}</span>}
+                </div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
+                  {showProject && <span>{task.project.name}</span>}
+                  {task.assignedTo && <span>→ {task.assignedTo.name}</span>}
+                  {task.dueDate && <span>Vence: {formatDate(task.dueDate)}</span>}
+                </div>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+
+      {/* ── Vista desktop: tabla ── */}
+      <div className="hidden md:block overflow-x-auto">
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
         <thead>
           <tr
@@ -206,6 +241,7 @@ export function TaskList({
           })}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

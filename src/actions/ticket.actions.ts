@@ -385,3 +385,41 @@ export async function deleteTicket(ticketId: string) {
   revalidatePath("/tickets");
   redirect("/tickets");
 }
+
+export async function duplicateTicket(ticketId: string) {
+  const session = await getRequiredSession();
+  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+
+  const original = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    select: {
+      title: true,
+      description: true,
+      priority: true,
+      category: true,
+      assignedToId: true,
+      clientId: true,
+      planId: true,
+      siteId: true,
+    },
+  });
+  if (!original) return { error: "Ticket no encontrado" };
+
+  const copy = await prisma.ticket.create({
+    data: {
+      title: `Copia de ${original.title}`,
+      description: original.description,
+      priority: original.priority,
+      category: original.category,
+      assignedToId: original.assignedToId,
+      clientId: original.clientId,
+      createdById: session.user.id,
+      planId: original.planId,
+      siteId: original.siteId,
+      status: "POR_ASIGNAR",
+    },
+  });
+
+  revalidatePath("/tickets");
+  redirect(`/tickets/${copy.id}`);
+}

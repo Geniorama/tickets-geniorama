@@ -10,6 +10,7 @@ import { TicketTimer } from "./ticket-timer";
 import { TicketAiAssistant } from "./ticket-ai-assistant";
 import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
 import { updateTicketStatus, deleteTicket } from "@/actions/ticket.actions";
+import { DuplicateTicketButton } from "./duplicate-ticket-button";
 import { addComment, deleteComment, editComment } from "@/actions/comment.actions";
 import { isStaff, isAdmin } from "@/lib/roles";
 import { AttachmentList } from "./attachment-list";
@@ -116,6 +117,7 @@ export function TicketDetail({
                       <Pencil className="w-3.5 h-3.5" />
                       Editar
                     </Link>
+                    <DuplicateTicketButton ticketId={ticket.id} />
                     <button
                       onClick={handleDeleteTicket}
                       disabled={isPending}

@@ -8,6 +8,7 @@ import type { Session } from "next-auth";
 import { TaskStatusBadge, TaskPriorityBadge } from "./project-status-badge";
 import { TaskCommentSection } from "./task-comment-form";
 import { updateTaskStatus, deleteTask, moveTask } from "@/actions/task.actions";
+import { DuplicateTaskButton } from "./duplicate-task-button";
 import { TaskTimer } from "./task-timer";
 import { formatDate, formatDateTimeLong } from "@/lib/format-date";
 import { taskCode } from "@/lib/task-code";
@@ -134,6 +135,9 @@ export function TaskDetail({
                     <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />
                     Editar
                   </Link>
+                )}
+                {staff && (
+                  <DuplicateTaskButton taskId={task.id} projectId={task.project.id} />
                 )}
                 {admin && (
                   <button

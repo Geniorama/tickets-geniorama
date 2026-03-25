@@ -43,6 +43,18 @@ export function isPlanEffectivelyActive(plan: PlanLike, usedHours = 0): boolean 
   return true;
 }
 
+/** Days until the plan expires (negative = already expired, null = no expiry) */
+export function daysUntilExpiry(
+  plan: Pick<PlanLike, "durationDays" | "startedAt" | "expiresAt">
+): number | null {
+  const expiry = getEffectiveExpiresAt(plan);
+  if (!expiry) return null;
+  return Math.ceil((expiry.getTime() - Date.now()) / 86_400_000);
+}
+
+/** Days threshold to show "expiring soon" warnings */
+export const PLAN_EXPIRY_WARNING_DAYS = 30;
+
 export function formatHours(hours: number): string {
   const h = Math.floor(hours);
   const m = Math.round((hours - h) * 60);

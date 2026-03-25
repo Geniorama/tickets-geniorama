@@ -24,15 +24,7 @@ export function CommentBody({
           return (
             <span
               key={i}
-              style={{
-                display: "inline-block",
-                backgroundColor: "#fd1384",
-                color: "#ffffff",
-                borderRadius: "0.25rem",
-                padding: "0 0.3rem",
-                fontWeight: 600,
-                fontSize: "0.875em",
-              }}
+              className="inline-block rounded px-1 font-semibold text-[0.875em] bg-pink-100 text-pink-700 dark:bg-pink-500/10 dark:text-pink-300"
             >
               @{match[1]}
             </span>

@@ -442,3 +442,41 @@ export async function moveTask(taskId: string, fromProjectId: string, toProjectI
   revalidatePath(`/proyectos/${toProjectId}`);
   redirect(`/proyectos/${toProjectId}/tareas/${taskId}`);
 }
+
+// ─── duplicateTask ─────────────────────────────────────────────────────────────
+
+export async function duplicateTask(taskId: string, projectId: string) {
+  const session = await getRequiredSession();
+  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+
+  const original = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: {
+      title: true, description: true, priority: true, category: true,
+      assignedToId: true, estimatedHours: true, projectId: true,
+    },
+  });
+  if (!original) return { error: "Tarea no encontrada" };
+
+  const copy = await prisma.$transaction(async (tx) => {
+    const count = await tx.task.count({ where: { projectId: original.projectId } });
+    return tx.task.create({
+      data: {
+        number:         count + 1,
+        title:          `Copia de ${original.title}`,
+        description:    original.description,
+        status:         "PENDIENTE",
+        priority:       original.priority,
+        category:       original.category,
+        projectId:      original.projectId,
+        assignedToId:   original.assignedToId,
+        createdById:    session.user.id,
+        estimatedHours: original.estimatedHours,
+      },
+    });
+  });
+
+  revalidatePath(`/proyectos/${projectId}`);
+  revalidatePath(`/tareas`);
+  redirect(`/proyectos/${projectId}/tareas/${copy.id}`);
+}

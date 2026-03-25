@@ -53,50 +53,72 @@ export function TaskFilters({
     startTransition(() => router.push(`/tareas?${next.toString()}`));
   }
 
+  const fieldStyle: React.CSSProperties = { width: "100%" };
+
   return (
-    <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-      <select
-        value={params.get("status") ?? ""}
-        onChange={(e) => update("status", e.target.value)}
-        style={SELECT_STYLE}
-      >
-        {STATUS_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-
-      <select
-        value={params.get("priority") ?? ""}
-        onChange={(e) => update("priority", e.target.value)}
-        style={SELECT_STYLE}
-      >
-        {PRIORITY_OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
-        ))}
-      </select>
-
-      <select
-        value={params.get("projectId") ?? ""}
-        onChange={(e) => update("projectId", e.target.value)}
-        style={SELECT_STYLE}
-      >
-        <option value="">Todos los proyectos</option>
-        {projects.map((p) => (
-          <option key={p.id} value={p.id}>{p.name}</option>
-        ))}
-      </select>
-
-      {showAssignee && (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
+      <div>
+        <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
+          Estado
+        </label>
         <select
-          value={params.get("assignedToId") ?? ""}
-          onChange={(e) => update("assignedToId", e.target.value)}
-          style={SELECT_STYLE}
+          value={params.get("status") ?? ""}
+          onChange={(e) => update("status", e.target.value)}
+          style={{ ...SELECT_STYLE, ...fieldStyle }}
         >
-          <option value="">Todos los responsables</option>
-          {staff.map((u) => (
-            <option key={u.id} value={u.id}>{u.name}</option>
+          {STATUS_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
+          Prioridad
+        </label>
+        <select
+          value={params.get("priority") ?? ""}
+          onChange={(e) => update("priority", e.target.value)}
+          style={{ ...SELECT_STYLE, ...fieldStyle }}
+        >
+          {PRIORITY_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
+          Proyecto
+        </label>
+        <select
+          value={params.get("projectId") ?? ""}
+          onChange={(e) => update("projectId", e.target.value)}
+          style={{ ...SELECT_STYLE, ...fieldStyle }}
+        >
+          <option value="">Todos los proyectos</option>
+          {projects.map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {showAssignee && (
+        <div>
+          <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
+            Responsable
+          </label>
+          <select
+            value={params.get("assignedToId") ?? ""}
+            onChange={(e) => update("assignedToId", e.target.value)}
+            style={{ ...SELECT_STYLE, ...fieldStyle }}
+          >
+            <option value="">Todos los responsables</option>
+            {staff.map((u) => (
+              <option key={u.id} value={u.id}>{u.name}</option>
+            ))}
+          </select>
+        </div>
       )}
     </div>
   );

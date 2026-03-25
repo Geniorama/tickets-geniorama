@@ -133,50 +133,42 @@ export default async function TareasPage({
   ]);
 
   return (
-    <div style={{ padding: "1.5rem" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          marginBottom: "1.5rem",
-          gap: "1rem",
-          flexWrap: "wrap",
-        }}
-      >
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
           Tareas
         </h1>
-        <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
-          {(admin || staff) && (
-            <Link
-              href="/tareas/new"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.375rem",
-                backgroundColor: "#fd1384",
-                color: "#ffffff",
-                padding: "0.5rem 1rem",
-                borderRadius: "0.5rem",
-                fontSize: "0.875rem",
-                fontWeight: 500,
-                textDecoration: "none",
-              }}
-            >
-              <Plus style={{ width: "1rem", height: "1rem" }} />
-              Nueva tarea
-            </Link>
-          )}
-          <Suspense fallback={<div style={{ height: "2.375rem", width: "220px" }} />}>
-            <SearchInput placeholder="Buscar tareas..." />
-          </Suspense>
-          <TaskFilters
-            projects={projects}
-            staff={staffUsers}
-            showAssignee={admin || staff}
-          />
-        </div>
+        {(admin || staff) && (
+          <Link
+            href="/tareas/new"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.375rem",
+              backgroundColor: "#fd1384",
+              color: "#ffffff",
+              padding: "0.5rem 1rem",
+              borderRadius: "0.5rem",
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              textDecoration: "none",
+            }}
+          >
+            <Plus style={{ width: "1rem", height: "1rem" }} />
+            Nueva tarea
+          </Link>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3 mb-5">
+        <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
+          <SearchInput placeholder="Buscar tareas..." />
+        </Suspense>
+        <TaskFilters
+          projects={projects}
+          staff={staffUsers}
+          showAssignee={admin || staff}
+        />
       </div>
 
       <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginBottom: "1rem" }}>

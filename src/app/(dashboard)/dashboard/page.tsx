@@ -4,10 +4,11 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import {
   Ticket, FolderKanban, ListTodo, Users,
-  AlertTriangle, Clock, CalendarClock, CheckCircle2, TrendingUp,
+  AlertTriangle, Clock, CalendarClock, CheckCircle2, TrendingUp, CreditCard,
 } from "lucide-react";
 import type { TaskStatus, Priority, ProjectStatus } from "@/generated/prisma";
 import { formatDate } from "@/lib/format-date";
+import { getEffectiveExpiresAt, daysUntilExpiry, PLAN_EXPIRY_WARNING_DAYS } from "@/lib/plans";
 
 export const metadata = { title: "Dashboard — Geniorama Tickets" };
 
@@ -114,6 +115,7 @@ export default async function DashboardPage() {
     recentTasks,
     upcomingTasksList,
     userCount,
+    rawAlertPlans,
   ] = await Promise.all([
     // Ticket counts
     prisma.ticket.findMany({ where: ticketWhere, select: { status: true } }),
@@ -153,6 +155,20 @@ export default async function DashboardPage() {
     admin
       ? prisma.user.count({ where: { isActive: true } })
       : Promise.resolve(null),
+    // Plans with expiry (admin only) — filtrar en JS para soportar durationDays
+    admin
+      ? prisma.plan.findMany({
+          where: {
+            isActive: true,
+            OR: [{ expiresAt: { not: null } }, { durationDays: { not: null } }],
+          },
+          select: {
+            id: true, name: true, type: true, totalHours: true,
+            durationDays: true, startedAt: true, expiresAt: true, isActive: true,
+            company: { select: { name: true } },
+          },
+        })
+      : Promise.resolve([] as { id: string; name: string; type: string; totalHours: number | null; durationDays: number | null; startedAt: Date; expiresAt: Date | null; isActive: boolean; company: { name: string } }[]),
   ]);
 
   // ── Derived stats ──────────────────────────────────────────────────────────
@@ -187,8 +203,20 @@ export default async function DashboardPage() {
     .filter((t) => t.dueDate && new Date(t.dueDate) < today && t.status !== "COMPLETADO" && t.status !== "EN_REVISION")
     .slice(0, 4);
 
+  // Planes: separar vencidos y próximos a vencer
+  const expiredAlertPlans = rawAlertPlans.filter((p) => {
+    const expiry = getEffectiveExpiresAt(p);
+    return expiry !== null && expiry < now;
+  });
+  const expiringAlertPlans = rawAlertPlans
+    .filter((p) => {
+      const days = daysUntilExpiry(p);
+      return days !== null && days > 0 && days <= PLAN_EXPIRY_WARNING_DAYS;
+    })
+    .sort((a, b) => (daysUntilExpiry(a) ?? 0) - (daysUntilExpiry(b) ?? 0));
+
   return (
-    <div style={{ padding: "1.5rem", maxWidth: "1400px" }}>
+    <div style={{ maxWidth: "1400px" }}>
 
       {/* Welcome */}
       <div style={{ marginBottom: "1.5rem" }}>
@@ -201,7 +229,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── KPI row ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.75rem", marginBottom: "1.5rem" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
         <KpiCard
           icon={Ticket}
           label="Tickets"
@@ -258,7 +286,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Main grid ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", marginBottom: "1rem" }}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 
         {/* Recent tickets */}
         <Section
@@ -353,7 +381,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Bottom row — solo staff/admin ── */}
-      {(staff || admin) && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "1rem" }}>
+      {(staff || admin) && <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
 
         {/* Task breakdown */}
         {taskStats.total > 0 && (
@@ -466,6 +494,75 @@ export default async function DashboardPage() {
               <Link href="/tareas" style={{ display: "block", marginTop: "0.75rem", fontSize: "0.8125rem", color: "#d97706", textDecoration: "none", fontWeight: 500 }}>
                 Ver {taskStats.porVencer - upcomingTasksList.length} más →
               </Link>
+            )}
+          </div>
+        )}
+        {/* Alertas de planes (admin) */}
+        {admin && (expiredAlertPlans.length > 0 || expiringAlertPlans.length > 0) && (
+          <div style={{ borderRadius: "0.75rem", overflow: "hidden", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            {expiredAlertPlans.length > 0 && (
+              <div style={{ backgroundColor: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "0.75rem", padding: "1.25rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+                  <CreditCard style={{ width: "1rem", height: "1rem", color: "#dc2626", flexShrink: 0 }} />
+                  <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#dc2626", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    Planes vencidos ({expiredAlertPlans.length})
+                  </p>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  {expiredAlertPlans.slice(0, 5).map((p) => {
+                    const expiry = getEffectiveExpiresAt(p)!;
+                    return (
+                      <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+                        <div style={{ overflow: "hidden" }}>
+                          <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
+                          <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{p.company.name}</p>
+                        </div>
+                        <span style={{ fontSize: "0.75rem", color: "#dc2626", whiteSpace: "nowrap", flexShrink: 0 }}>
+                          Venció {formatDate(expiry)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {expiredAlertPlans.length > 5 && (
+                  <a href="/admin/plans" style={{ display: "block", marginTop: "0.75rem", fontSize: "0.8125rem", color: "#dc2626", textDecoration: "none", fontWeight: 500 }}>
+                    Ver {expiredAlertPlans.length - 5} más →
+                  </a>
+                )}
+              </div>
+            )}
+
+            {expiringAlertPlans.length > 0 && (
+              <div style={{ backgroundColor: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "0.75rem", padding: "1.25rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+                  <CreditCard style={{ width: "1rem", height: "1rem", color: "#d97706", flexShrink: 0 }} />
+                  <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#d97706", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    Planes por vencer ({expiringAlertPlans.length})
+                  </p>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  {expiringAlertPlans.slice(0, 5).map((p) => {
+                    const days = daysUntilExpiry(p)!;
+                    return (
+                      <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+                        <div style={{ overflow: "hidden" }}>
+                          <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
+                          <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{p.company.name}</p>
+                        </div>
+                        <span style={{ fontSize: "0.75rem", color: "#d97706", whiteSpace: "nowrap", flexShrink: 0 }}>
+                          <Clock style={{ width: "0.75rem", height: "0.75rem", display: "inline", verticalAlign: "middle", marginRight: "0.2rem" }} />
+                          {days} día{days !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {expiringAlertPlans.length > 5 && (
+                  <a href="/admin/plans" style={{ display: "block", marginTop: "0.75rem", fontSize: "0.8125rem", color: "#d97706", textDecoration: "none", fontWeight: 500 }}>
+                    Ver {expiringAlertPlans.length - 5} más →
+                  </a>
+                )}
+              </div>
             )}
           </div>
         )}
