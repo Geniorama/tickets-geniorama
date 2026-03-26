@@ -21,10 +21,11 @@ function formatDuration(ms: number): string {
 export function FloatingTimer() {
   const { timers, unregisterTimer } = useTimerContext();
   const pathname = usePathname();
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(0);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
+    setNow(Date.now());
     if (timers.length === 0) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
