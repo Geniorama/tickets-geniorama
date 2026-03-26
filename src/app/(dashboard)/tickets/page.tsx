@@ -30,8 +30,31 @@ export default async function TicketsPage({
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const q = params.q?.trim() || undefined;
 
-  // Base where: clientes ven tickets que crearon ellos O donde son el cliente asignado
-  const baseWhere = staff ? {} : { OR: [{ createdById: id }, { clientId: id }] };
+  // Para clientes: obtener todos los IDs de clientes de la misma empresa
+  let companyClientIds: string[] = [id];
+  if (!staff) {
+    const currentUser = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        companies: {
+          select: {
+            users: { where: { role: "CLIENTE" }, select: { id: true } },
+          },
+        },
+      },
+    });
+    if (currentUser) {
+      const ids = [
+        ...new Set(currentUser.companies.flatMap((c) => c.users.map((u) => u.id))),
+      ];
+      if (ids.length > 0) companyClientIds = ids;
+    }
+  }
+
+  // Base where: clientes ven tickets que crearon ellos O donde el cliente asignado es de su misma empresa
+  const baseWhere = staff
+    ? {}
+    : { OR: [{ createdById: id }, { clientId: { in: companyClientIds } }] };
 
   // Filtros de fecha — interpretados como hora local de Bogota (UTC-5)
   const dateFilters: Record<string, unknown> = {};

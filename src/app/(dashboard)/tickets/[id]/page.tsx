@@ -42,8 +42,30 @@ export default async function TicketPage({
 
   if (!ticket) notFound();
 
-  // Clientes solo ven tickets que crearon ellos o donde son el cliente asignado
-  if (!staff && ticket.createdById !== userId && ticket.clientId !== userId) notFound();
+  // Para clientes: verificar acceso via empresa compartida
+  if (!staff) {
+    let companyClientIds: string[] = [userId];
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        companies: {
+          select: {
+            users: { where: { role: "CLIENTE" }, select: { id: true } },
+          },
+        },
+      },
+    });
+    if (currentUser) {
+      const ids = [
+        ...new Set(currentUser.companies.flatMap((c) => c.users.map((u) => u.id))),
+      ];
+      if (ids.length > 0) companyClientIds = ids;
+    }
+    // Clientes ven tickets que crearon ellos O donde el cliente asignado es de su misma empresa
+    if (ticket.createdById !== userId && (!ticket.clientId || !companyClientIds.includes(ticket.clientId))) {
+      notFound();
+    }
+  }
 
   const vaultAccessFilter = admin
     ? {}
