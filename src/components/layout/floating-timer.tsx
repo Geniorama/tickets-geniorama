@@ -77,14 +77,16 @@ export function FloatingTimer() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "0.625rem",
-              backgroundColor: "var(--app-card-bg)",
-              border: "1px solid var(--app-border)",
+              gap: "0.75rem",
+              backgroundColor: "rgba(10, 15, 25, 0.96)",
+              border: "1px solid rgba(34,197,94,0.35)",
+              borderLeft: "3px solid #22c55e",
               borderRadius: "0.75rem",
-              padding: "0.625rem 0.875rem",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
-              minWidth: "260px",
-              maxWidth: "320px",
+              padding: "0.625rem 0.875rem 0.625rem 0.75rem",
+              boxShadow: "0 12px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(34,197,94,0.1)",
+              minWidth: "270px",
+              maxWidth: "340px",
+              backdropFilter: "blur(8px)",
             }}
           >
             {/* Dot animado */}
@@ -95,6 +97,7 @@ export function FloatingTimer() {
                 borderRadius: "50%",
                 backgroundColor: "#22c55e",
                 flexShrink: 0,
+                boxShadow: "0 0 6px #22c55e",
                 animation: "pulse 2s infinite",
               }}
             />
@@ -104,7 +107,7 @@ export function FloatingTimer() {
               style={{
                 width: "0.875rem",
                 height: "0.875rem",
-                color: "var(--app-text-muted)",
+                color: "rgba(255,255,255,0.4)",
                 flexShrink: 0,
               }}
             />
@@ -116,18 +119,19 @@ export function FloatingTimer() {
                 flex: 1,
                 fontSize: "0.8125rem",
                 fontWeight: 500,
-                color: "var(--app-body-text)",
+                color: "rgba(255,255,255,0.85)",
                 textDecoration: "none",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
+                transition: "color 0.15s",
               }}
               onMouseEnter={(e) =>
-                ((e.currentTarget as HTMLAnchorElement).style.color = "#4f46e5")
+                ((e.currentTarget as HTMLAnchorElement).style.color = "#86efac")
               }
               onMouseLeave={(e) =>
                 ((e.currentTarget as HTMLAnchorElement).style.color =
-                  "var(--app-body-text)")
+                  "rgba(255,255,255,0.85)")
               }
             >
               {timer.title}
@@ -137,10 +141,11 @@ export function FloatingTimer() {
             <span
               style={{
                 fontFamily: "monospace",
-                fontSize: "0.8125rem",
-                fontWeight: 600,
-                color: "#16a34a",
+                fontSize: "0.875rem",
+                fontWeight: 700,
+                color: "#4ade80",
                 flexShrink: 0,
+                letterSpacing: "0.02em",
               }}
             >
               {formatDuration(elapsed)}
@@ -160,17 +165,17 @@ export function FloatingTimer() {
                 border: "none",
                 background: "none",
                 cursor: isPending ? "not-allowed" : "pointer",
-                color: "var(--app-text-muted)",
+                color: "rgba(255,255,255,0.3)",
                 flexShrink: 0,
                 opacity: isPending ? 0.5 : 1,
                 transition: "color 0.15s",
               }}
               onMouseEnter={(e) =>
-                ((e.currentTarget as HTMLButtonElement).style.color = "#dc2626")
+                ((e.currentTarget as HTMLButtonElement).style.color = "#f87171")
               }
               onMouseLeave={(e) =>
                 ((e.currentTarget as HTMLButtonElement).style.color =
-                  "var(--app-text-muted)")
+                  "rgba(255,255,255,0.3)")
               }
             >
               <StopCircle style={{ width: "1rem", height: "1rem" }} />
