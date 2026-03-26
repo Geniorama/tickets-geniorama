@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Play, Pause, Clock, Plus, X, Trash2, RotateCcw } from "lucide-react";
 import { startTimer, pauseTimer, addManualEntry, deleteTimeEntry, resetTimeEntries } from "@/actions/time.actions";
+import { useTimerContext } from "@/providers/timer-provider";
 
 interface TimeEntryRow {
   id: string;
@@ -23,17 +24,20 @@ function formatDuration(ms: number): string {
 
 export function TicketTimer({
   ticketId,
+  title,
   entries,
   canControl,
   isAdmin,
   currentUserId,
 }: {
   ticketId: string;
+  title: string;
   entries: TimeEntryRow[];
   canControl: boolean;
   isAdmin: boolean;
   currentUserId: string;
 }) {
+  const { registerTimer, unregisterTimer } = useTimerContext();
   const [isPending, startTransition] = useTransition();
   const [now, setNow] = useState(() => Date.now());
   const [showManual, setShowManual] = useState(false);
@@ -43,6 +47,23 @@ export function TicketTimer({
   const [confirmReset, setConfirmReset] = useState(false);
 
   const activeEntry = entries.find((e) => e.stoppedAt === null) ?? null;
+  const userActiveEntry = entries.find(
+    (e) => e.stoppedAt === null && e.userId === currentUserId,
+  ) ?? null;
+
+  // Sincronizar con el context global (pastilla flotante)
+  useEffect(() => {
+    if (userActiveEntry) {
+      registerTimer({
+        type: "ticket",
+        resourceId: ticketId,
+        title,
+        startedAt: String(userActiveEntry.startedAt),
+      });
+    } else {
+      unregisterTimer("ticket", ticketId);
+    }
+  }, [userActiveEntry?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!activeEntry) return;

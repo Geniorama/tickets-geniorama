@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
+import { FloatingTimer } from "./floating-timer";
 import type { Session } from "next-auth";
 import type { Role } from "@/generated/prisma";
 
@@ -48,6 +49,8 @@ export function DashboardShell({
           {children}
         </main>
       </div>
+
+      <FloatingTimer />
     </div>
   );
 }

@@ -391,6 +391,14 @@ export async function updateTaskStatus(taskId: string, projectId: string, status
     data: { status: status as TaskStatus },
   });
 
+  // Detener timers activos al pasar a revisión o completar la tarea
+  if (["EN_REVISION", "COMPLETADO"].includes(status)) {
+    await prisma.taskTimeEntry.updateMany({
+      where: { taskId, stoppedAt: null },
+      data: { stoppedAt: new Date() },
+    });
+  }
+
   // Notificar tarea completada si es un cambio nuevo a COMPLETADO
   if (status === "COMPLETADO" && oldTask?.status !== "COMPLETADO") {
     const recipients = [oldTask?.createdById, oldTask?.assignedToId]

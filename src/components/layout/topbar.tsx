@@ -63,18 +63,23 @@ export function Topbar({
         >
           <KeyRound className="w-4 h-4" />
         </Link>
-        {/* Usar <a> nativo para garantizar navegación completa sin intercepción del router de React */}
-        <a
-          href="/api/logout"
+        {/* Botón logout: pausa timers activos antes de navegar a /api/logout */}
+        <button
+          onClick={async () => {
+            try {
+              await fetch("/api/timer/pause-all", { method: "POST", credentials: "include" });
+            } catch { /* ignorar — el logout procede igual */ }
+            window.location.href = "/api/logout";
+          }}
           className="flex items-center gap-1.5 text-sm transition-colors cursor-pointer"
-          style={{ color: "var(--app-text-muted)" }}
+          style={{ color: "var(--app-text-muted)", background: "none", border: "none", padding: 0 }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "#fd1384")}
           onMouseLeave={(e) => (e.currentTarget.style.color = "var(--app-text-muted)")}
           title="Cerrar sesión"
         >
           <LogOut className="w-4 h-4" />
           <span className="hidden sm:inline">Salir</span>
-        </a>
+        </button>
       </div>
     </header>
   );

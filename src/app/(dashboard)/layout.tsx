@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { OverdueAlert } from "@/components/layout/overdue-alert";
 import type { OverdueItem } from "@/components/layout/overdue-alert";
+import { TimerProvider } from "@/providers/timer-provider";
+import type { ActiveTimer } from "@/providers/timer-provider";
 import { fromZonedTime } from "date-fns-tz";
 
 // Evitar que Next.js cachee el layout protegido en el cliente.
@@ -23,7 +25,13 @@ export default async function DashboardLayout({
   const bogotaDateStr = new Date().toLocaleDateString("en-CA", { timeZone: TZ });
   const today = fromZonedTime(`${bogotaDateStr}T00:00:00`, TZ);
 
-  const [unreadCount, overdueTickets, overdueTasks] = await Promise.all([
+  const [
+    unreadCount,
+    overdueTickets,
+    overdueTasks,
+    activeTicketEntry,
+    activeTaskEntry,
+  ] = await Promise.all([
     prisma.notification.count({
       where: { userId, isRead: false },
     }),
@@ -44,6 +52,22 @@ export default async function DashboardLayout({
       },
       select: { id: true, title: true, dueDate: true, status: true, projectId: true },
       orderBy: { dueDate: "asc" },
+    }),
+    // Timer activo en tickets
+    prisma.timeEntry.findFirst({
+      where: { userId, stoppedAt: null },
+      select: {
+        startedAt: true,
+        ticket: { select: { id: true, title: true } },
+      },
+    }),
+    // Timer activo en tareas
+    prisma.taskTimeEntry.findFirst({
+      where: { userId, stoppedAt: null },
+      select: {
+        startedAt: true,
+        task: { select: { id: true, title: true, projectId: true } },
+      },
     }),
   ]);
 
@@ -66,14 +90,40 @@ export default async function DashboardLayout({
     })),
   ].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
+  const initialTimers: ActiveTimer[] = [
+    ...(activeTicketEntry
+      ? [
+          {
+            type: "ticket" as const,
+            resourceId: activeTicketEntry.ticket.id,
+            title: activeTicketEntry.ticket.title,
+            startedAt: activeTicketEntry.startedAt.toISOString(),
+          },
+        ]
+      : []),
+    ...(activeTaskEntry
+      ? [
+          {
+            type: "task" as const,
+            resourceId: activeTaskEntry.task.id,
+            projectId: activeTaskEntry.task.projectId,
+            title: activeTaskEntry.task.title,
+            startedAt: activeTaskEntry.startedAt.toISOString(),
+          },
+        ]
+      : []),
+  ];
+
   return (
-    <DashboardShell
-      role={session.user.role}
-      user={session.user}
-      unreadCount={unreadCount}
-    >
-      <OverdueAlert items={overdueItems} userId={userId} />
-      {children}
-    </DashboardShell>
+    <TimerProvider initialTimers={initialTimers}>
+      <DashboardShell
+        role={session.user.role}
+        user={session.user}
+        unreadCount={unreadCount}
+      >
+        <OverdueAlert items={overdueItems} userId={userId} />
+        {children}
+      </DashboardShell>
+    </TimerProvider>
   );
 }

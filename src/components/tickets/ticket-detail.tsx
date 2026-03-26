@@ -217,6 +217,7 @@ export function TicketDetail({
           {(staff || (ticket.status === "CERRADO" && ticket.timeEntries.length > 0)) && (
             <TicketTimer
               ticketId={ticket.id}
+              title={ticket.title}
               entries={ticket.timeEntries}
               canControl={staff}
               isAdmin={isAdmin(role)}

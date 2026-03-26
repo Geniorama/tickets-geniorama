@@ -9,6 +9,7 @@ import {
   deleteTaskTimeEntry,
   resetTaskTimeEntries,
 } from "@/actions/task-time.actions";
+import { useTimerContext } from "@/providers/timer-provider";
 
 interface TimeEntryRow {
   id: string;
@@ -30,6 +31,7 @@ function formatDuration(ms: number): string {
 export function TaskTimer({
   taskId,
   projectId,
+  title,
   entries,
   canControl,
   isAdmin,
@@ -37,11 +39,13 @@ export function TaskTimer({
 }: {
   taskId: string;
   projectId: string;
+  title: string;
   entries: TimeEntryRow[];
   canControl: boolean;
   isAdmin: boolean;
   currentUserId: string;
 }) {
+  const { registerTimer, unregisterTimer } = useTimerContext();
   const [isPending, startTransition] = useTransition();
   const [now, setNow] = useState(() => Date.now());
   const [showManual, setShowManual] = useState(false);
@@ -51,6 +55,24 @@ export function TaskTimer({
   const [confirmReset, setConfirmReset] = useState(false);
 
   const activeEntry = entries.find((e) => e.stoppedAt === null) ?? null;
+  const userActiveEntry = entries.find(
+    (e) => e.stoppedAt === null && e.userId === currentUserId,
+  ) ?? null;
+
+  // Sincronizar con el context global (pastilla flotante)
+  useEffect(() => {
+    if (userActiveEntry) {
+      registerTimer({
+        type: "task",
+        resourceId: taskId,
+        projectId,
+        title,
+        startedAt: String(userActiveEntry.startedAt),
+      });
+    } else {
+      unregisterTimer("task", taskId);
+    }
+  }, [userActiveEntry?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!activeEntry) return;

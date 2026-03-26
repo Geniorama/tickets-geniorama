@@ -178,6 +178,14 @@ export async function updateTicketStatus(ticketId: string, status: string) {
     data: { status: status as never },
   });
 
+  // Detener timers activos al pasar a revisión o cerrar el ticket
+  if (["EN_REVISION", "CERRADO"].includes(status)) {
+    await prisma.timeEntry.updateMany({
+      where: { ticketId, stoppedAt: null },
+      data: { stoppedAt: new Date() },
+    });
+  }
+
   if (ticket) {
     const label = ticketStatusLabels[status] ?? status;
     const recipients = [ticket.clientId, ticket.createdById, ticket.assignedToId]

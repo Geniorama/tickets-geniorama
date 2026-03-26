@@ -442,6 +442,7 @@ export function TaskDetail({
             <TaskTimer
               taskId={task.id}
               projectId={task.project.id}
+              title={task.title}
               entries={task.timeEntries}
               canControl={staff}
               isAdmin={admin}
