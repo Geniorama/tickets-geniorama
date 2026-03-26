@@ -391,6 +391,18 @@ export async function updateTaskStatus(taskId: string, projectId: string, status
     data: { status: status as TaskStatus },
   });
 
+  // Arrancar timer automáticamente al pasar a EN_PROGRESO (si no hay uno activo)
+  if (status === "EN_PROGRESO" && oldTask?.status !== "EN_PROGRESO") {
+    const activeTimer = await prisma.taskTimeEntry.findFirst({
+      where: { taskId, stoppedAt: null },
+    });
+    if (!activeTimer) {
+      await prisma.taskTimeEntry.create({
+        data: { taskId, userId: session.user.id, startedAt: new Date() },
+      });
+    }
+  }
+
   // Detener timers activos al pasar a revisión o completar la tarea
   if (["EN_REVISION", "COMPLETADO"].includes(status)) {
     await prisma.taskTimeEntry.updateMany({
