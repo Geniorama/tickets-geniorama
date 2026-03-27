@@ -173,10 +173,10 @@ export function TicketForm({
           type="file"
           name="files"
           multiple
-          accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx"
+          accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx"
           className="w-full text-sm text-gray-600 bg-white file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-gray-300 file:text-sm file:text-gray-700 file:bg-gray-50 hover:file:bg-gray-100 cursor-pointer"
         />
-        <p className="text-xs text-gray-400 mt-1">Imágenes, PDF o documentos Word. Máx. 10 MB por archivo.</p>
+        <p className="text-xs text-gray-400 mt-1">Imágenes, video, PDF o documentos Word. Máx. 10 MB por archivo (100 MB para video).</p>
       </div>
 
       <div className="flex justify-end gap-3 pt-2">

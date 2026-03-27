@@ -8,32 +8,40 @@ import { validateFile, uploadFile, deleteFile } from "@/lib/s3";
 export async function addAttachment(ticketId: string, formData: FormData) {
   const session = await getRequiredSession();
 
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
+  const files = formData.getAll("files") as File[];
+  const validFiles = files.filter((f) => f instanceof File && f.size > 0);
+
+  if (validFiles.length === 0) {
     return { error: "No se seleccionó ningún archivo" };
   }
 
-  const validationError = validateFile(file);
-  if (validationError) return { error: validationError };
+  const errors: string[] = [];
 
-  try {
-    const { storagePath, fileUrl } = await uploadFile(file, ticketId);
-
-    await prisma.ticketAttachment.create({
-      data: {
-        ticketId,
-        uploadedById: session.user.id,
-        fileName: file.name,
-        fileUrl,
-        storagePath,
-      },
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Error desconocido";
-    return { error: message };
+  for (const file of validFiles) {
+    const validationError = validateFile(file);
+    if (validationError) {
+      errors.push(`${file.name}: ${validationError}`);
+      continue;
+    }
+    try {
+      const { storagePath, fileUrl } = await uploadFile(file, ticketId);
+      await prisma.ticketAttachment.create({
+        data: {
+          ticketId,
+          uploadedById: session.user.id,
+          fileName: file.name,
+          fileUrl,
+          storagePath,
+        },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error desconocido";
+      errors.push(`${file.name}: ${message}`);
+    }
   }
 
   revalidatePath(`/tickets/${ticketId}`);
+  if (errors.length > 0) return { error: errors.join(" | ") };
   return { success: true };
 }
 

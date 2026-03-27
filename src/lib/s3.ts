@@ -34,17 +34,32 @@ const ALLOWED_MIME_TYPES = [
   "image/png",
   "image/gif",
   "image/webp",
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-msvideo",
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 
-const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+const VIDEO_MIME_TYPES = new Set([
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-msvideo",
+]);
+
+const MAX_SIZE_BYTES       = 10  * 1024 * 1024; // 10 MB  (imágenes / docs)
+const MAX_VIDEO_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB (video)
 
 export function validateFile(file: File): string | null {
-  if (file.size > MAX_SIZE_BYTES) return "El archivo supera los 10 MB";
+  const isVideo = VIDEO_MIME_TYPES.has(file.type);
+  const limit   = isVideo ? MAX_VIDEO_SIZE_BYTES : MAX_SIZE_BYTES;
+  const label   = isVideo ? "100 MB" : "10 MB";
+  if (file.size > limit) return `El archivo supera los ${label}`;
   if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-    return "Tipo de archivo no permitido. Solo imágenes, PDF y documentos Word";
+    return "Tipo de archivo no permitido. Solo imágenes, video, PDF y documentos Word";
   }
   return null;
 }

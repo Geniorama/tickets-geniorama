@@ -391,7 +391,7 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx"
+              accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx"
               style={{ display: "none" }}
               onChange={handleFileChange}
             />
@@ -418,7 +418,7 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
               Seleccionar archivos
             </button>
             <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", marginTop: "0.375rem" }}>
-              Imágenes, PDF o Word · máx. 10 MB por archivo · puedes agregar varios uno a uno
+              Imágenes, video, PDF o Word · máx. 10 MB (100 MB para video) · puedes agregar varios uno a uno
             </p>
 
             {/* Lista de archivos seleccionados */}

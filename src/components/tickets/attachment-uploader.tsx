@@ -12,11 +12,13 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
     e.preventDefault();
     setError(null);
 
-    const file = inputRef.current?.files?.[0];
-    if (!file) return;
+    const files = inputRef.current?.files;
+    if (!files || files.length === 0) return;
 
     const formData = new FormData();
-    formData.set("file", file);
+    for (const file of Array.from(files)) {
+      formData.append("files", file);
+    }
 
     startTransition(async () => {
       const result = await addAttachment(ticketId, formData);
@@ -33,7 +35,8 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
       <input
         ref={inputRef}
         type="file"
-        accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx"
+        multiple
+        accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx"
         className="flex-1 text-sm text-gray-600 bg-white file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-gray-300 file:text-sm file:text-gray-700 file:bg-gray-50 hover:file:bg-gray-100 cursor-pointer"
       />
       <button
@@ -43,7 +46,7 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
       >
         {isPending ? "Subiendo..." : "Subir"}
       </button>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
     </form>
   );
 }
