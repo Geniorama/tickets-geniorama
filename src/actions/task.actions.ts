@@ -411,6 +411,26 @@ export async function updateTaskStatus(taskId: string, projectId: string, status
     });
   }
 
+  // Webhook: notificar cambio a EN_PROGRESO
+  if (status === "EN_PROGRESO" && oldTask?.status !== "EN_PROGRESO") {
+    await sendGChatNotification(
+      "task_status",
+      "Tarea en progreso",
+      `"${oldTask?.title}" pasó a *En progreso*`,
+      `/proyectos/${projectId}/tareas/${taskId}`
+    );
+  }
+
+  // Webhook: notificar cambio a EN_REVISION
+  if (status === "EN_REVISION" && oldTask?.status !== "EN_REVISION") {
+    await sendGChatNotification(
+      "task_status",
+      "Tarea en revisión",
+      `"${oldTask?.title}" pasó a *En revisión*`,
+      `/proyectos/${projectId}/tareas/${taskId}`
+    );
+  }
+
   // Notificar tarea completada si es un cambio nuevo a COMPLETADO
   if (status === "COMPLETADO" && oldTask?.status !== "COMPLETADO") {
     const recipients = [oldTask?.createdById, oldTask?.assignedToId]
