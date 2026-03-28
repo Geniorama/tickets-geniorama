@@ -18,8 +18,7 @@ import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import type { ReactionEntry } from "@/components/ui/comment-reactions";
 import { ReportGenerator } from "@/components/ui/report-generator";
 import { generateTaskReport } from "@/actions/report.actions";
-import { ChecklistPanel } from "@/components/ui/checklist-panel";
-import { addTaskChecklistItem, toggleTaskChecklistItem, deleteTaskChecklistItem } from "@/actions/checklist.actions";
+import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
 
 type TaskWithDetails = Task & {
   project: { id: string; name: string };
@@ -375,11 +374,10 @@ export function TaskDetail({
           </div>
 
           {/* Checklist */}
-          <ChecklistPanel
-            items={task.checklistItems}
-            addFn={(title) => addTaskChecklistItem(task.id, task.project.id, title)}
-            toggleFn={(itemId) => toggleTaskChecklistItem(itemId, task.id, task.project.id)}
-            deleteFn={(itemId) => deleteTaskChecklistItem(itemId, task.id, task.project.id)}
+          <TaskChecklistPanel
+            taskId={task.id}
+            projectId={task.project.id}
+            initialItems={task.checklistItems}
             canDelete={admin}
           />
 

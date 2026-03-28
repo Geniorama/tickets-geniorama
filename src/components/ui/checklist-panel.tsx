@@ -2,62 +2,48 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { Check, Plus, X } from "lucide-react";
+import {
+  addTicketChecklistItem,
+  toggleTicketChecklistItem,
+  deleteTicketChecklistItem,
+} from "@/actions/checklist.actions";
+import {
+  addTaskChecklistItem,
+  toggleTaskChecklistItem,
+  deleteTaskChecklistItem,
+} from "@/actions/checklist.actions";
 
 type Item = { id: string; title: string; isChecked: boolean };
 
-interface ChecklistPanelProps {
-  items: Item[];
-  addFn: (title: string) => Promise<{ error?: string } | void>;
-  toggleFn: (itemId: string) => Promise<{ error?: string } | void>;
-  deleteFn: (itemId: string) => Promise<{ error?: string } | void>;
-  canDelete: boolean;
-}
+// ─── Shared UI ────────────────────────────────────────────────────────────────
 
-export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: ChecklistPanelProps) {
-  const [localItems, setLocalItems] = useState<Item[]>(items);
+function ChecklistUI({
+  items,
+  canDelete,
+  onToggle,
+  onDelete,
+  onAdd,
+}: {
+  items: Item[];
+  canDelete: boolean;
+  onToggle: (item: Item) => void;
+  onDelete: (id: string) => void;
+  onAdd: (title: string) => void;
+}) {
   const [newTitle, setNewTitle] = useState("");
   const [addOpen, setAddOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
 
-  // Sync when server passes updated items (after revalidatePath)
-  useEffect(() => {
-    setLocalItems(items);
-  }, [items]);
-
-  const total   = localItems.length;
-  const checked = localItems.filter((i) => i.isChecked).length;
+  const total   = items.length;
+  const checked = items.filter((i) => i.isChecked).length;
   const pct     = total > 0 ? Math.round((checked / total) * 100) : 0;
   const done    = total > 0 && checked === total;
 
-  function handleToggle(item: Item) {
-    // Optimistic update
-    setLocalItems((prev) =>
-      prev.map((i) => i.id === item.id ? { ...i, isChecked: !i.isChecked } : i)
-    );
-    startTransition(async () => {
-      await toggleFn(item.id);
-    });
-  }
-
-  function handleDelete(id: string) {
-    // Optimistic update
-    setLocalItems((prev) => prev.filter((i) => i.id !== id));
-    startTransition(async () => {
-      await deleteFn(id);
-    });
-  }
-
   function handleAdd() {
-    const title = newTitle.trim();
-    if (!title) return;
+    const t = newTitle.trim();
+    if (!t) return;
     setNewTitle("");
     setAddOpen(false);
-    // Optimistic update
-    const tempItem: Item = { id: `temp-${Date.now()}`, title, isChecked: false };
-    setLocalItems((prev) => [...prev, tempItem]);
-    startTransition(async () => {
-      await addFn(title);
-    });
+    onAdd(t);
   }
 
   return (
@@ -70,25 +56,12 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
       }}
     >
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: total > 0 ? "0.75rem" : "1rem",
-        }}
-      >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: total > 0 ? "0.75rem" : "1rem" }}>
         <h2 style={{ fontSize: "0.9375rem", fontWeight: 600, color: "var(--app-body-text)", margin: 0 }}>
           Checklist
         </h2>
         {total > 0 && (
-          <span
-            style={{
-              fontSize: "0.8125rem",
-              fontWeight: 500,
-              color: done ? "#16a34a" : "var(--app-text-muted)",
-            }}
-          >
+          <span style={{ fontSize: "0.8125rem", fontWeight: 500, color: done ? "#16a34a" : "var(--app-text-muted)" }}>
             {checked}/{total}
           </span>
         )}
@@ -96,15 +69,7 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
 
       {/* Progress bar */}
       {total > 0 && (
-        <div
-          style={{
-            height: "0.375rem",
-            backgroundColor: "var(--app-border)",
-            borderRadius: "9999px",
-            marginBottom: "1rem",
-            overflow: "hidden",
-          }}
-        >
+        <div style={{ height: "0.375rem", backgroundColor: "var(--app-border)", borderRadius: "9999px", marginBottom: "1rem", overflow: "hidden" }}>
           <div
             style={{
               height: "100%",
@@ -118,23 +83,13 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
       )}
 
       {/* Items */}
-      {localItems.length > 0 && (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "0.5rem",
-            marginBottom: "1rem",
-            opacity: isPending ? 0.7 : 1,
-            transition: "opacity 0.15s",
-          }}
-        >
-          {localItems.map((item) => (
+      {items.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1rem" }}>
+          {items.map((item) => (
             <div key={item.id} style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
-              {/* Checkbox */}
               <button
                 type="button"
-                onClick={() => handleToggle(item)}
+                onClick={() => onToggle(item)}
                 style={{
                   flexShrink: 0,
                   width: "1.125rem",
@@ -150,12 +105,8 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
                   padding: 0,
                 }}
               >
-                {item.isChecked && (
-                  <Check style={{ width: "0.75rem", height: "0.75rem", color: "#fff", strokeWidth: 3 }} />
-                )}
+                {item.isChecked && <Check style={{ width: "0.75rem", height: "0.75rem", color: "#fff", strokeWidth: 3 }} />}
               </button>
-
-              {/* Label */}
               <span
                 style={{
                   flex: 1,
@@ -168,12 +119,10 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
               >
                 {item.title}
               </span>
-
-              {/* Delete */}
               {canDelete && (
                 <button
                   type="button"
-                  onClick={() => handleDelete(item.id)}
+                  onClick={() => onDelete(item.id)}
                   title="Eliminar ítem"
                   style={{
                     flexShrink: 0,
@@ -209,10 +158,7 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
             onChange={(e) => setNewTitle(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") handleAdd();
-              if (e.key === "Escape") {
-                setAddOpen(false);
-                setNewTitle("");
-              }
+              if (e.key === "Escape") { setAddOpen(false); setNewTitle(""); }
             }}
             placeholder="Nuevo ítem…"
             maxLength={200}
@@ -247,18 +193,8 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
           </button>
           <button
             type="button"
-            onClick={() => {
-              setAddOpen(false);
-              setNewTitle("");
-            }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              color: "var(--app-text-muted)",
-              cursor: "pointer",
-              background: "none",
-              border: "none",
-            }}
+            onClick={() => { setAddOpen(false); setNewTitle(""); }}
+            style={{ display: "flex", alignItems: "center", color: "var(--app-text-muted)", cursor: "pointer", background: "none", border: "none" }}
           >
             <X style={{ width: "1rem", height: "1rem" }} />
           </button>
@@ -285,5 +221,105 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
         </button>
       )}
     </div>
+  );
+}
+
+// ─── Ticket Checklist ─────────────────────────────────────────────────────────
+
+export function TicketChecklistPanel({
+  ticketId,
+  initialItems,
+  canDelete,
+}: {
+  ticketId: string;
+  initialItems: Item[];
+  canDelete: boolean;
+}) {
+  const [items, setItems] = useState<Item[]>(initialItems);
+  const [, startTransition] = useTransition();
+
+  useEffect(() => { setItems(initialItems); }, [initialItems]);
+
+  function handleToggle(item: Item) {
+    setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, isChecked: !i.isChecked } : i));
+    startTransition(async () => {
+      await toggleTicketChecklistItem(item.id, ticketId);
+    });
+  }
+
+  function handleDelete(id: string) {
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    startTransition(async () => {
+      await deleteTicketChecklistItem(id, ticketId);
+    });
+  }
+
+  function handleAdd(title: string) {
+    const tempItem: Item = { id: `temp-${Date.now()}`, title, isChecked: false };
+    setItems((prev) => [...prev, tempItem]);
+    startTransition(async () => {
+      await addTicketChecklistItem(ticketId, title);
+    });
+  }
+
+  return (
+    <ChecklistUI
+      items={items}
+      canDelete={canDelete}
+      onToggle={handleToggle}
+      onDelete={handleDelete}
+      onAdd={handleAdd}
+    />
+  );
+}
+
+// ─── Task Checklist ───────────────────────────────────────────────────────────
+
+export function TaskChecklistPanel({
+  taskId,
+  projectId,
+  initialItems,
+  canDelete,
+}: {
+  taskId: string;
+  projectId: string;
+  initialItems: Item[];
+  canDelete: boolean;
+}) {
+  const [items, setItems] = useState<Item[]>(initialItems);
+  const [, startTransition] = useTransition();
+
+  useEffect(() => { setItems(initialItems); }, [initialItems]);
+
+  function handleToggle(item: Item) {
+    setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, isChecked: !i.isChecked } : i));
+    startTransition(async () => {
+      await toggleTaskChecklistItem(item.id, taskId, projectId);
+    });
+  }
+
+  function handleDelete(id: string) {
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    startTransition(async () => {
+      await deleteTaskChecklistItem(id, taskId, projectId);
+    });
+  }
+
+  function handleAdd(title: string) {
+    const tempItem: Item = { id: `temp-${Date.now()}`, title, isChecked: false };
+    setItems((prev) => [...prev, tempItem]);
+    startTransition(async () => {
+      await addTaskChecklistItem(taskId, projectId, title);
+    });
+  }
+
+  return (
+    <ChecklistUI
+      items={items}
+      canDelete={canDelete}
+      onToggle={handleToggle}
+      onDelete={handleDelete}
+      onAdd={handleAdd}
+    />
   );
 }

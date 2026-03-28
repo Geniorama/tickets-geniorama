@@ -25,8 +25,7 @@ import { toggleTicketCommentReaction } from "@/actions/reaction.actions";
 import type { ReactionType } from "@/generated/prisma";
 import { ReportGenerator } from "@/components/ui/report-generator";
 import { generateTicketReport } from "@/actions/report.actions";
-import { ChecklistPanel } from "@/components/ui/checklist-panel";
-import { addTicketChecklistItem, toggleTicketChecklistItem, deleteTicketChecklistItem } from "@/actions/checklist.actions";
+import { TicketChecklistPanel } from "@/components/ui/checklist-panel";
 
 type TicketWithDetails = Ticket & {
   createdBy: Pick<User, "id" | "name" | "email">;
@@ -228,11 +227,9 @@ export function TicketDetail({
             />
           )}
 
-          <ChecklistPanel
-            items={ticket.checklistItems}
-            addFn={(title) => addTicketChecklistItem(ticket.id, title)}
-            toggleFn={(itemId) => toggleTicketChecklistItem(itemId, ticket.id)}
-            deleteFn={(itemId) => deleteTicketChecklistItem(itemId, ticket.id)}
+          <TicketChecklistPanel
+            ticketId={ticket.id}
+            initialItems={ticket.checklistItems}
             canDelete={isAdmin(role)}
           />
 
