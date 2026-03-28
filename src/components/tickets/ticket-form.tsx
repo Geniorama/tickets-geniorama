@@ -1,9 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { Plus, X } from "lucide-react";
+import { useRef, useState, useTransition } from "react";
+import { FileText, Paperclip, Plus, X } from "lucide-react";
 import { createTicket } from "@/actions/ticket.actions";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 interface Collaborator { id: string; name: string; role: string; }
 interface Client { id: string; name: string; companies: { id: string; name: string }[]; }
@@ -25,6 +30,14 @@ export function TicketForm({
   const [selectedClientId, setSelectedClientId] = useState("");
   const [checklistItems, setChecklistItems] = useState<string[]>([]);
   const [checklistInput, setChecklistInput] = useState("");
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const newFiles = Array.from(e.target.files ?? []);
+    if (newFiles.length > 0) setSelectedFiles((prev) => [...prev, ...newFiles]);
+    e.target.value = "";
+  }
 
   const inputClass =
     "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500";
@@ -52,6 +65,9 @@ export function TicketForm({
     if (checklistItems.length > 0) {
       formData.set("checklist", JSON.stringify(checklistItems));
     }
+    for (const file of selectedFiles) {
+      formData.append("files", file);
+    }
     startTransition(async () => { await createTicket(formData); });
   }
 
@@ -73,6 +89,153 @@ export function TicketForm({
           name="description"
           placeholder="Describe el problema en detalle..."
         />
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+        <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", marginBottom: "0.25rem" }}>
+          Archivos adjuntos <span style={{ fontWeight: 400, color: "var(--app-text-muted)" }}>(opcional)</span>
+        </label>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx"
+          style={{ display: "none" }}
+          onChange={handleFileChange}
+        />
+
+        <div>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.375rem",
+              fontSize: "0.8125rem",
+              fontWeight: 500,
+              color: "var(--app-body-text)",
+              backgroundColor: "var(--app-bg)",
+              border: "1px dashed var(--app-border)",
+              borderRadius: "0.5rem",
+              padding: "0.5rem 0.875rem",
+              cursor: "pointer",
+            }}
+          >
+            <Paperclip style={{ width: "0.875rem", height: "0.875rem" }} />
+            Seleccionar archivos
+          </button>
+          <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", marginTop: "0.375rem" }}>
+            Imágenes, video, PDF o Word · máx. 10 MB (100 MB para video) · puedes agregar varios uno a uno
+          </p>
+        </div>
+
+        {selectedFiles.length > 0 && (
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+            {selectedFiles.map((file, idx) => (
+              <li
+                key={idx}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  fontSize: "0.8125rem",
+                  backgroundColor: "var(--app-bg)",
+                  border: "1px solid var(--app-border)",
+                  borderRadius: "0.375rem",
+                  padding: "0.375rem 0.625rem",
+                }}
+              >
+                <FileText style={{ width: "0.875rem", height: "0.875rem", color: "var(--app-text-muted)", flexShrink: 0 }} />
+                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: "var(--app-body-text)" }}>
+                  {file.name}
+                </span>
+                <span style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", flexShrink: 0 }}>
+                  {formatFileSize(file.size)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedFiles((prev) => prev.filter((_, i) => i !== idx))}
+                  style={{ display: "flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", padding: "0.125rem", color: "var(--app-text-muted)", flexShrink: 0 }}
+                  aria-label="Quitar archivo"
+                >
+                  <X style={{ width: "0.875rem", height: "0.875rem" }} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div>
+        <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", marginBottom: "0.25rem" }}>
+          Checklist <span style={{ fontWeight: 400, color: "var(--app-text-muted)" }}>(opcional)</span>
+        </label>
+
+        {checklistItems.length > 0 && (
+          <ul style={{ listStyle: "none", margin: "0 0 0.5rem", padding: 0, display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+            {checklistItems.map((item, idx) => (
+              <li
+                key={idx}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  fontSize: "0.8125rem",
+                  backgroundColor: "var(--app-bg)",
+                  border: "1px solid var(--app-border)",
+                  borderRadius: "0.375rem",
+                  padding: "0.375rem 0.625rem",
+                }}
+              >
+                <span style={{ flex: 1, color: "var(--app-body-text)" }}>{item}</span>
+                <button
+                  type="button"
+                  onClick={() => setChecklistItems((prev) => prev.filter((_, i) => i !== idx))}
+                  style={{ display: "flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", color: "var(--app-text-muted)" }}
+                >
+                  <X style={{ width: "0.875rem", height: "0.875rem" }} />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <input
+            type="text"
+            value={checklistInput}
+            onChange={(e) => setChecklistInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addChecklistItem(); } }}
+            placeholder="Agregar ítem al checklist…"
+            style={{ flex: 1, border: "1px solid var(--app-border)", borderRadius: "0.5rem", padding: "0.5rem 0.75rem", fontSize: "0.8125rem", color: "var(--app-body-text)", backgroundColor: "var(--app-bg)", outline: "none", boxSizing: "border-box" }}
+          />
+          <button
+            type="button"
+            onClick={addChecklistItem}
+            disabled={!checklistInput.trim()}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.25rem",
+              fontSize: "0.8125rem",
+              fontWeight: 500,
+              color: "#fd1384",
+              backgroundColor: "transparent",
+              border: "1px solid rgba(253,19,132,0.35)",
+              borderRadius: "0.5rem",
+              padding: "0.5rem 0.75rem",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+              opacity: checklistInput.trim() ? 1 : 0.4,
+            }}
+          >
+            <Plus style={{ width: "0.875rem", height: "0.875rem" }} />
+            Agregar
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -177,65 +340,6 @@ export function TicketForm({
           )}
         </div>
       )}
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Archivos adjuntos <span className="text-gray-400 font-normal">(opcional)</span>
-        </label>
-        <input
-          type="file"
-          name="files"
-          multiple
-          accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx"
-          className="w-full text-sm text-gray-600 bg-white file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-gray-300 file:text-sm file:text-gray-700 file:bg-gray-50 hover:file:bg-gray-100 cursor-pointer"
-        />
-        <p className="text-xs text-gray-400 mt-1">Imágenes, video, PDF o documentos Word. Máx. 10 MB por archivo (100 MB para video).</p>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Checklist <span className="text-gray-400 font-normal">(opcional)</span>
-        </label>
-
-        {/* Items ya agregados */}
-        {checklistItems.length > 0 && (
-          <ul className="mb-2 space-y-1">
-            {checklistItems.map((item, idx) => (
-              <li key={idx} className="flex items-center gap-2 text-sm bg-gray-50 border border-gray-200 rounded px-2.5 py-1.5">
-                <span className="flex-1 text-gray-800">{item}</span>
-                <button
-                  type="button"
-                  onClick={() => setChecklistItems((prev) => prev.filter((_, i) => i !== idx))}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {/* Input para nuevo ítem */}
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={checklistInput}
-            onChange={(e) => setChecklistInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addChecklistItem(); } }}
-            placeholder="Agregar ítem al checklist…"
-            className={inputClass}
-          />
-          <button
-            type="button"
-            onClick={addChecklistItem}
-            disabled={!checklistInput.trim()}
-            className="shrink-0 inline-flex items-center gap-1 border border-pink-300 text-pink-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-pink-50 disabled:opacity-40"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Agregar
-          </button>
-        </div>
-      </div>
 
       <div className="flex justify-end gap-3 pt-2">
         <button

@@ -192,136 +192,6 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
         />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem" }}>
-        <div>
-          <label style={labelStyle}>Estado</label>
-          <select name="status" defaultValue={task?.status ?? "PENDIENTE"} style={inputStyle}>
-            <option value="PENDIENTE">Pendiente</option>
-            <option value="EN_PROGRESO">En progreso</option>
-            <option value="EN_REVISION">En revisión</option>
-            <option value="COMPLETADO">Completado</option>
-          </select>
-        </div>
-        <div>
-          <label style={labelStyle}>Prioridad</label>
-          <select name="priority" defaultValue={task?.priority ?? "MEDIA"} style={inputStyle}>
-            <option value="BAJA">Baja</option>
-            <option value="MEDIA">Media</option>
-            <option value="ALTA">Alta</option>
-            <option value="CRITICA">Crítica</option>
-          </select>
-        </div>
-        <div>
-          <label style={labelStyle}>Categoría</label>
-          <select name="category" defaultValue={task?.category ?? ""} style={inputStyle}>
-            <option value="">Sin categoría</option>
-            <option value="Frontend">Frontend</option>
-            <option value="Backend">Backend</option>
-            <option value="Diseño">Diseño</option>
-            <option value="Base de datos">Base de datos</option>
-            <option value="DevOps">DevOps</option>
-            <option value="QA">QA</option>
-            <option value="Documentación">Documentación</option>
-            <option value="Otro">Otro</option>
-          </select>
-        </div>
-        <div>
-          <label style={labelStyle}>Asignado a</label>
-          <select name="assignedToId" defaultValue={task?.assignedToId ?? ""} style={inputStyle}>
-            <option value="">Sin asignar</option>
-            {staffUsers.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "1rem", alignItems: "end" }}>
-        {/* Inicio */}
-        <div
-          style={{
-            border: "1px solid var(--app-border)",
-            borderRadius: "0.5rem",
-            padding: "0.75rem",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "0.75rem",
-          }}
-        >
-          <p style={{ gridColumn: "1 / -1", margin: 0, fontSize: "0.75rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Inicio
-          </p>
-          <div>
-            <label style={labelStyle}>Fecha</label>
-            <input
-              name="startDate"
-              type="date"
-              defaultValue={toInputDate(task?.startDate)}
-              style={inputStyle}
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Hora</label>
-            <input
-              name="startTime"
-              type="time"
-              defaultValue={task?.startTime ?? ""}
-              style={inputStyle}
-            />
-          </div>
-        </div>
-
-        {/* Fin */}
-        <div
-          style={{
-            border: "1px solid var(--app-border)",
-            borderRadius: "0.5rem",
-            padding: "0.75rem",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "0.75rem",
-          }}
-        >
-          <p style={{ gridColumn: "1 / -1", margin: 0, fontSize: "0.75rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Fin
-          </p>
-          <div>
-            <label style={labelStyle}>Fecha límite</label>
-            <input
-              name="dueDate"
-              type="date"
-              defaultValue={toInputDate(task?.dueDate)}
-              style={inputStyle}
-            />
-          </div>
-          <div>
-            <label style={labelStyle}>Hora</label>
-            <input
-              name="endTime"
-              type="time"
-              defaultValue={task?.endTime ?? ""}
-              style={inputStyle}
-            />
-          </div>
-        </div>
-
-        {/* Horas estimadas */}
-        <div style={{ minWidth: "9rem" }}>
-          <label style={labelStyle}>Horas estimadas</label>
-          <input
-            name="estimatedHours"
-            type="number"
-            min="0"
-            step="0.5"
-            defaultValue={task?.estimatedHours ?? ""}
-            placeholder="0"
-            style={inputStyle}
-          />
-        </div>
-      </div>
-
       {/* ── Adjuntos ── */}
       <div
         style={{
@@ -657,6 +527,136 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
               </ul>
             )}
           </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem" }}>
+        <div>
+          <label style={labelStyle}>Estado</label>
+          <select name="status" defaultValue={task?.status ?? "PENDIENTE"} style={inputStyle}>
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="EN_PROGRESO">En progreso</option>
+            <option value="EN_REVISION">En revisión</option>
+            <option value="COMPLETADO">Completado</option>
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Prioridad</label>
+          <select name="priority" defaultValue={task?.priority ?? "MEDIA"} style={inputStyle}>
+            <option value="BAJA">Baja</option>
+            <option value="MEDIA">Media</option>
+            <option value="ALTA">Alta</option>
+            <option value="CRITICA">Crítica</option>
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Categoría</label>
+          <select name="category" defaultValue={task?.category ?? ""} style={inputStyle}>
+            <option value="">Sin categoría</option>
+            <option value="Frontend">Frontend</option>
+            <option value="Backend">Backend</option>
+            <option value="Diseño">Diseño</option>
+            <option value="Base de datos">Base de datos</option>
+            <option value="DevOps">DevOps</option>
+            <option value="QA">QA</option>
+            <option value="Documentación">Documentación</option>
+            <option value="Otro">Otro</option>
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Asignado a</label>
+          <select name="assignedToId" defaultValue={task?.assignedToId ?? ""} style={inputStyle}>
+            <option value="">Sin asignar</option>
+            {staffUsers.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "1rem", alignItems: "end" }}>
+        {/* Inicio */}
+        <div
+          style={{
+            border: "1px solid var(--app-border)",
+            borderRadius: "0.5rem",
+            padding: "0.75rem",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "0.75rem",
+          }}
+        >
+          <p style={{ gridColumn: "1 / -1", margin: 0, fontSize: "0.75rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Inicio
+          </p>
+          <div>
+            <label style={labelStyle}>Fecha</label>
+            <input
+              name="startDate"
+              type="date"
+              defaultValue={toInputDate(task?.startDate)}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Hora</label>
+            <input
+              name="startTime"
+              type="time"
+              defaultValue={task?.startTime ?? ""}
+              style={inputStyle}
+            />
+          </div>
+        </div>
+
+        {/* Fin */}
+        <div
+          style={{
+            border: "1px solid var(--app-border)",
+            borderRadius: "0.5rem",
+            padding: "0.75rem",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "0.75rem",
+          }}
+        >
+          <p style={{ gridColumn: "1 / -1", margin: 0, fontSize: "0.75rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            Fin
+          </p>
+          <div>
+            <label style={labelStyle}>Fecha límite</label>
+            <input
+              name="dueDate"
+              type="date"
+              defaultValue={toInputDate(task?.dueDate)}
+              style={inputStyle}
+            />
+          </div>
+          <div>
+            <label style={labelStyle}>Hora</label>
+            <input
+              name="endTime"
+              type="time"
+              defaultValue={task?.endTime ?? ""}
+              style={inputStyle}
+            />
+          </div>
+        </div>
+
+        {/* Horas estimadas */}
+        <div style={{ minWidth: "9rem" }}>
+          <label style={labelStyle}>Horas estimadas</label>
+          <input
+            name="estimatedHours"
+            type="number"
+            min="0"
+            step="0.5"
+            defaultValue={task?.estimatedHours ?? ""}
+            placeholder="0"
+            style={inputStyle}
+          />
+        </div>
       </div>
 
       {error && (
