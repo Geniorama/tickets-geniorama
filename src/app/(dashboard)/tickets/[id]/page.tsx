@@ -108,6 +108,7 @@ export default async function TicketPage({
         collaborators={collaborators}
         checklistSlot={
           <TicketChecklistPanel
+            key="checklist"
             ticketId={ticketId}
             initialItems={ticket.checklistItems}
             canDelete={admin}

@@ -88,6 +88,7 @@ export default async function TaskPage({
         projects={moveableProjects}
         checklistSlot={
           <TaskChecklistPanel
+            key="checklist"
             taskId={taskId}
             projectId={projectId}
             initialItems={task.checklistItems}
