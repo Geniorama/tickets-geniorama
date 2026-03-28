@@ -1,25 +1,9 @@
 "use client";
 
-import { useState, useOptimistic, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { Check, Plus, X } from "lucide-react";
 
 type Item = { id: string; title: string; isChecked: boolean };
-
-type OptimisticAction =
-  | { type: "toggle"; id: string }
-  | { type: "delete"; id: string }
-  | { type: "add"; item: Item };
-
-function reducer(state: Item[], action: OptimisticAction): Item[] {
-  switch (action.type) {
-    case "toggle":
-      return state.map((i) => i.id === action.id ? { ...i, isChecked: !i.isChecked } : i);
-    case "delete":
-      return state.filter((i) => i.id !== action.id);
-    case "add":
-      return [...state, action.item];
-  }
-}
 
 interface ChecklistPanelProps {
   items: Item[];
@@ -30,26 +14,35 @@ interface ChecklistPanelProps {
 }
 
 export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: ChecklistPanelProps) {
-  const [optimistic, dispatch] = useOptimistic(items, reducer);
+  const [localItems, setLocalItems] = useState<Item[]>(items);
   const [newTitle, setNewTitle] = useState("");
   const [addOpen, setAddOpen] = useState(false);
-  const [, startTransition] = useTransition();
+  const [isPending, startTransition] = useTransition();
 
-  const total   = optimistic.length;
-  const checked = optimistic.filter((i) => i.isChecked).length;
+  // Sync when server passes updated items (after revalidatePath)
+  useEffect(() => {
+    setLocalItems(items);
+  }, [items]);
+
+  const total   = localItems.length;
+  const checked = localItems.filter((i) => i.isChecked).length;
   const pct     = total > 0 ? Math.round((checked / total) * 100) : 0;
   const done    = total > 0 && checked === total;
 
   function handleToggle(item: Item) {
+    // Optimistic update
+    setLocalItems((prev) =>
+      prev.map((i) => i.id === item.id ? { ...i, isChecked: !i.isChecked } : i)
+    );
     startTransition(async () => {
-      dispatch({ type: "toggle", id: item.id });
       await toggleFn(item.id);
     });
   }
 
   function handleDelete(id: string) {
+    // Optimistic update
+    setLocalItems((prev) => prev.filter((i) => i.id !== id));
     startTransition(async () => {
-      dispatch({ type: "delete", id });
       await deleteFn(id);
     });
   }
@@ -59,8 +52,10 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
     if (!title) return;
     setNewTitle("");
     setAddOpen(false);
+    // Optimistic update
+    const tempItem: Item = { id: `temp-${Date.now()}`, title, isChecked: false };
+    setLocalItems((prev) => [...prev, tempItem]);
     startTransition(async () => {
-      dispatch({ type: "add", item: { id: `temp-${Date.now()}`, title, isChecked: false } });
       await addFn(title);
     });
   }
@@ -87,7 +82,13 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
           Checklist
         </h2>
         {total > 0 && (
-          <span style={{ fontSize: "0.8125rem", fontWeight: 500, color: done ? "#16a34a" : "var(--app-text-muted)" }}>
+          <span
+            style={{
+              fontSize: "0.8125rem",
+              fontWeight: 500,
+              color: done ? "#16a34a" : "var(--app-text-muted)",
+            }}
+          >
             {checked}/{total}
           </span>
         )}
@@ -117,19 +118,29 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
       )}
 
       {/* Items */}
-      {optimistic.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1rem" }}>
-          {optimistic.map((item) => (
+      {localItems.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.5rem",
+            marginBottom: "1rem",
+            opacity: isPending ? 0.7 : 1,
+            transition: "opacity 0.15s",
+          }}
+        >
+          {localItems.map((item) => (
             <div key={item.id} style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
               {/* Checkbox */}
               <button
+                type="button"
                 onClick={() => handleToggle(item)}
                 style={{
                   flexShrink: 0,
                   width: "1.125rem",
                   height: "1.125rem",
                   borderRadius: "0.25rem",
-                  border: item.isChecked ? "2px solid #22c55e" : "2px solid var(--app-border)",
+                  border: item.isChecked ? "2px solid #22c55e" : "2px solid rgba(128,128,128,0.4)",
                   backgroundColor: item.isChecked ? "#22c55e" : "transparent",
                   display: "flex",
                   alignItems: "center",
@@ -151,7 +162,7 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
                   fontSize: "0.875rem",
                   color: item.isChecked ? "var(--app-text-muted)" : "var(--app-body-text)",
                   textDecoration: item.isChecked ? "line-through" : "none",
-                  transition: "color 0.15s, text-decoration 0.15s",
+                  transition: "color 0.15s",
                   wordBreak: "break-word",
                 }}
               >
@@ -161,6 +172,7 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
               {/* Delete */}
               {canDelete && (
                 <button
+                  type="button"
                   onClick={() => handleDelete(item.id)}
                   title="Eliminar ítem"
                   style={{
@@ -171,11 +183,13 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
                     cursor: "pointer",
                     padding: "0.125rem",
                     borderRadius: "0.25rem",
-                    opacity: 0.6,
+                    background: "none",
+                    border: "none",
+                    opacity: 0.5,
                     transition: "opacity 0.15s",
                   }}
                   onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.6")}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.5")}
                 >
                   <X style={{ width: "0.875rem", height: "0.875rem" }} />
                 </button>
@@ -195,7 +209,10 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
             onChange={(e) => setNewTitle(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") handleAdd();
-              if (e.key === "Escape") { setAddOpen(false); setNewTitle(""); }
+              if (e.key === "Escape") {
+                setAddOpen(false);
+                setNewTitle("");
+              }
             }}
             placeholder="Nuevo ítem…"
             maxLength={200}
@@ -211,6 +228,7 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
             }}
           />
           <button
+            type="button"
             onClick={handleAdd}
             disabled={!newTitle.trim()}
             style={{
@@ -228,14 +246,26 @@ export function ChecklistPanel({ items, addFn, toggleFn, deleteFn, canDelete }: 
             Agregar
           </button>
           <button
-            onClick={() => { setAddOpen(false); setNewTitle(""); }}
-            style={{ display: "flex", alignItems: "center", color: "var(--app-text-muted)", cursor: "pointer" }}
+            type="button"
+            onClick={() => {
+              setAddOpen(false);
+              setNewTitle("");
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              color: "var(--app-text-muted)",
+              cursor: "pointer",
+              background: "none",
+              border: "none",
+            }}
           >
             <X style={{ width: "1rem", height: "1rem" }} />
           </button>
         </div>
       ) : (
         <button
+          type="button"
           onClick={() => setAddOpen(true)}
           style={{
             display: "flex",
