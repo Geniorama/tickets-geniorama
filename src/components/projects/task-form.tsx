@@ -67,6 +67,10 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
   const savedFormData = useRef<FormData | null>(null);
   const isEdit = !!task;
 
+  // Checklist state
+  const [checklistItems, setChecklistItems] = useState<string[]>([]);
+  const [checklistInput, setChecklistInput] = useState("");
+
   // Attachment state
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [links, setLinks] = useState<LinkEntry[]>([]);
@@ -126,6 +130,9 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
     formData.delete("files");
     for (const file of selectedFiles) formData.append("files", file);
     formData.set("links", JSON.stringify(links));
+    if (checklistItems.length > 0) {
+      formData.set("checklist", JSON.stringify(checklistItems));
+    }
     if (isEdit) {
       formData.set("deletedAttachmentIds", JSON.stringify(deletedAttachmentIds));
     }
@@ -467,6 +474,84 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
               </ul>
             )}
           </div>
+
+          {/* ── Divider ── */}
+          <div style={{ borderTop: "1px solid var(--app-border)" }} />
+
+          {/* ── Checklist ── */}
+          {!isEdit && (
+            <div>
+              <p style={{ fontSize: "0.8125rem", fontWeight: 500, color: "var(--app-body-text)", marginBottom: "0.5rem" }}>
+                Checklist <span style={{ fontWeight: 400, color: "var(--app-text-muted)" }}>(opcional)</span>
+              </p>
+
+              {checklistItems.length > 0 && (
+                <ul style={{ listStyle: "none", margin: "0 0 0.5rem", padding: 0, display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+                  {checklistItems.map((item, idx) => (
+                    <li
+                      key={idx}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        fontSize: "0.8125rem",
+                        backgroundColor: "var(--app-bg)",
+                        border: "1px solid var(--app-border)",
+                        borderRadius: "0.375rem",
+                        padding: "0.375rem 0.625rem",
+                      }}
+                    >
+                      <span style={{ flex: 1, color: "var(--app-body-text)" }}>{item}</span>
+                      <button
+                        type="button"
+                        onClick={() => setChecklistItems((prev) => prev.filter((_, i) => i !== idx))}
+                        style={{ display: "flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", color: "var(--app-text-muted)" }}
+                      >
+                        <X style={{ width: "0.875rem", height: "0.875rem" }} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <input
+                  type="text"
+                  value={checklistInput}
+                  onChange={(e) => setChecklistInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") { e.preventDefault(); const t = checklistInput.trim(); if (t) { setChecklistItems((p) => [...p, t]); setChecklistInput(""); } }
+                  }}
+                  placeholder="Agregar ítem al checklist…"
+                  style={{ ...inputStyle, flex: 1, boxSizing: "border-box" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => { const t = checklistInput.trim(); if (t) { setChecklistItems((p) => [...p, t]); setChecklistInput(""); } }}
+                  disabled={!checklistInput.trim()}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.25rem",
+                    fontSize: "0.8125rem",
+                    fontWeight: 500,
+                    color: "#fd1384",
+                    backgroundColor: "transparent",
+                    border: "1px solid rgba(253,19,132,0.35)",
+                    borderRadius: "0.5rem",
+                    padding: "0.5rem 0.75rem",
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
+                    opacity: checklistInput.trim() ? 1 : 0.4,
+                  }}
+                >
+                  <Plus style={{ width: "0.875rem", height: "0.875rem" }} />
+                  Agregar
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ── Divider ── */}
           <div style={{ borderTop: "1px solid var(--app-border)" }} />

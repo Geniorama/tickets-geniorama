@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Plus, X } from "lucide-react";
 import { createTicket } from "@/actions/ticket.actions";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 
@@ -22,6 +23,8 @@ export function TicketForm({
 }) {
   const [isPending, startTransition] = useTransition();
   const [selectedClientId, setSelectedClientId] = useState("");
+  const [checklistItems, setChecklistItems] = useState<string[]>([]);
+  const [checklistInput, setChecklistInput] = useState("");
 
   const inputClass =
     "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500";
@@ -36,9 +39,19 @@ export function TicketForm({
     ? sites.filter((s) => selectedClient.companies.some((co) => co.id === s.companyId))
     : sites;
 
+  function addChecklistItem() {
+    const t = checklistInput.trim();
+    if (!t) return;
+    setChecklistItems((prev) => [...prev, t]);
+    setChecklistInput("");
+  }
+
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    if (checklistItems.length > 0) {
+      formData.set("checklist", JSON.stringify(checklistItems));
+    }
     startTransition(async () => { await createTicket(formData); });
   }
 
@@ -177,6 +190,51 @@ export function TicketForm({
           className="w-full text-sm text-gray-600 bg-white file:mr-3 file:py-1.5 file:px-3 file:rounded file:border file:border-gray-300 file:text-sm file:text-gray-700 file:bg-gray-50 hover:file:bg-gray-100 cursor-pointer"
         />
         <p className="text-xs text-gray-400 mt-1">Imágenes, video, PDF o documentos Word. Máx. 10 MB por archivo (100 MB para video).</p>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Checklist <span className="text-gray-400 font-normal">(opcional)</span>
+        </label>
+
+        {/* Items ya agregados */}
+        {checklistItems.length > 0 && (
+          <ul className="mb-2 space-y-1">
+            {checklistItems.map((item, idx) => (
+              <li key={idx} className="flex items-center gap-2 text-sm bg-gray-50 border border-gray-200 rounded px-2.5 py-1.5">
+                <span className="flex-1 text-gray-800">{item}</span>
+                <button
+                  type="button"
+                  onClick={() => setChecklistItems((prev) => prev.filter((_, i) => i !== idx))}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Input para nuevo ítem */}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={checklistInput}
+            onChange={(e) => setChecklistInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addChecklistItem(); } }}
+            placeholder="Agregar ítem al checklist…"
+            className={inputClass}
+          />
+          <button
+            type="button"
+            onClick={addChecklistItem}
+            disabled={!checklistInput.trim()}
+            className="shrink-0 inline-flex items-center gap-1 border border-pink-300 text-pink-600 px-3 py-2 rounded-lg text-sm font-medium hover:bg-pink-50 disabled:opacity-40"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Agregar
+          </button>
+        </div>
       </div>
 
       <div className="flex justify-end gap-3 pt-2">

@@ -9,6 +9,13 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.7.5] — 2026-03-27
+
+### Añadido
+- **Checklist en formularios de creación** — al crear un ticket o tarea se pueden agregar ítems de checklist antes de guardar; se guardan en la BD junto al resto del registro.
+
+---
+
 ## [1.7.4] — 2026-03-27
 
 ### Añadido

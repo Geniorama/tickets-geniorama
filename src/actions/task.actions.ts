@@ -191,6 +191,21 @@ export async function createTask(projectIdArg: string | null, formData: FormData
     } catch { /* JSON inválido, ignorar */ }
   }
 
+  // Crear ítems de checklist si se enviaron
+  const checklistRaw = formData.get("checklist") as string | null;
+  if (checklistRaw) {
+    try {
+      const items = JSON.parse(checklistRaw) as string[];
+      for (let i = 0; i < items.length; i++) {
+        const title = items[i]?.trim();
+        if (!title) continue;
+        await prisma.taskChecklistItem.create({
+          data: { taskId: task.id, title, position: i, createdById: session.user.id },
+        });
+      }
+    } catch { /* JSON inválido, ignorar */ }
+  }
+
   const [project, assignee] = await Promise.all([
     prisma.project.findUnique({ where: { id: projectId }, select: { name: true } }),
     task.assignedToId
