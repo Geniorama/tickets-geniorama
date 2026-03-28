@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       where: {
         status: { notIn: ["COMPLETADO", "EN_REVISION"] },
         dueDate: { lt: today },
+        project: { isPrivate: false },
       },
       select: {
         id:         true,

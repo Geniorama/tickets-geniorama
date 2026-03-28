@@ -122,29 +122,35 @@ export async function addTaskComment(
     },
   });
 
+  // Obtener tarea con info del proyecto para determinar privacidad
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: {
+      title: true,
+      createdById: true,
+      assignedToId: true,
+      project: { select: { isPrivate: true } },
+    },
+  });
+
+  const projectIsPrivate = task?.project?.isPrivate ?? false;
+
   // Notificar a usuarios mencionados
   const mentionedIds = extractMentionIds(parsed.data.body).filter(
     (id) => id !== session.user.id
   );
   if (mentionedIds.length > 0) {
-    const taskForMention = await prisma.task.findUnique({
-      where: { id: taskId },
-      select: { title: true },
-    });
     await notifyMany(
       mentionedIds,
       "mention",
       `${session.user.name} te mencionó`,
-      `En la tarea: "${taskForMention?.title ?? ""}"`,
-      `/proyectos/${projectId}/tareas/${taskId}`
+      `En la tarea: "${task?.title ?? ""}"`,
+      `/proyectos/${projectId}/tareas/${taskId}`,
+      projectIsPrivate
     );
   }
 
   // Notificar al creador y asignado de la tarea (excepto el comentarista)
-  const task = await prisma.task.findUnique({
-    where: { id: taskId },
-    select: { title: true, createdById: true, assignedToId: true },
-  });
   if (task) {
     const recipients = [task.createdById, task.assignedToId]
       .filter((id): id is string => !!id && id !== session.user.id);
@@ -153,7 +159,8 @@ export async function addTaskComment(
       "task_comment",
       "Nuevo comentario en tarea",
       `${session.user.name} comentó en: "${task.title}"`,
-      `/proyectos/${projectId}/tareas/${taskId}`
+      `/proyectos/${projectId}/tareas/${taskId}`,
+      projectIsPrivate
     );
   }
 

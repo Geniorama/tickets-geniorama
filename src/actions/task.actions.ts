@@ -207,11 +207,13 @@ export async function createTask(projectIdArg: string | null, formData: FormData
   }
 
   const [project, assignee] = await Promise.all([
-    prisma.project.findUnique({ where: { id: projectId }, select: { name: true } }),
+    prisma.project.findUnique({ where: { id: projectId }, select: { name: true, isPrivate: true } }),
     task.assignedToId
       ? prisma.user.findUnique({ where: { id: task.assignedToId }, select: { name: true } })
       : null,
   ]);
+
+  const projectIsPrivate = project?.isPrivate ?? false;
 
   // Construir mensaje enriquecido para GChat
   const msgParts: string[] = [`"${task.title}"${project ? ` en ${project.name}` : ""}`];
@@ -219,12 +221,14 @@ export async function createTask(projectIdArg: string | null, formData: FormData
   if (task.dueDate) msgParts.push(`Vence: ${fmt(task.dueDate)}`);
 
   // Notificar creación de tarea al webhook (sin destinatario en-app)
-  await sendGChatNotification(
-    "task_new",
-    "Nueva tarea",
-    msgParts.join(" · "),
-    `/proyectos/${projectId}/tareas/${task.id}`
-  );
+  if (!projectIsPrivate) {
+    await sendGChatNotification(
+      "task_new",
+      "Nueva tarea",
+      msgParts.join(" · "),
+      `/proyectos/${projectId}/tareas/${task.id}`
+    );
+  }
 
   // Notificar al asignado si no es el creador
   if (task.assignedToId && task.assignedToId !== session.user.id) {
@@ -233,7 +237,8 @@ export async function createTask(projectIdArg: string | null, formData: FormData
       "task_assigned",
       "Tarea asignada",
       `Se te asignó: "${task.title}"${project ? ` en ${project.name}` : ""}`,
-      `/proyectos/${projectId}/tareas/${task.id}`
+      `/proyectos/${projectId}/tareas/${task.id}`,
+      projectIsPrivate
     );
   }
 
@@ -306,17 +311,20 @@ export async function updateTask(taskId: string, projectId: string, formData: Fo
 
   // Notificar al nuevo asignado si cambió y no es quien edita
   const newAssigneeId = parsed.data.assignedToId ?? null;
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { name: true, isPrivate: true },
+  });
+  const projectIsPrivate = project?.isPrivate ?? false;
+
   if (newAssigneeId && newAssigneeId !== oldTask?.assignedToId && newAssigneeId !== session.user.id) {
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { name: true },
-    });
     await notify(
       newAssigneeId,
       "task_assigned",
       "Tarea asignada",
       `Se te asignó: "${parsed.data.title}"${project ? ` en ${project.name}` : ""}`,
-      `/proyectos/${projectId}/tareas/${taskId}`
+      `/proyectos/${projectId}/tareas/${taskId}`,
+      projectIsPrivate
     );
   }
 
@@ -338,7 +346,8 @@ export async function updateTask(taskId: string, projectId: string, formData: Fo
       "task_date_changed",
       "Fechas actualizadas",
       `"${parsed.data.title}" — ${parts.join(" · ")}`,
-      `/proyectos/${projectId}/tareas/${taskId}`
+      `/proyectos/${projectId}/tareas/${taskId}`,
+      projectIsPrivate
     );
   }
 
@@ -396,10 +405,18 @@ export async function updateTaskStatus(taskId: string, projectId: string, status
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
-  const oldTask = await prisma.task.findUnique({
-    where: { id: taskId },
-    select: { title: true, status: true, createdById: true, assignedToId: true },
-  });
+  const [oldTask, projectForStatus] = await Promise.all([
+    prisma.task.findUnique({
+      where: { id: taskId },
+      select: { title: true, status: true, createdById: true, assignedToId: true },
+    }),
+    prisma.project.findUnique({
+      where: { id: projectId },
+      select: { isPrivate: true },
+    }),
+  ]);
+
+  const projectIsPrivate = projectForStatus?.isPrivate ?? false;
 
   await prisma.task.update({
     where: { id: taskId },
@@ -427,7 +444,7 @@ export async function updateTaskStatus(taskId: string, projectId: string, status
   }
 
   // Webhook: notificar cambio a EN_PROGRESO
-  if (status === "EN_PROGRESO" && oldTask?.status !== "EN_PROGRESO") {
+  if (!projectIsPrivate && status === "EN_PROGRESO" && oldTask?.status !== "EN_PROGRESO") {
     await sendGChatNotification(
       "task_status",
       "Tarea en progreso",
@@ -437,7 +454,7 @@ export async function updateTaskStatus(taskId: string, projectId: string, status
   }
 
   // Webhook: notificar cambio a EN_REVISION
-  if (status === "EN_REVISION" && oldTask?.status !== "EN_REVISION") {
+  if (!projectIsPrivate && status === "EN_REVISION" && oldTask?.status !== "EN_REVISION") {
     await sendGChatNotification(
       "task_status",
       "Tarea en revisión",
@@ -455,7 +472,8 @@ export async function updateTaskStatus(taskId: string, projectId: string, status
       "task_completed",
       "Tarea completada",
       `"${oldTask?.title}" marcada como completada`,
-      `/proyectos/${projectId}/tareas/${taskId}`
+      `/proyectos/${projectId}/tareas/${taskId}`,
+      projectIsPrivate
     );
   }
 
