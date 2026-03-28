@@ -25,6 +25,8 @@ import { toggleTicketCommentReaction } from "@/actions/reaction.actions";
 import type { ReactionType } from "@/generated/prisma";
 import { ReportGenerator } from "@/components/ui/report-generator";
 import { generateTicketReport } from "@/actions/report.actions";
+import { ChecklistPanel } from "@/components/ui/checklist-panel";
+import { addTicketChecklistItem, toggleTicketChecklistItem, deleteTicketChecklistItem } from "@/actions/checklist.actions";
 
 type TicketWithDetails = Ticket & {
   createdBy: Pick<User, "id" | "name" | "email">;
@@ -33,6 +35,7 @@ type TicketWithDetails = Ticket & {
   plan: { id: string; name: string; type: string } | null;
   site: { id: string; name: string; domain: string; documentation: string | null; architecture: string | null } | null;
   attachments: TicketAttachment[];
+  checklistItems: { id: string; title: string; isChecked: boolean }[];
   timeEntries: (TimeEntry & { user: Pick<User, "name"> })[];
   comments: (TicketComment & {
     author: Pick<User, "name" | "role">;
@@ -224,6 +227,14 @@ export function TicketDetail({
               currentUserId={session.user.id}
             />
           )}
+
+          <ChecklistPanel
+            items={ticket.checklistItems}
+            addFn={(title) => addTicketChecklistItem(ticket.id, title)}
+            toggleFn={(itemId) => toggleTicketChecklistItem(itemId, ticket.id)}
+            deleteFn={(itemId) => deleteTicketChecklistItem(itemId, ticket.id)}
+            canDelete={isAdmin(role)}
+          />
 
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-base font-semibold text-gray-800 mb-4">

@@ -25,6 +25,7 @@ export default async function TicketPage({
       plan: { select: { id: true, name: true, type: true } },
       site: { select: { id: true, name: true, domain: true, documentation: true, architecture: true } },
       attachments: { orderBy: { createdAt: "asc" } },
+      checklistItems: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
       timeEntries: {
         orderBy: { startedAt: "asc" },
         include: { user: { select: { name: true } } },

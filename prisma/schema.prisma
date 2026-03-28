@@ -139,6 +139,8 @@ model User {
   ticketCommentReactions    TicketCommentReaction[]
   taskCommentReactions      TaskCommentReaction[]
   notifications             Notification[]
+  ticketChecklistItems      TicketChecklistItem[]
+  taskChecklistItems        TaskChecklistItem[]
 
   @@map("users")
 }
@@ -166,10 +168,11 @@ model Ticket {
   client       User?              @relation("TicketClient", fields: [clientId], references: [id])
   plan         Plan?              @relation(fields: [planId], references: [id])
   site         Site?              @relation(fields: [siteId], references: [id])
-  comments     TicketComment[]
-  attachments  TicketAttachment[]
-  timeEntries  TimeEntry[]
-  vaultEntries TicketVaultEntry[]
+  comments        TicketComment[]
+  attachments     TicketAttachment[]
+  timeEntries     TimeEntry[]
+  vaultEntries    TicketVaultEntry[]
+  checklistItems  TicketChecklistItem[]
 
   @@map("tickets")
 }
@@ -390,9 +393,10 @@ model Task {
   project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   assignedTo User?         @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
   createdBy  User          @relation("TaskCreatedBy", fields: [createdById], references: [id])
-  comments    TaskComment[]
-  attachments TaskAttachment[]
-  timeEntries TaskTimeEntry[]
+  comments       TaskComment[]
+  attachments    TaskAttachment[]
+  timeEntries    TaskTimeEntry[]
+  checklistItems TaskChecklistItem[]
 
   @@map("tasks")
 }
@@ -573,4 +577,42 @@ model AppSetting {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("app_settings")
+}
+
+// ─── Checklists ───────────────────────────────────────────────────────────────
+
+model TicketChecklistItem {
+  id          String   @id @default(cuid())
+  title       String
+  isChecked   Boolean  @default(false) @map("is_checked")
+  position    Int      @default(0)
+
+  ticketId    String   @map("ticket_id")
+  createdById String   @map("created_by_id")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation(fields: [createdById], references: [id])
+
+  @@map("ticket_checklist_items")
+}
+
+model TaskChecklistItem {
+  id          String   @id @default(cuid())
+  title       String
+  isChecked   Boolean  @default(false) @map("is_checked")
+  position    Int      @default(0)
+
+  taskId      String   @map("task_id")
+  createdById String   @map("created_by_id")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdBy   User     @relation(fields: [createdById], references: [id])
+
+  @@map("task_checklist_items")
 }

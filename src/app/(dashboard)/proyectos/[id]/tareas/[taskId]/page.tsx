@@ -31,6 +31,7 @@ export default async function TaskPage({
         },
         orderBy: { createdAt: "asc" },
       },
+      checklistItems: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
       attachments: {
         include: { uploadedBy: { select: { name: true } } },
         orderBy: { createdAt: "asc" },
