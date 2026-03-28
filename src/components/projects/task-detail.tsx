@@ -18,7 +18,6 @@ import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import type { ReactionEntry } from "@/components/ui/comment-reactions";
 import { ReportGenerator } from "@/components/ui/report-generator";
 import { generateTaskReport } from "@/actions/report.actions";
-import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
 
 type TaskWithDetails = Task & {
   project: { id: string; name: string };
@@ -41,10 +40,12 @@ export function TaskDetail({
   task,
   session,
   projects = [],
+  checklistSlot,
 }: {
   task: TaskWithDetails;
   session: Session;
   projects?: { id: string; name: string }[];
+  checklistSlot?: React.ReactNode;
 }) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -374,12 +375,7 @@ export function TaskDetail({
           </div>
 
           {/* Checklist */}
-          <TaskChecklistPanel
-            taskId={task.id}
-            projectId={task.project.id}
-            initialItems={task.checklistItems}
-            canDelete={admin}
-          />
+          {checklistSlot}
 
           {/* Attachments */}
           {task.attachments.length > 0 && (

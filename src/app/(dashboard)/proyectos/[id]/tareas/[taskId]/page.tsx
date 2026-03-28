@@ -4,6 +4,7 @@ import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { TaskDetail } from "@/components/projects/task-detail";
 import { BackButton } from "@/components/ui/back-button";
+import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
 
 export default async function TaskPage({
   params,
@@ -81,7 +82,19 @@ export default async function TaskPage({
       <div style={{ marginBottom: "1rem" }}>
         <BackButton fallback={`/proyectos/${projectId}`} />
       </div>
-      <TaskDetail task={task} session={session} projects={moveableProjects} />
+      <TaskDetail
+        task={task}
+        session={session}
+        projects={moveableProjects}
+        checklistSlot={
+          <TaskChecklistPanel
+            taskId={taskId}
+            projectId={projectId}
+            initialItems={task.checklistItems}
+            canDelete={admin}
+          />
+        }
+      />
     </div>
   );
 }

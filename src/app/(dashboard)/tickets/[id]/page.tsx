@@ -4,6 +4,7 @@ import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { TicketDetail } from "@/components/tickets/ticket-detail";
 import { BackButton } from "@/components/ui/back-button";
+import { TicketChecklistPanel } from "@/components/ui/checklist-panel";
 
 export default async function TicketPage({
   params,
@@ -105,6 +106,13 @@ export default async function TicketPage({
         linkedVaultEntries={linkedVaultEntries}
         availableVaultEntries={availableVaultEntries}
         collaborators={collaborators}
+        checklistSlot={
+          <TicketChecklistPanel
+            ticketId={ticketId}
+            initialItems={ticket.checklistItems}
+            canDelete={admin}
+          />
+        }
       />
     </div>
   );

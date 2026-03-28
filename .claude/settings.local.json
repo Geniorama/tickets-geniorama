@@ -33,7 +33,18 @@
       "WebFetch(domain:developer.paymentsway.co)",
       "Bash(cd \"/c/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npx tsc --noEmit 2>&1; echo \"exit: $?\")",
       "Bash(node -e \"console.log\\(require\\('crypto'\\).randomBytes\\(32\\).toString\\('hex'\\)\\)\")",
-      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npm ls @dnd-kit/sortable 2>&1 | head -5)"
+      "Bash(cd \"C:/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets\" && npm ls @dnd-kit/sortable 2>&1 | head -5)",
+      "Bash(find \"/c/Users/Janus/Documents/Proyectos web/geniorama-tickets/geniorama-tickets/src/app/\\(dashboard\\)\" -name \"page.tsx\" -type f | grep -E \"\\(tickets|projects|tasks|users|vault|services|buscador|companies|planes|sitios\\)\" | sort)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(cd:*)",
+      "WebSearch",
+      "WebFetch(domain:developers.google.com)",
+      "Bash(grep -E \"\\\\.tsx$\")",
+      "Bash(grep -E \"\\(minWidth|width\\).*[0-9]{3,}\")",
+      "Bash(xargs grep:*)",
+      "Bash(node -p \"require\\(''./package.json''\\).version\")"
     ]
   }
 }

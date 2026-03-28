@@ -25,7 +25,6 @@ import { toggleTicketCommentReaction } from "@/actions/reaction.actions";
 import type { ReactionType } from "@/generated/prisma";
 import { ReportGenerator } from "@/components/ui/report-generator";
 import { generateTicketReport } from "@/actions/report.actions";
-import { TicketChecklistPanel } from "@/components/ui/checklist-panel";
 
 type TicketWithDetails = Ticket & {
   createdBy: Pick<User, "id" | "name" | "email">;
@@ -63,12 +62,14 @@ export function TicketDetail({
   linkedVaultEntries = [],
   availableVaultEntries = [],
   collaborators = [],
+  checklistSlot,
 }: {
   ticket: TicketWithDetails;
   session: Session;
   linkedVaultEntries?: VaultEntry[];
   availableVaultEntries?: VaultEntry[];
   collaborators?: { id: string; name: string }[];
+  checklistSlot?: React.ReactNode;
 }) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -227,11 +228,7 @@ export function TicketDetail({
             />
           )}
 
-          <TicketChecklistPanel
-            ticketId={ticket.id}
-            initialItems={ticket.checklistItems}
-            canDelete={isAdmin(role)}
-          />
+          {checklistSlot}
 
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-base font-semibold text-gray-800 mb-4">
