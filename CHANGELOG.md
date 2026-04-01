@@ -9,6 +9,13 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.10.1] — 2026-04-01
+
+### Corregido
+- **Gemini 401 en Netlify** — el SDK `@google/genai` detectaba el entorno Netlify y enrutaba las peticiones por el proxy `/.netlify/ai/`, causando `401 Unauthorized`. Se agrega `httpOptions.baseUrl` apuntando directamente a `https://generativelanguage.googleapis.com` en `ai.actions.ts` y `report.actions.ts` para evitar el proxy.
+
+---
+
 ## [1.10.0] — 2026-04-01
 
 ### Añadido

@@ -68,7 +68,10 @@ ${ticket.description}
   prompt += `\n---\nResponde en español de forma clara y estructurada. Sé concreto y práctico.`;
 
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY! });
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GOOGLE_AI_API_KEY!,
+      httpOptions: { baseUrl: "https://generativelanguage.googleapis.com" },
+    });
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: prompt,

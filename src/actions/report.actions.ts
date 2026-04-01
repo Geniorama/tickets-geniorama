@@ -38,7 +38,10 @@ function today() {
 }
 
 async function callGemini(prompt: string): Promise<string> {
-  const ai = new GoogleGenAI({ apiKey: process.env.GOOGLE_AI_API_KEY! });
+  const ai = new GoogleGenAI({
+    apiKey: process.env.GOOGLE_AI_API_KEY!,
+    httpOptions: { baseUrl: "https://generativelanguage.googleapis.com" },
+  });
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
     contents: prompt,
