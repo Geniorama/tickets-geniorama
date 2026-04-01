@@ -14,6 +14,7 @@ import { deleteProject } from "@/actions/project.actions";
 import { ProjectVaultPanel } from "@/components/vault/project-vault-panel";
 import { ProjectAttachmentsPanel } from "@/components/projects/project-attachments-panel";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import { ProjectReportGenerator } from "@/components/projects/project-report-generator";
 
 type TaskWithRelations = Task & {
   assignedTo: { name: string } | null;
@@ -319,6 +320,13 @@ export function ProjectDetail({
         attachments={project.attachments}
         canManage={isStaff || isAdmin}
       />
+
+      {/* Informe IA — solo staff/admin */}
+      {(isStaff || isAdmin) && (
+        <div style={{ marginTop: "1.5rem" }}>
+          <ProjectReportGenerator projectId={project.id} />
+        </div>
+      )}
     </div>
   );
 }

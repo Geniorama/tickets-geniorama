@@ -190,6 +190,7 @@ export async function updateTicketStatus(ticketId: string, status: string) {
     where: { id: ticketId },
     select: {
       title: true,
+      status: true,
       clientId: true,
       createdById: true,
       assignedToId: true,
@@ -225,6 +226,16 @@ export async function updateTicketStatus(ticketId: string, status: string) {
     if (status === "CERRADO" && ticket.client) {
       const url = `${APP_URL}/tickets/${ticketId}`;
       void sendTicketClosedEmail(ticket.client, ticket.title, url).catch(console.error);
+    }
+
+    // Webhook: notificar cuando el ticket vuelve a Abierto (pendiente)
+    if (status === "ABIERTO" && ticket.status !== "ABIERTO") {
+      await sendGChatNotification(
+        "ticket_status",
+        "Ticket reabierto",
+        `"${ticket.title}" volvió a *Abierto*`,
+        `/tickets/${ticketId}`
+      );
     }
   }
 

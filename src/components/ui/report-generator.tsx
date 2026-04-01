@@ -16,7 +16,8 @@ function headerLines(header: ReportHeader): string[] {
   if (header.responsible)    lines.push(`Responsable: ${header.responsible}`);
   if (header.client)         lines.push(`Cliente: ${header.client}`);
   lines.push(`Estado: ${header.status}`);
-  lines.push(`Prioridad: ${header.priority}`);
+  if (header.priority)       lines.push(`Prioridad: ${header.priority}`);
+  if (header.progress)       lines.push(`Avance: ${header.progress}`);
   return lines;
 }
 
@@ -214,9 +215,11 @@ async function exportDOCX(report: GeneratedReport) {
 export function ReportGenerator({
   generateFn,
   label = "Informe IA",
+  options,
 }: {
   generateFn: () => Promise<{ error?: string; report?: GeneratedReport }>;
   label?: string;
+  options?: React.ReactNode;
 }) {
   const [isPending, startTransition] = useTransition();
   const [report, setReport] = useState<GeneratedReport | null>(null);
@@ -317,6 +320,12 @@ export function ReportGenerator({
           )}
         </div>
       </div>
+
+      {options && (
+        <div style={{ borderTop: "1px solid var(--app-border)", padding: "0.875rem 1rem", backgroundColor: "var(--app-content-bg)" }}>
+          {options}
+        </div>
+      )}
 
       {error && (
         <p style={{ padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#b91c1c", backgroundColor: "#fef2f2", borderTop: "1px solid #fecaca" }}>

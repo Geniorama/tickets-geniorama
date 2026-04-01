@@ -14,7 +14,8 @@ export interface ReportHeader {
   responsible?: string;
   client?: string;
   status: string;
-  priority: string;
+  priority?: string;
+  progress?: string;
 }
 
 export interface GeneratedReport {
@@ -136,6 +137,119 @@ El informe debe incluir:
 
 Usa el código de tarea **${prefix}-** para referencias internas.
 Redacta en español formal, de forma clara y estructurada. Usa markdown.
+
+---
+${ctx}`;
+
+  try {
+    const body = await callGemini(prompt);
+    return { report: { header, body } };
+  } catch {
+    return { error: "Error al generar el informe con IA." };
+  }
+}
+
+// ─── Proyecto ─────────────────────────────────────────────────────────────────
+
+const projectStatusLabel: Record<string, string> = {
+  PLANIFICACION: "Planificación",
+  EN_DESARROLLO: "En desarrollo",
+  EN_REVISION: "En revisión",
+  COMPLETADO: "Completado",
+  PAUSADO: "Pausado",
+};
+
+export async function generateProjectReport(
+  projectId: string,
+  options: { includeAssignees: boolean; extraInstructions: string },
+): Promise<{ error?: string; report?: GeneratedReport }> {
+  const session = await getRequiredSession();
+  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    include: {
+      company: { select: { name: true } },
+      manager: { select: { name: true } },
+      createdBy: { select: { name: true } },
+      tasks: {
+        include: {
+          assignedTo: { select: { name: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+
+  if (!project) return { error: "Proyecto no encontrado" };
+
+  const totalTasks = project.tasks.length;
+  const completedTasks = project.tasks.filter((t) => t.status === "COMPLETADO").length;
+  const progressPct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const prefix = projectPrefix(project.name);
+
+  const header: ReportHeader = {
+    itemName: project.name,
+    itemCode: prefix,
+    reportDate: today(),
+    projectManager: project.manager?.name ?? "Sin responsable",
+    client: project.company?.name,
+    status: projectStatusLabel[project.status] ?? project.status,
+    progress: `${progressPct}% (${completedTasks}/${totalTasks} tareas completadas)`,
+  };
+
+  // Build context
+  let ctx = `**Proyecto:** ${project.name}
+**Estado:** ${header.status}
+**Progreso:** ${header.progress}
+**Responsable:** ${header.projectManager}${project.company ? `\n**Empresa:** ${project.company.name}` : ""}
+**Fecha de inicio:** ${project.startDate ? project.startDate.toLocaleDateString("es-CO") : "No definida"}
+**Fecha límite:** ${project.dueDate ? project.dueDate.toLocaleDateString("es-CO") : "No definida"}
+**Creado el:** ${project.createdAt.toLocaleDateString("es-CO")}
+
+**Descripción:**
+${project.description}`;
+
+  // Task summary by status
+  const byStatus: Record<string, number> = {};
+  for (const t of project.tasks) {
+    byStatus[t.status] = (byStatus[t.status] ?? 0) + 1;
+  }
+  const statusSummary = Object.entries(byStatus)
+    .map(([s, n]) => `${statusLabel[s] ?? s}: ${n}`)
+    .join(", ");
+  if (totalTasks > 0) {
+    ctx += `\n\n**Resumen de tareas (${totalTasks} en total):** ${statusSummary}`;
+  }
+
+  // Task list with dates (and optionally assignees)
+  if (project.tasks.length > 0) {
+    ctx += `\n\n**Listado de tareas:**`;
+    for (const t of project.tasks) {
+      const code = t.number > 0 ? taskCode(project.name, t.number) : "";
+      const assignee = options.includeAssignees && t.assignedTo ? ` — Encargado: ${t.assignedTo.name}` : "";
+      const start = t.startDate ? ` | Inicio: ${t.startDate.toLocaleDateString("es-CO")}` : "";
+      const due = t.dueDate ? ` | Vence: ${t.dueDate.toLocaleDateString("es-CO")}` : "";
+      const st = statusLabel[t.status] ?? t.status;
+      ctx += `\n- ${code ? `[${code}] ` : ""}${t.title} — ${st}${start}${due}${assignee}`;
+    }
+  }
+
+  const extraBlock = options.extraInstructions.trim()
+    ? `\n\nInstrucciones adicionales del solicitante:\n${options.extraInstructions.trim()}`
+    : "";
+
+  const prompt = `Eres un asistente profesional de gestión de proyectos en la agencia Geniorama.
+Genera un informe ejecutivo detallado sobre el siguiente proyecto.
+
+El informe debe incluir:
+1. **Resumen ejecutivo** — descripción general del proyecto y su propósito
+2. **Estado y avance** — análisis del porcentaje de avance y estado actual con base en las tareas
+3. **Cronograma** — análisis de fechas clave (inicio, vencimiento, tareas próximas a vencer o vencidas)
+4. **Desglose de tareas** — análisis de las tareas por estado y prioridad${options.includeAssignees ? ", incluyendo los encargados" : ""}
+5. **Conclusiones y próximos pasos** — recomendaciones concretas para avanzar el proyecto
+
+Redacta en español formal, de forma clara y estructurada. Usa markdown.${extraBlock}
 
 ---
 ${ctx}`;

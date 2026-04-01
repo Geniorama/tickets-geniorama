@@ -463,6 +463,16 @@ export async function updateTaskStatus(taskId: string, projectId: string, status
     );
   }
 
+  // Webhook: notificar cambio a PENDIENTE (reapertura)
+  if (!projectIsPrivate && status === "PENDIENTE" && oldTask?.status !== "PENDIENTE") {
+    await sendGChatNotification(
+      "task_status",
+      "Tarea pendiente",
+      `"${oldTask?.title}" volvió a *Pendiente*`,
+      `/proyectos/${projectId}/tareas/${taskId}`
+    );
+  }
+
   // Notificar tarea completada si es un cambio nuevo a COMPLETADO
   if (status === "COMPLETADO" && oldTask?.status !== "COMPLETADO") {
     const recipients = [oldTask?.createdById, oldTask?.assignedToId]

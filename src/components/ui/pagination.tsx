@@ -37,7 +37,9 @@ const btnBase: React.CSSProperties = {
   fontSize: "0.875rem",
   fontWeight: 500,
   textDecoration: "none",
-  border: "1px solid var(--app-border)",
+  borderWidth: "1px",
+  borderStyle: "solid",
+  borderColor: "var(--app-border)",
   backgroundColor: "var(--app-card-bg)",
   color: "var(--app-body-text)",
 };
@@ -87,7 +89,7 @@ export function Pagination({
         p === "..." ? (
           <span
             key={`e${i}`}
-            style={{ ...btnBase, border: "none", background: "none", cursor: "default", color: "var(--app-text-muted)" }}
+            style={{ ...btnBase, borderWidth: 0, borderStyle: "none", borderColor: "transparent", backgroundColor: "transparent", cursor: "default", color: "var(--app-text-muted)" }}
           >
             …
           </span>
