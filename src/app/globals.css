@@ -117,6 +117,16 @@
   --app-placeholder:    #5a70a8;
   --app-scrollbar-track: #071245;
   --app-scrollbar-thumb: #1f3080;
+
+  /* ── Dropdown menu ── */
+  --dropdown-bg:              #000a3d;
+  --dropdown-border:          rgba(255, 255, 255, 0.14);
+  --dropdown-text:            rgba(255, 255, 255, 0.75);
+  --dropdown-hover-bg:        rgba(255, 255, 255, 0.1);
+  --dropdown-danger-text:     #fca5a5;
+  --dropdown-danger-hover-bg: rgba(185, 28, 28, 0.2);
+  --dropdown-purple-text:     #c4b5fd;
+  --dropdown-purple-hover-bg: rgba(124, 58, 237, 0.18);
 }
 
 /* ── Overrides modo claro ── */
@@ -195,6 +205,16 @@ html.light {
   --app-placeholder:    #9aa5c8;
   --app-scrollbar-track: #dde5ff;
   --app-scrollbar-thumb: #b0bfe8;
+
+  /* ── Dropdown menu ── */
+  --dropdown-bg:              #ffffff;
+  --dropdown-border:          #d1d5db;
+  --dropdown-text:            #374151;
+  --dropdown-hover-bg:        #f3f4f6;
+  --dropdown-danger-text:     #dc2626;
+  --dropdown-danger-hover-bg: #fef2f2;
+  --dropdown-purple-text:     #7c3aed;
+  --dropdown-purple-hover-bg: rgba(124, 58, 237, 0.08);
 }
 
 body {

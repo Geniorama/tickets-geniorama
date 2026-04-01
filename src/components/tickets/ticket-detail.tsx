@@ -1,9 +1,9 @@
 "use client";
 
-import { useTransition, useState } from "react";
+import { useTransition, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { formatDateTimeLong, formatDateTime, formatDate } from "@/lib/format-date";
-import { Pencil, Trash2, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Link2, Paperclip, FileText, ExternalLink, Globe, ChevronDown } from "lucide-react";
+import { Pencil, Trash2, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Link2, Paperclip, FileText, ExternalLink, Globe, ChevronDown, MoreVertical } from "lucide-react";
 import type { Session } from "next-auth";
 import type { Ticket, TicketComment, TicketAttachment, TimeEntry, User, TicketStatus, Priority } from "@/generated/prisma";
 import { TicketTimer } from "./ticket-timer";
@@ -73,8 +73,21 @@ export function TicketDetail({
 }) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const role = session.user.role;
   const staff = isStaff(role);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    function handler(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showMenu]);
 
   function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
     startTransition(async () => {
@@ -112,23 +125,51 @@ export function TicketDetail({
               <h1 className="text-xl font-bold text-gray-900">{ticket.title}</h1>
               <div className="flex items-center gap-2 shrink-0">
                 {isAdmin(role) && (
-                  <>
-                    <Link
-                      href={`/tickets/${ticket.id}/edit`}
-                      className="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium border border-indigo-200 rounded px-2 py-1"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Editar
-                    </Link>
-                    <DuplicateTicketButton ticketId={ticket.id} />
+                  <div ref={menuRef} className="relative">
                     <button
-                      onClick={handleDeleteTicket}
-                      disabled={isPending}
-                      className="inline-flex items-center gap-1.5 text-sm text-red-500 hover:text-red-700 font-medium border border-red-200 rounded px-2 py-1 disabled:opacity-50"
+                      onClick={() => setShowMenu((v) => !v)}
+                      className="p-1.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
+                      title="Más opciones"
                     >
-                      Eliminar
+                      <MoreVertical className="w-4 h-4" />
                     </button>
-                  </>
+                    {showMenu && (
+                      <div
+                        className="absolute right-0 top-full mt-1 z-20 rounded-lg shadow-xl py-1 min-w-[140px]"
+                        style={{
+                          backgroundColor: "var(--dropdown-bg)",
+                          border: "1px solid var(--dropdown-border)",
+                        }}
+                      >
+                        <Link
+                          href={`/tickets/${ticket.id}/edit`}
+                          onClick={() => setShowMenu(false)}
+                          className="flex items-center gap-2 px-3 py-2 text-sm"
+                          style={{ color: "var(--dropdown-text)" }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--dropdown-hover-bg)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          Editar
+                        </Link>
+                        <DuplicateTicketButton
+                          ticketId={ticket.id}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-sm disabled:opacity-50"
+                        />
+                        <button
+                          onClick={() => { setShowMenu(false); handleDeleteTicket(); }}
+                          disabled={isPending}
+                          className="flex w-full items-center gap-2 px-3 py-2 text-sm disabled:opacity-50"
+                          style={{ color: "var(--dropdown-danger-text)", background: "none", border: "none", cursor: "pointer" }}
+                          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--dropdown-danger-hover-bg)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Eliminar
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 )}
                 <PriorityBadge priority={ticket.priority as Priority} />
                 {staff ? (

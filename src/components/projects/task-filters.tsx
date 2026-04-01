@@ -2,34 +2,33 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 const STATUS_OPTIONS = [
-  { value: "", label: "Todos los estados" },
-  { value: "PENDIENTE", label: "Pendiente" },
+  { value: "PENDIENTE",   label: "Pendiente" },
   { value: "EN_PROGRESO", label: "En progreso" },
   { value: "EN_REVISION", label: "En revisión" },
-  { value: "COMPLETADO", label: "Completado" },
+  { value: "COMPLETADO",  label: "Completado" },
 ];
 
 const PRIORITY_OPTIONS = [
-  { value: "", label: "Todas las prioridades" },
   { value: "CRITICA", label: "Crítica" },
-  { value: "ALTA", label: "Alta" },
-  { value: "MEDIA", label: "Media" },
-  { value: "BAJA", label: "Baja" },
+  { value: "ALTA",    label: "Alta" },
+  { value: "MEDIA",   label: "Media" },
+  { value: "BAJA",    label: "Baja" },
 ];
 
 type Project = { id: string; name: string };
-type Staff = { id: string; name: string };
+type Staff   = { id: string; name: string };
 
-const SELECT_STYLE: React.CSSProperties = {
+const TRIGGER_STYLE: React.CSSProperties = {
   border: "1px solid var(--app-border)",
   borderRadius: "0.5rem",
   padding: "0.375rem 0.75rem",
   fontSize: "0.875rem",
   color: "var(--app-body-text)",
   backgroundColor: "var(--app-card-bg)",
-  outline: "none",
+  width: "100%",
 };
 
 export function TaskFilters({
@@ -45,15 +44,18 @@ export function TaskFilters({
   const params = useSearchParams();
   const [, startTransition] = useTransition();
 
-  function update(key: string, value: string) {
+  function update(key: string, values: string[]) {
     const next = new URLSearchParams(params.toString());
-    if (value) next.set(key, value);
+    const encoded = values.join(",");
+    if (encoded) next.set(key, encoded);
     else next.delete(key);
     next.delete("page");
     startTransition(() => router.push(`/tareas?${next.toString()}`));
   }
 
-  const fieldStyle: React.CSSProperties = { width: "100%" };
+  function getValues(key: string): string[] {
+    return params.get(key)?.split(",").filter(Boolean) ?? [];
+  }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
@@ -61,46 +63,39 @@ export function TaskFilters({
         <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
           Estado
         </label>
-        <select
-          value={params.get("status") ?? ""}
-          onChange={(e) => update("status", e.target.value)}
-          style={{ ...SELECT_STYLE, ...fieldStyle }}
-        >
-          {STATUS_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+        <MultiSelect
+          options={STATUS_OPTIONS}
+          value={getValues("status")}
+          onChange={(v) => update("status", v)}
+          placeholder="Todos los estados"
+          triggerStyle={TRIGGER_STYLE}
+        />
       </div>
 
       <div>
         <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
           Prioridad
         </label>
-        <select
-          value={params.get("priority") ?? ""}
-          onChange={(e) => update("priority", e.target.value)}
-          style={{ ...SELECT_STYLE, ...fieldStyle }}
-        >
-          {PRIORITY_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+        <MultiSelect
+          options={PRIORITY_OPTIONS}
+          value={getValues("priority")}
+          onChange={(v) => update("priority", v)}
+          placeholder="Todas las prioridades"
+          triggerStyle={TRIGGER_STYLE}
+        />
       </div>
 
       <div>
         <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
           Proyecto
         </label>
-        <select
-          value={params.get("projectId") ?? ""}
-          onChange={(e) => update("projectId", e.target.value)}
-          style={{ ...SELECT_STYLE, ...fieldStyle }}
-        >
-          <option value="">Todos los proyectos</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
-          ))}
-        </select>
+        <MultiSelect
+          options={projects.map((p) => ({ value: p.id, label: p.name }))}
+          value={getValues("projectId")}
+          onChange={(v) => update("projectId", v)}
+          placeholder="Todos los proyectos"
+          triggerStyle={TRIGGER_STYLE}
+        />
       </div>
 
       {showAssignee && (
@@ -108,16 +103,13 @@ export function TaskFilters({
           <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
             Responsable
           </label>
-          <select
-            value={params.get("assignedToId") ?? ""}
-            onChange={(e) => update("assignedToId", e.target.value)}
-            style={{ ...SELECT_STYLE, ...fieldStyle }}
-          >
-            <option value="">Todos los responsables</option>
-            {staff.map((u) => (
-              <option key={u.id} value={u.id}>{u.name}</option>
-            ))}
-          </select>
+          <MultiSelect
+            options={staff.map((u) => ({ value: u.id, label: u.name }))}
+            value={getValues("assignedToId")}
+            onChange={(v) => update("assignedToId", v)}
+            placeholder="Todos los responsables"
+            triggerStyle={TRIGGER_STYLE}
+          />
         </div>
       )}
     </div>

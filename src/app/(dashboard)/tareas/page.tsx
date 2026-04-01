@@ -29,10 +29,10 @@ export default async function TareasPage({
 
   const params = await searchParams;
 
-  const statusFilter   = params.status       as TaskStatus | undefined;
-  const priorityFilter = params.priority    as Priority   | undefined;
-  const projectFilter  = params.projectId   as string     | undefined;
-  const assigneeFilter = params.assignedToId as string    | undefined;
+  const statusValues   = params.status?.split(",").filter(Boolean)       as TaskStatus[] | undefined;
+  const priorityValues = params.priority?.split(",").filter(Boolean)     as Priority[]   | undefined;
+  const projectValues  = params.projectId?.split(",").filter(Boolean)    as string[]     | undefined;
+  const assigneeValues = params.assignedToId?.split(",").filter(Boolean) as string[]     | undefined;
   const q              = params.q?.trim()   || undefined;
 
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
@@ -62,10 +62,10 @@ export default async function TareasPage({
 
   const where = {
     ...roleWhere,
-    ...(statusFilter   ? { status: statusFilter }            : {}),
-    ...(priorityFilter ? { priority: priorityFilter }        : {}),
-    ...(projectFilter  ? { projectId: projectFilter }        : {}),
-    ...(assigneeFilter ? { assignedToId: assigneeFilter }    : {}),
+    ...(statusValues?.length   ? { status:      { in: statusValues } }   : {}),
+    ...(priorityValues?.length ? { priority:    { in: priorityValues } } : {}),
+    ...(projectValues?.length  ? { projectId:   { in: projectValues } }  : {}),
+    ...(assigneeValues?.length ? { assignedToId:{ in: assigneeValues } } : {}),
     ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
   };
 

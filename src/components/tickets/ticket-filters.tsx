@@ -2,8 +2,17 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 interface FilterOption { id: string; name: string; }
+
+const STATUS_OPTIONS = [
+  { value: "POR_ASIGNAR", label: "Por asignar" },
+  { value: "ABIERTO",     label: "Abierto" },
+  { value: "EN_PROGRESO", label: "En progreso" },
+  { value: "EN_REVISION", label: "En revisión" },
+  { value: "CERRADO",     label: "Cerrado" },
+];
 
 export function TicketFilters({
   collaborators,
@@ -19,34 +28,66 @@ export function TicketFilters({
   const router = useRouter();
   const pathname = usePathname();
 
-  const hasFilters = Object.keys(current).length > 0;
+  const [form, setForm] = useState({
+    createdFrom:  current.createdFrom  ?? "",
+    createdTo:    current.createdTo    ?? "",
+    updatedFrom:  current.updatedFrom  ?? "",
+    updatedTo:    current.updatedTo    ?? "",
+    status:       current.status?.split(",").filter(Boolean)       ?? [] as string[],
+    assignedToId: current.assignedToId?.split(",").filter(Boolean) ?? [] as string[],
+    createdById:  current.createdById?.split(",").filter(Boolean)  ?? [] as string[],
+    companyId:    current.companyId?.split(",").filter(Boolean)    ?? [] as string[],
+  });
+
+  const hasFilters = Object.values(form).some((v) =>
+    Array.isArray(v) ? v.length > 0 : Boolean(v)
+  );
+  const filterCount = Object.values(form).filter((v) =>
+    Array.isArray(v) ? v.length > 0 : Boolean(v)
+  ).length;
+
   const [open, setOpen] = useState(hasFilters);
 
-  const inputClass =
-    "w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500";
+  function setField<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const data = new FormData(e.currentTarget);
     const params = new URLSearchParams();
-    for (const [key, value] of data.entries()) {
-      if (value) params.set(key, value as string);
-    }
+    if (form.createdFrom)          params.set("createdFrom",  form.createdFrom);
+    if (form.createdTo)            params.set("createdTo",    form.createdTo);
+    if (form.updatedFrom)          params.set("updatedFrom",  form.updatedFrom);
+    if (form.updatedTo)            params.set("updatedTo",    form.updatedTo);
+    if (form.status.length)        params.set("status",       form.status.join(","));
+    if (form.assignedToId.length)  params.set("assignedToId", form.assignedToId.join(","));
+    if (form.createdById.length)   params.set("createdById",  form.createdById.join(","));
+    if (form.companyId.length)     params.set("companyId",    form.companyId.join(","));
     const qs = params.toString();
     router.push(qs ? `${pathname}?${qs}` : pathname);
   }
 
   function handleClear() {
+    setForm({
+      createdFrom: "", createdTo: "", updatedFrom: "", updatedTo: "",
+      status: [], assignedToId: [], createdById: [], companyId: [],
+    });
     router.push(pathname);
   }
 
+  const inputClass =
+    "w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500";
+
+  const multiTriggerClass =
+    "w-full flex items-center justify-between border border-gray-300 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer";
+
   return (
-    <div className="bg-white border border-gray-200 rounded-xl mb-4 overflow-hidden">
+    <div className="bg-white border border-gray-200 rounded-xl mb-4">
       {/* Header / toggle */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors rounded-t-xl"
       >
         <span className="flex items-center gap-2">
           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -55,7 +96,7 @@ export function TicketFilters({
           Filtros
           {hasFilters && (
             <span className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-1.5 py-0.5 rounded-full">
-              {Object.keys(current).length}
+              {filterCount}
             </span>
           )}
         </span>
@@ -73,57 +114,79 @@ export function TicketFilters({
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Creado desde</label>
-              <input type="date" name="createdFrom" defaultValue={current.createdFrom ?? ""} className={inputClass} />
+              <input
+                type="date"
+                value={form.createdFrom}
+                onChange={(e) => setField("createdFrom", e.target.value)}
+                className={inputClass}
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Creado hasta</label>
-              <input type="date" name="createdTo" defaultValue={current.createdTo ?? ""} className={inputClass} />
+              <input
+                type="date"
+                value={form.createdTo}
+                onChange={(e) => setField("createdTo", e.target.value)}
+                className={inputClass}
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Actualizado desde</label>
-              <input type="date" name="updatedFrom" defaultValue={current.updatedFrom ?? ""} className={inputClass} />
+              <input
+                type="date"
+                value={form.updatedFrom}
+                onChange={(e) => setField("updatedFrom", e.target.value)}
+                className={inputClass}
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Actualizado hasta</label>
-              <input type="date" name="updatedTo" defaultValue={current.updatedTo ?? ""} className={inputClass} />
+              <input
+                type="date"
+                value={form.updatedTo}
+                onChange={(e) => setField("updatedTo", e.target.value)}
+                className={inputClass}
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Asignado a</label>
-              <select name="assignedToId" defaultValue={current.assignedToId ?? ""} className={inputClass}>
-                <option value="">Todos</option>
-                {collaborators.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <MultiSelect
+                options={collaborators.map((c) => ({ value: c.id, label: c.name }))}
+                value={form.assignedToId}
+                onChange={(v) => setField("assignedToId", v)}
+                placeholder="Todos"
+                triggerClassName={multiTriggerClass}
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Creado por</label>
-              <select name="createdById" defaultValue={current.createdById ?? ""} className={inputClass}>
-                <option value="">Todos</option>
-                {creators.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <MultiSelect
+                options={creators.map((c) => ({ value: c.id, label: c.name }))}
+                value={form.createdById}
+                onChange={(v) => setField("createdById", v)}
+                placeholder="Todos"
+                triggerClassName={multiTriggerClass}
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Estado</label>
-              <select name="status" defaultValue={current.status ?? ""} className={inputClass}>
-                <option value="">Todos</option>
-                <option value="POR_ASIGNAR">Por asignar</option>
-                <option value="ABIERTO">Abierto</option>
-                <option value="EN_PROGRESO">En progreso</option>
-                <option value="EN_REVISION">En revisión</option>
-                <option value="CERRADO">Cerrado</option>
-              </select>
+              <MultiSelect
+                options={STATUS_OPTIONS}
+                value={form.status}
+                onChange={(v) => setField("status", v)}
+                placeholder="Todos"
+                triggerClassName={multiTriggerClass}
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-500 mb-1">Empresa</label>
-              <select name="companyId" defaultValue={current.companyId ?? ""} className={inputClass}>
-                <option value="">Todas</option>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <MultiSelect
+                options={companies.map((c) => ({ value: c.id, label: c.name }))}
+                value={form.companyId}
+                onChange={(v) => setField("companyId", v)}
+                placeholder="Todas"
+                triggerClassName={multiTriggerClass}
+              />
             </div>
           </div>
 

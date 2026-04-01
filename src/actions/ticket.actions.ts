@@ -10,6 +10,9 @@ import { validateFile, uploadFile } from "@/lib/s3";
 import { getClientActivePlan } from "@/lib/plans.server";
 import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
+import { sendTicketAssignedEmail, sendTicketClosedEmail } from "@/lib/email";
+
+const APP_URL = process.env.NEXTAUTH_URL ?? "";
 
 const createTicketSchema = z.object({
   title: z.string().min(1, "El título es requerido").max(200),
@@ -185,7 +188,13 @@ export async function updateTicketStatus(ticketId: string, status: string) {
 
   const ticket = await prisma.ticket.findUnique({
     where: { id: ticketId },
-    select: { title: true, clientId: true, createdById: true, assignedToId: true },
+    select: {
+      title: true,
+      clientId: true,
+      createdById: true,
+      assignedToId: true,
+      client: { select: { name: true, email: true } },
+    },
   });
 
   await prisma.ticket.update({
@@ -212,6 +221,11 @@ export async function updateTicketStatus(ticketId: string, status: string) {
       `"${ticket.title}" cambió a: ${label}`,
       `/tickets/${ticketId}`
     );
+
+    if (status === "CERRADO" && ticket.client) {
+      const url = `${APP_URL}/tickets/${ticketId}`;
+      void sendTicketClosedEmail(ticket.client, ticket.title, url).catch(console.error);
+    }
   }
 
   revalidatePath(`/tickets/${ticketId}`);
@@ -232,7 +246,7 @@ export async function assignTicket(ticketId: string, userId: string | null) {
 
   const ticket = await prisma.ticket.findUnique({
     where: { id: ticketId },
-    select: { title: true },
+    select: { title: true, client: { select: { name: true, email: true } } },
   });
 
   await prisma.ticket.update({
@@ -248,6 +262,11 @@ export async function assignTicket(ticketId: string, userId: string | null) {
       `Se te asignó: "${ticket.title}"`,
       `/tickets/${ticketId}`
     );
+
+    if (ticket.client) {
+      const url = `${APP_URL}/tickets/${ticketId}`;
+      void sendTicketAssignedEmail(ticket.client, ticket.title, url).catch(console.error);
+    }
   }
 
   revalidatePath(`/tickets/${ticketId}`);
@@ -295,7 +314,15 @@ export async function updateTicket(ticketId: string, formData: FormData) {
 
   const oldTicket = await prisma.ticket.findUnique({
     where: { id: ticketId },
-    select: { title: true, dueDate: true, assignedToId: true, clientId: true, createdById: true },
+    select: {
+      title: true,
+      dueDate: true,
+      assignedToId: true,
+      clientId: true,
+      createdById: true,
+      status: true,
+      client: { select: { name: true, email: true } },
+    },
   });
 
   const newDueDate = parsed.data.dueDate ? new Date(parsed.data.dueDate) : null;
@@ -331,6 +358,12 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     );
   }
 
+  // Email al cliente si el ticket se cierra
+  if (parsed.data.status === "CERRADO" && oldTicket?.status !== "CERRADO" && oldTicket?.client) {
+    const url = `${APP_URL}/tickets/${ticketId}`;
+    void sendTicketClosedEmail(oldTicket.client, parsed.data.title, url).catch(console.error);
+  }
+
   revalidatePath(`/tickets/${ticketId}`);
   revalidatePath(`/tickets/${ticketId}/edit`);
   revalidatePath("/tickets");
@@ -361,7 +394,15 @@ export async function configureTicket(ticketId: string, formData: FormData) {
 
   const ticket = await prisma.ticket.findUnique({
     where: { id: ticketId },
-    select: { title: true, assignedToId: true, dueDate: true, clientId: true, createdById: true },
+    select: {
+      title: true,
+      assignedToId: true,
+      dueDate: true,
+      clientId: true,
+      createdById: true,
+      status: true,
+      client: { select: { name: true, email: true } },
+    },
   });
 
   const newDueDate = dueDateStr ? new Date(dueDateStr) : null;
@@ -376,8 +417,18 @@ export async function configureTicket(ticketId: string, formData: FormData) {
     },
   });
 
+  const ticketUrl = `${APP_URL}/tickets/${ticketId}`;
+
   if (assignedToId && assignedToId !== ticket?.assignedToId && assignedToId !== session.user.id) {
     await notify(assignedToId, "ticket_assigned", "Ticket asignado", `Se te asignó: "${ticket?.title}"`, `/tickets/${ticketId}`);
+
+    if (ticket?.client) {
+      void sendTicketAssignedEmail(ticket.client, ticket.title, ticketUrl).catch(console.error);
+    }
+  }
+
+  if (status === "CERRADO" && ticket?.status !== "CERRADO" && ticket?.client) {
+    void sendTicketClosedEmail(ticket.client, ticket.title, ticketUrl).catch(console.error);
   }
 
   // Notificar cambio de fecha límite

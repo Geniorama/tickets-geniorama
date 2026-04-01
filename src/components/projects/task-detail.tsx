@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Pencil, User2, UserCheck, Calendar, Clock, FolderOpen, Check, Trash2, MoveRight } from "lucide-react";
+import { Pencil, User2, UserCheck, Calendar, Clock, FolderOpen, Check, Trash2, MoveRight, MoreVertical } from "lucide-react";
 import type { Task, TaskComment, TaskAttachment, TaskTimeEntry, TaskStatus, Priority, User } from "@/generated/prisma";
 import type { Session } from "next-auth";
 import { TaskStatusBadge, TaskPriorityBadge } from "./project-status-badge";
@@ -51,7 +51,20 @@ export function TaskDetail({
   const [saved, setSaved] = useState(false);
   const [showMove, setShowMove] = useState(false);
   const [moveTarget, setMoveTarget] = useState("");
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const role = session.user.role;
+
+  useEffect(() => {
+    if (!showMenu) return;
+    function handler(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showMenu]);
   const staff = isStaff(role);
   const admin = isAdmin(role);
 
@@ -119,72 +132,118 @@ export function TaskDetail({
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
-                {admin && (
-                  <Link
-                    href={`/proyectos/${task.project.id}/tareas/${task.id}/edit`}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "0.25rem",
-                      fontSize: "0.8125rem",
-                      color: "#fd1384",
-                      border: "1px solid rgba(253,19,132,0.3)",
-                      borderRadius: "0.375rem",
-                      padding: "0.25rem 0.625rem",
-                      textDecoration: "none",
-                      fontWeight: 500,
-                    }}
-                  >
-                    <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />
-                    Editar
-                  </Link>
-                )}
-                {staff && (
-                  <DuplicateTaskButton taskId={task.id} projectId={task.project.id} />
-                )}
-                {admin && (
-                  <button
-                    onClick={handleDelete}
-                    disabled={isPending}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "0.25rem",
-                      fontSize: "0.8125rem",
-                      color: "#b91c1c",
-                      border: "1px solid #fecaca",
-                      borderRadius: "0.375rem",
-                      padding: "0.25rem 0.625rem",
-                      background: "none",
-                      cursor: "pointer",
-                      fontWeight: 500,
-                    }}
-                  >
-                    <Trash2 style={{ width: "0.875rem", height: "0.875rem" }} />
-                    Eliminar
-                  </button>
-                )}
-                {admin && projects.length > 0 && (
-                  <button
-                    onClick={() => setShowMove((v) => !v)}
-                    disabled={isPending}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "0.25rem",
-                      fontSize: "0.8125rem",
-                      color: "#7c3aed",
-                      border: "1px solid rgba(124,58,237,0.3)",
-                      borderRadius: "0.375rem",
-                      padding: "0.25rem 0.625rem",
-                      background: "none",
-                      cursor: "pointer",
-                      fontWeight: 500,
-                    }}
-                  >
-                    <MoveRight style={{ width: "0.875rem", height: "0.875rem" }} />
-                    Mover
-                  </button>
+                {(admin || staff) && (
+                  <div ref={menuRef} style={{ position: "relative" }}>
+                    <button
+                      onClick={() => setShowMenu((v) => !v)}
+                      title="Más opciones"
+                      style={{
+                        padding: "0.375rem",
+                        borderRadius: "0.375rem",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "var(--app-text-muted)",
+                        display: "flex",
+                        alignItems: "center",
+                      }}
+                    >
+                      <MoreVertical style={{ width: "1rem", height: "1rem" }} />
+                    </button>
+                    {showMenu && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          right: 0,
+                          top: "100%",
+                          marginTop: "0.25rem",
+                          zIndex: 20,
+                          backgroundColor: "var(--dropdown-bg)",
+                          border: "1px solid var(--dropdown-border)",
+                          borderRadius: "0.5rem",
+                          boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
+                          padding: "0.25rem 0",
+                          minWidth: "9rem",
+                        }}
+                      >
+                        {admin && (
+                          <Link
+                            href={`/proyectos/${task.project.id}/tareas/${task.id}/edit`}
+                            onClick={() => setShowMenu(false)}
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              padding: "0.5rem 0.75rem",
+                              fontSize: "0.8125rem",
+                              color: "var(--dropdown-text)",
+                              textDecoration: "none",
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--dropdown-hover-bg)")}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                          >
+                            <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />
+                            Editar
+                          </Link>
+                        )}
+                        {staff && (
+                          <DuplicateTaskButton
+                            taskId={task.id}
+                            projectId={task.project.id}
+                            menuItemStyle
+                          />
+                        )}
+                        {admin && (
+                          <button
+                            onClick={() => { setShowMenu(false); handleDelete(); }}
+                            disabled={isPending}
+                            style={{
+                              display: "flex",
+                              width: "100%",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              padding: "0.5rem 0.75rem",
+                              fontSize: "0.8125rem",
+                              color: "var(--dropdown-danger-text)",
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              fontWeight: 400,
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--dropdown-danger-hover-bg)")}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                          >
+                            <Trash2 style={{ width: "0.875rem", height: "0.875rem" }} />
+                            Eliminar
+                          </button>
+                        )}
+                        {admin && projects.length > 0 && (
+                          <button
+                            onClick={() => { setShowMenu(false); setShowMove((v) => !v); }}
+                            disabled={isPending}
+                            style={{
+                              display: "flex",
+                              width: "100%",
+                              alignItems: "center",
+                              gap: "0.5rem",
+                              padding: "0.5rem 0.75rem",
+                              fontSize: "0.8125rem",
+                              color: "var(--dropdown-purple-text)",
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              fontWeight: 400,
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--dropdown-purple-hover-bg)")}
+                            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+                          >
+                            <MoveRight style={{ width: "0.875rem", height: "0.875rem" }} />
+                            Mover
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )}
                 <TaskPriorityBadge priority={task.priority as Priority} />
                 {staff ? (

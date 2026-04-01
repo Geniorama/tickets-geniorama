@@ -71,13 +71,18 @@ export default async function TicketsPage({
     };
   }
 
+  const statusValues      = params.status?.split(",").filter(Boolean) ?? [];
+  const assignedToValues  = params.assignedToId?.split(",").filter(Boolean) ?? [];
+  const createdByValues   = params.createdById?.split(",").filter(Boolean) ?? [];
+  const companyValues     = params.companyId?.split(",").filter(Boolean) ?? [];
+
   const where = {
     ...baseWhere,
     ...dateFilters,
-    ...(params.assignedToId ? { assignedToId: params.assignedToId } : {}),
-    ...(params.createdById ? { createdById: params.createdById } : {}),
-    ...(params.companyId ? { createdBy: { companies: { some: { id: params.companyId } } } } : {}),
-    ...(params.status ? { status: params.status as never } : {}),
+    ...(assignedToValues.length  ? { assignedToId: { in: assignedToValues } }                                     : {}),
+    ...(createdByValues.length   ? { createdById:  { in: createdByValues } }                                      : {}),
+    ...(companyValues.length     ? { createdBy: { companies: { some: { id: { in: companyValues } } } } }          : {}),
+    ...(statusValues.length      ? { status: { in: statusValues as never[] } }                                    : {}),
     ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
   };
 

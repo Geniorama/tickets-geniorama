@@ -26,17 +26,17 @@ export default async function ProyectosPage({
   const admin = isAdmin(role);
 
   const q = params.q?.trim() || undefined;
-  const statusFilter    = params.status     as ProjectStatus | undefined;
-  const companyFilter   = params.companyId  as string | undefined;
-  const managerFilter   = params.managerId  as string | undefined;
+  const statusValues  = params.status?.split(",").filter(Boolean)    as ProjectStatus[] | undefined;
+  const companyValues = params.companyId?.split(",").filter(Boolean) as string[]        | undefined;
+  const managerValues = params.managerId?.split(",").filter(Boolean) as string[]        | undefined;
   const dueDateFrom     = params.dueDateFrom as string | undefined;
   const dueDateTo       = params.dueDateTo   as string | undefined;
 
   // Filtros aplicables a cualquier rol
   const extraFilters = {
-    ...(statusFilter  ? { status: statusFilter }      : {}),
-    ...(companyFilter ? { companyId: companyFilter }  : {}),
-    ...(managerFilter ? { managerId: managerFilter }  : {}),
+    ...(statusValues?.length  ? { status:    { in: statusValues } }  : {}),
+    ...(companyValues?.length ? { companyId: { in: companyValues } } : {}),
+    ...(managerValues?.length ? { managerId: { in: managerValues } } : {}),
     ...(dueDateFrom || dueDateTo
       ? {
           dueDate: {

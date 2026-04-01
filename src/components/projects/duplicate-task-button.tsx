@@ -8,9 +8,11 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 export function DuplicateTaskButton({
   taskId,
   projectId,
+  menuItemStyle = false,
 }: {
   taskId: string;
   projectId: string;
+  menuItemStyle?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -28,7 +30,20 @@ export function DuplicateTaskButton({
         onClick={() => setOpen(true)}
         disabled={isPending}
         title="Duplicar tarea"
-        style={{
+        style={menuItemStyle ? {
+          display: "flex",
+          width: "100%",
+          alignItems: "center",
+          gap: "0.5rem",
+          padding: "0.5rem 0.75rem",
+          fontSize: "0.8125rem",
+          color: "var(--dropdown-text)",
+          background: "none",
+          border: "none",
+          cursor: isPending ? "not-allowed" : "pointer",
+          fontWeight: 400,
+          opacity: isPending ? 0.5 : 1,
+        } : {
           display: "inline-flex",
           alignItems: "center",
           gap: "0.25rem",
@@ -43,14 +58,18 @@ export function DuplicateTaskButton({
           opacity: isPending ? 0.5 : 1,
           transition: "color 0.15s, border-color 0.15s",
         }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.color = "#fd1384";
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(253,19,132,0.4)";
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.color = "var(--app-text-muted)";
-          (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--app-border)";
-        }}
+        onMouseEnter={menuItemStyle
+          ? (e) => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--dropdown-hover-bg)")
+          : (e) => {
+            (e.currentTarget as HTMLButtonElement).style.color = "#fd1384";
+            (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(253,19,132,0.4)";
+          }}
+        onMouseLeave={menuItemStyle
+          ? (e) => ((e.currentTarget as HTMLButtonElement).style.backgroundColor = "transparent")
+          : (e) => {
+            (e.currentTarget as HTMLButtonElement).style.color = "var(--app-text-muted)";
+            (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--app-border)";
+          }}
       >
         {isPending
           ? <Loader2 style={{ width: "0.875rem", height: "0.875rem", animation: "spin 1s linear infinite" }} />
