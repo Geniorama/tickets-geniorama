@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.10.0] — 2026-04-01
+
+### Añadido
+- **Informes IA para proyectos** — botón "Informe IA del proyecto" en la vista de detalle de cada proyecto (visible solo para staff/admin). Genera un informe ejecutivo con Gemini que incluye: resumen, estado y % de avance, análisis del cronograma (fechas de inicio/vencimiento del proyecto y de cada tarea), desglose de tareas por estado y prioridad, y conclusiones. Opciones configurables antes de generar: checkbox para incluir nombres de encargados e instrucciones adicionales libres al agente IA. Exportable a PDF y DOCX como el resto de informes.
+- **Webhook al revertir tarea a Pendiente** — `updateTaskStatus` envía notificación a GChat cuando una tarea vuelve al estado `PENDIENTE` desde cualquier otro estado (respeta la supresión de webhooks en proyectos privados).
+- **Webhook al reabrir ticket** — `updateTicketStatus` envía notificación a GChat cuando un ticket vuelve al estado `ABIERTO` desde cualquier otro estado.
+
+### Corregido
+- **`Pagination` — advertencia de estilos en React** — reemplazado el shorthand `border` por `borderWidth`, `borderStyle` y `borderColor` en `btnBase` para evitar conflictos al hacer override de `borderColor` en la página activa.
+
+---
+
 ## [1.9.0] — 2026-03-31
 
 ### Añadido
