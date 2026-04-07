@@ -14,6 +14,9 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 ### Añadido
 - **Email a clientes al ser mencionados** — cuando un usuario con rol `CLIENTE` es etiquetado con `@` en un comentario de ticket o tarea, recibe un email de notificación vía ZeptoMail con el nombre de quien lo mencionó, el título del ticket/tarea y un enlace directo al comentario.
 
+### Corregido
+- **URLs unificadas a `AUTH_URL`** — se reemplazó `NEXTAUTH_URL` por `AUTH_URL` en `ticket.actions.ts` y `gchat.ts` para que todas las URLs del proyecto usen la misma variable de entorno de producción.
+
 ---
 
 ## [1.10.1] — 2026-04-01
