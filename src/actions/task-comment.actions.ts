@@ -151,7 +151,7 @@ export async function addTaskComment(
     );
 
     // Enviar email a clientes mencionados
-    const APP_URL = process.env.NEXTAUTH_URL ?? "";
+    const APP_URL = process.env.AUTH_URL ?? "http://localhost:3000";
     const mentionedClients = await prisma.user.findMany({
       where: { id: { in: mentionedIds }, role: "CLIENTE", isActive: true },
       select: { name: true, email: true },
