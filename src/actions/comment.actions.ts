@@ -102,7 +102,7 @@ export async function addComment(ticketId: string, formData: FormData) {
     );
 
     // Enviar email a clientes mencionados
-    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://tickets.geniorama.com";
+    const APP_URL = process.env.NEXTAUTH_URL ?? "";
     const mentionedClients = await prisma.user.findMany({
       where: { id: { in: mentionedIds }, role: "CLIENTE", isActive: true },
       select: { name: true, email: true },
