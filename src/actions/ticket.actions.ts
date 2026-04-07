@@ -12,7 +12,7 @@ import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { sendTicketAssignedEmail, sendTicketClosedEmail } from "@/lib/email";
 
-const APP_URL = process.env.NEXTAUTH_URL ?? "";
+const APP_URL = process.env.AUTH_URL ?? "http://localhost:3000";
 
 const createTicketSchema = z.object({
   title: z.string().min(1, "El título es requerido").max(200),

@@ -65,7 +65,7 @@ export async function sendGChatNotification(
   if (!webhookUrl) return;
 
   const emoji = EMOJI[type] ?? "🔔";
-  const base = process.env.NEXTAUTH_URL?.replace(/\/$/, "") ?? "";
+  const base = process.env.AUTH_URL?.replace(/\/$/, "") ?? "";
 
   let text = `${emoji} *${title}*\n${message}`;
   if (link && base) text += `\n${base}${link}`;
