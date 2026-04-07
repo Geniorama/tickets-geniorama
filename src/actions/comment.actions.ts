@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { validateFile, uploadFile } from "@/lib/s3";
 import { notifyMany } from "@/lib/notify";
+import { sendMentionEmail } from "@/lib/email";
 
 function extractMentionIds(body: string): string[] {
   const regex = /@\[[^\]]+\]\(([^)]+)\)/g;
@@ -99,6 +100,23 @@ export async function addComment(ticketId: string, formData: FormData) {
       `En el ticket: "${ticket?.title ?? ""}"`,
       `/tickets/${ticketId}`
     );
+
+    // Enviar email a clientes mencionados
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://tickets.geniorama.com";
+    const mentionedClients = await prisma.user.findMany({
+      where: { id: { in: mentionedIds }, role: "CLIENTE", isActive: true },
+      select: { name: true, email: true },
+    });
+    const ticketUrl = `${APP_URL}/tickets/${ticketId}`;
+    for (const client of mentionedClients) {
+      void sendMentionEmail(
+        { name: client.name, email: client.email },
+        session.user.name ?? "Alguien",
+        "un ticket",
+        ticket?.title ?? "",
+        ticketUrl
+      ).catch(console.error);
+    }
   }
 
   // Notificar a los participantes del ticket (excepto el comentarista)

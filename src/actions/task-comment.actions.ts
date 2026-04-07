@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { validateFile } from "@/lib/s3";
 import { notifyMany } from "@/lib/notify";
+import { sendMentionEmail } from "@/lib/email";
 
 function extractMentionIds(body: string): string[] {
   const regex = /@\[[^\]]+\]\(([^)]+)\)/g;
@@ -148,6 +149,23 @@ export async function addTaskComment(
       `/proyectos/${projectId}/tareas/${taskId}`,
       projectIsPrivate
     );
+
+    // Enviar email a clientes mencionados
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://tickets.geniorama.com";
+    const mentionedClients = await prisma.user.findMany({
+      where: { id: { in: mentionedIds }, role: "CLIENTE", isActive: true },
+      select: { name: true, email: true },
+    });
+    const taskUrl = `${APP_URL}/proyectos/${projectId}/tareas/${taskId}`;
+    for (const client of mentionedClients) {
+      void sendMentionEmail(
+        { name: client.name, email: client.email },
+        session.user.name ?? "Alguien",
+        "una tarea",
+        task?.title ?? "",
+        taskUrl
+      ).catch(console.error);
+    }
   }
 
   // Notificar al creador y asignado de la tarea (excepto el comentarista)

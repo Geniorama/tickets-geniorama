@@ -9,6 +9,13 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.11.0] — 2026-04-06
+
+### Añadido
+- **Email a clientes al ser mencionados** — cuando un usuario con rol `CLIENTE` es etiquetado con `@` en un comentario de ticket o tarea, recibe un email de notificación vía ZeptoMail con el nombre de quien lo mencionó, el título del ticket/tarea y un enlace directo al comentario.
+
+---
+
 ## [1.10.1] — 2026-04-01
 
 ### Corregido

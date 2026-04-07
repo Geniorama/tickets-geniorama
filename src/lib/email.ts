@@ -109,6 +109,43 @@ export async function sendTicketClosedEmail(to: Recipient, ticketTitle: string, 
   });
 }
 
+export async function sendMentionEmail(
+  to: Recipient,
+  mentionedBy: string,
+  contextLabel: string,
+  contextTitle: string,
+  url: string
+) {
+  await client.sendMail({
+    from: FROM,
+    to: [{ email_address: { address: to.email, name: to.name } }],
+    subject: `${mentionedBy} te mencionó en ${contextLabel}`,
+    htmlbody: `
+      <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; color: #1f2937;">
+        <div style="background: #4f46e5; padding: 24px 32px; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; color: #ffffff; font-size: 20px;">Geniorama Tickets</h1>
+        </div>
+        <div style="background: #ffffff; padding: 32px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+          <p style="margin-top: 0;">Hola <strong>${to.name}</strong>,</p>
+          <p><strong>${mentionedBy}</strong> te mencionó en un comentario.</p>
+          <p style="background: #f5f3ff; border-left: 4px solid #4f46e5; padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 24px 0;">
+            <strong>${contextTitle}</strong>
+          </p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${url}"
+               style="background: #4f46e5; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 15px;">
+              Ver comentario
+            </a>
+          </div>
+          <p style="color: #6b7280; font-size: 13px;">
+            <a href="${url}" style="color: #4f46e5; word-break: break-all;">${url}</a>
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function sendPasswordResetEmail(to: Recipient, resetUrl: string) {
   await client.sendMail({
     from: FROM,
