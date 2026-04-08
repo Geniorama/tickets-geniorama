@@ -28,21 +28,27 @@ export default async function TicketPage({
       attachments: { orderBy: { createdAt: "asc" } },
       checklistItems: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
       timeEntries: {
+        take: 200,
         orderBy: { startedAt: "asc" },
         include: { user: { select: { name: true } } },
       },
       comments: {
+        take: 50,
         where: isStaff(role) ? {} : { isInternal: false },
         include: {
           author: { select: { name: true, role: true } },
           reactions: { select: { type: true, userId: true } },
         },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: "desc" },
       },
+      _count: { select: { comments: true } },
     },
   });
 
   if (!ticket) notFound();
+
+  // Revertir orden para mostrar los más recientes al final (el take desc trae los últimos 50)
+  ticket.comments.reverse();
 
   // Para clientes: verificar acceso via empresa compartida
   if (!staff) {
@@ -103,6 +109,7 @@ export default async function TicketPage({
       <TicketDetail
         ticket={ticket}
         session={session}
+        totalComments={ticket._count.comments}
         linkedVaultEntries={linkedVaultEntries}
         availableVaultEntries={availableVaultEntries}
         collaborators={collaborators}

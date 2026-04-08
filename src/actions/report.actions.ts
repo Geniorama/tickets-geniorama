@@ -42,10 +42,15 @@ async function callGemini(prompt: string): Promise<string> {
     apiKey: process.env.GOOGLE_AI_API_KEY!,
     httpOptions: { baseUrl: "https://generativelanguage.googleapis.com" },
   });
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: prompt,
-  });
+  const response = await Promise.race([
+    ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    }),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Gemini timeout (25s)")), 25000),
+    ),
+  ]);
   return response.text ?? "";
 }
 
@@ -68,10 +73,12 @@ export async function generateTaskReport(taskId: string): Promise<{ error?: stri
       assignedTo: { select: { name: true } },
       createdBy: { select: { name: true } },
       comments: {
+        take: 100,
         include: { author: { select: { name: true } } },
         orderBy: { createdAt: "asc" },
       },
       timeEntries: {
+        take: 200,
         include: { user: { select: { name: true } } },
         orderBy: { startedAt: "asc" },
       },
@@ -176,6 +183,7 @@ export async function generateProjectReport(
       manager: { select: { name: true } },
       createdBy: { select: { name: true } },
       tasks: {
+        take: 200,
         include: {
           assignedTo: { select: { name: true } },
         },
@@ -280,11 +288,13 @@ export async function generateTicketReport(ticketId: string): Promise<{ error?: 
       plan: { select: { name: true, type: true } },
       site: { select: { name: true, domain: true } },
       comments: {
+        take: 100,
         where: { isInternal: false },
         include: { author: { select: { name: true } } },
         orderBy: { createdAt: "asc" },
       },
       timeEntries: {
+        take: 200,
         include: { user: { select: { name: true } } },
         orderBy: { startedAt: "asc" },
       },

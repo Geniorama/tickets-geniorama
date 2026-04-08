@@ -45,6 +45,7 @@ export default async function ReportesPage({
   // ── Tickets ────────────────────────────────────────────────
   const rawTickets = await prisma.ticket.findMany({
     where: ticketFilter,
+    take: 500,
     orderBy: { createdAt: "desc" },
     include: {
       client:     { select: { name: true } },

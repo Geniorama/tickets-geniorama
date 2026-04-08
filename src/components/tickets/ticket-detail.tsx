@@ -11,7 +11,7 @@ import { TicketAiAssistant } from "./ticket-ai-assistant";
 import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
 import { updateTicketStatus, deleteTicket } from "@/actions/ticket.actions";
 import { DuplicateTicketButton } from "./duplicate-ticket-button";
-import { addComment, deleteComment, editComment } from "@/actions/comment.actions";
+import { addComment, deleteComment, editComment, getTicketComments } from "@/actions/comment.actions";
 import { isStaff, isAdmin } from "@/lib/roles";
 import { AttachmentList } from "./attachment-list";
 import { AttachmentUploader } from "./attachment-uploader";
@@ -59,6 +59,7 @@ interface VaultEntry {
 export function TicketDetail({
   ticket,
   session,
+  totalComments = ticket.comments.length,
   linkedVaultEntries = [],
   availableVaultEntries = [],
   collaborators = [],
@@ -66,6 +67,7 @@ export function TicketDetail({
 }: {
   ticket: TicketWithDetails;
   session: Session;
+  totalComments?: number;
   linkedVaultEntries?: VaultEntry[];
   availableVaultEntries?: VaultEntry[];
   collaborators?: { id: string; name: string }[];
@@ -74,9 +76,14 @@ export function TicketDetail({
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [olderComments, setOlderComments] = useState<typeof ticket.comments>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(totalComments > ticket.comments.length);
   const menuRef = useRef<HTMLDivElement>(null);
   const role = session.user.role;
   const staff = isStaff(role);
+
+  const allComments = [...olderComments, ...ticket.comments];
 
   useEffect(() => {
     if (!showMenu) return;
@@ -308,12 +315,35 @@ export function TicketDetail({
 
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-base font-semibold text-gray-800 mb-4">
-              Comentarios ({ticket.comments.length})
+              Comentarios ({totalComments})
             </h2>
 
-            {ticket.comments.length > 0 ? (
+            {hasMore && (
+              <button
+                type="button"
+                disabled={loadingMore}
+                onClick={async () => {
+                  setLoadingMore(true);
+                  try {
+                    const oldest = allComments[0];
+                    if (!oldest) return;
+                    const more = await getTicketComments(ticket.id, oldest.createdAt.toISOString());
+                    if (more.length < 50) setHasMore(false);
+                    setOlderComments((prev) => [...more.map((c) => ({ ...c, createdAt: new Date(c.createdAt) })), ...prev]);
+                  } finally {
+                    setLoadingMore(false);
+                  }
+                }}
+                className="w-full mb-4 py-2 text-sm font-medium rounded-lg border"
+                style={{ borderColor: "var(--app-border)", color: "var(--app-text-muted)" }}
+              >
+                {loadingMore ? "Cargando..." : "Cargar comentarios anteriores"}
+              </button>
+            )}
+
+            {allComments.length > 0 ? (
               <div className="space-y-4 mb-6">
-                {ticket.comments.map((comment) => (
+                {allComments.map((comment) => (
                   <TicketCommentItem
                     key={comment.id}
                     comment={comment}

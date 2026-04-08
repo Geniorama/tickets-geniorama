@@ -182,12 +182,12 @@ export async function createTask(projectIdArg: string | null, formData: FormData
   if (linksRaw) {
     try {
       const linksList = JSON.parse(linksRaw) as { url: string; label: string }[];
-      for (const { url, label } of linksList) {
-        if (!url) continue;
-        await prisma.taskAttachment.create({
-          data: { taskId: task.id, uploadedById: session.user.id, fileName: label || url, fileUrl: url, storagePath: "link" },
-        });
-      }
+      const linkData = linksList
+        .filter(({ url }) => !!url)
+        .map(({ url, label }) => ({
+          taskId: task.id, uploadedById: session.user.id, fileName: label || url, fileUrl: url, storagePath: "link",
+        }));
+      if (linkData.length > 0) await prisma.taskAttachment.createMany({ data: linkData });
     } catch { /* JSON inválido, ignorar */ }
   }
 
@@ -196,13 +196,13 @@ export async function createTask(projectIdArg: string | null, formData: FormData
   if (checklistRaw) {
     try {
       const items = JSON.parse(checklistRaw) as string[];
-      for (let i = 0; i < items.length; i++) {
-        const title = items[i]?.trim();
-        if (!title) continue;
-        await prisma.taskChecklistItem.create({
-          data: { taskId: task.id, title, position: i, createdById: session.user.id },
-        });
-      }
+      const checklistData = items
+        .map((item, i) => ({ title: item?.trim(), position: i }))
+        .filter((item): item is { title: string; position: number } => !!item.title)
+        .map(({ title, position }) => ({
+          taskId: task.id, title, position, createdById: session.user.id,
+        }));
+      if (checklistData.length > 0) await prisma.taskChecklistItem.createMany({ data: checklistData });
     } catch { /* JSON inválido, ignorar */ }
   }
 
@@ -385,12 +385,12 @@ export async function updateTask(taskId: string, projectId: string, formData: Fo
   if (linksRaw) {
     try {
       const linksList = JSON.parse(linksRaw) as { url: string; label: string }[];
-      for (const { url, label } of linksList) {
-        if (!url) continue;
-        await prisma.taskAttachment.create({
-          data: { taskId, uploadedById: session.user.id, fileName: label || url, fileUrl: url, storagePath: "link" },
-        });
-      }
+      const linkData = linksList
+        .filter(({ url }) => !!url)
+        .map(({ url, label }) => ({
+          taskId, uploadedById: session.user.id, fileName: label || url, fileUrl: url, storagePath: "link",
+        }));
+      if (linkData.length > 0) await prisma.taskAttachment.createMany({ data: linkData });
     } catch { /* JSON inválido */ }
   }
 

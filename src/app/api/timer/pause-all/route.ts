@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
+export const maxDuration = 15;
+
 /**
  * Detiene todos los timers activos del usuario autenticado.
  * Llamado por:

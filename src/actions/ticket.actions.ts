@@ -115,13 +115,13 @@ export async function createTicket(formData: FormData) {
   if (checklistRaw) {
     try {
       const items = JSON.parse(checklistRaw) as string[];
-      for (let i = 0; i < items.length; i++) {
-        const title = items[i]?.trim();
-        if (!title) continue;
-        await prisma.ticketChecklistItem.create({
-          data: { ticketId: ticket.id, title, position: i, createdById: session.user.id },
-        });
-      }
+      const checklistData = items
+        .map((item, i) => ({ title: item?.trim(), position: i }))
+        .filter((item): item is { title: string; position: number } => !!item.title)
+        .map(({ title, position }) => ({
+          ticketId: ticket.id, title, position, createdById: session.user.id,
+        }));
+      if (checklistData.length > 0) await prisma.ticketChecklistItem.createMany({ data: checklistData });
     } catch { /* JSON inválido, ignorar */ }
   }
 

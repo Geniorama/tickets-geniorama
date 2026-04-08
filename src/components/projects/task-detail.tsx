@@ -39,11 +39,13 @@ const taskStatusOptions: { value: TaskStatus; label: string }[] = [
 export function TaskDetail({
   task,
   session,
+  totalComments = task.comments.length,
   projects = [],
   checklistSlot,
 }: {
   task: TaskWithDetails;
   session: Session;
+  totalComments?: number;
   projects?: { id: string; name: string }[];
   checklistSlot?: React.ReactNode;
 }) {
@@ -532,7 +534,7 @@ export function TaskDetail({
                 marginBottom: "1rem",
               }}
             >
-              Comentarios ({task.comments.length})
+              Comentarios ({totalComments})
             </h2>
             <TaskCommentSection
               taskId={task.id}
@@ -548,6 +550,7 @@ export function TaskDetail({
                 author: c.author,
                 reactions: c.reactions,
               }))}
+              totalComments={totalComments}
               currentUserId={session.user.id}
               isAdmin={admin}
             />

@@ -4,6 +4,8 @@ import { sendGChatNotification } from "@/lib/gchat";
 import { fromZonedTime } from "date-fns-tz";
 import { formatDate } from "@/lib/format-date";
 
+export const maxDuration = 30;
+
 const TZ = "America/Bogota";
 
 const PRIORITY_LABEL: Record<string, string> = {
@@ -32,6 +34,7 @@ export async function POST(req: NextRequest) {
         status: { notIn: ["CERRADO", "EN_REVISION"] },
         dueDate: { lt: today },
       },
+      take: 50,
       select: {
         id:         true,
         title:      true,
@@ -47,6 +50,7 @@ export async function POST(req: NextRequest) {
         dueDate: { lt: today },
         project: { isPrivate: false },
       },
+      take: 50,
       select: {
         id:         true,
         title:      true,
@@ -60,24 +64,23 @@ export async function POST(req: NextRequest) {
     }),
   ]);
 
-  // Un mensaje por ticket vencido
-  for (const ticket of overdueTickets) {
+  // Enviar notificaciones en paralelo (batches de 5 para no saturar)
+  const ticketNotifications = overdueTickets.map((ticket) => {
     const assignedName = ticket.assignedTo?.name ?? "Sin asignar";
     const parts = [
       `👤 ${assignedName}`,
       `📅 Vencido: ${formatDate(ticket.dueDate!)}`,
       `Prioridad: ${PRIORITY_LABEL[ticket.priority] ?? ticket.priority}`,
     ];
-    await sendGChatNotification(
+    return () => sendGChatNotification(
       "ticket_overdue",
       "Ticket vencido",
       `"${ticket.title}" · ${parts.join(" · ")}`,
       `/tickets/${ticket.id}`,
     );
-  }
+  });
 
-  // Un mensaje por tarea vencida
-  for (const task of overdueTasks) {
+  const taskNotifications = overdueTasks.map((task) => {
     const assignedName = task.assignedTo?.name ?? "Sin asignar";
     const parts = [
       task.project ? `Proyecto: ${task.project.name}` : null,
@@ -85,12 +88,18 @@ export async function POST(req: NextRequest) {
       `📅 Vencido: ${formatDate(task.dueDate!)}`,
       `Prioridad: ${PRIORITY_LABEL[task.priority] ?? task.priority}`,
     ].filter(Boolean);
-    await sendGChatNotification(
+    return () => sendGChatNotification(
       "task_overdue",
       "Tarea vencida",
       `"${task.title}" · ${parts.join(" · ")}`,
       `/proyectos/${task.projectId}/tareas/${task.id}`,
     );
+  });
+
+  const allNotifications = [...ticketNotifications, ...taskNotifications];
+  const BATCH_SIZE = 5;
+  for (let i = 0; i < allNotifications.length; i += BATCH_SIZE) {
+    await Promise.all(allNotifications.slice(i, i + BATCH_SIZE).map((fn) => fn()));
   }
 
   return NextResponse.json({

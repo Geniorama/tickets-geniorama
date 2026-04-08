@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { addTaskComment, deleteTaskComment, editTaskComment } from "@/actions/task-comment.actions";
+import { addTaskComment, deleteTaskComment, editTaskComment, getTaskComments } from "@/actions/task-comment.actions";
 import { toggleTaskCommentReaction } from "@/actions/reaction.actions";
 import { Link2, Paperclip, ExternalLink, FileText, Pencil, Trash2 } from "lucide-react";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
@@ -38,20 +38,74 @@ export function TaskCommentSection({
   taskId,
   projectId,
   comments,
+  totalComments = comments.length,
   currentUserId,
   isAdmin,
 }: {
   taskId: string;
   projectId: string;
   comments: Comment[];
+  totalComments?: number;
   currentUserId: string;
   isAdmin: boolean;
 }) {
+  const [olderComments, setOlderComments] = useState<Comment[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(totalComments > comments.length);
+
+  const allComments = [...olderComments, ...comments];
+
   return (
     <div>
-      {comments.length > 0 ? (
+      {hasMore && (
+        <button
+          type="button"
+          disabled={loadingMore}
+          onClick={async () => {
+            setLoadingMore(true);
+            try {
+              const oldest = allComments[0];
+              if (!oldest) return;
+              const more = await getTaskComments(taskId, oldest.createdAt.toISOString());
+              if (more.length < 50) setHasMore(false);
+              setOlderComments((prev) => [
+                ...more.map((c) => ({
+                  id: c.id,
+                  body: c.body,
+                  authorId: c.authorId,
+                  attachmentType: c.attachmentType,
+                  attachmentUrl: c.attachmentUrl,
+                  attachmentName: c.attachmentName,
+                  createdAt: new Date(c.createdAt),
+                  author: c.author,
+                  reactions: c.reactions,
+                })),
+                ...prev,
+              ]);
+            } finally {
+              setLoadingMore(false);
+            }
+          }}
+          style={{
+            width: "100%",
+            marginBottom: "1rem",
+            padding: "0.5rem",
+            fontSize: "0.875rem",
+            fontWeight: 500,
+            borderRadius: "0.5rem",
+            border: "1px solid var(--app-border)",
+            color: "var(--app-text-muted)",
+            backgroundColor: "transparent",
+            cursor: "pointer",
+          }}
+        >
+          {loadingMore ? "Cargando..." : "Cargar comentarios anteriores"}
+        </button>
+      )}
+
+      {allComments.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginBottom: "1.5rem" }}>
-          {comments.map((comment) => (
+          {allComments.map((comment) => (
             <TaskCommentItem
               key={comment.id}
               comment={comment}

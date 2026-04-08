@@ -43,6 +43,7 @@ export default async function EstadisticasPage() {
       role: true,
       isActive: true,
       assignedTasks: {
+        take: 500,
         select: { status: true, dueDate: true, priority: true },
       },
     },

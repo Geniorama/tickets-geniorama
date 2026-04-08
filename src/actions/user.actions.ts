@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, unstable_cache } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
@@ -186,44 +186,59 @@ export async function deleteUser(userId: string) {
 
 // ─── getMentionableUsers ──────────────────────────────────────────────────────
 
-export async function getMentionableUsers(): Promise<{ id: string; name: string }[]> {
-  const session = await getRequiredSession();
-
-  // Staff ve todos los usuarios activos
-  if (session.user.role !== "CLIENTE") {
-    return prisma.user.findMany({
+// Cache interno para staff (todos los usuarios activos) — 60s TTL
+const getCachedStaffMentionables = unstable_cache(
+  async () =>
+    prisma.user.findMany({
       where: { isActive: true },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
+    }),
+  ["mentionable-staff"],
+  { revalidate: 60 },
+);
+
+// Cache interno para clientes (por userId) — 60s TTL
+const getCachedClientMentionables = unstable_cache(
+  async (userId: string) => {
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { companies: { select: { id: true } } },
     });
+
+    if (!currentUser) return [];
+
+    const userCompanyIds = currentUser.companies.map((c) => c.id);
+
+    const subCompanies = await prisma.company.findMany({
+      where: { parentId: { in: userCompanyIds } },
+      select: { id: true },
+    });
+
+    const allowedCompanyIds = [...userCompanyIds, ...subCompanies.map((c) => c.id)];
+
+    return prisma.user.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { role: { in: ["ADMINISTRADOR", "COLABORADOR"] } },
+          { role: "CLIENTE", companies: { some: { id: { in: allowedCompanyIds } } } },
+        ],
+      },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+  },
+  ["mentionable-client"],
+  { revalidate: 60 },
+);
+
+export async function getMentionableUsers(): Promise<{ id: string; name: string }[]> {
+  const session = await getRequiredSession();
+
+  if (session.user.role !== "CLIENTE") {
+    return getCachedStaffMentionables();
   }
 
-  // Cliente: recuperar sus empresas y sus subempresas (relación M:N)
-  const currentUser = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { companies: { select: { id: true } } },
-  });
-
-  if (!currentUser) return [];
-
-  const userCompanyIds = currentUser.companies.map((c) => c.id);
-
-  const subCompanies = await prisma.company.findMany({
-    where: { parentId: { in: userCompanyIds } },
-    select: { id: true },
-  });
-
-  const allowedCompanyIds = [...userCompanyIds, ...subCompanies.map((c) => c.id)];
-
-  return prisma.user.findMany({
-    where: {
-      isActive: true,
-      OR: [
-        { role: { in: ["ADMINISTRADOR", "COLABORADOR"] } },
-        { role: "CLIENTE", companies: { some: { id: { in: allowedCompanyIds } } } },
-      ],
-    },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
+  return getCachedClientMentionables(session.user.id);
 }

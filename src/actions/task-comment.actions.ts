@@ -186,6 +186,29 @@ export async function addTaskComment(
   return { success: true };
 }
 
+export async function getTaskComments(
+  taskId: string,
+  cursor: string,
+  take = 50,
+) {
+  await getRequiredSession();
+
+  const comments = await prisma.taskComment.findMany({
+    where: {
+      taskId,
+      createdAt: { lt: new Date(cursor) },
+    },
+    take,
+    include: {
+      author: { select: { name: true } },
+      reactions: { select: { type: true, userId: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return comments.reverse();
+}
+
 export async function editTaskComment(
   commentId: string,
   taskId: string,

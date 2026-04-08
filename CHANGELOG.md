@@ -9,6 +9,25 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.12.0] — 2026-04-08
+
+### Añadido
+- **Loading skeletons** — se crearon `loading.tsx` para dashboard, tickets, proyectos, tareas, reportes y admin. Los usuarios ven un estado de carga en lugar de pantalla en blanco.
+- **Error boundaries** — se crearon `error.tsx` para el dashboard global, detalle de ticket, detalle de proyecto y reportes. Los errores ahora muestran un mensaje amigable con opción de reintentar.
+- **Paginación de comentarios** — los detalles de ticket y tarea cargan los últimos 50 comentarios inicialmente, con botón "Cargar comentarios anteriores" para ver el historial completo.
+- **Server actions de paginación** — `getTicketComments()` y `getTaskComments()` para carga incremental de comentarios.
+- **`maxDuration` en API routes** — cron overdue (30s) y timer pause-all (15s) para evitar timeouts en Netlify.
+
+### Mejorado
+- **Suspense en dashboard layout** — la alerta de items vencidos se carga de forma asíncrona sin bloquear el render del shell principal.
+- **Queries limitadas** — se agregó `take` a todas las queries pesadas: reportes (100-200), layout overdue (50), comentarios (50), time entries (200), estadísticas (500), listado de tickets en reportes (500), cron overdue (50).
+- **Batch de operaciones N+1** — los links y checklist items en tareas y tickets ahora usan `createMany()` en lugar de inserts secuenciales en loop.
+- **Notificaciones cron en paralelo** — las notificaciones GChat de items vencidos se envían en batches de 5 en paralelo en vez de secuencialmente.
+- **Cache en `getMentionableUsers()`** — resultado cacheado 60s con `unstable_cache` para evitar queries repetidas en cada keystroke de menciones.
+- **Timeout en Gemini AI** — las llamadas a `callGemini()` ahora tienen timeout de 25s para evitar que una respuesta lenta consuma todo el budget de la función serverless.
+
+---
+
 ## [1.11.0] — 2026-04-06
 
 ### Añadido

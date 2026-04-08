@@ -142,6 +142,31 @@ export async function addComment(ticketId: string, formData: FormData) {
   return { success: true };
 }
 
+export async function getTicketComments(
+  ticketId: string,
+  cursor: string,
+  take = 50,
+) {
+  const session = await getRequiredSession();
+  const staff = isStaff(session.user.role);
+
+  const comments = await prisma.ticketComment.findMany({
+    where: {
+      ticketId,
+      ...(staff ? {} : { isInternal: false }),
+      createdAt: { lt: new Date(cursor) },
+    },
+    take,
+    include: {
+      author: { select: { name: true, role: true } },
+      reactions: { select: { type: true, userId: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return comments.reverse();
+}
+
 export async function editComment(commentId: string, ticketId: string, body: string) {
   const session = await getRequiredSession();
 
