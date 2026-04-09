@@ -26,12 +26,11 @@ export default async function TaskPage({
       assignedTo: { select: { id: true, name: true } },
       createdBy: { select: { id: true, name: true } },
       comments: {
-        take: 50,
         include: {
           author: { select: { name: true } },
           reactions: { select: { type: true, userId: true } },
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: "asc" },
       },
       checklistItems: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
       attachments: {
@@ -46,12 +45,6 @@ export default async function TaskPage({
   });
 
   if (!task || task.projectId !== projectId) notFound();
-
-  // Count total de comentarios (separado para compatibilidad con adapter-pg)
-  const totalCommentCount = await prisma.taskComment.count({ where: { taskId } });
-
-  // Revertir orden para mostrar los más recientes al final
-  task.comments.reverse();
 
   const moveableProjects = admin
     ? await prisma.project.findMany({
@@ -92,7 +85,6 @@ export default async function TaskPage({
       <TaskDetail
         task={task}
         session={session}
-        totalComments={totalCommentCount}
         projects={moveableProjects}
         checklistSlot={
           <TaskChecklistPanel
