@@ -85,9 +85,29 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
     return new Date(d).toISOString().split("T")[0];
   };
 
+  const [fileErrors, setFileErrors] = useState<string[]>([]);
+
+  function validateFileClient(file: File): string | null {
+    const videoTypes = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"];
+    const isVideo = videoTypes.includes(file.type);
+    const limit = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
+    const label = isVideo ? "100 MB" : "10 MB";
+    if (file.size > limit) return `"${file.name}" supera los ${label} (${formatFileSize(file.size)})`;
+    return null;
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const incoming = Array.from(e.target.files ?? []);
-    setSelectedFiles((prev) => [...prev, ...incoming]);
+    const errors: string[] = [];
+    const valid: File[] = [];
+    for (const file of incoming) {
+      const err = validateFileClient(file);
+      if (err) errors.push(err);
+      else valid.push(file);
+    }
+    if (errors.length > 0) setFileErrors(errors);
+    else setFileErrors([]);
+    if (valid.length > 0) setSelectedFiles((prev) => [...prev, ...valid]);
     e.target.value = "";
   }
 
@@ -295,8 +315,16 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
               Seleccionar archivos
             </button>
             <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", marginTop: "0.375rem" }}>
-              Imágenes, video, PDF o Word · máx. 10 MB (100 MB para video) · puedes agregar varios uno a uno
+              Imágenes, video, PDF, Word, Excel o PowerPoint · máx. 10 MB (100 MB para video)
             </p>
+
+            {fileErrors.length > 0 && (
+              <div style={{ marginTop: "0.375rem", padding: "0.5rem 0.75rem", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "0.375rem" }}>
+                {fileErrors.map((err, i) => (
+                  <p key={i} style={{ fontSize: "0.75rem", color: "#b91c1c", margin: 0 }}>{err}</p>
+                ))}
+              </div>
+            )}
 
             {/* Lista de archivos seleccionados */}
             {selectedFiles.length > 0 && (
