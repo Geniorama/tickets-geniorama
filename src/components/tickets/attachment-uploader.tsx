@@ -54,7 +54,7 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
         ref={inputRef}
         type="file"
         multiple
-        accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx"
+        accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
         style={{ display: "none" }}
         onChange={handleFileChange}
       />

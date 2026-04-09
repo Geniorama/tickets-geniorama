@@ -657,7 +657,7 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
                 name="attachmentFile"
                 type="file"
                 required
-                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx"
+                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
                 className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
               />
             </div>

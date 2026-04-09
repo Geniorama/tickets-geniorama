@@ -41,6 +41,10 @@ const ALLOWED_MIME_TYPES = [
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 ];
 
 const VIDEO_MIME_TYPES = new Set([
@@ -59,7 +63,7 @@ export function validateFile(file: File): string | null {
   const label   = isVideo ? "100 MB" : "10 MB";
   if (file.size > limit) return `El archivo supera los ${label}`;
   if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-    return "Tipo de archivo no permitido. Solo imágenes, video, PDF y documentos Word";
+    return "Tipo de archivo no permitido. Solo imágenes, video, PDF, Word, Excel y PowerPoint";
   }
   return null;
 }

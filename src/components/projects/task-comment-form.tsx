@@ -477,7 +477,7 @@ function TaskCommentForm({
             name="attachmentFile"
             type="file"
             required
-            accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx"
+            accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
             style={{ fontSize: "0.875rem", color: "var(--app-text-muted)" }}
           />
         </div>

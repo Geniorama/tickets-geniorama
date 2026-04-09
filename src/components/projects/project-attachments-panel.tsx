@@ -309,7 +309,7 @@ export function ProjectAttachmentsPanel({
               type="file"
               style={{ display: "none" }}
               onChange={handleFileUpload}
-              accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx"
+              accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
             />
           </div>
         )}

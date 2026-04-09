@@ -268,7 +268,7 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx"
+              accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
               style={{ display: "none" }}
               onChange={handleFileChange}
             />
