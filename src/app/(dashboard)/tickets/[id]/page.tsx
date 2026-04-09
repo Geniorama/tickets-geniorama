@@ -41,11 +41,15 @@ export default async function TicketPage({
         },
         orderBy: { createdAt: "desc" },
       },
-      _count: { select: { comments: true } },
     },
   });
 
   if (!ticket) notFound();
+
+  // Count total de comentarios (separado para compatibilidad con adapter-pg)
+  const totalCommentCount = await prisma.ticketComment.count({
+    where: { ticketId, ...(isStaff(role) ? {} : { isInternal: false }) },
+  });
 
   // Revertir orden para mostrar los más recientes al final (el take desc trae los últimos 50)
   ticket.comments.reverse();
@@ -109,7 +113,7 @@ export default async function TicketPage({
       <TicketDetail
         ticket={ticket}
         session={session}
-        totalComments={ticket._count.comments}
+        totalComments={totalCommentCount}
         linkedVaultEntries={linkedVaultEntries}
         availableVaultEntries={availableVaultEntries}
         collaborators={collaborators}
