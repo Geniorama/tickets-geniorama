@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Ticket, Building2, Users, BookOpen, CreditCard,
   BarChart3, FolderKanban, ListTodo, TrendingUp, ChevronDown, Server as ServerIcon, Globe, KeyRound, Plug, Sparkles,
+  ChevronsLeft, ChevronsRight,
 } from "lucide-react";
 
 type NavChild = {
@@ -63,10 +64,14 @@ export function Sidebar({
   role,
   isOpen = false,
   onClose,
+  collapsed = false,
+  onToggleCollapsed,
 }: {
   role: Role;
   isOpen?: boolean;
   onClose?: () => void;
+  collapsed?: boolean;
+  onToggleCollapsed?: () => void;
 }) {
   const pathname  = usePathname();
   const { theme } = useTheme();
@@ -98,19 +103,24 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "w-60 flex flex-col shrink-0 transition-transform duration-300 ease-in-out",
+        "w-60 flex flex-col shrink-0 transition-all duration-300 ease-in-out",
         // Mobile: overlay fijo, se desliza desde la izquierda
         "fixed inset-y-0 left-0 z-40",
         // Desktop: vuelve al flujo normal del documento
-        "lg:static lg:inset-auto lg:z-auto lg:translate-x-0 lg:transition-none",
+        "lg:static lg:inset-auto lg:z-auto lg:translate-x-0",
         // Visibilidad en móvil controlada por isOpen
         !isOpen && "-translate-x-full lg:translate-x-0",
+        // Colapso solo en desktop
+        collapsed && "lg:w-16",
       )}
       style={{ backgroundColor: "var(--app-sidebar-bg)" }}
     >
       {/* Logo */}
       <div
-        className="h-14 px-5 flex items-center justify-between"
+        className={cn(
+          "h-14 flex items-center justify-between",
+          collapsed ? "px-3 lg:px-2 lg:justify-center" : "px-5",
+        )}
         style={{ borderBottom: "1px solid var(--app-border)" }}
       >
         <Image
@@ -118,9 +128,18 @@ export function Sidebar({
           alt="Geniorama"
           width={140}
           height={40}
-          className="object-contain"
+          className={cn("object-contain", collapsed && "lg:hidden")}
           priority
         />
+        {collapsed && (
+          <span
+            className="hidden lg:flex items-center justify-center w-8 h-8 rounded-lg text-sm font-bold"
+            style={{ backgroundColor: "#fd1384", color: "#ffffff" }}
+            aria-hidden
+          >
+            G
+          </span>
+        )}
         {/* Botón cerrar — solo en móvil */}
         <button
           className="lg:hidden p-1 rounded-lg"
@@ -133,7 +152,7 @@ export function Sidebar({
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 p-3">
+      <nav className={cn("flex-1", collapsed ? "p-3 lg:p-2" : "p-3")}>
         <ul className="space-y-1">
           {navItems.filter(visible).map((item) => {
             const Icon         = item.icon;
@@ -149,10 +168,14 @@ export function Sidebar({
             return (
               <li key={item.href}>
                 {/* Parent row */}
-                <div style={{ display: "flex", alignItems: "stretch" }}>
+                <div className="flex items-stretch">
                   <Link
                     href={item.href}
-                    className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all flex-1")}
+                    title={collapsed ? item.label : undefined}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all flex-1",
+                      collapsed && "lg:justify-center lg:px-2 lg:gap-0",
+                    )}
                     style={selfActive ? { backgroundColor: "#fd1384", color: "#ffffff" } : { color: "var(--app-nav-text)" }}
                     onClick={onClose}
                     onMouseEnter={(e) => {
@@ -172,7 +195,7 @@ export function Sidebar({
                       className="w-4 h-4 shrink-0"
                       style={{ color: selfActive ? "#ffffff" : "var(--app-icon-color)" }}
                     />
-                    {item.label}
+                    <span className={cn(collapsed && "lg:hidden")}>{item.label}</span>
                   </Link>
 
                   {/* Chevron toggle */}
@@ -180,15 +203,16 @@ export function Sidebar({
                     <button
                       onClick={() => toggle(item.href)}
                       aria-label="Expandir"
+                      className={cn(
+                        "flex items-center rounded-lg",
+                        collapsed && "lg:hidden",
+                      )}
                       style={{
                         background: "none",
                         border: "none",
                         cursor: "pointer",
                         padding: "0 0.5rem",
                         color: "var(--app-icon-color)",
-                        display: "flex",
-                        alignItems: "center",
-                        borderRadius: "0.5rem",
                         transition: "color 0.15s",
                       }}
                     >
@@ -203,17 +227,15 @@ export function Sidebar({
                   )}
                 </div>
 
-                {/* Children */}
+                {/* Children — ocultos cuando el sidebar está colapsado en desktop */}
                 {hasChildren && isOpen && (
                   <ul
+                    className={cn(
+                      "flex flex-col gap-0.5 mt-0.5 ml-4 pl-3",
+                      collapsed && "lg:hidden",
+                    )}
                     style={{
-                      marginTop: "0.125rem",
-                      marginLeft: "1rem",
-                      paddingLeft: "0.75rem",
                       borderLeft: "1px solid var(--app-border)",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "0.125rem",
                     }}
                   >
                     {visibleKids.map((child) => {
@@ -256,9 +278,38 @@ export function Sidebar({
         </ul>
       </nav>
 
+      {/* Toggle colapso (solo desktop) */}
+      {onToggleCollapsed && (
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
+          title={collapsed ? "Expandir menú" : "Colapsar menú"}
+          className="hidden lg:flex items-center gap-2 px-3 py-2 mx-3 mb-2 rounded-lg text-xs font-medium transition-colors"
+          style={{ color: "var(--app-nav-text)", backgroundColor: "transparent", border: "none", cursor: "pointer", justifyContent: collapsed ? "center" : "flex-start" }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--app-nav-hover-bg)"; e.currentTarget.style.color = "var(--app-body-text)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "var(--app-nav-text)"; }}
+        >
+          {collapsed ? (
+            <ChevronsRight className="w-4 h-4" style={{ color: "var(--app-icon-color)" }} />
+          ) : (
+            <>
+              <ChevronsLeft className="w-4 h-4" style={{ color: "var(--app-icon-color)" }} />
+              Colapsar
+            </>
+          )}
+        </button>
+      )}
+
       {/* Footer */}
-      <div className="p-4" style={{ borderTop: "1px solid var(--app-border)" }}>
-        <p className="text-xs text-center" style={{ color: "var(--app-footer-text)" }}>
+      <div
+        className={cn("p-4", collapsed && "lg:px-2 lg:py-3")}
+        style={{ borderTop: "1px solid var(--app-border)" }}
+      >
+        <p
+          className={cn("text-xs text-center", collapsed && "lg:hidden")}
+          style={{ color: "var(--app-footer-text)" }}
+        >
           Sistema de Tickets
         </p>
         <p className="text-xs text-center mt-0.5" style={{ color: "var(--app-footer-text)", opacity: 0.5 }}>

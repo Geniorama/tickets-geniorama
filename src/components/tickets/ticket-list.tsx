@@ -7,6 +7,7 @@ import type { Role, Ticket, TicketStatus, Priority } from "@/generated/prisma";
 import { formatDateTime, formatDate } from "@/lib/format-date";
 import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
 import { isStaff } from "@/lib/roles";
+import { ticketCode } from "@/lib/ticket-code";
 
 type TicketWithRelations = Ticket & {
   createdBy: { name: string; companies: { name: string }[] };
@@ -84,7 +85,14 @@ export function TicketList({
           <li key={ticket.id}>
             <Link href={`/tickets/${ticket.id}`} className="block px-4 py-3 hover:bg-gray-50 transition-colors">
               <div className="flex items-start justify-between gap-2 mb-1.5">
-                <span className="font-medium text-gray-900 text-sm leading-snug">{ticket.title}</span>
+                <span className="font-medium text-gray-900 text-sm leading-snug">
+                  {ticket.number > 0 && (
+                    <span className="inline-block align-middle mr-1.5 px-1.5 py-0.5 rounded text-[0.6875rem] font-semibold text-gray-500 bg-gray-50 border border-gray-200">
+                      {ticketCode(ticket.prefix, ticket.number)}
+                    </span>
+                  )}
+                  {ticket.title}
+                </span>
                 <PriorityBadge priority={ticket.priority as Priority} />
               </div>
               <div className="flex flex-wrap items-center gap-2 mb-1.5">
@@ -139,6 +147,11 @@ export function TicketList({
                     href={`/tickets/${ticket.id}`}
                     className="font-medium text-gray-900 hover:text-indigo-600"
                   >
+                    {ticket.number > 0 && (
+                      <span className="inline-block align-middle mr-1.5 px-1.5 py-0.5 rounded text-[0.6875rem] font-semibold text-gray-500 bg-gray-50 border border-gray-200">
+                        {ticketCode(ticket.prefix, ticket.number)}
+                      </span>
+                    )}
                     {ticket.title}
                   </Link>
                   {ticket.category && (

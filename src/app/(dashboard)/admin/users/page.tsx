@@ -7,10 +7,9 @@ import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/search-input";
 import { UsersTable } from "@/components/admin/users-table";
 import { UserFilters } from "@/components/admin/user-filters";
+import { getPageSize } from "@/lib/pagination";
 
 export const metadata = { title: "Usuarios — Geniorama Tickets" };
-
-const PAGE_SIZE = 25;
 
 export default async function UsersPage({
   searchParams,
@@ -20,6 +19,7 @@ export default async function UsersPage({
   const session = await requireRole(["ADMINISTRADOR"]);
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const pageSize = getPageSize(params.pageSize);
   const sortBy  = params.sortBy  ?? "createdAt";
   const sortDir = (params.sortDir === "asc" ? "asc" : "desc") as "asc" | "desc";
   const q         = params.q?.trim() || undefined;
@@ -66,8 +66,8 @@ export default async function UsersPage({
         companies: { select: { name: true } },
         createdAt: true,
       },
-      take: PAGE_SIZE,
-      skip: (page - 1) * PAGE_SIZE,
+      take: pageSize,
+      skip: (page - 1) * pageSize,
     }),
     prisma.user.count({ where: userWhere }),
     prisma.company.findMany({
@@ -109,7 +109,7 @@ export default async function UsersPage({
       <Pagination
         totalItems={totalUsers}
         currentPage={page}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         params={params}
         basePath="/admin/users"
       />

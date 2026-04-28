@@ -11,6 +11,7 @@ import { getClientActivePlan } from "@/lib/plans.server";
 import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { sendTicketAssignedEmail, sendTicketClosedEmail } from "@/lib/email";
+import { ticketPrefix } from "@/lib/ticket-code";
 
 const APP_URL = process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -23,6 +24,7 @@ const createTicketSchema = z.object({
   clientId: z.string().optional(),
   planId: z.string().optional(),
   siteId: z.string().optional(),
+  dueDate: z.string().optional(),
 });
 
 export async function createTicket(formData: FormData) {
@@ -37,6 +39,7 @@ export async function createTicket(formData: FormData) {
     clientId: formData.get("clientId") || undefined,
     planId: formData.get("planId") || undefined,
     siteId: formData.get("siteId") || undefined,
+    dueDate: formData.get("dueDate") || undefined,
   });
 
   if (!parsed.success) {
@@ -72,19 +75,53 @@ export async function createTicket(formData: FormData) {
     planId = parsed.data.planId ?? null;
   }
 
-  const ticket = await prisma.ticket.create({
-    data: {
-      title: parsed.data.title,
-      description: parsed.data.description,
-      priority: parsed.data.priority,
-      category: parsed.data.category ?? null,
-      assignedToId: parsed.data.assignedToId ?? null,
-      clientId,
-      createdById: session.user.id,
-      planId,
-      siteId: parsed.data.siteId ?? null,
-      ...(session.user.role === "CLIENTE" ? { status: "POR_ASIGNAR" as never } : {}),
-    },
+  // Solo staff puede definir fecha límite al crear; los clientes no
+  const dueDate =
+    session.user.role !== "CLIENTE" && parsed.data.dueDate
+      ? new Date(parsed.data.dueDate)
+      : null;
+
+  // Resolver empresa para el prefijo: plan.company → client.companies[0] → null
+  let companyName: string | null = null;
+  if (planId) {
+    const plan = await prisma.plan.findUnique({
+      where: { id: planId },
+      select: { company: { select: { name: true } } },
+    });
+    companyName = plan?.company?.name ?? null;
+  }
+  if (!companyName && clientId) {
+    const client = await prisma.user.findUnique({
+      where: { id: clientId },
+      select: { companies: { select: { name: true }, take: 1 } },
+    });
+    companyName = client?.companies[0]?.name ?? null;
+  }
+  const prefix = ticketPrefix(companyName);
+
+  const ticket = await prisma.$transaction(async (tx) => {
+    const last = await tx.ticket.findFirst({
+      where: { prefix },
+      orderBy: { number: "desc" },
+      select: { number: true },
+    });
+    return tx.ticket.create({
+      data: {
+        title: parsed.data.title,
+        description: parsed.data.description,
+        priority: parsed.data.priority,
+        category: parsed.data.category ?? null,
+        assignedToId: parsed.data.assignedToId ?? null,
+        clientId,
+        createdById: session.user.id,
+        planId,
+        siteId: parsed.data.siteId ?? null,
+        dueDate,
+        prefix,
+        number: (last?.number ?? 0) + 1,
+        ...(session.user.role === "CLIENTE" ? { status: "POR_ASIGNAR" as never } : {}),
+      },
+    });
   });
 
   // Subir archivos adjuntos si los hay
@@ -132,7 +169,10 @@ export async function createTicket(formData: FormData) {
 
   const gchatParts: string[] = [`"${ticket.title}"`];
   if (assignee?.name) gchatParts.push(`Asignado a: ${assignee.name}`);
-  // dueDate no está disponible al crear un ticket, se omite
+  if (ticket.dueDate) {
+    const fmt = ticket.dueDate.toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
+    gchatParts.push(`Límite: ${fmt}`);
+  }
 
   // Notificar al asignado si no es el creador
   if (ticket.assignedToId && ticket.assignedToId !== session.user.id) {
@@ -486,23 +526,35 @@ export async function duplicateTicket(ticketId: string) {
       clientId: true,
       planId: true,
       siteId: true,
+      prefix: true,
     },
   });
   if (!original) return { error: "Ticket no encontrado" };
 
-  const copy = await prisma.ticket.create({
-    data: {
-      title: `Copia de ${original.title}`,
-      description: original.description,
-      priority: original.priority,
-      category: original.category,
-      assignedToId: original.assignedToId,
-      clientId: original.clientId,
-      createdById: session.user.id,
-      planId: original.planId,
-      siteId: original.siteId,
-      status: "POR_ASIGNAR",
-    },
+  const copyPrefix = original.prefix ?? ticketPrefix(null);
+
+  const copy = await prisma.$transaction(async (tx) => {
+    const last = await tx.ticket.findFirst({
+      where: { prefix: copyPrefix },
+      orderBy: { number: "desc" },
+      select: { number: true },
+    });
+    return tx.ticket.create({
+      data: {
+        title: `Copia de ${original.title}`,
+        description: original.description,
+        priority: original.priority,
+        category: original.category,
+        assignedToId: original.assignedToId,
+        clientId: original.clientId,
+        createdById: session.user.id,
+        planId: original.planId,
+        siteId: original.siteId,
+        status: "POR_ASIGNAR",
+        prefix: copyPrefix,
+        number: (last?.number ?? 0) + 1,
+      },
+    });
   });
 
   revalidatePath("/tickets");

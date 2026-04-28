@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { FloatingTimer } from "./floating-timer";
 import type { Session } from "next-auth";
 import type { Role } from "@/generated/prisma";
+
+const COLLAPSED_KEY = "sidebar-collapsed";
 
 export function DashboardShell({
   role,
@@ -19,6 +21,21 @@ export function DashboardShell({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setCollapsed(window.localStorage.getItem(COLLAPSED_KEY) === "1");
+    }
+  }, []);
+
+  function toggleCollapsed() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      try { window.localStorage.setItem(COLLAPSED_KEY, next ? "1" : "0"); } catch {}
+      return next;
+    });
+  }
 
   return (
     <div className="flex h-screen" style={{ backgroundColor: "var(--app-sidebar-bg)" }}>
@@ -34,6 +51,8 @@ export function DashboardShell({
         role={role}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        collapsed={collapsed}
+        onToggleCollapsed={toggleCollapsed}
       />
 
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">

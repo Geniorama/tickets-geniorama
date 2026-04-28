@@ -15,6 +15,7 @@ import { addComment, deleteComment, editComment, getTicketComments } from "@/act
 import { isStaff, isAdmin } from "@/lib/roles";
 import { AttachmentList } from "./attachment-list";
 import { AttachmentUploader } from "./attachment-uploader";
+import { ticketCode } from "@/lib/ticket-code";
 import { TicketVaultPanel } from "@/components/vault/ticket-vault-panel";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
@@ -129,7 +130,14 @@ export function TicketDetail({
         <div className="space-y-6">
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <div className="flex items-start justify-between gap-4">
-              <h1 className="text-xl font-bold text-gray-900">{ticket.title}</h1>
+              <div>
+                {ticket.number > 0 && (
+                  <span className="inline-block mb-2 px-2 py-0.5 rounded text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-200 tracking-wide">
+                    {ticketCode(ticket.prefix, ticket.number)}
+                  </span>
+                )}
+                <h1 className="text-xl font-bold text-gray-900">{ticket.title}</h1>
+              </div>
               <div className="flex items-center gap-2 shrink-0">
                 {isAdmin(role) && (
                   <div ref={menuRef} className="relative">

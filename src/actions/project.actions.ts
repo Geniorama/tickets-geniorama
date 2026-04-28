@@ -110,3 +110,27 @@ export async function deleteProject(projectId: string) {
   revalidatePath("/proyectos");
   redirect("/proyectos");
 }
+
+export async function toggleProjectFavorite(projectId: string) {
+  const session = await getRequiredSession();
+  const userId = session.user.id;
+
+  const existing = await prisma.projectFavorite.findUnique({
+    where: { projectId_userId: { projectId, userId } },
+    select: { projectId: true },
+  });
+
+  if (existing) {
+    await prisma.projectFavorite.delete({
+      where: { projectId_userId: { projectId, userId } },
+    });
+  } else {
+    await prisma.projectFavorite.create({
+      data: { projectId, userId },
+    });
+  }
+
+  revalidatePath("/proyectos");
+  revalidatePath("/dashboard");
+  return { favorited: !existing };
+}

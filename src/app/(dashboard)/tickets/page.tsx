@@ -10,8 +10,7 @@ import { fromZonedTime } from "date-fns-tz";
 import { Pagination } from "@/components/ui/pagination";
 import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/search-input";
-
-const PAGE_SIZE = 25;
+import { getPageSize } from "@/lib/pagination";
 
 const TZ = "America/Bogota";
 
@@ -28,6 +27,7 @@ export default async function TicketsPage({
   const staff = isStaff(role);
   const view = staff && params.view === "kanban" ? "kanban" : "list";
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const pageSize = getPageSize(params.pageSize);
   const q = params.q?.trim() || undefined;
 
   // Para clientes: obtener todos los IDs de clientes de la misma empresa
@@ -112,8 +112,8 @@ export default async function TicketsPage({
         assignedTo: { select: { name: true } },
       },
       orderBy,
-      take: PAGE_SIZE,
-      skip: (page - 1) * PAGE_SIZE,
+      take: pageSize,
+      skip: (page - 1) * pageSize,
     }),
     prisma.ticket.count({ where }),
     staff
@@ -176,7 +176,7 @@ export default async function TicketsPage({
       <Pagination
         totalItems={totalTickets}
         currentPage={page}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         params={params}
         basePath="/tickets"
       />

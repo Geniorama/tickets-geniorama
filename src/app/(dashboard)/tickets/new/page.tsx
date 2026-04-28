@@ -1,5 +1,5 @@
 import { getRequiredSession } from "@/lib/auth-helpers";
-import { isAdmin } from "@/lib/roles";
+import { isAdmin, isStaff } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { TicketForm } from "@/components/tickets/ticket-form";
 import { getClientActivePlan } from "@/lib/plans.server";
@@ -72,7 +72,13 @@ export default async function NewTicketPage() {
     <div className="max-w-2xl">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Nuevo ticket</h1>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <TicketForm collaborators={collaborators} clients={clients} plans={plans} sites={sites} />
+        <TicketForm
+          collaborators={collaborators}
+          clients={clients}
+          plans={plans}
+          sites={sites}
+          canSetDueDate={isStaff(session.user.role)}
+        />
       </div>
     </div>
   );

@@ -54,7 +54,7 @@ export default async function MisServiciosPage() {
   const expired  = services.filter((s) => s.dueDate && s.dueDate < now).length;
 
   return (
-    <div style={{ padding: "1.5rem", maxWidth: "1200px" }}>
+    <div>
       <div style={{ marginBottom: "1.5rem" }}>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>Mis servicios</h1>
         {(expiring > 0 || expired > 0) && (

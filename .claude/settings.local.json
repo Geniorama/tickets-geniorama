@@ -47,7 +47,8 @@
       "Bash(node -p \"require\\(''./package.json''\\).version\")",
       "Bash(grep:*)",
       "Bash(npm version:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(npx tsx *)"
     ]
   }
 }

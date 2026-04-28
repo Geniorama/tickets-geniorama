@@ -136,6 +136,7 @@ model User {
   vaultShares         VaultShare[]      @relation("VaultSharedWith")
   projectAttachments  ProjectAttachment[]
   projectMemberships        ProjectMember[]
+  projectFavorites          ProjectFavorite[]
   ticketCommentReactions    TicketCommentReaction[]
   taskCommentReactions      TaskCommentReaction[]
   notifications             Notification[]
@@ -158,6 +159,9 @@ model Ticket {
   clientId     String?  @map("client_id")
   planId       String?  @map("plan_id")
   siteId       String?  @map("site_id")
+
+  prefix       String?
+  number       Int      @default(0)
 
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -317,8 +321,21 @@ model Project {
   vaultEntries ProjectVaultEntry[]
   attachments  ProjectAttachment[]
   members      ProjectMember[]
+  favorites    ProjectFavorite[]
 
   @@map("projects")
+}
+
+model ProjectFavorite {
+  projectId String   @map("project_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+  @@map("project_favorites")
 }
 
 model ProjectMember {

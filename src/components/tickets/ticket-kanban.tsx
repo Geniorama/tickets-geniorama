@@ -19,6 +19,7 @@ import type { Ticket, TicketStatus, Priority } from "@/generated/prisma";
 import { PriorityBadge } from "./ticket-status-badge";
 import { formatDateTime } from "@/lib/format-date";
 import { updateTicketStatus } from "@/actions/ticket.actions";
+import { ticketCode } from "@/lib/ticket-code";
 
 type TicketWithRelations = Ticket & {
   createdBy: { name: string; companies: { name: string }[] };
@@ -96,6 +97,11 @@ function TicketCard({
         isDragging ? "opacity-40" : ""
       }`}
     >
+      {ticket.number > 0 && (
+        <span className="inline-block mb-1 px-1.5 py-0.5 rounded text-[0.625rem] font-semibold text-gray-500 bg-gray-50 border border-gray-200 tracking-wide">
+          {ticketCode(ticket.prefix, ticket.number)}
+        </span>
+      )}
       <p className="text-sm font-medium text-gray-800 leading-snug mb-2">
         {ticket.title}
       </p>

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { PAGE_SIZE_OPTIONS } from "@/lib/pagination";
+import { PageSizeSelect } from "@/components/ui/page-size-select";
 
 function buildUrl(params: Record<string, string>, page: number, basePath: string): string {
   const p = new URLSearchParams(params);
@@ -58,7 +60,10 @@ export function Pagination({
   basePath: string;
 }) {
   const totalPages = Math.ceil(totalItems / pageSize);
-  if (totalPages <= 1) return null;
+  const minOption = PAGE_SIZE_OPTIONS[0];
+  // Mostrar selector cuando hay suficientes filas para que cambiar el tamaño tenga sentido
+  const showSelector = totalItems > minOption;
+  if (totalPages <= 1 && !showSelector) return null;
 
   const pages = getPageNumbers(currentPage, totalPages);
 
@@ -69,55 +74,64 @@ export function Pagination({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: "0.25rem",
+        gap: "1rem",
         padding: "1.25rem 0",
+        flexWrap: "wrap",
       }}
     >
-      {/* Anterior */}
-      {currentPage > 1 ? (
-        <Link href={buildUrl(params, currentPage - 1, basePath)} style={btnBase}>
-          <ChevronLeft style={{ width: "1rem", height: "1rem" }} />
-        </Link>
-      ) : (
-        <span style={{ ...btnBase, opacity: 0.35, cursor: "not-allowed" }}>
-          <ChevronLeft style={{ width: "1rem", height: "1rem" }} />
-        </span>
+      {totalPages > 1 && (
+        <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+          {/* Anterior */}
+          {currentPage > 1 ? (
+            <Link href={buildUrl(params, currentPage - 1, basePath)} style={btnBase}>
+              <ChevronLeft style={{ width: "1rem", height: "1rem" }} />
+            </Link>
+          ) : (
+            <span style={{ ...btnBase, opacity: 0.35, cursor: "not-allowed" }}>
+              <ChevronLeft style={{ width: "1rem", height: "1rem" }} />
+            </span>
+          )}
+
+          {/* Números */}
+          {pages.map((p, i) =>
+            p === "..." ? (
+              <span
+                key={`e${i}`}
+                style={{ ...btnBase, borderWidth: 0, borderStyle: "none", borderColor: "transparent", backgroundColor: "transparent", cursor: "default", color: "var(--app-text-muted)" }}
+              >
+                …
+              </span>
+            ) : (
+              <Link
+                key={p}
+                href={buildUrl(params, p, basePath)}
+                style={{
+                  ...btnBase,
+                  ...(p === currentPage
+                    ? { backgroundColor: "#fd1384", color: "#fff", borderColor: "#fd1384", fontWeight: 600 }
+                    : {}),
+                }}
+              >
+                {p}
+              </Link>
+            )
+          )}
+
+          {/* Siguiente */}
+          {currentPage < totalPages ? (
+            <Link href={buildUrl(params, currentPage + 1, basePath)} style={btnBase}>
+              <ChevronRight style={{ width: "1rem", height: "1rem" }} />
+            </Link>
+          ) : (
+            <span style={{ ...btnBase, opacity: 0.35, cursor: "not-allowed" }}>
+              <ChevronRight style={{ width: "1rem", height: "1rem" }} />
+            </span>
+          )}
+        </div>
       )}
 
-      {/* Números */}
-      {pages.map((p, i) =>
-        p === "..." ? (
-          <span
-            key={`e${i}`}
-            style={{ ...btnBase, borderWidth: 0, borderStyle: "none", borderColor: "transparent", backgroundColor: "transparent", cursor: "default", color: "var(--app-text-muted)" }}
-          >
-            …
-          </span>
-        ) : (
-          <Link
-            key={p}
-            href={buildUrl(params, p, basePath)}
-            style={{
-              ...btnBase,
-              ...(p === currentPage
-                ? { backgroundColor: "#fd1384", color: "#fff", borderColor: "#fd1384", fontWeight: 600 }
-                : {}),
-            }}
-          >
-            {p}
-          </Link>
-        )
-      )}
-
-      {/* Siguiente */}
-      {currentPage < totalPages ? (
-        <Link href={buildUrl(params, currentPage + 1, basePath)} style={btnBase}>
-          <ChevronRight style={{ width: "1rem", height: "1rem" }} />
-        </Link>
-      ) : (
-        <span style={{ ...btnBase, opacity: 0.35, cursor: "not-allowed" }}>
-          <ChevronRight style={{ width: "1rem", height: "1rem" }} />
-        </span>
+      {showSelector && (
+        <PageSizeSelect value={pageSize} params={params} basePath={basePath} />
       )}
     </nav>
   );

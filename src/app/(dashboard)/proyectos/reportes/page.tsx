@@ -90,7 +90,7 @@ export default async function ProyectosReportesPage() {
   });
 
   return (
-    <div style={{ padding: "1.5rem", maxWidth: "1200px" }}>
+    <div>
       <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)", marginBottom: "1.5rem" }}>
         Reportes de proyectos
       </h1>

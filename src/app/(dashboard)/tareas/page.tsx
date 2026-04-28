@@ -10,8 +10,7 @@ import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/search-input";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-
-const PAGE_SIZE = 25;
+import { getPageSize } from "@/lib/pagination";
 
 export const metadata = { title: "Tareas — Geniorama Tickets" };
 
@@ -36,6 +35,7 @@ export default async function TareasPage({
   const q              = params.q?.trim()   || undefined;
 
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const pageSize = getPageSize(params.pageSize);
   const sortBy  = params.sortBy  ?? "createdAt";
   const sortDir = (params.sortDir === "asc" ? "asc" : "desc") as "asc" | "desc";
 
@@ -114,8 +114,8 @@ export default async function TareasPage({
         _count:     { select: { comments: true } },
       },
       orderBy,
-      take: PAGE_SIZE,
-      skip: (page - 1) * PAGE_SIZE,
+      take: pageSize,
+      skip: (page - 1) * pageSize,
     }),
     prisma.task.count({ where }),
     prisma.project.findMany({
@@ -186,7 +186,7 @@ export default async function TareasPage({
       <Pagination
         totalItems={totalTasks}
         currentPage={page}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         params={params}
         basePath="/tareas"
       />

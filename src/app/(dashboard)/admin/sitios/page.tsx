@@ -6,10 +6,9 @@ import { Pagination } from "@/components/ui/pagination";
 import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/search-input";
 import { SitesTable } from "@/components/admin/sites-table";
+import { getPageSize } from "@/lib/pagination";
 
 export const metadata = { title: "Sitios y apps — Geniorama Tickets" };
-
-const PAGE_SIZE = 30;
 
 export default async function SitiosPage({
   searchParams,
@@ -19,6 +18,7 @@ export default async function SitiosPage({
   await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const pageSize = getPageSize(params.pageSize);
   const sortBy  = params.sortBy  ?? "name";
   const sortDir = (params.sortDir === "asc" ? "asc" : "desc") as "asc" | "desc";
   const q = params.q?.trim() || undefined;
@@ -47,8 +47,8 @@ export default async function SitiosPage({
       where: siteWhere,
       include: { company: { select: { name: true } } },
       orderBy: sitesOrderBy,
-      take: PAGE_SIZE,
-      skip: (page - 1) * PAGE_SIZE,
+      take: pageSize,
+      skip: (page - 1) * pageSize,
     }),
     prisma.site.count({ where: siteWhere }),
   ]);
@@ -99,7 +99,7 @@ export default async function SitiosPage({
       <Pagination
         totalItems={totalSites}
         currentPage={page}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         params={params}
         basePath="/admin/sitios"
       />

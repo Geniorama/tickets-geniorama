@@ -59,7 +59,7 @@ export default async function ServiciosPage({
   ];
 
   return (
-    <div style={{ padding: "1.5rem", maxWidth: "1200px" }}>
+    <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", gap: "1rem", flexWrap: "wrap" }}>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>Servicios</h1>
         <Link href="/admin/servicios/new"

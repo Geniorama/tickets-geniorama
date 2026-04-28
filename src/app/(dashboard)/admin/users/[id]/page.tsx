@@ -115,7 +115,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
   const byProject = [...projectMap.values()].sort((a, b) => b.count - a.count);
 
   return (
-    <div style={{ padding: "1.5rem", maxWidth: "1200px" }}>
+    <div>
       {/* Back */}
       <Link
         href="/admin/users"

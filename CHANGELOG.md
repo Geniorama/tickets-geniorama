@@ -9,6 +9,62 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.13.0] — 2026-04-27
+
+### Tickets
+- **Fecha límite al crear tickets** — admin y colaboradores la asignan directamente en el formulario; los clientes no ven el campo y el server action lo ignora si lo envían. Si está presente al crear, viaja también a la notificación de Google Chat.
+- **Códigos legibles "ACM-12"** — cada ticket recibe un prefijo derivado del nombre de la empresa propietaria (`plan.company` → `client.companies[0]` → fallback `TKT`) y un número correlativo dentro de ese prefijo. Visible en listado, kanban, detalle y "Tickets recientes" del dashboard.
+- **`prisma/schema.prisma`** — nuevas columnas `prefix String?` y `number Int @default(0)` en `Ticket`.
+- **Migración** `prisma/migrations/20260427120000_add_ticket_code/` — añade ambas columnas a `tickets` (aplicada en RDS).
+- **`src/lib/ticket-code.ts`** — helpers `ticketPrefix()` y `ticketCode()` reusando `projectPrefix`.
+- **`createTicket`** y **`duplicateTicket`** envuelven la creación en `prisma.$transaction` y asignan `number = max(number)+1` dentro del prefijo.
+- **Backfill** `scripts/backfill-ticket-codes.ts` — script idempotente que asigna `prefix`/`number` correlativo a tickets pre-existentes (35 actualizados).
+- **Filtros unificados con tareas** — los filtros de tickets ahora usan grid plano (sin tarjeta colapsable), variables de tema (`--app-border`, `--app-card-bg`) en lugar de colores fijos, y aplicación inmediata al cambiar cualquier campo. Se conservan todos los campos (estado, asignado, creado por, empresa, 4 rangos de fecha).
+
+### Filtros, búsqueda y paginación
+- **Selector de filas por página** en todas las listas paginadas (tickets, tareas, proyectos, bóveda, usuarios admin, sitios admin, empresas) con opciones 10, 20, 50 y 100. Persiste en la URL como `?pageSize=` y resetea a página 1 al cambiar.
+- **`src/lib/pagination.ts`** — helper `getPageSize()` con allow-list y `DEFAULT_PAGE_SIZE = 10`.
+- **`src/components/ui/page-size-select.tsx`** — componente cliente con `useTransition`.
+- **Defaults unificados** — antes cada listado tenía su propio `PAGE_SIZE` (20/25/30); ahora todos parten de 10.
+
+### Empresas (`/admin/companies`)
+- **Filtros y paginación** — búsqueda por nombre o NIT/RUC, filtros por tipo (agencia/empresa), estado (activa/inactiva) y agencia padre. Ordenamiento por columnas movido de cliente a servidor.
+- **`src/components/admin/company-filters.tsx`** — selectores con el mismo estilo que `UserFilters`.
+- **`CompanyTable`** ahora es presentacional puro.
+- **Vista plana** — cada empresa es una fila independiente con su agencia padre en la columna "Agencia"; se removió la indentación jerárquica para que la paginación tenga sentido.
+
+### Bóveda
+- **Búsqueda funciona en todas las páginas** — antes solo filtraba la página visible; ahora la consulta se ejecuta en el servidor sobre `vaultEntry` con `?q=` en la URL y busca en título, usuario, URL, empresa, sitio, servicio y nombre del creador antes de paginar.
+- **Filtros por empresa, servicio y creador**, y para no-admin un filtro de acceso ("Todas" / "Solo mías" / "Compartidas conmigo"). Combinables con la búsqueda por texto.
+- **`src/components/vault/vault-filters.tsx`** — componente cliente con los selects.
+- **Opciones acotadas al ámbito accesible** — los dropdowns solo listan entidades con al menos una entrada visible para el usuario actual.
+- **Botón "Limpiar filtros"** — aparece cuando hay al menos un filtro activo (`access`, `companyId`, `serviceId`, `createdById`) y los borra todos a la vez, conservando búsqueda y `pageSize`.
+- **`VaultList`** pasó a ser presentacional (sin `"use client"` ni estado interno).
+
+### Proyectos
+- **Vista de lista** — `/proyectos` ahora ofrece un toggle "Tarjetas / Lista" en la cabecera. La vista lista muestra una tabla compacta (Nombre, Empresa, Encargado, Estado, Tareas, Fecha límite) con cards condensadas en mobile. La **vista lista es la nueva default**; para volver a tarjetas se usa `?view=grid`.
+- **`src/components/projects/project-view-toggle.tsx`** — toggle reusable que conserva el resto de query params.
+- **Proyectos favoritos por usuario** — cada usuario puede marcar/desmarcar con una estrella en `/proyectos` (vista lista y tarjetas). Los favoritos aparecen primero en su listado, paginación incluida.
+- **Quick access en dashboard** — nueva sección "Proyectos favoritos" sobre el grid principal con tarjetas compactas (nombre, empresa, conteo de tareas) cuando el usuario tiene al menos un favorito.
+- **`prisma/schema.prisma`** — nuevo modelo `ProjectFavorite { projectId, userId, createdAt }` con backrefs en `Project.favorites` y `User.projectFavorites`.
+- **Migración** `prisma/migrations/20260427150000_add_project_favorites/` — crea `project_favorites` con FK cascade (aplicada en RDS).
+- **`toggleProjectFavorite(projectId)`** — server action idempotente que revalida `/proyectos` y `/dashboard`.
+- **`src/components/projects/project-favorite-toggle.tsx`** — botón cliente con optimistic update y `stopPropagation` para no disparar el `Link` envolvente.
+- **Paginación con favoritos primero** — `/proyectos` hace dos consultas (favoritos en orden, luego no-favoritos) y las concatena respetando `pageSize`/`offset`, manteniendo la paginación correcta a nivel global.
+
+### Sidebar
+- **Colapsable a modo "solo iconos"** — botón "Colapsar / Expandir" al pie del menú reduce el ancho de `w-60` a `w-16`, oculta etiquetas, submenús y el logo (cambia a una "G" compacta), y muestra el `title` en hover. Preferencia persistida en `localStorage` (`sidebar-collapsed`).
+- **`DashboardShell`** maneja el estado `collapsed` y lo pasa al `Sidebar`. En mobile el modo se ignora y se mantiene el overlay completo.
+
+### UI
+- **Ancho completo en páginas de contenido** — eliminadas las restricciones `maxWidth: "1200px"` / `"1400px"` en `dashboard`, `admin/estadisticas`, `admin/servicios`, `admin/users/[id]`, `mis-servicios` y `proyectos/reportes`. El padding lo aporta el shell (`p-4 md:p-6`). Las páginas tipo formulario conservan sus anchos legibles.
+
+### Corregido durante la sesión
+- **Submenús desbordando el sidebar colapsado** — los `<ul>` y el botón chevron tenían `style={{ display: "flex" }}` inline, que sobrescribía `lg:hidden` por especificidad CSS. Movido a clases utilitarias para que la regla `lg:hidden` aplique correctamente.
+- **Código de ticket no aparecía en el dashboard** — el widget "Tickets recientes" hacía un `select` explícito que omitía `prefix` y `number`. Se añadieron al `select` y se renderiza el badge antes del título.
+
+---
+
 ## [1.12.0] — 2026-04-08
 
 ### Añadido

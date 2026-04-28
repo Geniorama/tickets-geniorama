@@ -20,11 +20,13 @@ export function TicketForm({
   clients = [],
   plans = [],
   sites = [],
+  canSetDueDate = false,
 }: {
   collaborators?: Collaborator[];
   clients?: Client[];
   plans?: Plan[];
   sites?: Site[];
+  canSetDueDate?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [selectedClientId, setSelectedClientId] = useState("");
@@ -293,6 +295,15 @@ export function TicketForm({
           </select>
         </div>
       </div>
+
+      {canSetDueDate && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Fecha límite <span className="text-gray-400 font-normal">(opcional)</span>
+          </label>
+          <input type="date" name="dueDate" defaultValue="" className={inputClass} />
+        </div>
+      )}
 
       {collaborators.length > 0 && (
         <div>

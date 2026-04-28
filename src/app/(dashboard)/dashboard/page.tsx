@@ -4,11 +4,12 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import {
   Ticket, FolderKanban, ListTodo, Users,
-  AlertTriangle, Clock, CalendarClock, CheckCircle2, TrendingUp, CreditCard,
+  AlertTriangle, Clock, CalendarClock, CheckCircle2, TrendingUp, CreditCard, Star,
 } from "lucide-react";
 import type { TaskStatus, Priority, ProjectStatus } from "@/generated/prisma";
 import { formatDate } from "@/lib/format-date";
 import { getEffectiveExpiresAt, daysUntilExpiry, PLAN_EXPIRY_WARNING_DAYS } from "@/lib/plans";
+import { ticketCode } from "@/lib/ticket-code";
 
 export const metadata = { title: "Dashboard — Geniorama Tickets" };
 
@@ -116,6 +117,7 @@ export default async function DashboardPage() {
     upcomingTasksList,
     userCount,
     rawAlertPlans,
+    favoriteProjects,
   ] = await Promise.all([
     // Ticket counts
     prisma.ticket.findMany({ where: ticketWhere, select: { status: true } }),
@@ -128,6 +130,7 @@ export default async function DashboardPage() {
       where: ticketWhere,
       select: {
         id: true, title: true, status: true, priority: true, createdAt: true,
+        prefix: true, number: true,
         assignedTo: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
@@ -169,6 +172,17 @@ export default async function DashboardPage() {
           },
         })
       : Promise.resolve([] as { id: string; name: string; type: string; totalHours: number | null; durationDays: number | null; startedAt: Date; expiresAt: Date | null; isActive: boolean; company: { name: string } }[]),
+    // Favorite projects del usuario
+    prisma.project.findMany({
+      where: { ...projectWhere, favorites: { some: { userId } } },
+      select: {
+        id: true, name: true, status: true,
+        company: { select: { name: true } },
+        _count: { select: { tasks: true } },
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 6,
+    }),
   ]);
 
   // ── Derived stats ──────────────────────────────────────────────────────────
@@ -216,7 +230,7 @@ export default async function DashboardPage() {
     .sort((a, b) => (daysUntilExpiry(a) ?? 0) - (daysUntilExpiry(b) ?? 0));
 
   return (
-    <div style={{ maxWidth: "1400px" }}>
+    <div>
 
       {/* Welcome */}
       <div style={{ marginBottom: "1.5rem" }}>
@@ -285,6 +299,41 @@ export default async function DashboardPage() {
         )}
       </div>
 
+      {/* ── Proyectos favoritos ── */}
+      {favoriteProjects.length > 0 && (
+        <div className="mb-4">
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
+            <Star style={{ width: "1rem", height: "1rem", color: "#f59e0b", fill: "#f59e0b" }} />
+            <h2 style={{ fontSize: "1rem", fontWeight: 600, color: "var(--app-body-text)" }}>
+              Proyectos favoritos
+            </h2>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "0.75rem" }}>
+            {favoriteProjects.map((p) => (
+              <Link
+                key={p.id}
+                href={`/proyectos/${p.id}`}
+                style={{
+                  display: "flex", flexDirection: "column", gap: "0.25rem",
+                  padding: "0.75rem 0.875rem",
+                  backgroundColor: "var(--app-card-bg)",
+                  border: "1px solid var(--app-border)",
+                  borderRadius: "0.625rem",
+                  textDecoration: "none",
+                }}
+              >
+                <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--app-body-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {p.name}
+                </span>
+                <span style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
+                  {p.company?.name ?? "Sin empresa"} · {p._count.tasks} tareas
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── Main grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 
@@ -304,6 +353,11 @@ export default async function DashboardPage() {
             >
               <div style={{ flex: 1, overflow: "hidden" }}>
                 <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {t.number > 0 && (
+                    <span style={{ display: "inline-block", marginRight: "0.375rem", padding: "0.05rem 0.35rem", borderRadius: "0.25rem", fontSize: "0.6875rem", fontWeight: 600, color: "var(--app-text-muted)", backgroundColor: "var(--app-content-bg)", border: "1px solid var(--app-border)", verticalAlign: "middle" }}>
+                      {ticketCode(t.prefix, t.number)}
+                    </span>
+                  )}
                   {t.title}
                 </p>
                 <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", marginTop: "0.125rem" }}>

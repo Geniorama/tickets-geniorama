@@ -75,7 +75,7 @@ export default async function EstadisticasPage() {
   const globalRate      = pct(globalCompleted, globalTotal);
 
   return (
-    <div style={{ padding: "1.5rem", maxWidth: "1200px" }}>
+    <div>
       <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)", marginBottom: "1.5rem" }}>
         Estadísticas de productividad
       </h1>

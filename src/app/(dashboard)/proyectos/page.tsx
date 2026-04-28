@@ -3,14 +3,14 @@ import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { ProjectList } from "@/components/projects/project-list";
 import { ProjectFilters } from "@/components/projects/project-filters";
+import { ProjectViewToggle } from "@/components/projects/project-view-toggle";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import type { ProjectStatus } from "@/generated/prisma";
 import { Pagination } from "@/components/ui/pagination";
 import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/search-input";
-
-const PAGE_SIZE = 20;
+import { getPageSize } from "@/lib/pagination";
 
 export const metadata = { title: "Proyectos — Geniorama Tickets" };
 
@@ -79,21 +79,65 @@ export default async function ProyectosPage({
 
   const where = { ...roleWhere, ...extraFilters };
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
+  const pageSize = getPageSize(params.pageSize);
+  const view = params.view === "grid" ? "grid" : "list";
 
-  const [projects, totalProjects, companies, managers] = await Promise.all([
-    prisma.project.findMany({
-      where,
-      include: {
-        company: { select: { name: true } },
-        manager: { select: { name: true } },
-        createdBy: { select: { name: true } },
-        _count: { select: { tasks: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: PAGE_SIZE,
-      skip: (page - 1) * PAGE_SIZE,
-    }),
-    prisma.project.count({ where }),
+  const projectInclude = {
+    company: { select: { name: true } },
+    manager: { select: { name: true } },
+    createdBy: { select: { name: true } },
+    _count: { select: { tasks: true } },
+  } as const;
+
+  // IDs favoritos del usuario, dentro del scope visible
+  const favoriteRows = await prisma.projectFavorite.findMany({
+    where: { userId, project: where },
+    select: { projectId: true },
+  });
+  const favoriteIdSet = new Set(favoriteRows.map((f) => f.projectId));
+  const favoriteIds = [...favoriteIdSet];
+
+  // Total para paginación
+  const totalProjects = await prisma.project.count({ where });
+
+  // Página: primero los favoritos en orden, luego el resto
+  const offset = (page - 1) * pageSize;
+  const favCount = favoriteIds.length;
+  // notIn no acepta arrays vacíos en algunos drivers — usamos sentinel
+  const notInIds = favoriteIds.length ? favoriteIds : ["__none__"];
+
+  const favSliceP =
+    offset < favCount
+      ? prisma.project.findMany({
+          where: { ...where, id: { in: favoriteIds } },
+          include: projectInclude,
+          orderBy: { createdAt: "desc" },
+          take: pageSize,
+          skip: offset,
+        })
+      : Promise.resolve([]);
+
+  const nonFavSliceP =
+    offset < favCount
+      ? prisma.project.findMany({
+          where: { ...where, id: { notIn: notInIds } },
+          include: projectInclude,
+          orderBy: { createdAt: "desc" },
+          take: pageSize,
+          skip: 0,
+        })
+      : prisma.project.findMany({
+          where: { ...where, id: { notIn: notInIds } },
+          include: projectInclude,
+          orderBy: { createdAt: "desc" },
+          take: pageSize,
+          skip: offset - favCount,
+        });
+
+  const [favSlice, nonFavSlice] = await Promise.all([favSliceP, nonFavSliceP]);
+  const projects = [...favSlice, ...nonFavSlice].slice(0, pageSize);
+
+  const [companies, managers] = await Promise.all([
     // Solo admins y staff ven el filtro de empresa
     admin || staff
       ? prisma.company.findMany({
@@ -120,26 +164,29 @@ export default async function ProyectosPage({
           Proyectos
         </h1>
 
-        {admin && (
-          <Link
-            href="/proyectos/new"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              backgroundColor: "#fd1384",
-              color: "#ffffff",
-              padding: "0.5rem 1rem",
-              borderRadius: "0.5rem",
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              textDecoration: "none",
-            }}
-          >
-            <Plus style={{ width: "1rem", height: "1rem" }} />
-            Nuevo proyecto
-          </Link>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          <ProjectViewToggle current={view} />
+          {admin && (
+            <Link
+              href="/proyectos/new"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                backgroundColor: "#fd1384",
+                color: "#ffffff",
+                padding: "0.5rem 1rem",
+                borderRadius: "0.5rem",
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                textDecoration: "none",
+              }}
+            >
+              <Plus style={{ width: "1rem", height: "1rem" }} />
+              Nuevo proyecto
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Filters */}
@@ -159,12 +206,12 @@ export default async function ProyectosPage({
         {totalProjects} {totalProjects === 1 ? "proyecto" : "proyectos"}
       </p>
 
-      <ProjectList projects={projects} />
+      <ProjectList projects={projects} view={view} favoriteIds={favoriteIdSet} />
 
       <Pagination
         totalItems={totalProjects}
         currentPage={page}
-        pageSize={PAGE_SIZE}
+        pageSize={pageSize}
         params={params}
         basePath="/proyectos"
       />
