@@ -44,7 +44,10 @@
       "Bash(grep -E \"\\\\.tsx$\")",
       "Bash(grep -E \"\\(minWidth|width\\).*[0-9]{3,}\")",
       "Bash(xargs grep:*)",
-      "Bash(node -p \"require\\(''./package.json''\\).version\")"
+      "Bash(node -p \"require\\(''./package.json''\\).version\")",
+      "Bash(grep:*)",
+      "Bash(npm version:*)",
+      "Bash(wc:*)"
     ]
   }
 }
