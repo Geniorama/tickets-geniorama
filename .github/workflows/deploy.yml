@@ -19,8 +19,10 @@ jobs:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
+          command_timeout: 30m 
           port: ${{ secrets.PORT }}
           script: |
+            set -euo pipefail
             # 1. Entrar a la carpeta del proyecto (Ajusta la ruta si es necesario)
             cd ~/tickets-geniorama 
 
@@ -28,9 +30,10 @@ jobs:
             git pull origin main
 
             # 3. Cargar NVM y usar la versión correcta de Node
-            export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            nvm use 22.13
+             export NVM_DIR="$HOME/.nvm"
+            . "$NVM_DIR/nvm.sh"
+            nvm use 20.17.0
+            node -v
 
             # 4. Instalar y Compilar (Usando la limitación de memoria que aprendimos)
             npm install
