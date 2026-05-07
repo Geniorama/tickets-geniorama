@@ -22,29 +22,23 @@ jobs:
           command_timeout: 30m 
           port: ${{ secrets.PORT }}
           script: |
-            set -euo pipefail
-            # 1. Entrar a la carpeta del proyecto (Ajusta la ruta si es necesario)
             cd ~/tickets-geniorama 
-
-            # 2. Actualizar el código
             git pull origin main
 
-
-            # 3. Cargar NVM y usar la versión correcta de Node
+            # 3. CARGA DIRECTA DE BINARIOS
+            # Esto agrega la versión específica de Node directamente al PATH
             export NVM_DIR="/home/ubuntu/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            export PATH="$NVM_DIR/versions/node/v22.13.1/bin:$PATH"
             
-            if ! command -v nvm &> /dev/null; then
-              export NVM_DIR="$HOME/.nvm"
-              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            fi
-
-            nvm use 22.13  # Usa la versión 22 que instalamos antes
+            # Verificación inmediata
             node -v
+            npm -v
 
-            # 4. Instalar y Compilar (Usando la limitación de memoria que aprendimos)
+            # 4. Instalar y Compilar
             npm install
             NODE_OPTIONS="--max-old-space-size=1536" npm run build
 
-            # 5. Reiniciar con PM2
+            # 5. Reiniciar con PM2 usando la ruta completa para evitar fallos
+            # Cargamos PM2 si no está en el PATH
+            export PATH="$PATH:$(npm config get prefix)/bin"
             pm2 restart mi-next-app || pm2 start npm --name "mi-next-app" -- start
