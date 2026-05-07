@@ -29,10 +29,17 @@ jobs:
             # 2. Actualizar el código
             git pull origin main
 
+
             # 3. Cargar NVM y usar la versión correcta de Node
-             export NVM_DIR="$HOME/.nvm"
-            . "$NVM_DIR/nvm.sh"
-            nvm use 20.17.0
+            export NVM_DIR="/home/ubuntu/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            
+            if ! command -v nvm &> /dev/null; then
+              export NVM_DIR="$HOME/.nvm"
+              [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            fi
+
+            nvm use 22.13  # Usa la versión 22 que instalamos antes
             node -v
 
             # 4. Instalar y Compilar (Usando la limitación de memoria que aprendimos)
