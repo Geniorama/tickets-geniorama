@@ -4,6 +4,7 @@ import { revalidatePath, unstable_cache } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { requireRole, getRequiredSession } from "@/lib/auth-helpers";
 import { generateInvitationToken } from "@/actions/invitation.actions";
@@ -149,36 +150,24 @@ export async function deleteUser(userId: string) {
     return { error: "No puedes eliminar tu propio usuario." };
   }
 
-  const counts = await prisma.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: {
-      _count: {
-        select: {
-          createdTickets: true,
-          assignedTickets: true,
-          clientTickets: true,
-          comments: true,
-          createdProjects: true,
-          managedProjects: true,
-          createdTasks: true,
-          assignedTasks: true,
-          taskComments: true,
-        },
-      },
-    },
+    select: { id: true },
   });
 
-  if (!counts) return { error: "Usuario no encontrado." };
+  if (!user) return { error: "Usuario no encontrado." };
 
-  const total = Object.values(counts._count).reduce((sum, n) => sum + n, 0);
-  if (total > 0) {
-    return {
-      error:
-        "No se puede eliminar el usuario porque tiene datos asociados (tickets, proyectos, comentarios, etc.). Desactívalo en su lugar.",
-    };
+  try {
+    await prisma.user.delete({ where: { id: userId } });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
+      return {
+        error:
+          "No se puede eliminar el usuario porque tiene datos asociados (tickets, comentarios, proyectos, tareas, archivos, etc.). Desactívalo en su lugar.",
+      };
+    }
+    throw err;
   }
-
-  await prisma.user.delete({ where: { id: userId } });
 
   revalidatePath("/admin/users");
   redirect("/admin/users");

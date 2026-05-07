@@ -9,6 +9,13 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.13.1] — 2026-05-07
+
+### Fixes
+- **Eliminación de usuarios** — el pre-check de relaciones solo cubría 9 de las ~14 relaciones FK bloqueantes del modelo `User`, por lo que un usuario con `TicketAttachment`, `TimeEntry`, `TaskAttachment`, `TaskTimeEntry`, `Service`, `VaultEntry`, `ProjectAttachment` o checklist items pasaba la validación y luego rompía con un error de Prisma sin manejar (`P2003`). `src/actions/user.actions.ts` ahora envuelve el `prisma.user.delete` en try/catch y traduce `P2003` al mismo mensaje amigable que sugiere desactivar al usuario.
+
+---
+
 ## [1.13.0] — 2026-04-27
 
 ### Tickets
