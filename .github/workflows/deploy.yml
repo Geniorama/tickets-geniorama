@@ -1,0 +1,40 @@
+name: Deploy Next.js App
+
+on:
+  push:
+    branches:
+      - main # Se activa cuando haces push a main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout del código
+        uses: actions/checkout@v4
+
+      - name: Desplegar vía SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            # 1. Entrar a la carpeta del proyecto (Ajusta la ruta si es necesario)
+            cd ~/tickets-geniorama 
+
+            # 2. Actualizar el código
+            git pull origin main
+
+            # 3. Cargar NVM y usar la versión correcta de Node
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            nvm use 22.13
+
+            # 4. Instalar y Compilar (Usando la limitación de memoria que aprendimos)
+            npm install
+            NODE_OPTIONS="--max-old-space-size=1536" npm run build
+
+            # 5. Reiniciar con PM2
+            pm2 restart mi-next-app || pm2 start npm --name "mi-next-app" -- start
