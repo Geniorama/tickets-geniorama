@@ -11,6 +11,13 @@ import type { ReactionType } from "@/generated/prisma";
 
 type AttachmentMode = "none" | "link" | "file";
 
+const COMMENT_MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 interface Comment {
   id: string;
   body: string;
@@ -366,6 +373,19 @@ function TaskCommentForm({
   const [attachMode, setAttachMode] = useState<AttachmentMode>("none");
   const [error, setError] = useState<string | null>(null);
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > COMMENT_MAX_FILE_BYTES) {
+      setError(
+        `"${file.name}" supera los 10 MB (${formatFileSize(file.size)}). Comprime el archivo o súbelo a un servicio externo y compártelo como enlace.`
+      );
+      e.target.value = "";
+      return;
+    }
+    setError(null);
+  }
+
   const inputStyle: React.CSSProperties = {
     width: "100%",
     border: "1px solid var(--app-border)",
@@ -384,14 +404,27 @@ function TaskCommentForm({
     const form = e.currentTarget;
     const formData = new FormData(form);
     formData.set("attachmentType", attachMode === "none" ? "" : attachMode);
+    const hasFile = attachMode === "file";
 
     startTransition(async () => {
-      const result = await addTaskComment(taskId, projectId, formData);
-      if (result?.error) {
-        setError(result.error);
-      } else {
-        form.reset();
-        setAttachMode("none");
+      try {
+        const result = await addTaskComment(taskId, projectId, formData);
+        if (result?.error) {
+          setError(result.error);
+        } else {
+          form.reset();
+          setAttachMode("none");
+        }
+      } catch (err) {
+        console.error("[addTaskComment]", err);
+        const msg = err instanceof Error ? err.message : "";
+        if (hasFile && /unexpected response|fetch|network|413/i.test(msg)) {
+          setError(
+            "No se pudo enviar el comentario: el archivo adjunto fue rechazado por el servidor (puede ser demasiado pesado). Intenta con un archivo más pequeño o súbelo como enlace."
+          );
+        } else {
+          setError("No se pudo enviar el comentario. Intenta de nuevo en unos segundos.");
+        }
       }
     });
   }
@@ -478,6 +511,7 @@ function TaskCommentForm({
             type="file"
             required
             accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+            onChange={handleFileChange}
             style={{ fontSize: "0.875rem", color: "var(--app-text-muted)" }}
           />
         </div>

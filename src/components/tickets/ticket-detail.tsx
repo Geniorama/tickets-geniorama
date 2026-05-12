@@ -563,11 +563,31 @@ function SiteContextPanel({
 
 type AttachmentMode = "none" | "link" | "file";
 
+const COMMENT_MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean }) {
   const [isPending, startTransition] = useTransition();
   const [internal, setInternal] = useState(false);
   const [attachMode, setAttachMode] = useState<AttachmentMode>("none");
   const [error, setError] = useState<string | null>(null);
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > COMMENT_MAX_FILE_BYTES) {
+      setError(
+        `"${file.name}" supera los 10 MB (${formatFileSize(file.size)}). Comprime el archivo o súbelo a un servicio externo y compártelo como enlace.`
+      );
+      e.target.value = "";
+      return;
+    }
+    setError(null);
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -576,15 +596,28 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
     const formData = new FormData(form);
     formData.set("isInternal", String(internal));
     formData.set("attachmentType", attachMode === "none" ? "" : attachMode);
+    const hasFile = attachMode === "file";
 
     startTransition(async () => {
-      const result = await addComment(ticketId, formData);
-      if (result?.error) {
-        setError(result.error);
-      } else {
-        form.reset();
-        setInternal(false);
-        setAttachMode("none");
+      try {
+        const result = await addComment(ticketId, formData);
+        if (result?.error) {
+          setError(result.error);
+        } else {
+          form.reset();
+          setInternal(false);
+          setAttachMode("none");
+        }
+      } catch (err) {
+        console.error("[addComment]", err);
+        const msg = err instanceof Error ? err.message : "";
+        if (hasFile && /unexpected response|fetch|network|413/i.test(msg)) {
+          setError(
+            "No se pudo enviar el comentario: el archivo adjunto fue rechazado por el servidor (puede ser demasiado pesado). Intenta con un archivo más pequeño o súbelo como enlace."
+          );
+        } else {
+          setError("No se pudo enviar el comentario. Intenta de nuevo en unos segundos.");
+        }
       }
     });
   }
@@ -666,6 +699,7 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
                 type="file"
                 required
                 accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                onChange={handleFileChange}
                 className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
               />
             </div>
