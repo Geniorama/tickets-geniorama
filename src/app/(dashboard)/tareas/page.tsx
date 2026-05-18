@@ -8,9 +8,24 @@ import type { TaskStatus, Priority } from "@/generated/prisma";
 import { Pagination } from "@/components/ui/pagination";
 import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/search-input";
+import { FilterTags, type FilterTag } from "@/components/ui/filter-tags";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getPageSize } from "@/lib/pagination";
+
+const TASK_STATUS_LABELS: Record<string, string> = {
+  PENDIENTE: "Pendiente",
+  EN_PROGRESO: "En progreso",
+  EN_REVISION: "En revisión",
+  COMPLETADO: "Completado",
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  CRITICA: "Crítica",
+  ALTA: "Alta",
+  MEDIA: "Media",
+  BAJA: "Baja",
+};
 
 export const metadata = { title: "Tareas" };
 
@@ -27,6 +42,13 @@ export default async function TareasPage({
   if (!staff && !admin) redirect("/dashboard");
 
   const params = await searchParams;
+
+  if (Object.keys(params).length === 0) {
+    const sp = new URLSearchParams();
+    sp.set("status", "PENDIENTE,EN_PROGRESO");
+    sp.set("assignedToId", userId);
+    redirect(`/tareas?${sp.toString()}`);
+  }
 
   const statusValues   = params.status?.split(",").filter(Boolean)       as TaskStatus[] | undefined;
   const priorityValues = params.priority?.split(",").filter(Boolean)     as Priority[]   | undefined;
@@ -132,6 +154,24 @@ export default async function TareasPage({
       : Promise.resolve([]),
   ]);
 
+  const filterTags: FilterTag[] = [];
+  statusValues?.forEach((v) =>
+    filterTags.push({ key: "status", value: v, label: `Estado: ${TASK_STATUS_LABELS[v] ?? v}` })
+  );
+  priorityValues?.forEach((v) =>
+    filterTags.push({ key: "priority", value: v, label: `Prioridad: ${PRIORITY_LABELS[v] ?? v}` })
+  );
+  projectValues?.forEach((v) => {
+    const project = projects.find((p) => p.id === v);
+    filterTags.push({ key: "projectId", value: v, label: `Proyecto: ${project?.name ?? v}` });
+  });
+  assigneeValues?.forEach((v) => {
+    const u = staffUsers.find((s) => s.id === v);
+    const name = u?.name ?? (v === userId ? session.user.name ?? "Yo" : v);
+    filterTags.push({ key: "assignedToId", value: v, label: `Responsable: ${name}` });
+  });
+  if (q) filterTags.push({ key: "q", value: q, label: `Búsqueda: ${q}` });
+
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -169,6 +209,7 @@ export default async function TareasPage({
           staff={staffUsers}
           showAssignee={admin || staff}
         />
+        <FilterTags tags={filterTags} />
       </div>
 
       <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginBottom: "1rem" }}>

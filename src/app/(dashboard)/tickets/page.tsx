@@ -11,8 +11,18 @@ import { Pagination } from "@/components/ui/pagination";
 import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/search-input";
 import { getPageSize } from "@/lib/pagination";
+import { redirect } from "next/navigation";
+import { FilterTags, type FilterTag } from "@/components/ui/filter-tags";
 
 const TZ = "America/Bogota";
+
+const TICKET_STATUS_LABELS: Record<string, string> = {
+  POR_ASIGNAR: "Por asignar",
+  ABIERTO: "Abierto",
+  EN_PROGRESO: "En progreso",
+  EN_REVISION: "En revisión",
+  CERRADO: "Cerrado",
+};
 
 export const metadata = { title: "Tickets" };
 
@@ -25,6 +35,14 @@ export default async function TicketsPage({
   const { id, role } = session.user;
   const params = await searchParams;
   const staff = isStaff(role);
+
+  if (Object.keys(params).length === 0 && staff) {
+    const sp = new URLSearchParams();
+    sp.set("status", "ABIERTO,EN_PROGRESO");
+    sp.set("assignedToId", id);
+    redirect(`/tickets?${sp.toString()}`);
+  }
+
   const view = staff && params.view === "kanban" ? "kanban" : "list";
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const pageSize = getPageSize(params.pageSize);
@@ -135,6 +153,29 @@ export default async function TicketsPage({
       : Promise.resolve([]),
   ]);
 
+  const filterTags: FilterTag[] = [];
+  statusValues.forEach((v) =>
+    filterTags.push({ key: "status", value: v, label: `Estado: ${TICKET_STATUS_LABELS[v] ?? v}` })
+  );
+  assignedToValues.forEach((v) => {
+    const u = collaborators.find((c) => c.id === v);
+    const name = u?.name ?? (v === id ? session.user.name ?? "Yo" : v);
+    filterTags.push({ key: "assignedToId", value: v, label: `Asignado a: ${name}` });
+  });
+  createdByValues.forEach((v) => {
+    const u = creators.find((c) => c.id === v);
+    filterTags.push({ key: "createdById", value: v, label: `Creado por: ${u?.name ?? v}` });
+  });
+  companyValues.forEach((v) => {
+    const c = companies.find((co) => co.id === v);
+    filterTags.push({ key: "companyId", value: v, label: `Empresa: ${c?.name ?? v}` });
+  });
+  if (params.createdFrom) filterTags.push({ key: "createdFrom", value: params.createdFrom, label: `Creado desde: ${params.createdFrom}` });
+  if (params.createdTo) filterTags.push({ key: "createdTo", value: params.createdTo, label: `Creado hasta: ${params.createdTo}` });
+  if (params.updatedFrom) filterTags.push({ key: "updatedFrom", value: params.updatedFrom, label: `Actualizado desde: ${params.updatedFrom}` });
+  if (params.updatedTo) filterTags.push({ key: "updatedTo", value: params.updatedTo, label: `Actualizado hasta: ${params.updatedTo}` });
+  if (q) filterTags.push({ key: "q", value: q, label: `Búsqueda: ${q}` });
+
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
@@ -166,6 +207,10 @@ export default async function TicketsPage({
           current={Object.fromEntries(Object.entries(params).filter(([k]) => k !== "page"))}
         />
       )}
+
+      <div style={{ marginBottom: "1rem" }}>
+        <FilterTags tags={filterTags} />
+      </div>
 
       {view === "kanban" ? (
         <TicketKanban tickets={tickets} />
