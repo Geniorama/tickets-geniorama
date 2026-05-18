@@ -58,8 +58,8 @@ export default async function TareasPage({
 
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const pageSize = getPageSize(params.pageSize);
-  const sortBy  = params.sortBy  ?? "createdAt";
-  const sortDir = (params.sortDir === "asc" ? "asc" : "desc") as "asc" | "desc";
+  const sortBy  = params.sortBy  ?? "dueDate";
+  const sortDir = (params.sortDir === "desc" ? "desc" : "asc") as "asc" | "desc";
 
   // Filtro base por rol
   let roleWhere: Record<string, unknown> = {};
@@ -106,17 +106,18 @@ export default async function TareasPage({
     projectsWhere = { companyId: { in: companyIds } };
   }
 
-  const orderBy: Record<string, unknown> = (() => {
+  const orderBy: Record<string, unknown>[] = (() => {
     const d = sortDir;
     switch (sortBy) {
-      case "title":      return { title: d };
-      case "project":    return { project: { name: d } };
-      case "status":     return { status: d };
-      case "priority":   return { priority: d };
-      case "assignedTo": return { assignedTo: { name: d } };
-      case "startDate":  return { startDate: d };
-      case "dueDate":    return { dueDate: d };
-      default:           return { createdAt: d };
+      case "title":      return [{ title: d }];
+      case "project":    return [{ project: { name: d } }];
+      case "status":     return [{ status: d }];
+      case "priority":   return [{ priority: d }];
+      case "assignedTo": return [{ assignedTo: { name: d } }];
+      case "startDate":  return [{ startDate: d }];
+      case "dueDate":    return [{ dueDate: d }, { priority: "desc" }];
+      case "createdAt":  return [{ createdAt: d }];
+      default:           return [{ dueDate: "asc" }, { priority: "desc" }];
     }
   })();
 

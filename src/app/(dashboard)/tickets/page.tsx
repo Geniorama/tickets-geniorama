@@ -104,21 +104,22 @@ export default async function TicketsPage({
     ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
   };
 
-  const sortBy = params.sortBy ?? "createdAt";
-  const sortDir = params.sortDir === "asc" ? "asc" : "desc";
+  const sortBy = params.sortBy ?? "dueDate";
+  const sortDir = params.sortDir === "desc" ? "desc" : "asc";
 
   type SortDir = "asc" | "desc";
-  const orderBy: Record<string, unknown> = (() => {
+  const orderBy: Record<string, unknown>[] = (() => {
     const d = sortDir as SortDir;
     switch (sortBy) {
-      case "title":      return { title: d };
-      case "status":     return { status: d };
-      case "priority":   return { priority: d };
-      case "createdBy":  return { createdBy: { name: d } };
-      case "assignedTo": return { assignedTo: { name: d } };
-      case "updatedAt":  return { updatedAt: d };
-      case "dueDate":    return { dueDate: d };
-      default:           return { createdAt: d };
+      case "title":      return [{ title: d }];
+      case "status":     return [{ status: d }];
+      case "priority":   return [{ priority: d }];
+      case "createdBy":  return [{ createdBy: { name: d } }];
+      case "assignedTo": return [{ assignedTo: { name: d } }];
+      case "updatedAt":  return [{ updatedAt: d }];
+      case "dueDate":    return [{ dueDate: d }, { priority: "desc" }];
+      case "createdAt":  return [{ createdAt: d }];
+      default:           return [{ dueDate: "asc" }, { priority: "desc" }];
     }
   })();
 
