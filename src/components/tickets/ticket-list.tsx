@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import type { Role, Ticket, TicketStatus, Priority } from "@/generated/prisma";
 import { formatDateTime, formatDate } from "@/lib/format-date";
+import { isOverdue } from "@/lib/overdue";
 import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
 import { isStaff } from "@/lib/roles";
 import { ticketCode } from "@/lib/ticket-code";
@@ -113,7 +114,9 @@ export function TicketList({
                 )}
                 <span>{formatDate(ticket.createdAt)}</span>
                 {staff && ticket.dueDate && (
-                  <span className="text-red-400">Límite: {formatDate(ticket.dueDate)}</span>
+                  <span className={isOverdue(ticket.dueDate, ticket.status) ? "text-red-500 font-semibold" : "text-gray-400"}>
+                    Límite: {formatDate(ticket.dueDate)}
+                  </span>
                 )}
               </div>
             </Link>
@@ -182,7 +185,11 @@ export function TicketList({
                   {formatDateTime(ticket.updatedAt)}
                 </td>
                 {staff && (
-                  <td className="px-4 py-3 text-gray-400 whitespace-nowrap">
+                  <td
+                    className={`px-4 py-3 whitespace-nowrap ${
+                      isOverdue(ticket.dueDate, ticket.status) ? "text-red-500 font-semibold" : "text-gray-400"
+                    }`}
+                  >
                     {ticket.dueDate ? formatDate(ticket.dueDate) : "—"}
                   </td>
                 )}

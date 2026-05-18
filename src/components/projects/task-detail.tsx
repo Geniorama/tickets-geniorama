@@ -11,6 +11,7 @@ import { updateTaskStatus, deleteTask, moveTask } from "@/actions/task.actions";
 import { DuplicateTaskButton } from "./duplicate-task-button";
 import { TaskTimer } from "./task-timer";
 import { formatDate, formatDateTimeLong } from "@/lib/format-date";
+import { isOverdue } from "@/lib/overdue";
 import { taskCode } from "@/lib/task-code";
 import { isStaff, isAdmin } from "@/lib/roles";
 import { ExternalLink, FileText, Link2 } from "lucide-react";
@@ -416,7 +417,7 @@ export function TaskDetail({
                 <span style={infoRowStyle}>
                   <Calendar style={{ width: "0.875rem", height: "0.875rem" }} />
                   Vence:{" "}
-                  <strong style={{ color: "var(--app-body-text)" }}>
+                  <strong style={{ color: isOverdue(task.dueDate, task.status) ? "var(--color-red-600)" : "var(--app-body-text)" }}>
                     {formatDate(task.dueDate)}{task.endTime ? ` ${task.endTime}` : ""}
                   </strong>
                 </span>

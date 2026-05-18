@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Task, TaskStatus, Priority } from "@/generated/prisma";
 import { TaskStatusBadge, TaskPriorityBadge } from "./project-status-badge";
 import { formatDate } from "@/lib/format-date";
+import { isOverdue } from "@/lib/overdue";
 import { ListTodo } from "lucide-react";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { taskCode } from "@/lib/task-code";
@@ -109,7 +110,11 @@ export function TaskList({
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
                   {showProject && <span>{task.project.name}</span>}
                   {task.assignedTo && <span>→ {task.assignedTo.name}</span>}
-                  {task.dueDate && <span>Vence: {formatDate(task.dueDate)}</span>}
+                  {task.dueDate && (
+                    <span style={isOverdue(task.dueDate, task.status) ? { color: "var(--color-red-600)", fontWeight: 600 } : undefined}>
+                      Vence: {formatDate(task.dueDate)}
+                    </span>
+                  )}
                 </div>
               </Link>
             </li>
@@ -233,7 +238,14 @@ export function TaskList({
                 <td style={{ padding: "0.75rem 1rem", color: "var(--app-text-muted)", whiteSpace: "nowrap" }}>
                   {task.startDate ? formatDate(task.startDate) : "—"}
                 </td>
-                <td style={{ padding: "0.75rem 1rem", color: "var(--app-text-muted)", whiteSpace: "nowrap" }}>
+                <td
+                  style={{
+                    padding: "0.75rem 1rem",
+                    whiteSpace: "nowrap",
+                    color: isOverdue(task.dueDate, task.status) ? "var(--color-red-600)" : "var(--app-text-muted)",
+                    fontWeight: isOverdue(task.dueDate, task.status) ? 600 : undefined,
+                  }}
+                >
                   {task.dueDate ? formatDate(task.dueDate) : "—"}
                 </td>
               </tr>

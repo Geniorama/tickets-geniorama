@@ -18,6 +18,7 @@ import { Circle, Clock, Eye, CheckCircle2, GripVertical } from "lucide-react";
 import type { Task, TaskStatus, Priority } from "@/generated/prisma";
 import { TaskPriorityBadge } from "./project-status-badge";
 import { formatDate } from "@/lib/format-date";
+import { isOverdue } from "@/lib/overdue";
 import { updateTaskStatus } from "@/actions/task.actions";
 import { taskCode } from "@/lib/task-code";
 
@@ -125,7 +126,11 @@ function TaskCard({
         {task.assignedTo && (
           <span>Asignado: {task.assignedTo.name}</span>
         )}
-        {task.dueDate && <span>Vence: {formatDate(task.dueDate)}</span>}
+        {task.dueDate && (
+          <span style={isOverdue(task.dueDate, task.status) ? { color: "var(--color-red-600)", fontWeight: 600 } : undefined}>
+            Vence: {formatDate(task.dueDate)}
+          </span>
+        )}
       </div>
     </div>
   );
