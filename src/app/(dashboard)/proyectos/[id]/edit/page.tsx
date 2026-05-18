@@ -4,7 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { ProjectForm } from "@/components/projects/project-form";
 import { BackButton } from "@/components/ui/back-button";
 
-export const metadata = { title: "Editar proyecto — Geniorama Tickets" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const project = await prisma.project.findUnique({ where: { id }, select: { name: true } });
+  return { title: project ? `Editar: ${project.name}` : "Editar proyecto" };
+}
 
 export default async function EditProjectPage({
   params,

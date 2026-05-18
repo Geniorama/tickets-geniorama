@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { LoginForm } from "@/components/auth/login-form";
 
-export const metadata = { title: "Iniciar sesión — Geniorama Tickets" };
+export const metadata = { title: "Iniciar sesión" };
 
 export default async function LoginPage({
   searchParams,

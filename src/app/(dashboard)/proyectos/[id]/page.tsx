@@ -5,6 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { ProjectDetail } from "@/components/projects/project-detail";
 import { BackButton } from "@/components/ui/back-button";
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const project = await prisma.project.findUnique({ where: { id }, select: { name: true } });
+  return { title: project?.name ?? "Proyecto" };
+}
+
 export default async function ProjectPage({
   params,
   searchParams,

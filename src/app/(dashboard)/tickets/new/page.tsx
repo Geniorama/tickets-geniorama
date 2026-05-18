@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { TicketForm } from "@/components/tickets/ticket-form";
 import { getClientActivePlan } from "@/lib/plans.server";
 
-export const metadata = { title: "Nuevo ticket — Geniorama Tickets" };
+export const metadata = { title: "Nuevo ticket" };
 
 export default async function NewTicketPage() {
   const session = await getRequiredSession();

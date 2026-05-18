@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { ForgotPasswordForm } from "@/components/auth/forgot-password-form";
 
-export const metadata = { title: "Recuperar contraseña — Geniorama Tickets" };
+export const metadata = { title: "Recuperar contraseña" };
 
 export default function ForgotPasswordPage() {
   return (

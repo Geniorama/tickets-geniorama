@@ -2,6 +2,8 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { Sparkles } from "lucide-react";
 
+export const metadata = { title: "Novedades" };
+
 // ─── Parser ───────────────────────────────────────────────────────────────────
 
 interface Item {

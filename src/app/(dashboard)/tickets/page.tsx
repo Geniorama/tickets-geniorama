@@ -14,7 +14,7 @@ import { getPageSize } from "@/lib/pagination";
 
 const TZ = "America/Bogota";
 
-export const metadata = { title: "Tickets — Geniorama Tickets" };
+export const metadata = { title: "Tickets" };
 
 export default async function TicketsPage({
   searchParams,

@@ -3,7 +3,11 @@ import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { UserEditForm } from "@/components/admin/user-edit-form";
 
-export const metadata = { title: "Editar usuario — Geniorama Tickets" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const user = await prisma.user.findUnique({ where: { id }, select: { name: true } });
+  return { title: user ? `Editar: ${user.name}` : "Editar usuario" };
+}
 
 export default async function EditUserPage({
   params,

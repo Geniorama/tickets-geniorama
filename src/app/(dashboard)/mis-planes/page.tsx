@@ -12,7 +12,7 @@ import {
 import { formatDate } from "@/lib/format-date";
 import { Clock, CalendarClock, CheckCircle2, XCircle, AlertCircle, AlertTriangle } from "lucide-react";
 
-export const metadata = { title: "Mis planes — Geniorama Tickets" };
+export const metadata = { title: "Mis planes" };
 
 function getRemainingDays(expiry: Date): number {
   return Math.ceil((expiry.getTime() - Date.now()) / 86_400_000);

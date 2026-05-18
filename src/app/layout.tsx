@@ -12,7 +12,10 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Geniorama Tickets",
+  title: {
+    default: "Geniorama Tickets",
+    template: "%s — Geniorama Tickets",
+  },
   description: "Sistema de tickets Geniorama",
 };
 

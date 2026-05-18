@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { SetPasswordForm } from "@/components/auth/set-password-form";
 
-export const metadata = { title: "Establecer contraseña — Geniorama Tickets" };
+export const metadata = { title: "Establecer contraseña" };
 
 export default async function SetPasswordPage({
   searchParams,

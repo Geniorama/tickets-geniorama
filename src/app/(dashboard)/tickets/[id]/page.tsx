@@ -6,6 +6,12 @@ import { TicketDetail } from "@/components/tickets/ticket-detail";
 import { BackButton } from "@/components/ui/back-button";
 import { TicketChecklistPanel } from "@/components/ui/checklist-panel";
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const ticket = await prisma.ticket.findUnique({ where: { id }, select: { title: true } });
+  return { title: ticket?.title ?? "Ticket" };
+}
+
 export default async function TicketPage({
   params,
 }: {

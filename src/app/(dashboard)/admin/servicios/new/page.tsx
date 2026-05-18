@@ -2,7 +2,7 @@ import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { ServiceForm } from "@/components/services/service-form";
 
-export const metadata = { title: "Nuevo servicio — Geniorama Tickets" };
+export const metadata = { title: "Nuevo servicio" };
 
 export default async function NewServicioPage({
   searchParams,

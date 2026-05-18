@@ -3,7 +3,11 @@ import { prisma } from "@/lib/prisma";
 import { PlanEditForm } from "@/components/admin/plan-edit-form";
 import { notFound } from "next/navigation";
 
-export const metadata = { title: "Editar plan — Geniorama Tickets" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const plan = await prisma.plan.findUnique({ where: { id }, select: { name: true } });
+  return { title: plan ? `Editar: ${plan.name}` : "Editar plan" };
+}
 
 export default async function EditPlanPage({
   params,

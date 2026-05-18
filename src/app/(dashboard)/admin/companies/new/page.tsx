@@ -2,7 +2,7 @@ import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { CompanyForm } from "@/components/admin/company-form";
 
-export const metadata = { title: "Nueva empresa — Geniorama Tickets" };
+export const metadata = { title: "Nueva empresa" };
 
 export default async function NewCompanyPage() {
   await requireRole(["ADMINISTRADOR"]);

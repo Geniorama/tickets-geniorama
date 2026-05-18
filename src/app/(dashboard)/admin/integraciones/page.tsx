@@ -3,6 +3,8 @@ import { getSettings } from "@/actions/settings.actions";
 import { GChatIntegrations } from "@/components/admin/gchat-integrations";
 import { MessageSquare } from "lucide-react";
 
+export const metadata = { title: "Integraciones" };
+
 const KEYS = [
   "gchat_webhook_tickets",
   "gchat_webhook_tasks",

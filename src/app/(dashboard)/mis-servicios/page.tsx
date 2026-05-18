@@ -5,7 +5,7 @@ import { isAdmin } from "@/lib/roles";
 import { isStaff } from "@/lib/auth-helpers";
 import { ServiceCard } from "@/components/services/service-card";
 
-export const metadata = { title: "Mis servicios — Geniorama Tickets" };
+export const metadata = { title: "Mis servicios" };
 
 export default async function MisServiciosPage() {
   const session = await getRequiredSession();

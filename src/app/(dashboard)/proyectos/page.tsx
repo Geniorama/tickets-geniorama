@@ -12,7 +12,7 @@ import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/search-input";
 import { getPageSize } from "@/lib/pagination";
 
-export const metadata = { title: "Proyectos — Geniorama Tickets" };
+export const metadata = { title: "Proyectos" };
 
 export default async function ProyectosPage({
   searchParams,

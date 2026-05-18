@@ -4,7 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { SiteForm } from "@/components/sites/site-form";
 import { BackButton } from "@/components/ui/back-button";
 
-export const metadata = { title: "Editar sitio — Geniorama Tickets" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const site = await prisma.site.findUnique({ where: { id }, select: { name: true } });
+  return { title: site ? `Editar: ${site.name}` : "Editar sitio" };
+}
 
 export default async function EditSitioPage({
   params,

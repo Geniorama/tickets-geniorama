@@ -2,7 +2,7 @@ import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { UserForm } from "@/components/admin/user-form";
 
-export const metadata = { title: "Nuevo usuario — Geniorama Tickets" };
+export const metadata = { title: "Nuevo usuario" };
 
 export default async function NewUserPage() {
   await requireRole(["ADMINISTRADOR"]);

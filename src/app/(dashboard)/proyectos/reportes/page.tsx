@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import type { ProjectStatus, TaskStatus } from "@/generated/prisma";
 
-export const metadata = { title: "Reportes de proyectos — Geniorama Tickets" };
+export const metadata = { title: "Reportes de proyectos" };
 
 const PROJECT_STATUS_META: Record<ProjectStatus, { label: string; color: string; bg: string }> = {
   PLANIFICACION:  { label: "Planificación",  color: "#64748b", bg: "rgba(100,116,139,0.12)" },

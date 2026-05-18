@@ -2,7 +2,7 @@ import { getRequiredSession } from "@/lib/auth-helpers";
 import { ChangePasswordForm } from "@/components/auth/change-password-form";
 import { KeyRound } from "lucide-react";
 
-export const metadata = { title: "Mi perfil — Geniorama Tickets" };
+export const metadata = { title: "Mi perfil" };
 
 export default async function PerfilPage() {
   const session = await getRequiredSession();

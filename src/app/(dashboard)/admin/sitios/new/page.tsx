@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { SiteForm } from "@/components/sites/site-form";
 import { BackButton } from "@/components/ui/back-button";
 
-export const metadata = { title: "Nuevo sitio — Geniorama Tickets" };
+export const metadata = { title: "Nuevo sitio" };
 
 export default async function NewSitioPage() {
   await requireRole(["ADMINISTRADOR", "COLABORADOR"]);

@@ -2,7 +2,7 @@ import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
-export const metadata = { title: "Estadísticas — Geniorama Tickets" };
+export const metadata = { title: "Estadísticas" };
 
 function pct(n: number, total: number) {
   if (total === 0) return 0;

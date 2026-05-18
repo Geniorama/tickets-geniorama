@@ -8,7 +8,7 @@ import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/search-input";
 import { PlansTable } from "@/components/admin/plans-table";
 
-export const metadata = { title: "Planes — Geniorama Tickets" };
+export const metadata = { title: "Planes" };
 
 export default async function PlansPage({
   searchParams,

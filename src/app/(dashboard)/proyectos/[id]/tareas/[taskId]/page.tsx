@@ -6,6 +6,12 @@ import { TaskDetail } from "@/components/projects/task-detail";
 import { BackButton } from "@/components/ui/back-button";
 import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string; taskId: string }> }) {
+  const { taskId } = await params;
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { title: true } });
+  return { title: task?.title ?? "Tarea" };
+}
+
 export default async function TaskPage({
   params,
 }: {

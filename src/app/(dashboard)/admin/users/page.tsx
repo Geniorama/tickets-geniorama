@@ -9,7 +9,7 @@ import { UsersTable } from "@/components/admin/users-table";
 import { UserFilters } from "@/components/admin/user-filters";
 import { getPageSize } from "@/lib/pagination";
 
-export const metadata = { title: "Usuarios — Geniorama Tickets" };
+export const metadata = { title: "Usuarios" };
 
 export default async function UsersPage({
   searchParams,

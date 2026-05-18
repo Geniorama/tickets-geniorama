@@ -5,7 +5,7 @@ import { getEffectiveExpiresAt } from "@/lib/plans";
 import { ReportView } from "@/components/reportes/report-view";
 import type { TicketRow, PlanRow, CompanyOption, PlanOption } from "@/components/reportes/report-view";
 
-export const metadata = { title: "Reportes — Geniorama Tickets" };
+export const metadata = { title: "Reportes" };
 
 export default async function ReportesPage({
   searchParams,

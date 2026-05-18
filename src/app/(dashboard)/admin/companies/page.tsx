@@ -9,7 +9,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { Suspense } from "react";
 import { getPageSize } from "@/lib/pagination";
 
-export const metadata = { title: "Empresas — Geniorama Tickets" };
+export const metadata = { title: "Empresas" };
 
 export default async function CompaniesPage({
   searchParams,

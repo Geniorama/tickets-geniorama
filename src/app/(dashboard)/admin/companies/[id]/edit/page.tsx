@@ -3,7 +3,11 @@ import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { CompanyEditForm } from "@/components/admin/company-edit-form";
 
-export const metadata = { title: "Editar empresa — Geniorama Tickets" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const company = await prisma.company.findUnique({ where: { id }, select: { name: true } });
+  return { title: company ? `Editar: ${company.name}` : "Editar empresa" };
+}
 
 export default async function EditCompanyPage({
   params,

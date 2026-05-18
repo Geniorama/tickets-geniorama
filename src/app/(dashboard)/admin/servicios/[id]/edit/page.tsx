@@ -5,7 +5,11 @@ import { ServiceForm } from "@/components/services/service-form";
 import { DeleteServiceButton } from "@/components/services/delete-service-button";
 import { DuplicateServiceButton } from "@/components/services/duplicate-service-button";
 
-export const metadata = { title: "Editar servicio — Geniorama Tickets" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const service = await prisma.service.findUnique({ where: { id }, select: { name: true } });
+  return { title: service ? `Editar: ${service.name}` : "Editar servicio" };
+}
 
 export default async function EditServicioPage({
   params,

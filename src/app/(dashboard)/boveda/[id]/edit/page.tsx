@@ -6,7 +6,11 @@ import { decrypt } from "@/lib/vault-crypto";
 import { VaultForm } from "@/components/vault/vault-form";
 import { BackButton } from "@/components/ui/back-button";
 
-export const metadata = { title: "Editar entrada — Bóveda" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const entry = await prisma.vaultEntry.findUnique({ where: { id }, select: { title: true } });
+  return { title: entry ? `Editar: ${entry.title} — Bóveda` : "Editar entrada — Bóveda" };
+}
 
 export default async function EditVaultEntryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

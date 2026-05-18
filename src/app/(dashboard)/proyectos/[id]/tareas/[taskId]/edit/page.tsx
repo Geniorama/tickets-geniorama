@@ -4,7 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { TaskForm } from "@/components/projects/task-form";
 import { BackButton } from "@/components/ui/back-button";
 
-export const metadata = { title: "Editar tarea — Geniorama Tickets" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string; taskId: string }> }) {
+  const { taskId } = await params;
+  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { title: true } });
+  return { title: task ? `Editar: ${task.title}` : "Editar tarea" };
+}
 
 export default async function EditTaskPage({
   params,

@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { TaskForm } from "@/components/projects/task-form";
 import { BackButton } from "@/components/ui/back-button";
 
-export const metadata = { title: "Nueva tarea — Geniorama Tickets" };
+export const metadata = { title: "Nueva tarea" };
 
 export default async function NewTaskGlobalPage() {
   await requireRole(["ADMINISTRADOR", "COLABORADOR"]);

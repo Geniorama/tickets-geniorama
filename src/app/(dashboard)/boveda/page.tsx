@@ -10,7 +10,7 @@ import { getPageSize } from "@/lib/pagination";
 import { SearchInput } from "@/components/ui/search-input";
 import { Suspense } from "react";
 
-export const metadata = { title: "Bóveda — Geniorama Tickets" };
+export const metadata = { title: "Bóveda" };
 
 export default async function BovedaPage({
   searchParams,

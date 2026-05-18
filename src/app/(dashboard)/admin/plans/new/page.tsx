@@ -2,7 +2,7 @@ import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PlanForm } from "@/components/admin/plan-form";
 
-export const metadata = { title: "Nuevo plan — Geniorama Tickets" };
+export const metadata = { title: "Nuevo plan" };
 
 export default async function NewPlanPage() {
   await requireRole(["ADMINISTRADOR"]);

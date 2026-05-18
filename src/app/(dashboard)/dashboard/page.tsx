@@ -11,7 +11,7 @@ import { formatDate } from "@/lib/format-date";
 import { getEffectiveExpiresAt, daysUntilExpiry, PLAN_EXPIRY_WARNING_DAYS } from "@/lib/plans";
 import { ticketCode } from "@/lib/ticket-code";
 
-export const metadata = { title: "Dashboard — Geniorama Tickets" };
+export const metadata = { title: "Dashboard" };
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

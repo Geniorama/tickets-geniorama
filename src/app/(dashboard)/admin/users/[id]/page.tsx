@@ -9,7 +9,7 @@ import { formatDate } from "@/lib/format-date";
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await prisma.user.findUnique({ where: { id }, select: { name: true } });
-  return { title: `${user?.name ?? "Usuario"} — Geniorama Tickets` };
+  return { title: user?.name ?? "Usuario" };
 }
 
 const ROLE_LABELS: Record<string, string> = {

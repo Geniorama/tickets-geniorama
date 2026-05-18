@@ -10,7 +10,11 @@ import { VaultShareManager } from "@/components/vault/vault-share-manager";
 import { DeleteVaultButton } from "@/components/vault/delete-vault-button";
 import { Pencil, Building2, Globe, Server, ExternalLink } from "lucide-react";
 
-export const metadata = { title: "Entrada — Bóveda" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const entry = await prisma.vaultEntry.findUnique({ where: { id }, select: { title: true } });
+  return { title: entry ? `${entry.title} — Bóveda` : "Entrada — Bóveda" };
+}
 
 export default async function VaultEntryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

@@ -8,7 +8,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { SitesTable } from "@/components/admin/sites-table";
 import { getPageSize } from "@/lib/pagination";
 
-export const metadata = { title: "Sitios y apps — Geniorama Tickets" };
+export const metadata = { title: "Sitios y apps" };
 
 export default async function SitiosPage({
   searchParams,

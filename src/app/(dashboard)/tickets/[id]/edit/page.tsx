@@ -4,7 +4,11 @@ import { prisma } from "@/lib/prisma";
 import { TicketEditForm } from "@/components/tickets/ticket-edit-form";
 import { BackButton } from "@/components/ui/back-button";
 
-export const metadata = { title: "Editar ticket — Geniorama Tickets" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const ticket = await prisma.ticket.findUnique({ where: { id }, select: { title: true } });
+  return { title: ticket ? `Editar: ${ticket.title}` : "Editar ticket" };
+}
 
 export default async function EditTicketPage({
   params,

@@ -12,7 +12,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getPageSize } from "@/lib/pagination";
 
-export const metadata = { title: "Tareas — Geniorama Tickets" };
+export const metadata = { title: "Tareas" };
 
 export default async function TareasPage({
   searchParams,

@@ -8,7 +8,7 @@ import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/search-input";
 import { ViewToggle } from "@/components/ui/view-toggle";
 
-export const metadata = { title: "Servicios — Geniorama Tickets" };
+export const metadata = { title: "Servicios" };
 
 export default async function ServiciosPage({
   searchParams,

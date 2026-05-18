@@ -5,7 +5,11 @@ import { TaskForm } from "@/components/projects/task-form";
 import { BackButton } from "@/components/ui/back-button";
 import { redirect } from "next/navigation";
 
-export const metadata = { title: "Nueva tarea — Geniorama Tickets" };
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const project = await prisma.project.findUnique({ where: { id }, select: { name: true } });
+  return { title: project ? `Nueva tarea en ${project.name}` : "Nueva tarea" };
+}
 
 export default async function NewTaskPage({
   params,

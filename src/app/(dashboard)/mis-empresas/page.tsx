@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import Image from "next/image";
 import { Building2, CheckCircle2, XCircle } from "lucide-react";
 
-export const metadata = { title: "Mis empresas — Geniorama Tickets" };
+export const metadata = { title: "Mis empresas" };
 
 export default async function MisEmpresasPage() {
   const session = await getRequiredSession();
