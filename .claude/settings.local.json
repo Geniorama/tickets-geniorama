@@ -48,7 +48,15 @@
       "Bash(grep:*)",
       "Bash(npm version:*)",
       "Bash(wc:*)",
-      "Bash(npx tsx *)"
+      "Bash(npx tsx *)",
+      "WebFetch(domain:geniorama.co)",
+      "Bash(curl -sI \"https://geniorama.co/favicon.ico\" -o NUL -w \"favicon.ico: %{http_code} | type: %{content_type} | size: %{size_download}\\\\n\")",
+      "Bash(curl -sI \"https://geniorama.co/favicon.png\" -o NUL -w \"favicon.png: %{http_code} | type: %{content_type} | size: %{size_download}\\\\n\")",
+      "Bash(curl -sI \"https://geniorama.co/favicon.svg\" -o NUL -w \"favicon.svg: %{http_code} | type: %{content_type} | size: %{size_download}\\\\n\")",
+      "Bash(curl -sI \"https://geniorama.co/apple-touch-icon.png\" -o NUL -w \"apple-touch: %{http_code} | type: %{content_type} | size: %{size_download}\\\\n\")",
+      "Bash(curl -sL \"https://geniorama.co/\")",
+      "Bash(curl -sL \"https://geniorama.co/\" -o response.html -w \"HTTP %{http_code} | size %{size_download}\\\\n\")",
+      "Read(//c/Users/Janus/Downloads/**)"
     ]
   }
 }
