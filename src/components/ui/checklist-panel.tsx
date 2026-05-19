@@ -282,7 +282,7 @@ export function TaskChecklistPanel({
   canDelete,
 }: {
   taskId: string;
-  projectId: string;
+  projectId: string | null;
   initialItems: Item[];
   canDelete: boolean;
 }) {

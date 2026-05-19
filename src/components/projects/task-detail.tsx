@@ -21,7 +21,7 @@ import { ReportGenerator } from "@/components/ui/report-generator";
 import { generateTaskReport } from "@/actions/report.actions";
 
 type TaskWithDetails = Task & {
-  project: { id: string; name: string };
+  project: { id: string; name: string } | null;
   assignedTo: Pick<User, "id" | "name"> | null;
   createdBy: Pick<User, "id" | "name">;
   comments: (TaskComment & { author: Pick<User, "name">; reactions: ReactionEntry[] })[];
@@ -73,7 +73,7 @@ export function TaskDetail({
 
   function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
     startTransition(async () => {
-      await updateTaskStatus(task.id, task.project.id, e.target.value);
+      await updateTaskStatus(task.id, task.project?.id ?? null, e.target.value);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     });
@@ -82,15 +82,15 @@ export function TaskDetail({
   function handleDelete() {
     if (!confirm("¿Eliminar esta tarea? Esta acción no se puede deshacer.")) return;
     startTransition(async () => {
-      await deleteTask(task.id, task.project.id);
+      await deleteTask(task.id, task.project?.id ?? null);
     });
   }
 
   function handleMove() {
-    if (!moveTarget) return;
+    if (!moveTarget || !task.project) return;
     if (!confirm("¿Mover esta tarea al proyecto seleccionado?")) return;
     startTransition(async () => {
-      await moveTask(task.id, task.project.id, moveTarget);
+      await moveTask(task.id, task.project!.id, moveTarget);
     });
   }
 
@@ -119,7 +119,7 @@ export function TaskDetail({
               <div>
                 {task.number > 0 && (
                   <p style={{ margin: "0 0 0.25rem", fontSize: "0.75rem", fontWeight: 600, color: "var(--app-text-muted)", letterSpacing: "0.04em" }}>
-                    {taskCode(task.project.name, task.number)}
+                    {taskCode(task.project?.name ?? "GLB", task.number)}
                   </p>
                 )}
                 <h1
@@ -171,7 +171,7 @@ export function TaskDetail({
                       >
                         {admin && (
                           <Link
-                            href={`/proyectos/${task.project.id}/tareas/${task.id}/edit`}
+                            href={task.project ? `/proyectos/${task.project.id}/tareas/${task.id}/edit` : `/tareas/${task.id}/edit`}
                             onClick={() => setShowMenu(false)}
                             style={{
                               display: "flex",
@@ -192,7 +192,7 @@ export function TaskDetail({
                         {staff && (
                           <DuplicateTaskButton
                             taskId={task.id}
-                            projectId={task.project.id}
+                            projectId={task.project?.id ?? null}
                             menuItemStyle
                           />
                         )}
@@ -381,12 +381,18 @@ export function TaskDetail({
               <span style={infoRowStyle}>
                 <FolderOpen style={{ width: "0.875rem", height: "0.875rem" }} />
                 Proyecto:{" "}
-                <Link
-                  href={`/proyectos/${task.project.id}`}
-                  style={{ color: "#fd1384", textDecoration: "none", fontWeight: 500 }}
-                >
-                  {task.project.name}
-                </Link>
+                {task.project ? (
+                  <Link
+                    href={`/proyectos/${task.project.id}`}
+                    style={{ color: "#fd1384", textDecoration: "none", fontWeight: 500 }}
+                  >
+                    {task.project.name}
+                  </Link>
+                ) : (
+                  <strong style={{ color: "var(--app-text-muted)", fontStyle: "italic" }}>
+                    Sin proyecto
+                  </strong>
+                )}
               </span>
               <span style={infoRowStyle}>
                 <User2 style={{ width: "0.875rem", height: "0.875rem" }} />
@@ -509,7 +515,7 @@ export function TaskDetail({
           {staff && (
             <TaskTimer
               taskId={task.id}
-              projectId={task.project.id}
+              projectId={task.project?.id ?? null}
               title={task.title}
               entries={task.timeEntries}
               canControl={staff}
@@ -539,7 +545,7 @@ export function TaskDetail({
             </h2>
             <TaskCommentSection
               taskId={task.id}
-              projectId={task.project.id}
+              projectId={task.project?.id ?? null}
               comments={task.comments.map((c) => ({
                 id: c.id,
                 body: c.body,

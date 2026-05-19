@@ -38,7 +38,7 @@ export function TaskTimer({
   currentUserId,
 }: {
   taskId: string;
-  projectId: string;
+  projectId: string | null;
   title: string;
   entries: TimeEntryRow[];
   canControl: boolean;

@@ -49,7 +49,7 @@ export async function deleteTicketChecklistItem(itemId: string, ticketId: string
 
 // ─── Tasks ────────────────────────────────────────────────────────────────────
 
-export async function addTaskChecklistItem(taskId: string, projectId: string, title: string) {
+export async function addTaskChecklistItem(taskId: string, projectId: string | null, title: string) {
   const session = await getRequiredSession();
   const t = title.trim();
   if (!t) return { error: "El título no puede estar vacío" };
@@ -65,10 +65,10 @@ export async function addTaskChecklistItem(taskId: string, projectId: string, ti
     },
   });
 
-  revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);
+  revalidatePath(projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`);
 }
 
-export async function toggleTaskChecklistItem(itemId: string, taskId: string, projectId: string) {
+export async function toggleTaskChecklistItem(itemId: string, taskId: string, projectId: string | null) {
   await getRequiredSession();
 
   const item = await prisma.taskChecklistItem.findUnique({ where: { id: itemId } });
@@ -79,13 +79,13 @@ export async function toggleTaskChecklistItem(itemId: string, taskId: string, pr
     data: { isChecked: !item.isChecked },
   });
 
-  revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);
+  revalidatePath(projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`);
 }
 
-export async function deleteTaskChecklistItem(itemId: string, taskId: string, projectId: string) {
+export async function deleteTaskChecklistItem(itemId: string, taskId: string, projectId: string | null) {
   await getRequiredSession();
 
   await prisma.taskChecklistItem.delete({ where: { id: itemId } });
 
-  revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);
+  revalidatePath(projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`);
 }

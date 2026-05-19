@@ -50,7 +50,7 @@ export function TaskCommentSection({
   isAdmin,
 }: {
   taskId: string;
-  projectId: string;
+  projectId: string | null;
   comments: Comment[];
   totalComments?: number;
   currentUserId: string;
@@ -149,7 +149,7 @@ function TaskCommentItem({
 }: {
   comment: Comment;
   taskId: string;
-  projectId: string;
+  projectId: string | null;
   currentUserId: string;
   isAdmin: boolean;
 }) {
@@ -367,7 +367,7 @@ function TaskCommentForm({
   projectId,
 }: {
   taskId: string;
-  projectId: string;
+  projectId: string | null;
 }) {
   const [isPending, startTransition] = useTransition();
   const [attachMode, setAttachMode] = useState<AttachmentMode>("none");

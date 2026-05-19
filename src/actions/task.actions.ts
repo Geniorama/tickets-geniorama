@@ -79,7 +79,7 @@ async function findScheduleConflicts(
   return overlapping.map((t) => ({
     taskId:      t.id,
     taskTitle:   t.title,
-    projectName: t.project.name,
+    projectName: t.project?.name ?? "Sin proyecto",
     startDate:   t.startDate ? fmt(t.startDate) : null,
     dueDate:     t.dueDate   ? fmt(t.dueDate)   : null,
   }));
@@ -248,9 +248,10 @@ export async function createTask(projectIdArg: string | null, formData: FormData
 
 // ─── updateTask ───────────────────────────────────────────────────────────────
 
-export async function updateTask(taskId: string, projectId: string, formData: FormData) {
+export async function updateTask(taskId: string, projectId: string | null, formData: FormData) {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  const taskUrl = projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`;
 
   const parsed = taskSchema.safeParse({
     title:          formData.get("title"),
@@ -311,10 +312,12 @@ export async function updateTask(taskId: string, projectId: string, formData: Fo
 
   // Notificar al nuevo asignado si cambió y no es quien edita
   const newAssigneeId = parsed.data.assignedToId ?? null;
-  const project = await prisma.project.findUnique({
-    where: { id: projectId },
-    select: { name: true, isPrivate: true },
-  });
+  const project = projectId
+    ? await prisma.project.findUnique({
+        where: { id: projectId },
+        select: { name: true, isPrivate: true },
+      })
+    : null;
   const projectIsPrivate = project?.isPrivate ?? false;
 
   if (newAssigneeId && newAssigneeId !== oldTask?.assignedToId && newAssigneeId !== session.user.id) {
@@ -323,7 +326,7 @@ export async function updateTask(taskId: string, projectId: string, formData: Fo
       "task_assigned",
       "Tarea asignada",
       `Se te asignó: "${parsed.data.title}"${project ? ` en ${project.name}` : ""}`,
-      `/proyectos/${projectId}/tareas/${taskId}`,
+      taskUrl,
       projectIsPrivate
     );
   }
@@ -346,7 +349,7 @@ export async function updateTask(taskId: string, projectId: string, formData: Fo
       "task_date_changed",
       "Fechas actualizadas",
       `"${parsed.data.title}" — ${parts.join(" · ")}`,
-      `/proyectos/${projectId}/tareas/${taskId}`,
+      taskUrl,
       projectIsPrivate
     );
   }
@@ -394,14 +397,14 @@ export async function updateTask(taskId: string, projectId: string, formData: Fo
     } catch { /* JSON inválido */ }
   }
 
-  revalidatePath(`/proyectos/${projectId}`);
-  revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);
-  redirect(`/proyectos/${projectId}/tareas/${taskId}`);
+  if (projectId) revalidatePath(`/proyectos/${projectId}`);
+  revalidatePath(taskUrl);
+  redirect(taskUrl);
 }
 
 // ─── updateTaskStatus ─────────────────────────────────────────────────────────
 
-export async function updateTaskStatus(taskId: string, projectId: string, status: string) {
+export async function updateTaskStatus(taskId: string, projectId: string | null, status: string) {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
@@ -410,13 +413,16 @@ export async function updateTaskStatus(taskId: string, projectId: string, status
       where: { id: taskId },
       select: { title: true, status: true, createdById: true, assignedToId: true },
     }),
-    prisma.project.findUnique({
-      where: { id: projectId },
-      select: { isPrivate: true },
-    }),
+    projectId
+      ? prisma.project.findUnique({
+          where: { id: projectId },
+          select: { isPrivate: true },
+        })
+      : Promise.resolve(null),
   ]);
 
   const projectIsPrivate = projectForStatus?.isPrivate ?? false;
+  const taskUrl = projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`;
 
   await prisma.task.update({
     where: { id: taskId },
@@ -449,7 +455,7 @@ export async function updateTaskStatus(taskId: string, projectId: string, status
       "task_status",
       "Tarea en progreso",
       `"${oldTask?.title}" pasó a *En progreso*`,
-      `/proyectos/${projectId}/tareas/${taskId}`
+      taskUrl
     );
   }
 
@@ -459,7 +465,7 @@ export async function updateTaskStatus(taskId: string, projectId: string, status
       "task_status",
       "Tarea en revisión",
       `"${oldTask?.title}" pasó a *En revisión*`,
-      `/proyectos/${projectId}/tareas/${taskId}`
+      taskUrl
     );
   }
 
@@ -469,7 +475,7 @@ export async function updateTaskStatus(taskId: string, projectId: string, status
       "task_status",
       "Tarea pendiente",
       `"${oldTask?.title}" volvió a *Pendiente*`,
-      `/proyectos/${projectId}/tareas/${taskId}`
+      taskUrl
     );
   }
 
@@ -482,25 +488,29 @@ export async function updateTaskStatus(taskId: string, projectId: string, status
       "task_completed",
       "Tarea completada",
       `"${oldTask?.title}" marcada como completada`,
-      `/proyectos/${projectId}/tareas/${taskId}`,
+      taskUrl,
       projectIsPrivate
     );
   }
 
-  revalidatePath(`/proyectos/${projectId}`);
-  revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);
+  if (projectId) revalidatePath(`/proyectos/${projectId}`);
+  revalidatePath(taskUrl);
   return { success: true };
 }
 
 // ─── deleteTask ───────────────────────────────────────────────────────────────
 
-export async function deleteTask(taskId: string, projectId: string) {
+export async function deleteTask(taskId: string, projectId: string | null) {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
   await prisma.task.delete({ where: { id: taskId } });
-  revalidatePath(`/proyectos/${projectId}`);
-  redirect(`/proyectos/${projectId}`);
+  if (projectId) {
+    revalidatePath(`/proyectos/${projectId}`);
+    redirect(`/proyectos/${projectId}`);
+  }
+  revalidatePath("/tareas");
+  redirect("/tareas");
 }
 
 // ─── moveTask ─────────────────────────────────────────────────────────────────
@@ -528,7 +538,7 @@ export async function moveTask(taskId: string, fromProjectId: string, toProjectI
 
 // ─── duplicateTask ─────────────────────────────────────────────────────────────
 
-export async function duplicateTask(taskId: string, projectId: string) {
+export async function duplicateTask(taskId: string, projectId: string | null) {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
@@ -559,7 +569,7 @@ export async function duplicateTask(taskId: string, projectId: string) {
     });
   });
 
-  revalidatePath(`/proyectos/${projectId}`);
+  if (projectId) revalidatePath(`/proyectos/${projectId}`);
   revalidatePath(`/tareas`);
-  redirect(`/proyectos/${projectId}/tareas/${copy.id}`);
+  redirect(projectId ? `/proyectos/${projectId}/tareas/${copy.id}` : `/tareas/${copy.id}`);
 }

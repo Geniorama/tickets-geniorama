@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.14.0] — 2026-05-18
+
+### Tareas recurrentes
+- **Nueva sección Admin → Tareas recurrentes** — los administradores definen plantillas que generan tareas automáticamente cada cierto período. Soporta tres patrones: cada N días, cada N semanas (con días específicos Lun/Mié/Vie…), o cada N meses (día del mes específico o último día). Fecha de fin opcional; fin indefinido por defecto. Cada plantilla configura prioridad, categoría, horas estimadas, responsable, proyecto (o global) y offset de vencimiento de la tarea generada.
+- **Endpoint cron `/api/cron/recurring-tasks`** — análogo a `/api/cron/overdue`: barre plantillas activas cuya `nextRunAt <= hoy`, crea la tarea, avanza el `nextRunAt` según patrón y registra `lastRunAt`. Debe configurarse en el cron runner (Vercel Cron / sistema) para correr una vez al día. Mismo Bearer `CRON_SECRET` opcional para auth.
+- **Plantilla → tareas globales** — `Task.projectId` ahora es nullable. Las tareas sin proyecto se listan en `/tareas` (columna Proyecto muestra "Sin proyecto") y tienen rutas propias `/tareas/[id]` y `/tareas/[id]/edit`. Las actions (`updateTask`, `deleteTask`, `duplicateTask`, comments, timer, checklist, reactions) aceptan `projectId: string | null` y revalidan la ruta correspondiente.
+- **Forma del cuerpo de la plantilla** — `RecurringTaskTemplate` (modelo Prisma): `frequency` enum, `interval`, `daysOfWeek` CSV ("1,3,5"), `dayOfMonth` (-1 = último día), `startDate`, `endDate?`, `nextRunAt`, `lastRunAt?`, `isActive`, `dueDateOffsetDays`. Índice compuesto `(isActive, nextRunAt)` para el query del cron. `Task.recurringTemplateId` enlaza cada tarea generada con la plantilla origen.
+- **UI** — `/admin/tareas-recurrentes` lista plantillas con próxima ejecución, patrón legible y conteo de tareas generadas. Form unificado para crear/editar con botón "Generar tarea ahora" para disparo manual y "Pausar/Activar". Sidebar agrega submenú "Recurrentes" bajo "Tareas" (solo admin).
+- **Migración** — aplicada con `prisma db push` (la historia de migraciones estaba desincronizada con la DB en RDS). Cambios: nueva tabla `recurring_task_templates`, columna `recurring_template_id` en `tasks`, `project_id` en `tasks` ahora nullable.
+
+---
+
 ## [1.13.1] — 2026-05-07
 
 ### Fixes

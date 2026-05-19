@@ -87,22 +87,23 @@ export async function generateTaskReport(taskId: string): Promise<{ error?: stri
 
   if (!task) return { error: "Tarea no encontrada" };
 
-  const code = task.number > 0 ? taskCode(task.project.name, task.number) : undefined;
-  const prefix = projectPrefix(task.project.name);
+  const projectName = task.project?.name ?? "Sin proyecto";
+  const code = task.number > 0 ? taskCode(projectName, task.number) : undefined;
+  const prefix = projectPrefix(projectName);
 
   const header: ReportHeader = {
-    projectName: task.project.name,
+    projectName,
     itemName: task.title,
     itemCode: code,
     reportDate: today(),
-    projectManager: task.project.manager?.name ?? "Sin responsable",
+    projectManager: task.project?.manager?.name ?? "Sin responsable",
     responsible: task.assignedTo?.name ?? "Sin asignar",
     status: statusLabel[task.status] ?? task.status,
     priority: priorityLabel[task.priority] ?? task.priority,
   };
 
   // Build context for AI
-  let ctx = `**Proyecto:** ${task.project.name}
+  let ctx = `**Proyecto:** ${projectName}
 **Tarea:** ${task.title}${code ? ` (${code})` : ""}
 **Estado:** ${header.status}
 **Prioridad:** ${header.priority}${task.category ? `\n**Categoría:** ${task.category}` : ""}

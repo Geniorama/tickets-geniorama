@@ -67,7 +67,7 @@ const commentSchema = z.object({
 
 export async function addTaskComment(
   taskId: string,
-  projectId: string,
+  projectId: string | null,
   formData: FormData
 ) {
   const session = await getRequiredSession();
@@ -182,7 +182,7 @@ export async function addTaskComment(
     );
   }
 
-  revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);
+  revalidatePath(projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`);
   return { success: true };
 }
 
@@ -212,7 +212,7 @@ export async function getTaskComments(
 export async function editTaskComment(
   commentId: string,
   taskId: string,
-  projectId: string,
+  projectId: string | null,
   body: string
 ) {
   const session = await getRequiredSession();
@@ -231,14 +231,14 @@ export async function editTaskComment(
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   await prisma.taskComment.update({ where: { id: commentId }, data: { body: parsed.data } });
-  revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);
+  revalidatePath(projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`);
   return { success: true };
 }
 
 export async function deleteTaskComment(
   commentId: string,
   taskId: string,
-  projectId: string
+  projectId: string | null
 ) {
   const session = await getRequiredSession();
 
@@ -254,6 +254,6 @@ export async function deleteTaskComment(
     return { error: "Sin permisos" };
 
   await prisma.taskComment.delete({ where: { id: commentId } });
-  revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);
+  revalidatePath(projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`);
   return { success: true };
 }

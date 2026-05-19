@@ -28,12 +28,12 @@ const STATUS_CONFIG: Record<TaskStatus, { bg: string; border: string; label: str
 
 type TaskWithRelations = Task & {
   assignedTo: { name: string } | null;
-  project: { id: string; name: string };
+  project: { id: string; name: string } | null;
 };
 
 interface CalendarEvent extends Event {
   taskId: string;
-  projectId: string;
+  projectId: string | null;
   status: TaskStatus;
   assignee: string | null;
 }
@@ -86,11 +86,11 @@ export function TaskCalendar({
   const events: CalendarEvent[] = tasks
     .filter((t) => t.dueDate)
     .map((task) => ({
-      title: task.number > 0 ? `${taskCode(task.project.name, task.number)} ${task.title}` : task.title,
+      title: task.number > 0 ? `${taskCode(task.project?.name ?? "GLB", task.number)} ${task.title}` : task.title,
       start: task.startDate ? new Date(task.startDate) : new Date(task.dueDate!),
       end: new Date(task.dueDate!),
       taskId: task.id,
-      projectId: task.project.id,
+      projectId: task.project?.id ?? null,
       status: task.status as TaskStatus,
       assignee: task.assignedTo?.name ?? null,
       allDay: true,
@@ -116,7 +116,7 @@ export function TaskCalendar({
   }
 
   function handleSelectEvent(event: CalendarEvent) {
-    router.push(`/proyectos/${event.projectId}/tareas/${event.taskId}`);
+    router.push(event.projectId ? `/proyectos/${event.projectId}/tareas/${event.taskId}` : `/tareas/${event.taskId}`);
   }
 
   return (

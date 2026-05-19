@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Ticket, Building2, Users, BookOpen, CreditCard,
   BarChart3, FolderKanban, ListTodo, TrendingUp, ChevronDown, Server as ServerIcon, Globe, KeyRound, Plug, Sparkles,
-  ChevronsLeft, ChevronsRight,
+  ChevronsLeft, ChevronsRight, Repeat,
 } from "lucide-react";
 
 type NavChild = {
@@ -42,7 +42,12 @@ const navItems: NavItem[] = [
       { href: "/proyectos/reportes", label: "Reportes",   icon: BarChart3,       roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"] },
     ],
   },
-  { href: "/tareas",             label: "Tareas",         icon: ListTodo,        roles: ["ADMINISTRADOR", "COLABORADOR"] },
+  {
+    href: "/tareas",             label: "Tareas",         icon: ListTodo,        roles: ["ADMINISTRADOR", "COLABORADOR"],
+    children: [
+      { href: "/admin/tareas-recurrentes", label: "Recurrentes", icon: Repeat,    roles: ["ADMINISTRADOR"] },
+    ],
+  },
   { href: "/boveda",             label: "Bóveda",         icon: KeyRound,        roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"] },
   { href: "/mis-empresas",       label: "Mis empresas",   icon: Building2,       roles: ["CLIENTE"] },
   { href: "/mis-planes",         label: "Mis planes",     icon: CreditCard,      roles: ["CLIENTE"] },

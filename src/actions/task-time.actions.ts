@@ -5,11 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
 
-function revalidate(taskId: string, projectId: string) {
-  revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);
+function revalidate(taskId: string, projectId: string | null) {
+  revalidatePath(projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`);
 }
 
-export async function startTaskTimer(taskId: string, projectId: string) {
+export async function startTaskTimer(taskId: string, projectId: string | null) {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
@@ -26,7 +26,7 @@ export async function startTaskTimer(taskId: string, projectId: string) {
   return { success: true };
 }
 
-export async function pauseTaskTimer(taskId: string, projectId: string) {
+export async function pauseTaskTimer(taskId: string, projectId: string | null) {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
@@ -46,7 +46,7 @@ export async function pauseTaskTimer(taskId: string, projectId: string) {
 
 export async function addManualTaskEntry(
   taskId: string,
-  projectId: string,
+  projectId: string | null,
   hours: number,
   minutes: number,
 ) {
@@ -70,7 +70,7 @@ export async function addManualTaskEntry(
 export async function deleteTaskTimeEntry(
   entryId: string,
   taskId: string,
-  projectId: string,
+  projectId: string | null,
 ) {
   const session = await getRequiredSession();
   if (!isAdmin(session.user.role)) return { error: "Sin permisos" };
@@ -81,7 +81,7 @@ export async function deleteTaskTimeEntry(
   return { success: true };
 }
 
-export async function resetTaskTimeEntries(taskId: string, projectId: string) {
+export async function resetTaskTimeEntries(taskId: string, projectId: string | null) {
   const session = await getRequiredSession();
   if (!isAdmin(session.user.role)) return { error: "Sin permisos" };
 

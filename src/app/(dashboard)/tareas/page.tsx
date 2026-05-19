@@ -10,7 +10,7 @@ import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/search-input";
 import { FilterTags, type FilterTag } from "@/components/ui/filter-tags";
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Repeat } from "lucide-react";
 import { getPageSize } from "@/lib/pagination";
 
 const TASK_STATUS_LABELS: Record<string, string> = {
@@ -179,26 +179,49 @@ export default async function TareasPage({
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
           Tareas
         </h1>
-        {(admin || staff) && (
-          <Link
-            href="/tareas/new"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.375rem",
-              backgroundColor: "#fd1384",
-              color: "#ffffff",
-              padding: "0.5rem 1rem",
-              borderRadius: "0.5rem",
-              fontSize: "0.875rem",
-              fontWeight: 500,
-              textDecoration: "none",
-            }}
-          >
-            <Plus style={{ width: "1rem", height: "1rem" }} />
-            Nueva tarea
-          </Link>
-        )}
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          {admin && (
+            <Link
+              href="/admin/tareas-recurrentes"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.375rem",
+                backgroundColor: "transparent",
+                color: "var(--app-body-text)",
+                padding: "0.5rem 1rem",
+                borderRadius: "0.5rem",
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                textDecoration: "none",
+                border: "1px solid var(--app-border)",
+              }}
+            >
+              <Repeat style={{ width: "1rem", height: "1rem" }} />
+              Recurrentes
+            </Link>
+          )}
+          {(admin || staff) && (
+            <Link
+              href="/tareas/new"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.375rem",
+                backgroundColor: "#fd1384",
+                color: "#ffffff",
+                padding: "0.5rem 1rem",
+                borderRadius: "0.5rem",
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                textDecoration: "none",
+              }}
+            >
+              <Plus style={{ width: "1rem", height: "1rem" }} />
+              Nueva tarea
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 mb-5">

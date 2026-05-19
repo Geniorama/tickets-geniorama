@@ -6,29 +6,29 @@ import { TaskDetail } from "@/components/projects/task-detail";
 import { BackButton } from "@/components/ui/back-button";
 import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
 
-export async function generateMetadata({ params }: { params: Promise<{ id: string; taskId: string }> }) {
-  const { taskId } = await params;
-  const task = await prisma.task.findUnique({ where: { id: taskId }, select: { title: true } });
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const task = await prisma.task.findUnique({ where: { id }, select: { title: true } });
   return { title: task?.title ?? "Tarea" };
 }
 
-export default async function TaskPage({
+export default async function GlobalTaskPage({
   params,
 }: {
-  params: Promise<{ id: string; taskId: string }>;
+  params: Promise<{ id: string }>;
 }) {
-  const { id: projectId, taskId } = await params;
+  const { id: taskId } = await params;
   const session = await getRequiredSession();
-  const { id: userId, role } = session.user;
+  const { role } = session.user;
   const staff = isStaff(role);
   const admin = isAdmin(role);
 
-  if (!staff && !admin) redirect(`/proyectos/${projectId}`);
+  if (!staff && !admin) redirect("/tareas");
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
     include: {
-      project: { select: { id: true, name: true, companyId: true } },
+      project: { select: { id: true, name: true } },
       assignedTo: { select: { id: true, name: true } },
       createdBy: { select: { id: true, name: true } },
       comments: {
@@ -50,43 +50,24 @@ export default async function TaskPage({
     },
   });
 
-  if (!task || task.projectId !== projectId) notFound();
+  if (!task) notFound();
+
+  if (task.projectId) {
+    redirect(`/proyectos/${task.projectId}/tareas/${taskId}`);
+  }
 
   const moveableProjects = admin
     ? await prisma.project.findMany({
-        where: { id: { not: projectId }, isActive: true },
+        where: { isActive: true },
         select: { id: true, name: true },
         orderBy: { name: "asc" },
       })
     : [];
 
-  // Access control
-  if (admin) {
-    // always allowed
-  } else if (staff) {
-    const project = await prisma.project.findUnique({
-      where: { id: projectId },
-      select: { managerId: true },
-    });
-    const hasAccess =
-      project?.managerId === userId || task.assignedToId === userId;
-    if (!hasAccess) notFound();
-  } else {
-    // CLIENTE: must belong to project's company
-    const project = task.project;
-    if (!project || !project.companyId) notFound();
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { companies: { select: { id: true } } },
-    });
-    const companyIds = (user?.companies ?? []).map((c) => c.id);
-    if (!companyIds.includes(project.companyId)) notFound();
-  }
-
   return (
     <div>
       <div style={{ marginBottom: "1rem" }}>
-        <BackButton fallback={`/proyectos/${projectId}`} />
+        <BackButton fallback="/tareas" />
       </div>
       <TaskDetail
         task={task}
@@ -96,7 +77,7 @@ export default async function TaskPage({
           <TaskChecklistPanel
             key="checklist"
             taskId={taskId}
-            projectId={projectId}
+            projectId={null}
             initialItems={task.checklistItems}
             canDelete={admin}
           />

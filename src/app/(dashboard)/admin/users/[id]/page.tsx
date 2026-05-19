@@ -108,6 +108,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
   // Projects involved
   const projectMap = new Map<string, { id: string; name: string; count: number }>();
   for (const t of user.assignedTasks) {
+    if (!t.project) continue;
     const entry = projectMap.get(t.project.id) ?? { id: t.project.id, name: t.project.name, count: 0 };
     entry.count++;
     projectMap.set(t.project.id, entry);

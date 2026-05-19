@@ -19,7 +19,7 @@ import { ProjectReportGenerator } from "@/components/projects/project-report-gen
 type TaskWithRelations = Task & {
   assignedTo: { name: string } | null;
   createdBy: { name: string };
-  project: { id: string; name: string };
+  project: { id: string; name: string } | null;
   _count: { comments: number };
 };
 

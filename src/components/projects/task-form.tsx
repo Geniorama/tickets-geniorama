@@ -163,7 +163,7 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
   function submit(formData: FormData) {
     startTransition(async () => {
       const result = isEdit
-        ? await updateTask(task.id, projectId!, formData)
+        ? await updateTask(task.id, projectId ?? task.projectId ?? null, formData)
         : await createTask(projectId ?? null, formData);
       if (result?.error) setError(result.error);
       if (result?.conflicts) setConflicts(result.conflicts);

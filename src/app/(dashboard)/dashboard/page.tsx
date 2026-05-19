@@ -386,7 +386,7 @@ export default async function DashboardPage() {
               return (
                 <Link
                   key={t.id}
-                  href={`/proyectos/${t.project.id}/tareas/${t.id}`}
+                  href={t.project ? `/proyectos/${t.project.id}/tareas/${t.id}` : `/tareas/${t.id}`}
                   style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.75rem", padding: "0.75rem 0", borderBottom: "1px solid var(--app-border)", textDecoration: "none" }}
                 >
                   <div style={{ flex: 1, overflow: "hidden" }}>
@@ -394,7 +394,7 @@ export default async function DashboardPage() {
                       {t.title}
                     </p>
                     <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", marginTop: "0.125rem" }}>
-                      {t.project.name}
+                      {t.project?.name ?? "Sin proyecto"}
                       {t.dueDate && (
                         <span style={{ color: isOverdue ? "#dc2626" : "inherit" }}>
                           {" · "}Vence {formatDate(t.dueDate)}
@@ -487,14 +487,14 @@ export default async function DashboardPage() {
               {overdueTasks.map((t) => (
                 <Link
                   key={t.id}
-                  href={`/proyectos/${t.project.id}/tareas/${t.id}`}
+                  href={t.project ? `/proyectos/${t.project.id}/tareas/${t.id}` : `/tareas/${t.id}`}
                   style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", textDecoration: "none" }}
                 >
                   <div style={{ overflow: "hidden" }}>
                     <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {t.title}
                     </p>
-                    <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{t.project.name}</p>
+                    <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{t.project?.name ?? "Sin proyecto"}</p>
                   </div>
                   <span style={{ fontSize: "0.75rem", color: "#dc2626", whiteSpace: "nowrap", flexShrink: 0 }}>
                     <Clock style={{ width: "0.75rem", height: "0.75rem", display: "inline", verticalAlign: "middle", marginRight: "0.2rem" }} />
@@ -527,14 +527,14 @@ export default async function DashboardPage() {
                 return (
                   <Link
                     key={t.id}
-                    href={`/proyectos/${t.project.id}/tareas/${t.id}`}
+                    href={t.project ? `/proyectos/${t.project.id}/tareas/${t.id}` : `/tareas/${t.id}`}
                     style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", textDecoration: "none" }}
                   >
                     <div style={{ overflow: "hidden" }}>
                       <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {t.title}
                       </p>
-                      <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{t.project.name}</p>
+                      <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{t.project?.name ?? "Sin proyecto"}</p>
                     </div>
                     <span style={{ fontSize: "0.75rem", color: isToday ? "#dc2626" : "#d97706", whiteSpace: "nowrap", flexShrink: 0 }}>
                       <Clock style={{ width: "0.75rem", height: "0.75rem", display: "inline", verticalAlign: "middle", marginRight: "0.2rem" }} />

@@ -24,7 +24,7 @@ import { taskCode } from "@/lib/task-code";
 
 type TaskWithRelations = Task & {
   assignedTo: { name: string } | null;
-  project: { id: string; name: string };
+  project: { id: string; name: string } | null;
   _count: { comments: number };
 };
 
@@ -91,7 +91,7 @@ function TaskCard({
     >
       {task.number > 0 && (
         <span style={{ display: "inline-block", fontSize: "0.625rem", fontWeight: 600, color: "var(--app-text-muted)", background: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.25rem", padding: "0.1rem 0.3rem", marginBottom: "0.25rem", letterSpacing: "0.03em" }}>
-          {taskCode(task.project.name, task.number)}
+          {taskCode(task.project?.name ?? "GLB", task.number)}
         </span>
       )}
       <p

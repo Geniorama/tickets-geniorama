@@ -35,7 +35,7 @@ export async function toggleTicketCommentReaction(
 export async function toggleTaskCommentReaction(
   commentId: string,
   taskId: string,
-  projectId: string,
+  projectId: string | null,
   type: ReactionType
 ) {
   const session = await getRequiredSession();
@@ -57,5 +57,5 @@ export async function toggleTaskCommentReaction(
     });
   }
 
-  revalidatePath(`/proyectos/${projectId}/tareas/${taskId}`);
+  revalidatePath(projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`);
 }

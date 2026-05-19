@@ -55,6 +55,12 @@ enum TaskStatus {
   COMPLETADO
 }
 
+enum RecurrenceFrequency {
+  DIARIA
+  SEMANAL
+  MENSUAL
+}
+
 enum ServiceType {
   DOMINIO
   HOSTING
@@ -142,6 +148,9 @@ model User {
   notifications             Notification[]
   ticketChecklistItems      TicketChecklistItem[]
   taskChecklistItems        TaskChecklistItem[]
+
+  createdRecurringTemplates  RecurringTaskTemplate[] @relation("RecurringCreatedBy")
+  assignedRecurringTemplates RecurringTaskTemplate[] @relation("RecurringAssignedTo")
 
   @@map("users")
 }
@@ -322,6 +331,7 @@ model Project {
   attachments  ProjectAttachment[]
   members      ProjectMember[]
   favorites    ProjectFavorite[]
+  recurringTemplates RecurringTaskTemplate[]
 
   @@map("projects")
 }
@@ -400,22 +410,61 @@ model Task {
   endTime        String?    @map("end_time")
   estimatedHours Float?     @map("estimated_hours")
 
-  projectId    String  @map("project_id")
-  assignedToId String? @map("assigned_to_id")
-  createdById  String  @map("created_by_id")
+  projectId           String?  @map("project_id")
+  assignedToId        String?  @map("assigned_to_id")
+  createdById         String   @map("created_by_id")
+  recurringTemplateId String?  @map("recurring_template_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  project    Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project    Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   assignedTo User?         @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
   createdBy  User          @relation("TaskCreatedBy", fields: [createdById], references: [id])
+  recurringTemplate RecurringTaskTemplate? @relation(fields: [recurringTemplateId], references: [id], onDelete: SetNull)
   comments       TaskComment[]
   attachments    TaskAttachment[]
   timeEntries    TaskTimeEntry[]
   checklistItems TaskChecklistItem[]
 
   @@map("tasks")
+}
+
+model RecurringTaskTemplate {
+  id                String   @id @default(cuid())
+  title             String
+  description       String   @db.Text
+  priority          Priority @default(MEDIA)
+  category          String?
+  estimatedHours    Float?   @map("estimated_hours")
+
+  projectId         String?  @map("project_id")
+  assignedToId      String?  @map("assigned_to_id")
+  createdById       String   @map("created_by_id")
+
+  frequency         RecurrenceFrequency
+  interval          Int      @default(1)
+  daysOfWeek        String?  @map("days_of_week")
+  dayOfMonth        Int?     @map("day_of_month")
+
+  startDate         DateTime @map("start_date")
+  endDate           DateTime? @map("end_date")
+  nextRunAt         DateTime @map("next_run_at")
+  lastRunAt         DateTime? @map("last_run_at")
+  isActive          Boolean  @default(true) @map("is_active")
+
+  dueDateOffsetDays Int      @default(0) @map("due_date_offset_days")
+
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  project        Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  assignedTo     User?     @relation("RecurringAssignedTo", fields: [assignedToId], references: [id])
+  createdBy      User      @relation("RecurringCreatedBy", fields: [createdById], references: [id])
+  generatedTasks Task[]
+
+  @@index([isActive, nextRunAt])
+  @@map("recurring_task_templates")
 }
 
 model TaskComment {

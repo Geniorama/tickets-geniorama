@@ -11,7 +11,7 @@ export function DuplicateTaskButton({
   menuItemStyle = false,
 }: {
   taskId: string;
-  projectId: string;
+  projectId: string | null;
   menuItemStyle?: boolean;
 }) {
   const [open, setOpen] = useState(false);

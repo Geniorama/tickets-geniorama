@@ -12,7 +12,7 @@ import { taskCode } from "@/lib/task-code";
 type TaskWithRelations = Task & {
   assignedTo: { name: string } | null;
   createdBy: { name: string };
-  project: { id: string; name: string };
+  project: { id: string; name: string } | null;
   _count: { comments: number };
 };
 
@@ -88,7 +88,7 @@ export function TaskList({
       {/* ── Vista mobile: cards ── */}
       <ul className="md:hidden divide-y" style={{ borderColor: "var(--app-border)" }}>
         {tasks.map((task) => {
-          const href = `/proyectos/${task.project.id}/tareas/${task.id}`;
+          const href = task.project ? `/proyectos/${task.project.id}/tareas/${task.id}` : `/tareas/${task.id}`;
           return (
             <li key={task.id}>
               <Link href={href} style={{ display: "block", padding: "0.875rem 1rem", textDecoration: "none" }}>
@@ -96,7 +96,7 @@ export function TaskList({
                   <span style={{ fontWeight: 600, color: "var(--app-body-text)", fontSize: "0.875rem", lineHeight: 1.4 }}>
                     {task.number > 0 && (
                       <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--app-text-muted)", background: "var(--app-content-bg)", border: "1px solid var(--app-border)", borderRadius: "0.25rem", padding: "0.1rem 0.35rem", marginRight: "0.375rem" }}>
-                        {taskCode(task.project.name, task.number)}
+                        {taskCode(task.project?.name ?? "GLB", task.number)}
                       </span>
                     )}
                     {task.title}
@@ -108,7 +108,7 @@ export function TaskList({
                   {task.category && <span style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{task.category}</span>}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
-                  {showProject && <span>{task.project.name}</span>}
+                  {showProject && <span>{task.project?.name ?? "Sin proyecto"}</span>}
                   {task.assignedTo && <span>→ {task.assignedTo.name}</span>}
                   {task.dueDate && (
                     <span style={isOverdue(task.dueDate, task.status) ? { color: "var(--color-red-600)", fontWeight: 600 } : undefined}>
@@ -181,7 +181,7 @@ export function TaskList({
         </thead>
         <tbody>
           {tasks.map((task, i) => {
-            const href = `/proyectos/${task.project.id}/tareas/${task.id}`;
+            const href = task.project ? `/proyectos/${task.project.id}/tareas/${task.id}` : `/tareas/${task.id}`;
             return (
               <tr
                 key={task.id}
@@ -198,7 +198,7 @@ export function TaskList({
                   >
                     {task.number > 0 && (
                       <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--app-text-muted)", background: "var(--app-content-bg)", border: "1px solid var(--app-border)", borderRadius: "0.25rem", padding: "0.1rem 0.35rem", letterSpacing: "0.03em", flexShrink: 0 }}>
-                        {taskCode(task.project.name, task.number)}
+                        {taskCode(task.project?.name ?? "GLB", task.number)}
                       </span>
                     )}
                     {task.title}
@@ -212,14 +212,20 @@ export function TaskList({
 
                 {showProject && (
                   <td style={{ padding: "0.75rem 1rem" }}>
-                    <Link
-                      href={`/proyectos/${task.project.id}`}
-                      style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", textDecoration: "none" }}
-                      onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#fd1384")}
-                      onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "var(--app-text-muted)")}
-                    >
-                      {task.project.name}
-                    </Link>
+                    {task.project ? (
+                      <Link
+                        href={`/proyectos/${task.project.id}`}
+                        style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", textDecoration: "none" }}
+                        onMouseEnter={(e) => ((e.target as HTMLElement).style.color = "#fd1384")}
+                        onMouseLeave={(e) => ((e.target as HTMLElement).style.color = "var(--app-text-muted)")}
+                      >
+                        {task.project.name}
+                      </Link>
+                    ) : (
+                      <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", fontStyle: "italic" }}>
+                        Sin proyecto
+                      </span>
+                    )}
                   </td>
                 )}
 

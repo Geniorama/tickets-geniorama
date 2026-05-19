@@ -48,7 +48,10 @@ export async function POST(req: NextRequest) {
       where: {
         status: { notIn: ["COMPLETADO", "EN_REVISION"] },
         dueDate: { lt: today },
-        project: { isPrivate: false },
+        OR: [
+          { project: { isPrivate: false } },
+          { projectId: null },
+        ],
       },
       take: 50,
       select: {
@@ -92,7 +95,7 @@ export async function POST(req: NextRequest) {
       "task_overdue",
       "Tarea vencida",
       `"${task.title}" · ${parts.join(" · ")}`,
-      `/proyectos/${task.projectId}/tareas/${task.id}`,
+      task.projectId ? `/proyectos/${task.projectId}/tareas/${task.id}` : `/tareas/${task.id}`,
     );
   });
 

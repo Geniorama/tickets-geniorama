@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 export type ActiveTimer = {
   type: "ticket" | "task";
   resourceId: string;
-  projectId?: string; // solo para tasks
+  projectId?: string | null; // solo para tasks, null si la tarea es global
   title: string;
   startedAt: string; // ISO — inicio de la sesión activa
 };
