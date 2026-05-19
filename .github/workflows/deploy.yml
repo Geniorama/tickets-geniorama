@@ -41,4 +41,4 @@ jobs:
             # 5. Reiniciar con PM2 usando la ruta completa para evitar fallos
             # Cargamos PM2 si no está en el PATH
             export PATH="$PATH:$(npm config get prefix)/bin"
-            pm2 restart mi-next-app || pm2 start npm --name "mi-next-app" -- start
+            pm2 restart tickets-app || pm2 start npm --name "tickets-app" -- start
