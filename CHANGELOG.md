@@ -9,6 +9,110 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.24.0] — 2026-06-03
+
+### Configuración del proyecto visible en el detalle de tarea
+- En el detalle de una tarea de proyecto (`/proyectos/[id]/tareas/[taskId]`) ahora se muestran, debajo de la tarea, los paneles de **Accesos (bóveda)** y **Adjuntos** del proyecto, bajo el título «Configuración del proyecto». La página obtiene las entradas de bóveda vinculadas/disponibles (respetando la visibilidad por usuario) y los adjuntos del proyecto, y reutiliza `ProjectVaultPanel` y `ProjectAttachmentsPanel`. Solo staff/admin acceden al detalle de tarea, por lo que pueden gestionarlos.
+
+---
+
+## [1.23.0] — 2026-06-03
+
+### Botones de acción unificados en tablas
+- **Componente compartido `IconAction` / `IconActionLink`** (`src/components/ui/icon-action.tsx`) — botón/enlace de icono cuadrado (2rem, bordeado) con tooltip al pasar el cursor, sin texto. Tonos semánticos: `neutral` (hover rosa de marca), `danger` (rojo), `success` (verde). Spinner al estar pendiente. El icono se pasa por **nombre** (string serializable, vía registro interno) para poder usarse desde Server Components.
+- **Tablas unificadas** — usuarios, empresas, sitios, planes, servicios, plantillas de tarea y bóveda ahora muestran sus acciones (ver, editar, eliminar, duplicar, activar/desactivar, reenviar invitación, crear desde plantilla, usar en formulario) como iconos con tooltip, con colores consistentes y sin textos sueltos.
+- **Tooltip global** — estilo `.icon-action-wrap`/`.icon-action-tip` en `globals.css`, reemplazando los tooltips ad-hoc de los botones de servicios.
+
+---
+
+## [1.22.0] — 2026-06-03
+
+### Plan vencido: lectura sí, creación no
+- **Clientes con plan vencido/agotado** conservan el acceso de **lectura** a sus tickets antiguos (lista y detalle nunca se bloquean por plan), pero **no pueden crear nuevos**.
+- En `/tickets` el botón «Nuevo ticket» se oculta para clientes sin plan activo y se muestra un aviso para contactar a su agente. La página `/tickets/new` y el server action `createTicket` ya bloqueaban la creación (se mantienen como salvaguarda).
+
+---
+
+## [1.21.0] — 2026-06-03
+
+### Exportar PDF de reportes de proyectos
+- **Botón «Exportar PDF»** en `/proyectos/reportes` — usa el diálogo de impresión del navegador (igual que los reportes de tickets). Exporta lo que está en pantalla: KPIs globales, proyectos por estado, tabla por proyecto y, si hay un proyecto seleccionado, su panel de estadísticas individual.
+- **Encabezado de impresión** con título, fecha de generación y proyecto seleccionado; el selector y el botón se ocultan en el PDF (`no-print`).
+- **Colores fieles** — se añadió `print-color-adjust: exact` a la hoja de impresión para que las barras, badges y gráficos conserven su color en el PDF (también mejora el reporte de tickets).
+- **Layout de impresión** — se evita que el contenido se recorte: `overflow: visible` en impresión, tablas que reducen fuente/padding y reparten filas entre páginas (encabezado repetido), sin partir secciones, y margen de página reducido a 1cm.
+
+---
+
+## [1.20.0] — 2026-06-03
+
+### Estadísticas de proyecto individual en reportes
+- **Selector de proyecto** en `/proyectos/reportes` — además de la vista global (KPIs + tabla), se puede elegir un proyecto para ver un panel detallado de sus estadísticas, sin perder la vista agregada.
+- **Panel individual** — KPIs del proyecto (tareas, completadas, vencidas, progreso, horas estimadas), desglose de tareas por estado y por prioridad (con barras segmentadas) y resumen por responsable (completadas/total). Respeta el alcance por rol (el proyecto debe ser visible para el usuario).
+
+---
+
+## [1.19.0] — 2026-06-03
+
+### Cargo y Área en usuarios staff
+- **Nuevos campos `cargo` y `area`** en usuarios. Aparecen en los formularios de crear/editar usuario **solo cuando el rol es Administrador o Colaborador** (los clientes no los tienen; se fuerzan a `null`).
+- **Visualización** — el detalle del usuario muestra cargo y área junto al rol.
+- **Esquema** — columnas `cargo String?` y `area String?` en `users`, aplicadas con `prisma db push`. Acciones `createUser`/`updateUser` validan y persisten ambos campos.
+
+---
+
+## [1.18.0] — 2026-06-03
+
+### Plantillas de tarea reutilizables
+- **Nueva sección Plantillas** (`/tareas/plantillas`, staff) — el staff crea plantillas globales reutilizables para tareas frecuentes. Guardan nombre, título, descripción, prioridad, categoría, horas estimadas y una checklist.
+- **Dos formas de uso**: (1) selector «Usar plantilla» en «Nueva tarea» (global y por proyecto) que prellena el formulario vía `?template=<id>` —se puede ajustar antes de crear— y (2) acción rápida «Crear tarea» que genera una tarea global directamente con la checklist incluida.
+- **Modelo `TaskTemplate`** (`name`, `title`, `description`, `priority`, `category`, `estimatedHours`, `checklist String[]`, `createdBy`). Aplicado con `prisma db push` (tabla `task_templates`). Es independiente de `RecurringTaskTemplate` (que es por calendario).
+- **Acciones** `src/actions/task-template.actions.ts` — CRUD + `createTaskFromTemplate`. `TaskForm` gana una prop `prefill` para inicializar campos y checklist.
+- **Sidebar** — submenú «Plantillas» bajo «Tareas» (admin y colaborador).
+
+---
+
+## [1.17.0] — 2026-06-03
+
+### Revisores en tickets y tareas
+- **Asignación de revisores** — tanto tickets como tareas permiten asignar varios usuarios a la revisión (relación muchos-a-muchos `reviewers`). Si no se asigna ninguno, por defecto queda **quien creó la entrada** (se persiste, nunca queda vacío).
+- **Notificación al entrar en revisión** — cuando un ticket/tarea pasa a estado «En revisión», se notifica a sus revisores (campana + webhooks personales), excluyendo a quien dispara el cambio. Se cubren todos los puntos de transición: `updateTicketStatus`, `updateTicket`, `configureTicket`, `updateTaskStatus` y `updateTask`. No duplica el aviso al canal del equipo (`skipGChat`).
+- **Selector** — los formularios de ticket (crear/editar) y de tarea (crear/editar) muestran un multiselector de revisores **con búsqueda por texto** (cualquier usuario activo es elegible). El campo aparece solo para staff. `MultiSelect` gana una prop `searchable` que muestra un campo de búsqueda dentro del desplegable.
+- **Visualización** — el detalle de ticket y de tarea muestra la lista de revisores junto al responsable.
+- **Esquema** — relaciones implícitas `TicketReviewers` y `TaskReviewers` (tablas `_TicketReviewers`, `_TaskReviewers`). Aplicado con `prisma db push`.
+- **Helper** `src/lib/reviewers.ts` — `parseReviewerIds`, `resolveReviewerIds` (fallback al creador) y `notifyReviewers`.
+
+---
+
+## [1.16.0] — 2026-06-03
+
+### Panel unificado de tickets y tareas
+- **Nueva sección Panel** (`/panel`, solo staff) — visualiza tickets y tareas en una sola tabla ordenable para filtrar y priorizar. Columnas: Tipo, Código, Título (+contexto: empresa/proyecto), Estado, Prioridad, Responsable y Vence. Resalta los vencidos.
+- **Orden de priorización por defecto** — vencidos primero, luego por prioridad (crítica → baja) y por fecha de vencimiento más próxima. Cada columna es ordenable; ordenamiento y paginación se resuelven en el servidor sobre el conjunto combinado (`src/lib/panel.ts`).
+- **Alcance por rol** — el colaborador ve por defecto lo asignado a él (redirect inicial con `assignedToId`); el admin ve todo. Las tareas respetan la restricción de staff (asignadas o de proyectos que gestiona).
+- **Filtros** — tipo (tickets/tareas), prioridad, responsable, "solo vencidos", "incluir cerradas/completadas" y búsqueda de texto. Reusa `FilterTags`, `SearchInput`, `Pagination` y `MultiSelect`. Tope defensivo de 500 filas por fuente, ordenadas por `updatedAt` desc.
+- **Sidebar** — nuevo ítem "Panel" para administradores y colaboradores.
+
+---
+
+## [1.15.0] — 2026-06-03
+
+### Integraciones — Webhooks personales
+- **Nueva sección Integraciones para todos los usuarios** (`/integraciones`) — cada usuario (admin, colaborador o cliente) registra hasta 10 webhooks para enviar **solo sus propias** notificaciones a apps externas (Zapier, Make, n8n, Slack, etc.). La sección admin de Google Chat se renombró a "Integraciones (equipo)".
+- **Suscripción por categorías** — cada webhook elige qué recibir entre Tickets, Tareas, Comentarios y Menciones (`src/lib/notification-categories.ts` mapea cada `type` de notificación a su categoría).
+- **Payload JSON genérico** — POST con `{ event, category, title, message, url, timestamp, text }`. El campo `text` viene preformateado para destinos de solo texto. Cabeceras `X-Geniorama-Event` y, si hay secreto, firma HMAC SHA-256 en `X-Geniorama-Signature`. Timeout de 8s y registro de `lastStatus`/`lastError`/`lastSentAt` por webhook. Botón "Probar" envía un payload de ejemplo.
+- **Disparo** — `src/lib/notify.ts` (`notify`/`notifyMany`) llama a `dispatchUserWebhooks` por destinatario, fire-and-forget, sin bloquear la acción principal.
+- **Modelo `UserWebhook`** (`label?`, `url`, `secret?`, `events String[]`, `isActive`, `lastStatus?`, `lastError?`, `lastSentAt?`). Aplicado con `prisma db push` (nueva tabla `user_webhooks`).
+
+### Tareas
+- **Columna "Creado por"** en la lista de tareas (`/tareas`, detalle de proyecto y perfil de usuario), ordenable, también visible en la vista mobile.
+- **Limpiar todos los filtros** — botón "Limpiar todo" y centinela `?clear=1` para poder dejar la vista sin filtros sin que se reapliquen los predeterminados (`filter-tags.tsx`, `task-filters.tsx`).
+- **Categorías de Marketing Digital** — lista centralizada y agrupada en `src/lib/task-categories.ts` (Estrategia Digital, Redes Sociales, Community Management, SEO, SEM, Email Marketing, Branding, etc.) usada por el form de tareas y el de tareas recurrentes (este último pasó de texto libre a `<select>`).
+
+### Planes
+- **ID visible** — cada plan muestra su ID (cuid) para distinguir planes con el mismo nombre, en "Mis planes" (cliente), tabla admin, selects de plan en tickets y detalle de ticket. Nuevo componente `CopyId` con copiar-al-portapapeles.
+
+---
+
 ## [1.14.0] — 2026-05-18
 
 ### Tareas recurrentes

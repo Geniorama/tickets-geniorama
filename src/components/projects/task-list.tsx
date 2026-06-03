@@ -110,6 +110,7 @@ export function TaskList({
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
                   {showProject && <span>{task.project?.name ?? "Sin proyecto"}</span>}
                   {task.assignedTo && <span>→ {task.assignedTo.name}</span>}
+                  {task.createdBy && <span>Creado por: {task.createdBy.name}</span>}
                   {task.dueDate && (
                     <span style={isOverdue(task.dueDate, task.status) ? { color: "var(--color-red-600)", fontWeight: 600 } : undefined}>
                       Vence: {formatDate(task.dueDate)}
@@ -164,6 +165,12 @@ export function TaskList({
               <SortableHeader label="Asignado a" column="assignedTo" sortBy={sb} sortDir={sd} basePath={bp} paramsStr={ps} />
             ) : (
               <th style={plainThStyle}>Asignado a</th>
+            )}
+
+            {sortable ? (
+              <SortableHeader label="Creado por" column="createdBy" sortBy={sb} sortDir={sd} basePath={bp} paramsStr={ps} />
+            ) : (
+              <th style={plainThStyle}>Creado por</th>
             )}
 
             {sortable ? (
@@ -240,6 +247,9 @@ export function TaskList({
                 </td>
                 <td style={{ padding: "0.75rem 1rem", color: "var(--app-text-muted)" }}>
                   {task.assignedTo?.name ?? "—"}
+                </td>
+                <td style={{ padding: "0.75rem 1rem", color: "var(--app-text-muted)" }}>
+                  {task.createdBy?.name ?? "—"}
                 </td>
                 <td style={{ padding: "0.75rem 1rem", color: "var(--app-text-muted)", whiteSpace: "nowrap" }}>
                   {task.startDate ? formatDate(task.startDate) : "—"}

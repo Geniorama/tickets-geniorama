@@ -1,8 +1,8 @@
-import Link from "next/link";
 import Image from "next/image";
-import { Building2, Pencil } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { DeleteCompanyButton } from "@/components/admin/delete-company-button";
+import { IconActionLink } from "@/components/ui/icon-action";
 
 type CompanyRow = {
   id: string;
@@ -84,14 +84,8 @@ export function CompanyTable({
                 {row.taxId && <span>{row.taxId}</span>}
                 <span>{row.userCount} usuario{row.userCount !== 1 ? "s" : ""}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <Link
-                  href={`/admin/companies/${row.id}/edit`}
-                  className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-                >
-                  <Pencil className="w-3.5 h-3.5" />
-                  Editar
-                </Link>
+              <div className="flex items-center gap-2">
+                <IconActionLink icon="pencil" label="Editar empresa" href={`/admin/companies/${row.id}/edit`} />
                 <DeleteCompanyButton companyId={row.id} companyName={row.name} />
               </div>
             </li>
@@ -173,14 +167,8 @@ export function CompanyTable({
                   </span>
                 </td>
                 <td style={{ padding: "0.75rem 1rem" }}>
-                  <div className="flex items-center gap-3">
-                    <Link
-                      href={`/admin/companies/${row.id}/edit`}
-                      className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Editar
-                    </Link>
+                  <div className="flex items-center gap-2">
+                    <IconActionLink icon="pencil" label="Editar empresa" href={`/admin/companies/${row.id}/edit`} />
                     <DeleteCompanyButton companyId={row.id} companyName={row.name} />
                   </div>
                 </td>

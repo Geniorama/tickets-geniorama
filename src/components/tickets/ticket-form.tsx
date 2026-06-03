@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { FileText, Paperclip, Plus, X } from "lucide-react";
 import { createTicket } from "@/actions/ticket.actions";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -20,16 +21,19 @@ export function TicketForm({
   clients = [],
   plans = [],
   sites = [],
+  reviewerCandidates = [],
   canSetDueDate = false,
 }: {
   collaborators?: Collaborator[];
   clients?: Client[];
   plans?: Plan[];
   sites?: Site[];
+  reviewerCandidates?: { id: string; name: string }[];
   canSetDueDate?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [selectedClientId, setSelectedClientId] = useState("");
+  const [reviewerIds, setReviewerIds] = useState<string[]>([]);
   const [checklistItems, setChecklistItems] = useState<string[]>([]);
   const [checklistInput, setChecklistInput] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -317,6 +321,26 @@ export function TicketForm({
         </div>
       )}
 
+      {reviewerCandidates.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Revisores <span className="text-gray-400 font-normal">(opcional)</span>
+          </label>
+          <MultiSelect
+            options={reviewerCandidates.map((u) => ({ value: u.id, label: u.name }))}
+            value={reviewerIds}
+            onChange={setReviewerIds}
+            placeholder="Por defecto: quien crea el ticket"
+            triggerClassName={inputClass}
+            searchable
+          />
+          <input type="hidden" name="reviewerIds" value={reviewerIds.join(",")} />
+          <p className="text-xs text-gray-400 mt-1">
+            Quienes revisan el ticket cuando pasa a «En revisión». Si lo dejas vacío, será el creador.
+          </p>
+        </div>
+      )}
+
       {clients.length > 0 && (
         <>
           <div>
@@ -342,7 +366,7 @@ export function TicketForm({
               <option value="">Sin plan asignado</option>
               {availablePlans.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} — {p.type === "BOLSA_HORAS" ? "Bolsa de horas" : "Soporte mensual"}
+                  {p.name} — {p.type === "BOLSA_HORAS" ? "Bolsa de horas" : "Soporte mensual"} · {p.id}
                 </option>
               ))}
             </select>

@@ -47,9 +47,15 @@ export function TaskFilters({
   function update(key: string, values: string[]) {
     const next = new URLSearchParams(params.toString());
     const encoded = values.join(",");
-    if (encoded) next.set(key, encoded);
-    else next.delete(key);
+    if (encoded) {
+      next.set(key, encoded);
+      next.delete("clear");
+    } else {
+      next.delete(key);
+    }
     next.delete("page");
+    // Sin filtros: marca la vista como vacía para evitar los filtros por defecto.
+    if ([...next.keys()].length === 0) next.set("clear", "1");
     startTransition(() => router.push(`/tareas?${next.toString()}`));
   }
 

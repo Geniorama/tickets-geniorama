@@ -18,7 +18,7 @@ export default async function EditTicketPage({
   await requireRole(["ADMINISTRADOR"]);
   const { id } = await params;
 
-  const [ticket, collaborators, clients, plans, sites] = await Promise.all([
+  const [ticket, collaborators, clients, plans, sites, reviewerCandidates] = await Promise.all([
     prisma.ticket.findUnique({
       where: { id },
       select: {
@@ -26,6 +26,7 @@ export default async function EditTicketPage({
         status: true, priority: true, category: true,
         assignedToId: true, clientId: true, planId: true, siteId: true,
         dueDate: true,
+        reviewers: { select: { id: true } },
       },
     }),
     prisma.user.findMany({
@@ -48,15 +49,22 @@ export default async function EditTicketPage({
       orderBy: { name: "asc" },
       select: { id: true, name: true, domain: true, companyId: true },
     }),
+    prisma.user.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
   ]);
 
   if (!ticket) notFound();
 
+  const { reviewers, ...ticketBase } = ticket;
   const ticketForForm = {
-    ...ticket,
+    ...ticketBase,
     status: ticket.status as string,
     priority: ticket.priority as string,
     dueDate: ticket.dueDate ? ticket.dueDate.toISOString() : null,
+    reviewerIds: reviewers.map((r) => r.id),
   };
 
   return (
@@ -66,7 +74,7 @@ export default async function EditTicketPage({
       </div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Editar ticket</h1>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <TicketEditForm ticket={ticketForForm} collaborators={collaborators} clients={clients} plans={plans} sites={sites} />
+        <TicketEditForm ticket={ticketForForm} collaborators={collaborators} clients={clients} plans={plans} sites={sites} reviewerCandidates={reviewerCandidates} />
       </div>
     </div>
   );

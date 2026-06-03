@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
+import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/reviewers";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -144,6 +145,9 @@ export async function createTask(projectIdArg: string | null, formData: FormData
     }
   }
 
+  // Revisores: si no se asignan, por defecto el creador
+  const reviewerIds = await resolveReviewerIds(parseReviewerIds(formData), session.user.id);
+
   const task = await prisma.$transaction(async (tx) => {
     const count = await tx.task.count({ where: { projectId } });
     return tx.task.create({
@@ -162,6 +166,7 @@ export async function createTask(projectIdArg: string | null, formData: FormData
         dueDate:        parsed.data.dueDate         ? new Date(parsed.data.dueDate)   : null,
         endTime:        parsed.data.endTime         ?? null,
         estimatedHours: parsed.data.estimatedHours ? parseFloat(parsed.data.estimatedHours) : null,
+        reviewers:      { connect: reviewerIds.map((id) => ({ id })) },
       },
     });
   });
@@ -287,8 +292,14 @@ export async function updateTask(taskId: string, projectId: string | null, formD
 
   const oldTask = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { assignedToId: true, createdById: true, title: true, startDate: true, dueDate: true },
+    select: { assignedToId: true, createdById: true, title: true, status: true, startDate: true, dueDate: true },
   });
+
+  // Revisores: si quedan vacíos, por defecto el creador de la tarea
+  const reviewerIds = await resolveReviewerIds(
+    parseReviewerIds(formData),
+    oldTask?.createdById ?? session.user.id
+  );
 
   const newStartDate = parsed.data.startDate ? new Date(parsed.data.startDate) : null;
   const newDueDate   = parsed.data.dueDate   ? new Date(parsed.data.dueDate)   : null;
@@ -307,8 +318,14 @@ export async function updateTask(taskId: string, projectId: string | null, formD
       dueDate:        newDueDate,
       endTime:        parsed.data.endTime         ?? null,
       estimatedHours: parsed.data.estimatedHours ? parseFloat(parsed.data.estimatedHours) : null,
+      reviewers:      { set: reviewerIds.map((id) => ({ id })) },
     },
   });
+
+  // Avisar a los revisores cuando la tarea entra en revisión
+  if (parsed.data.status === "EN_REVISION" && oldTask?.status !== "EN_REVISION") {
+    await notifyReviewers("task", taskId, parsed.data.title, taskUrl, session.user.id, true);
+  }
 
   // Notificar al nuevo asignado si cambió y no es quien edita
   const newAssigneeId = parsed.data.assignedToId ?? null;
@@ -467,6 +484,11 @@ export async function updateTaskStatus(taskId: string, projectId: string | null,
       `"${oldTask?.title}" pasó a *En revisión*`,
       taskUrl
     );
+  }
+
+  // Avisar a los revisores cuando la tarea entra en revisión
+  if (status === "EN_REVISION" && oldTask?.status !== "EN_REVISION") {
+    await notifyReviewers("task", taskId, oldTask?.title ?? "", taskUrl, session.user.id, true);
   }
 
   // Webhook: notificar cambio a PENDIENTE (reapertura)

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Ticket, Building2, Users, BookOpen, CreditCard,
   BarChart3, FolderKanban, ListTodo, TrendingUp, ChevronDown, Server as ServerIcon, Globe, KeyRound, Plug, Sparkles,
-  ChevronsLeft, ChevronsRight, Repeat,
+  ChevronsLeft, ChevronsRight, Repeat, Webhook, LayoutList, LayoutTemplate,
 } from "lucide-react";
 
 type NavChild = {
@@ -30,6 +30,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { href: "/dashboard",          label: "Dashboard",     icon: LayoutDashboard, roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"] },
+  { href: "/panel",              label: "Panel",         icon: LayoutList,      roles: ["ADMINISTRADOR", "COLABORADOR"] },
   {
     href: "/tickets",            label: "Tickets",        icon: Ticket,          roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"],
     children: [
@@ -45,7 +46,8 @@ const navItems: NavItem[] = [
   {
     href: "/tareas",             label: "Tareas",         icon: ListTodo,        roles: ["ADMINISTRADOR", "COLABORADOR"],
     children: [
-      { href: "/admin/tareas-recurrentes", label: "Recurrentes", icon: Repeat,    roles: ["ADMINISTRADOR"] },
+      { href: "/tareas/plantillas",        label: "Plantillas",  icon: LayoutTemplate, roles: ["ADMINISTRADOR", "COLABORADOR"] },
+      { href: "/admin/tareas-recurrentes", label: "Recurrentes", icon: Repeat,         roles: ["ADMINISTRADOR"] },
     ],
   },
   { href: "/boveda",             label: "Bóveda",         icon: KeyRound,        roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"] },
@@ -58,7 +60,12 @@ const navItems: NavItem[] = [
   { href: "/admin/users",        label: "Usuarios",       icon: Users,           roles: ["ADMINISTRADOR"] },
   { href: "/admin/estadisticas", label: "Productividad",  icon: TrendingUp,      roles: ["ADMINISTRADOR"] },
   { href: "/admin/plans",        label: "Planes",         icon: BookOpen,        roles: ["ADMINISTRADOR"] },
-  { href: "/admin/integraciones", label: "Integraciones", icon: Plug,            roles: ["ADMINISTRADOR"] },
+  {
+    href: "/integraciones",       label: "Integraciones", icon: Webhook,         roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"],
+    children: [
+      { href: "/admin/integraciones", label: "Equipo",     icon: Plug,           roles: ["ADMINISTRADOR"] },
+    ],
+  },
   { href: "/novedades",           label: "Novedades",     icon: Sparkles,        roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"] },
 ];
 

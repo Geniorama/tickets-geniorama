@@ -22,6 +22,7 @@ export default async function EditUserPage({
       where: { id },
       select: {
         id: true, name: true, email: true, role: true, isActive: true,
+        cargo: true, area: true,
         companies: { select: { id: true } },
       },
     }),

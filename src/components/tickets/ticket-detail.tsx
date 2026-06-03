@@ -3,7 +3,7 @@
 import { useTransition, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { formatDateTimeLong, formatDateTime, formatDate } from "@/lib/format-date";
-import { Pencil, Trash2, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Link2, Paperclip, FileText, ExternalLink, Globe, ChevronDown, MoreVertical } from "lucide-react";
+import { Pencil, Trash2, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Link2, Paperclip, FileText, ExternalLink, Globe, ChevronDown, MoreVertical, Eye } from "lucide-react";
 import type { Session } from "next-auth";
 import type { Ticket, TicketComment, TicketAttachment, TimeEntry, User, TicketStatus, Priority } from "@/generated/prisma";
 import { TicketTimer } from "./ticket-timer";
@@ -30,6 +30,7 @@ import { generateTicketReport } from "@/actions/report.actions";
 type TicketWithDetails = Ticket & {
   createdBy: Pick<User, "id" | "name" | "email">;
   assignedTo: Pick<User, "id" | "name"> | null;
+  reviewers: Pick<User, "id" | "name">[];
   client: (Pick<User, "id" | "name"> & { companies: { name: string }[] }) | null;
   plan: { id: string; name: string; type: string } | null;
   site: { id: string; name: string; domain: string; documentation: string | null; architecture: string | null } | null;
@@ -234,6 +235,13 @@ export function TicketDetail({
                 <UserCheck className="w-3.5 h-3.5" />
                 Asignado a: <strong className="text-gray-600">{ticket.assignedTo?.name ?? "Sin asignar"}</strong>
               </span>
+              {ticket.reviewers.length > 0 && (
+                <span className="flex items-center gap-1">
+                  <Eye className="w-3.5 h-3.5" />
+                  Revisión:{" "}
+                  <strong className="text-gray-600">{ticket.reviewers.map((r) => r.name).join(", ")}</strong>
+                </span>
+              )}
               {ticket.plan && (
                 <span className="flex items-center gap-1">
                   <BookOpen className="w-3.5 h-3.5" />
@@ -242,6 +250,7 @@ export function TicketDetail({
                   <span className="ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
                     {ticket.plan.type === "BOLSA_HORAS" ? "Bolsa de horas" : "Soporte mensual"}
                   </span>
+                  <span className="ml-1 font-mono text-xs text-gray-400">({ticket.plan.id})</span>
                 </span>
               )}
               {ticket.site && (

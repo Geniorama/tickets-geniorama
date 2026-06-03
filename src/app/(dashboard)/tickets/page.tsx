@@ -1,4 +1,5 @@
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
+import { getClientActivePlan } from "@/lib/plans.server";
 import { prisma } from "@/lib/prisma";
 import { TicketList } from "@/components/tickets/ticket-list";
 import { TicketFilters } from "@/components/tickets/ticket-filters";
@@ -35,6 +36,10 @@ export default async function TicketsPage({
   const { id, role } = session.user;
   const params = await searchParams;
   const staff = isStaff(role);
+
+  // Los clientes solo pueden crear tickets con un plan activo; aún sin plan
+  // conservan acceso de lectura a sus tickets antiguos.
+  const canCreateTicket = staff ? true : (await getClientActivePlan(id)) !== null;
 
   if (Object.keys(params).length === 0 && staff) {
     const sp = new URLSearchParams();
@@ -183,14 +188,20 @@ export default async function TicketsPage({
         <h1 className="text-2xl font-bold text-gray-900">Tickets</h1>
         <div className="flex items-center gap-2 sm:gap-3">
           {staff && <ViewToggle current={view} />}
-          <Link
-            href="/tickets/new"
-            className="inline-flex items-center gap-2 bg-indigo-600 text-white px-3 py-2 sm:px-4 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Nuevo ticket</span>
-            <span className="sm:hidden">Nuevo</span>
-          </Link>
+          {canCreateTicket ? (
+            <Link
+              href="/tickets/new"
+              className="inline-flex items-center gap-2 bg-indigo-600 text-white px-3 py-2 sm:px-4 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Nuevo ticket</span>
+              <span className="sm:hidden">Nuevo</span>
+            </Link>
+          ) : (
+            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Sin plan activo: contacta a tu agente para abrir nuevos tickets.
+            </span>
+          )}
         </div>
       </div>
 

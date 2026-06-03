@@ -68,6 +68,8 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
       name: true,
       email: true,
       role: true,
+      cargo: true,
+      area: true,
       isActive: true,
       createdAt: true,
       companies: { select: { id: true, name: true } },
@@ -165,6 +167,9 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           </div>
           <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
             {user.email} · {ROLE_LABELS[user.role] ?? user.role}
+            {(user.cargo || user.area) && (
+              <> · {[user.cargo, user.area].filter(Boolean).join(" — ")}</>
+            )}
             {user.companies.length > 0 && <> · {user.companies.map((c) => c.name).join(", ")}</>}
             {" · "}Usuario desde {formatDate(user.createdAt)}
           </p>

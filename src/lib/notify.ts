@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { sendGChatNotification } from "@/lib/gchat";
+import { dispatchUserWebhooks } from "@/lib/user-webhooks";
 
 /** Crea una notificación sin lanzar errores (fire-and-forget).
  *  Pasa `skipGChat: true` para omitir el webhook (p. ej. proyectos privados). */
@@ -18,6 +19,8 @@ export async function notify(
   } catch {
     // No bloquear la acción principal
   }
+  // Webhook personal del destinatario (solo sus propias notificaciones)
+  dispatchUserWebhooks(userId, type, title, message, link).catch(() => {});
   if (!skipGChat) {
     sendGChatNotification(type, title, message, link).catch(() => {});
   }
@@ -49,6 +52,10 @@ export async function notifyMany(
     } catch {
       // No bloquear la acción principal
     }
+  }
+  // Webhook personal de cada destinatario (solo sus propias notificaciones)
+  for (const userId of unique) {
+    dispatchUserWebhooks(userId, type, title, message, link).catch(() => {});
   }
   // Una sola vez a GChat independientemente del número de destinatarios
   if (!skipGChat) {

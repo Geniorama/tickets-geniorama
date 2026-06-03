@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { Globe, Server, Mail, Shield, Wrench, Package } from "lucide-react";
 import { DuplicateServiceButton } from "@/components/services/duplicate-service-button";
 import { DeleteServiceButton } from "@/components/services/delete-service-button";
+import { IconActionLink } from "@/components/ui/icon-action";
 
 type ServiceType     = "DOMINIO" | "HOSTING" | "CORREO" | "SSL" | "MANTENIMIENTO" | "OTRO";
 type ServiceProvider = "GENIORAMA" | "EXTERNO";
@@ -93,14 +93,10 @@ export function ServiceRow({
       </span>
 
       {/* Actions */}
-      <div style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.375rem" }}>
         {showDuplicate && <DuplicateServiceButton serviceId={service.id} />}
         {showDelete    && <DeleteServiceButton    serviceId={service.id} />}
-        {editHref && (
-          <Link href={editHref} style={{ fontSize: "0.8125rem", color: "#fd1384", fontWeight: 500, textDecoration: "none", paddingLeft: "0.25rem" }}>
-            Editar →
-          </Link>
-        )}
+        {editHref && <IconActionLink icon="pencil" label="Editar servicio" href={editHref} />}
       </div>
     </div>
   );

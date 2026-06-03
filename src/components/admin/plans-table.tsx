@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { DeletePlanButton } from "@/components/admin/delete-plan-button";
 import { formatDate } from "@/lib/format-date";
 import { formatHours } from "@/lib/plans";
-import { Pencil } from "lucide-react";
+import { CopyId } from "@/components/ui/copy-id";
+import { IconActionLink } from "@/components/ui/icon-action";
 
 type PlanRow = {
   id: string;
@@ -57,6 +57,9 @@ export function PlansTable({
                 {plan.statusBadge.label}
               </span>
             </div>
+            <div style={{ marginBottom: "0.375rem" }}>
+              <CopyId value={plan.id} />
+            </div>
             <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", marginBottom: "0.375rem" }}>{plan.company.name}</p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center", marginBottom: "0.5rem" }}>
               {plan.type === "BOLSA_HORAS" ? (
@@ -71,10 +74,8 @@ export function PlansTable({
                 <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)" }}>Vence: {formatDate(plan.expiryDate)}</span>
               )}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <Link href={`/admin/plans/${plan.id}/edit`} style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8125rem", color: "#fd1384", fontWeight: 500, textDecoration: "none" }}>
-                <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />Editar
-              </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <IconActionLink icon="pencil" label="Editar plan" href={`/admin/plans/${plan.id}/edit`} />
               <DeletePlanButton planId={plan.id} planName={plan.name} />
             </div>
           </li>
@@ -98,7 +99,12 @@ export function PlansTable({
           <tbody>
             {plans.map((plan) => (
               <tr key={plan.id} style={{ borderBottom: "1px solid var(--app-border)" }}>
-                <td style={{ padding: "0.75rem 1rem", fontWeight: 500, color: "var(--app-body-text)" }}>{plan.name}</td>
+                <td style={{ padding: "0.75rem 1rem", fontWeight: 500, color: "var(--app-body-text)" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", alignItems: "flex-start" }}>
+                    <span>{plan.name}</span>
+                    <CopyId value={plan.id} />
+                  </div>
+                </td>
                 <td style={{ padding: "0.75rem 1rem", color: "var(--app-text-muted)" }}>{plan.company.name}</td>
                 <td style={{ padding: "0.75rem 1rem" }}>
                   {plan.type === "BOLSA_HORAS" ? (
@@ -123,10 +129,8 @@ export function PlansTable({
                   </span>
                 </td>
                 <td style={{ padding: "0.75rem 1rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                    <Link href={`/admin/plans/${plan.id}/edit`} style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8125rem", color: "#fd1384", fontWeight: 500, textDecoration: "none" }}>
-                      <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />Editar
-                    </Link>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <IconActionLink icon="pencil" label="Editar plan" href={`/admin/plans/${plan.id}/edit`} />
                     <DeletePlanButton planId={plan.id} planName={plan.name} />
                   </div>
                 </td>

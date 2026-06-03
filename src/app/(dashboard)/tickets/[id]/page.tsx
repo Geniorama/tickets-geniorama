@@ -28,6 +28,7 @@ export default async function TicketPage({
     include: {
       createdBy: { select: { id: true, name: true, email: true } },
       assignedTo: { select: { id: true, name: true } },
+      reviewers: { select: { id: true, name: true } },
       client: { select: { id: true, name: true, companies: { select: { name: true } } } },
       plan: { select: { id: true, name: true, type: true } },
       site: { select: { id: true, name: true, domain: true, documentation: true, architecture: true } },

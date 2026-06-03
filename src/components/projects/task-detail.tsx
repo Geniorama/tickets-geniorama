@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef, useEffect } from "react";
 import Link from "next/link";
-import { Pencil, User2, UserCheck, Calendar, Clock, FolderOpen, Check, Trash2, MoveRight, MoreVertical } from "lucide-react";
+import { Pencil, User2, UserCheck, Calendar, Clock, FolderOpen, Check, Trash2, MoveRight, MoreVertical, Eye } from "lucide-react";
 import type { Task, TaskComment, TaskAttachment, TaskTimeEntry, TaskStatus, Priority, User } from "@/generated/prisma";
 import type { Session } from "next-auth";
 import { TaskStatusBadge, TaskPriorityBadge } from "./project-status-badge";
@@ -23,6 +23,7 @@ import { generateTaskReport } from "@/actions/report.actions";
 type TaskWithDetails = Task & {
   project: { id: string; name: string } | null;
   assignedTo: Pick<User, "id" | "name"> | null;
+  reviewers: Pick<User, "id" | "name">[];
   createdBy: Pick<User, "id" | "name">;
   comments: (TaskComment & { author: Pick<User, "name">; reactions: ReactionEntry[] })[];
   checklistItems: { id: string; title: string; isChecked: boolean }[];
@@ -405,6 +406,15 @@ export function TaskDetail({
                   {task.assignedTo?.name ?? "Sin asignar"}
                 </strong>
               </span>
+              {task.reviewers.length > 0 && (
+                <span style={infoRowStyle}>
+                  <Eye style={{ width: "0.875rem", height: "0.875rem" }} />
+                  Revisión:{" "}
+                  <strong style={{ color: "var(--app-body-text)" }}>
+                    {task.reviewers.map((r) => r.name).join(", ")}
+                  </strong>
+                </span>
+              )}
               {task.category && (
                 <span style={infoRowStyle}>
                   Categoría: <strong style={{ color: "var(--app-body-text)" }}>{task.category}</strong>

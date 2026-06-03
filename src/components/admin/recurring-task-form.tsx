@@ -8,6 +8,7 @@ import {
   deleteRecurringTemplate,
   runRecurringNow,
 } from "@/actions/recurring-task.actions";
+import { TASK_CATEGORY_GROUPS, TASK_CATEGORIES } from "@/lib/task-categories";
 
 type Project = { id: string; name: string };
 type StaffUser = { id: string; name: string };
@@ -202,12 +203,25 @@ export function RecurringTaskForm({
           </div>
           <div>
             <label style={labelStyle}>Categoría (opcional)</label>
-            <input
-              type="text"
+            <select
               value={data.category ?? ""}
               onChange={(e) => update("category", e.target.value || null)}
               style={inputStyle}
-            />
+            >
+              <option value="">— Sin categoría —</option>
+              {data.category && !TASK_CATEGORIES.includes(data.category) && (
+                <option value={data.category}>{data.category}</option>
+              )}
+              {TASK_CATEGORY_GROUPS.map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.options.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
           </div>
         </div>
 

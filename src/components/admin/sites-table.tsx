@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { Globe, Building2, Pencil } from "lucide-react";
+import { Globe, Building2 } from "lucide-react";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { DeleteSiteButton } from "@/components/sites/delete-site-button";
+import { IconActionLink } from "@/components/ui/icon-action";
 
 type SiteRow = {
   id: string;
@@ -66,10 +66,8 @@ export function SitesTable({
               {site.documentation && <span style={{ fontSize: "0.75rem", fontWeight: 600, padding: "0.2rem 0.5rem", borderRadius: "0.25rem", backgroundColor: "rgba(96,165,250,0.12)", color: "#60a5fa" }}>Docs</span>}
               {site.architecture && <span style={{ fontSize: "0.75rem", fontWeight: 600, padding: "0.2rem 0.5rem", borderRadius: "0.25rem", backgroundColor: "rgba(192,132,252,0.12)", color: "#c084fc" }}>Arq.</span>}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <Link href={`/admin/sitios/${site.id}/edit`} style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8125rem", color: "#fd1384", fontWeight: 500, textDecoration: "none" }}>
-                <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />Editar
-              </Link>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <IconActionLink icon="pencil" label="Editar sitio" href={`/admin/sitios/${site.id}/edit`} />
               <DeleteSiteButton siteId={site.id} siteName={site.name} />
             </div>
           </li>
@@ -119,10 +117,8 @@ export function SitesTable({
                   </span>
                 </td>
                 <td style={{ padding: "0.75rem 1rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", justifyContent: "flex-end" }}>
-                    <Link href={`/admin/sitios/${site.id}/edit`} style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8125rem", color: "#fd1384", fontWeight: 500, textDecoration: "none" }}>
-                      <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />Editar
-                    </Link>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <IconActionLink icon="pencil" label="Editar sitio" href={`/admin/sitios/${site.id}/edit`} />
                     <DeleteSiteButton siteId={site.id} siteName={site.name} />
                   </div>
                 </td>

@@ -28,7 +28,7 @@ export default async function NewTicketPage() {
     }
   }
 
-  const [collaborators, clients, plans, sites] = await Promise.all([
+  const [collaborators, clients, plans, sites, reviewerCandidates] = await Promise.all([
     admin
       ? prisma.user.findMany({
           where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
@@ -66,6 +66,14 @@ export default async function NewTicketPage() {
           orderBy: { name: "asc" },
           select: { id: true, name: true, domain: true, companyId: true },
         }),
+    // Revisores elegibles: cualquier usuario activo (solo para staff)
+    isStaff(session.user.role)
+      ? prisma.user.findMany({
+          where: { isActive: true },
+          orderBy: { name: "asc" },
+          select: { id: true, name: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   return (
@@ -77,6 +85,7 @@ export default async function NewTicketPage() {
           clients={clients}
           plans={plans}
           sites={sites}
+          reviewerCandidates={reviewerCandidates}
           canSetDueDate={isStaff(session.user.role)}
         />
       </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Lock, Building2, Globe, Server, User2, KeyRound, Plus } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/format-date";
+import { IconActionLink } from "@/components/ui/icon-action";
 
 interface VaultEntry {
   id: string;
@@ -159,9 +160,7 @@ export function VaultList({ entries, currentUserId, searchQuery }: VaultListProp
               </td>
 
               <td className="px-4 py-3">
-                <Link href={`/boveda/${e.id}`} className="text-xs font-medium" style={{ color: "#fd1384" }}>
-                  Ver
-                </Link>
+                <IconActionLink icon="eye" label="Ver entrada" href={`/boveda/${e.id}`} />
               </td>
             </tr>
           ))}

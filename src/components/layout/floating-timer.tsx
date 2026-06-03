@@ -54,6 +54,7 @@ export function FloatingTimer() {
 
   return (
     <div
+      className="no-print"
       style={{
         position: "fixed",
         bottom: "1.5rem",

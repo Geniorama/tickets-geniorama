@@ -3,12 +3,12 @@ import { getRequiredSession } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/vault-crypto";
-import Link from "next/link";
 import { BackButton } from "@/components/ui/back-button";
 import { VaultPasswordReveal } from "@/components/vault/vault-password-reveal";
 import { VaultShareManager } from "@/components/vault/vault-share-manager";
 import { DeleteVaultButton } from "@/components/vault/delete-vault-button";
-import { Pencil, Building2, Globe, Server, ExternalLink } from "lucide-react";
+import { IconActionLink } from "@/components/ui/icon-action";
+import { Building2, Globe, Server, ExternalLink } from "lucide-react";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -78,17 +78,7 @@ export default async function VaultEntryPage({ params }: { params: Promise<{ id:
           </h1>
           {canManage && (
             <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
-              <Link
-                href={`/boveda/${entry.id}/edit`}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: "0.25rem",
-                  fontSize: "0.8125rem", color: "#fd1384", border: "1px solid rgba(253,19,132,0.3)",
-                  borderRadius: "0.375rem", padding: "0.25rem 0.625rem", textDecoration: "none", fontWeight: 500,
-                }}
-              >
-                <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />
-                Editar
-              </Link>
+              <IconActionLink icon="pencil" label="Editar entrada" href={`/boveda/${entry.id}/edit`} />
               <DeleteVaultButton entryId={entry.id} entryTitle={entry.title} />
             </div>
           )}

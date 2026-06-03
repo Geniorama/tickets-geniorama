@@ -18,12 +18,13 @@ export default async function EditGlobalTaskPage({
   await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
   const { id: taskId } = await params;
 
-  const [task, projects, staffUsers] = await Promise.all([
+  const [task, projects, staffUsers, reviewerCandidates] = await Promise.all([
     prisma.task.findUnique({
       where: { id: taskId },
       include: {
         project: { select: { id: true, name: true } },
         attachments: { orderBy: { createdAt: "asc" } },
+        reviewers: { select: { id: true } },
       },
     }),
     prisma.project.findMany({
@@ -33,6 +34,11 @@ export default async function EditGlobalTaskPage({
     }),
     prisma.user.findMany({
       where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    }),
+    prisma.user.findMany({
+      where: { isActive: true },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
@@ -72,7 +78,7 @@ export default async function EditGlobalTaskPage({
           padding: "1.5rem",
         }}
       >
-        <TaskForm projects={projects} staffUsers={staffUsers} task={task} existingAttachments={task.attachments} />
+        <TaskForm projects={projects} staffUsers={staffUsers} reviewerCandidates={reviewerCandidates} defaultReviewerIds={task.reviewers.map((r) => r.id)} task={task} existingAttachments={task.attachments} />
       </div>
     </div>
   );

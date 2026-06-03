@@ -2,18 +2,17 @@
 
 import { useTransition, useState } from "react";
 import { resendInvitation } from "@/actions/invitation.actions";
+import { IconAction } from "@/components/ui/icon-action";
 
 export function ResendInvitationButton({ userId }: { userId: string }) {
   const [isPending, startTransition] = useTransition();
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   function handleClick() {
-    setError(null);
     startTransition(async () => {
       const result = await resendInvitation(userId);
       if (result?.error) {
-        setError(result.error);
+        alert(result.error);
       } else {
         setSent(true);
         setTimeout(() => setSent(false), 3000);
@@ -22,20 +21,8 @@ export function ResendInvitationButton({ userId }: { userId: string }) {
   }
 
   if (sent) {
-    return <span className="text-xs text-green-600 font-medium">✓ Enviado</span>;
+    return <IconAction icon="check" label="Invitación enviada" tone="success" disabled />;
   }
 
-  return (
-    <div>
-      <button
-        onClick={handleClick}
-        disabled={isPending}
-        className="text-xs text-indigo-600 hover:text-indigo-800 disabled:opacity-50 whitespace-nowrap"
-        title="Reenviar invitación por email"
-      >
-        {isPending ? "Enviando..." : "Reenviar invitación"}
-      </button>
-      {error && <p className="text-xs text-red-500 mt-0.5">{error}</p>}
-    </div>
-  );
+  return <IconAction icon="mail" label="Reenviar invitación" tone="neutral" onClick={handleClick} pending={isPending} />;
 }

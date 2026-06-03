@@ -10,6 +10,7 @@ import {
   formatHours,
 } from "@/lib/plans";
 import { formatDate } from "@/lib/format-date";
+import { CopyId } from "@/components/ui/copy-id";
 import { Clock, CalendarClock, CheckCircle2, XCircle, AlertCircle, AlertTriangle } from "lucide-react";
 
 export const metadata = { title: "Mis planes" };
@@ -157,7 +158,8 @@ export default async function MisplanesPage() {
                 <ul className="mt-1 space-y-0.5">
                   {expiredPlans.map((p) => (
                     <li key={p.id} className="text-sm text-red-700">
-                      {p.name} — {p.company.name}
+                      {p.name} — {p.company.name}{" "}
+                      <span className="font-mono text-xs text-red-500">({p.id})</span>
                     </li>
                   ))}
                 </ul>
@@ -176,7 +178,8 @@ export default async function MisplanesPage() {
                 <ul className="mt-1 space-y-0.5">
                   {exhaustedPlans.map((p) => (
                     <li key={p.id} className="text-sm text-orange-700">
-                      {p.name} — {p.company.name}
+                      {p.name} — {p.company.name}{" "}
+                      <span className="font-mono text-xs text-orange-500">({p.id})</span>
                     </li>
                   ))}
                 </ul>
@@ -197,7 +200,8 @@ export default async function MisplanesPage() {
                     const days = daysUntilExpiry(p)!;
                     return (
                       <li key={p.id} className="text-sm text-amber-700">
-                        {p.name} — vence en {days} día{days !== 1 ? "s" : ""}
+                        {p.name} — vence en {days} día{days !== 1 ? "s" : ""}{" "}
+                        <span className="font-mono text-xs text-amber-500">({p.id})</span>
                       </li>
                     );
                   })}
@@ -247,6 +251,9 @@ export default async function MisplanesPage() {
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">{plan.company.name}</p>
                     <h2 className="text-base font-semibold text-gray-900">{plan.name}</h2>
+                    <div className="mt-1.5">
+                      <CopyId value={plan.id} />
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {plan.type === "BOLSA_HORAS" ? (

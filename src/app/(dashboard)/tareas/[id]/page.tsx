@@ -30,6 +30,7 @@ export default async function GlobalTaskPage({
     include: {
       project: { select: { id: true, name: true } },
       assignedTo: { select: { id: true, name: true } },
+      reviewers: { select: { id: true, name: true } },
       createdBy: { select: { id: true, name: true } },
       comments: {
         include: {

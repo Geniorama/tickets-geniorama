@@ -114,6 +114,7 @@ export default async function TareasPage({
       case "status":     return [{ status: d }];
       case "priority":   return [{ priority: d }];
       case "assignedTo": return [{ assignedTo: { name: d } }];
+      case "createdBy":  return [{ createdBy: { name: d } }];
       case "startDate":  return [{ startDate: d }];
       case "dueDate":    return [{ dueDate: d }, { priority: "desc" }];
       case "createdAt":  return [{ createdAt: d }];

@@ -16,6 +16,8 @@ interface MultiSelectProps {
   triggerClassName?: string;
   /** Inline styles for the trigger button (task/project-filters context) */
   triggerStyle?: React.CSSProperties;
+  /** Muestra un campo de búsqueda dentro del desplegable para filtrar opciones */
+  searchable?: boolean;
 }
 
 export function MultiSelect({
@@ -25,18 +27,38 @@ export function MultiSelect({
   placeholder = "Todos",
   triggerClassName,
   triggerStyle,
+  searchable = false,
 }: MultiSelectProps) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
     function handler(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
+
+  // Enfocar el campo de búsqueda al abrir.
+  useEffect(() => {
+    if (open && searchable) searchRef.current?.focus();
+  }, [open, searchable]);
+
+  function handleTriggerClick() {
+    setQuery("");
+    setOpen((v) => !v);
+  }
+
+  const visibleOptions = searchable && query.trim()
+    ? options.filter((o) => o.label.toLowerCase().includes(query.trim().toLowerCase()))
+    : options;
 
   function toggle(optionValue: string) {
     onChange(
@@ -76,7 +98,7 @@ export function MultiSelect({
     <div ref={ref} style={{ position: "relative" }}>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleTriggerClick}
         className={triggerClassName}
         style={triggerClassName ? undefined : { ...defaultTriggerStyle, ...triggerStyle }}
       >
@@ -126,7 +148,34 @@ export function MultiSelect({
             padding: "0.25rem 0",
           }}
         >
-          {options.map((opt) => {
+          {searchable && (
+            <div style={{ padding: "0.25rem 0.5rem 0.375rem", position: "sticky", top: 0, backgroundColor: "var(--dropdown-bg, #ffffff)" }}>
+              <input
+                ref={searchRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar..."
+                style={{
+                  width: "100%",
+                  border: "1px solid var(--app-border, #d1d5db)",
+                  borderRadius: "0.375rem",
+                  padding: "0.375rem 0.5rem",
+                  fontSize: "0.8125rem",
+                  color: "var(--app-body-text, #111827)",
+                  backgroundColor: "var(--app-content-bg, #ffffff)",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            </div>
+          )}
+          {visibleOptions.length === 0 && (
+            <p style={{ padding: "0.5rem 0.75rem", fontSize: "0.8125rem", color: "var(--app-text-muted, #6b7280)", margin: 0 }}>
+              Sin resultados
+            </p>
+          )}
+          {visibleOptions.map((opt) => {
             const checked = value.includes(opt.value);
             return (
               <button

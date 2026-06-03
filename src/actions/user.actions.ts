@@ -18,6 +18,8 @@ const createUserSchema = z.object({
   password: z.string().min(8, "Mínimo 8 caracteres"),
   role: z.enum(["ADMINISTRADOR", "COLABORADOR", "CLIENTE"]),
   companyIds: z.array(z.string()).optional(),
+  cargo: z.string().max(120).optional(),
+  area: z.string().max(120).optional(),
 });
 
 export async function createUser(formData: FormData) {
@@ -31,6 +33,8 @@ export async function createUser(formData: FormData) {
     password: formData.get("password"),
     role: formData.get("role"),
     companyIds,
+    cargo: formData.get("cargo") || undefined,
+    area: formData.get("area") || undefined,
   });
 
   if (!parsed.success) {
@@ -48,12 +52,17 @@ export async function createUser(formData: FormData) {
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
 
+  // Cargo y área solo aplican a staff (admin/colaborador)
+  const isStaffRole = parsed.data.role !== "CLIENTE";
+
   const user = await prisma.user.create({
     data: {
       name: parsed.data.name,
       email: parsed.data.email,
       passwordHash,
       role: parsed.data.role,
+      cargo: isStaffRole ? (parsed.data.cargo ?? null) : null,
+      area: isStaffRole ? (parsed.data.area ?? null) : null,
       companies: {
         connect: (parsed.data.companyIds ?? []).map((id) => ({ id })),
       },
@@ -88,6 +97,8 @@ export async function updateUser(userId: string, formData: FormData) {
     companyIds: z.array(z.string()).optional(),
     isActive: z.boolean(),
     password: z.string().optional(),
+    cargo: z.string().max(120).optional(),
+    area: z.string().max(120).optional(),
   });
 
   const parsed = schema.safeParse({
@@ -97,6 +108,8 @@ export async function updateUser(userId: string, formData: FormData) {
     companyIds,
     isActive: formData.get("isActive") === "true",
     password: formData.get("password") || undefined,
+    cargo: formData.get("cargo") || undefined,
+    area: formData.get("area") || undefined,
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -110,11 +123,15 @@ export async function updateUser(userId: string, formData: FormData) {
   });
   if (duplicate) return { error: "Ya existe un usuario con ese email" };
 
+  const isStaffRole = parsed.data.role !== "CLIENTE";
+
   const updateData: Parameters<typeof prisma.user.update>[0]["data"] = {
     name: parsed.data.name,
     email: parsed.data.email,
     role: parsed.data.role,
     isActive: parsed.data.isActive,
+    cargo: isStaffRole ? (parsed.data.cargo ?? null) : null,
+    area: isStaffRole ? (parsed.data.area ?? null) : null,
     companies: {
       set: (parsed.data.companyIds ?? []).map((id) => ({ id })),
     },

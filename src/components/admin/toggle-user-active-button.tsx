@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { toggleUserActive } from "@/actions/user.actions";
+import { IconAction } from "@/components/ui/icon-action";
 
 export function ToggleUserActiveButton({
   userId,
@@ -21,24 +22,12 @@ export function ToggleUserActiveButton({
   }
 
   if (isSelf) {
-    return (
-      <span className="text-xs text-gray-300 cursor-not-allowed" title="No puedes desactivarte a ti mismo">
-        {isActive ? "Desactivar" : "Activar"}
-      </span>
-    );
+    return <IconAction icon="power-off" label="No puedes desactivarte a ti mismo" disabled />;
   }
 
-  return (
-    <button
-      onClick={handleClick}
-      disabled={isPending}
-      className={`text-xs font-medium transition-colors disabled:opacity-50 ${
-        isActive
-          ? "text-red-500 hover:text-red-700"
-          : "text-green-600 hover:text-green-800"
-      }`}
-    >
-      {isPending ? "..." : isActive ? "Desactivar" : "Activar"}
-    </button>
+  return isActive ? (
+    <IconAction icon="power-off" label="Desactivar usuario" tone="danger" onClick={handleClick} pending={isPending} />
+  ) : (
+    <IconAction icon="power" label="Activar usuario" tone="success" onClick={handleClick} pending={isPending} />
   );
 }

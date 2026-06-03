@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateTicket } from "@/actions/ticket.actions";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 interface Collaborator { id: string; name: string; email: string; role: string; }
 interface Client { id: string; name: string; companies: { id: string; name: string }[]; }
@@ -14,6 +15,7 @@ interface Ticket {
   status: string; priority: string; category: string | null;
   assignedToId: string | null; clientId: string | null; planId: string | null; siteId: string | null;
   dueDate: string | null;
+  reviewerIds?: string[];
 }
 
 export function TicketEditForm({
@@ -22,17 +24,20 @@ export function TicketEditForm({
   clients,
   plans,
   sites = [],
+  reviewerCandidates = [],
 }: {
   ticket: Ticket;
   collaborators: Collaborator[];
   clients: Client[];
   plans: Plan[];
   sites?: Site[];
+  reviewerCandidates?: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [selectedClientId, setSelectedClientId] = useState(ticket.clientId ?? "");
+  const [reviewerIds, setReviewerIds] = useState<string[]>(ticket.reviewerIds ?? []);
 
   const inputClass =
     "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500";
@@ -122,6 +127,26 @@ export function TicketEditForm({
         </div>
       </div>
 
+      {reviewerCandidates.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Revisores <span className="text-gray-400 font-normal">(opcional)</span>
+          </label>
+          <MultiSelect
+            options={reviewerCandidates.map((u) => ({ value: u.id, label: u.name }))}
+            value={reviewerIds}
+            onChange={setReviewerIds}
+            placeholder="Por defecto: quien creó el ticket"
+            triggerClassName={inputClass}
+            searchable
+          />
+          <input type="hidden" name="reviewerIds" value={reviewerIds.join(",")} />
+          <p className="text-xs text-gray-400 mt-1">
+            Quienes revisan el ticket cuando pasa a «En revisión». Si lo dejas vacío, será el creador.
+          </p>
+        </div>
+      )}
+
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Fecha límite <span className="text-gray-400 font-normal">(opcional)</span></label>
         <input
@@ -160,7 +185,7 @@ export function TicketEditForm({
           <option value="">Sin plan asignado</option>
           {availablePlans.map((p) => (
             <option key={p.id} value={p.id}>
-              {p.name} — {p.type === "BOLSA_HORAS" ? "Bolsa de horas" : "Soporte mensual"}
+              {p.name} — {p.type === "BOLSA_HORAS" ? "Bolsa de horas" : "Soporte mensual"} · {p.id}
             </option>
           ))}
         </select>

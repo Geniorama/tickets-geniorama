@@ -12,6 +12,7 @@ import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { sendTicketAssignedEmail, sendTicketClosedEmail } from "@/lib/email";
 import { ticketPrefix } from "@/lib/ticket-code";
+import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/reviewers";
 
 const APP_URL = process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -99,6 +100,9 @@ export async function createTicket(formData: FormData) {
   }
   const prefix = ticketPrefix(companyName);
 
+  // Revisores: si no se asignan, por defecto el creador
+  const reviewerIds = await resolveReviewerIds(parseReviewerIds(formData), session.user.id);
+
   const ticket = await prisma.$transaction(async (tx) => {
     const last = await tx.ticket.findFirst({
       where: { prefix },
@@ -119,6 +123,7 @@ export async function createTicket(formData: FormData) {
         dueDate,
         prefix,
         number: (last?.number ?? 0) + 1,
+        reviewers: { connect: reviewerIds.map((id) => ({ id })) },
         ...(session.user.role === "CLIENTE" ? { status: "POR_ASIGNAR" as never } : {}),
       },
     });
@@ -263,6 +268,11 @@ export async function updateTicketStatus(ticketId: string, status: string) {
       `/tickets/${ticketId}`
     );
 
+    // Avisar a los revisores cuando el ticket entra en revisión
+    if (status === "EN_REVISION" && ticket.status !== "EN_REVISION") {
+      await notifyReviewers("ticket", ticketId, ticket.title, `/tickets/${ticketId}`, session.user.id, true);
+    }
+
     if (status === "CERRADO" && ticket.client) {
       const url = `${APP_URL}/tickets/${ticketId}`;
       void sendTicketClosedEmail(ticket.client, ticket.title, url).catch(console.error);
@@ -325,7 +335,7 @@ export async function assignTicket(ticketId: string, userId: string | null) {
 }
 
 export async function updateTicket(ticketId: string, formData: FormData) {
-  await requireRole(["ADMINISTRADOR"]);
+  const session = await requireRole(["ADMINISTRADOR"]);
 
   const schema = z.object({
     title: z.string().min(1, "El título es requerido").max(200),
@@ -378,6 +388,12 @@ export async function updateTicket(ticketId: string, formData: FormData) {
 
   const newDueDate = parsed.data.dueDate ? new Date(parsed.data.dueDate) : null;
 
+  // Revisores: si quedan vacíos, por defecto el creador del ticket
+  const reviewerIds = await resolveReviewerIds(
+    parseReviewerIds(formData),
+    oldTicket?.createdById ?? session.user.id
+  );
+
   await prisma.ticket.update({
     where: { id: ticketId },
     data: {
@@ -391,8 +407,14 @@ export async function updateTicket(ticketId: string, formData: FormData) {
       planId: parsed.data.planId ?? null,
       siteId: parsed.data.siteId ?? null,
       dueDate: newDueDate,
+      reviewers: { set: reviewerIds.map((id) => ({ id })) },
     },
   });
+
+  // Avisar a los revisores cuando el ticket entra en revisión
+  if (parsed.data.status === "EN_REVISION" && oldTicket?.status !== "EN_REVISION") {
+    await notifyReviewers("ticket", ticketId, parsed.data.title, `/tickets/${ticketId}`, session.user.id, true);
+  }
 
   // Notificar cambio de fecha límite
   if (newDueDate?.toDateString() !== oldTicket?.dueDate?.toDateString()) {
@@ -476,6 +498,10 @@ export async function configureTicket(ticketId: string, formData: FormData) {
     if (ticket?.client) {
       void sendTicketAssignedEmail(ticket.client, ticket.title, ticketUrl).catch(console.error);
     }
+  }
+
+  if (status === "EN_REVISION" && ticket?.status !== "EN_REVISION") {
+    await notifyReviewers("ticket", ticketId, ticket?.title ?? "", `/tickets/${ticketId}`, session.user.id, true);
   }
 
   if (status === "CERRADO" && ticket?.status !== "CERRADO" && ticket?.client) {

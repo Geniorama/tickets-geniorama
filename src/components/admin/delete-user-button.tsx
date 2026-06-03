@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { deleteUser } from "@/actions/user.actions";
+import { IconAction } from "@/components/ui/icon-action";
 
 export function DeleteUserButton({
   userId,
@@ -29,13 +30,5 @@ export function DeleteUserButton({
     });
   }
 
-  return (
-    <button
-      onClick={handleClick}
-      disabled={isPending}
-      className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors disabled:opacity-50"
-    >
-      {isPending ? "..." : "Eliminar"}
-    </button>
-  );
+  return <IconAction icon="trash" label="Eliminar usuario" tone="danger" onClick={handleClick} pending={isPending} />;
 }

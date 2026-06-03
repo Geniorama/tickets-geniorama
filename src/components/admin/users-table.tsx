@@ -4,7 +4,7 @@ import { SortableHeader } from "@/components/ui/sortable-header";
 import { ResendInvitationButton } from "@/components/admin/resend-invitation-button";
 import { ToggleUserActiveButton } from "@/components/admin/toggle-user-active-button";
 import { DeleteUserButton } from "@/components/admin/delete-user-button";
-import { Pencil } from "lucide-react";
+import { IconActionLink } from "@/components/ui/icon-action";
 
 type UserRow = {
   id: string;
@@ -96,10 +96,7 @@ export function UsersTable({
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "0.625rem", flexWrap: "wrap" }}>
               <ToggleUserActiveButton userId={user.id} isActive={user.isActive} isSelf={user.id === currentUserId} />
               <ResendInvitationButton userId={user.id} />
-              <Link href={`/admin/users/${user.id}/edit`} style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8125rem", color: "#fd1384", fontWeight: 500, textDecoration: "none" }}>
-                <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />
-                Editar
-              </Link>
+              <IconActionLink icon="pencil" label="Editar usuario" href={`/admin/users/${user.id}/edit`} />
               <DeleteUserButton userId={user.id} userName={user.name} isSelf={user.id === currentUserId} />
             </div>
           </li>
@@ -139,10 +136,7 @@ export function UsersTable({
                   <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                     <ToggleUserActiveButton userId={user.id} isActive={user.isActive} isSelf={user.id === currentUserId} />
                     <ResendInvitationButton userId={user.id} />
-                    <Link href={`/admin/users/${user.id}/edit`} style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.8125rem", color: "#fd1384", fontWeight: 500, textDecoration: "none" }}>
-                      <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />
-                      Editar
-                    </Link>
+                    <IconActionLink icon="pencil" label="Editar usuario" href={`/admin/users/${user.id}/edit`} />
                     <DeleteUserButton userId={user.id} userName={user.name} isSelf={user.id === currentUserId} />
                   </div>
                 </td>

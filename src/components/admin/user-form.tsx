@@ -143,6 +143,23 @@ export function UserForm({ companies }: { companies: Company[] }) {
         </select>
       </div>
 
+      {role !== "CLIENTE" && (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Cargo <span className="text-gray-400 font-normal">(opcional)</span>
+            </label>
+            <input name="cargo" className={inputClass} placeholder="Ej: Diseñador, Project Manager..." />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Área <span className="text-gray-400 font-normal">(opcional)</span>
+            </label>
+            <input name="area" className={inputClass} placeholder="Ej: Diseño, Desarrollo, Marketing..." />
+          </div>
+        </div>
+      )}
+
       {role === "CLIENTE" && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">

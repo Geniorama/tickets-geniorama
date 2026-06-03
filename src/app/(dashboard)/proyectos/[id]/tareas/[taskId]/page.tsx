@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { TaskDetail } from "@/components/projects/task-detail";
 import { BackButton } from "@/components/ui/back-button";
 import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
+import { ProjectVaultPanel } from "@/components/vault/project-vault-panel";
+import { ProjectAttachmentsPanel } from "@/components/projects/project-attachments-panel";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const { taskId } = await params;
@@ -30,6 +32,7 @@ export default async function TaskPage({
     include: {
       project: { select: { id: true, name: true, companyId: true } },
       assignedTo: { select: { id: true, name: true } },
+      reviewers: { select: { id: true, name: true } },
       createdBy: { select: { id: true, name: true } },
       comments: {
         include: {
@@ -83,6 +86,31 @@ export default async function TaskPage({
     if (!companyIds.includes(project.companyId)) notFound();
   }
 
+  // Configuración general del proyecto (accesos + adjuntos), visible también aquí
+  const vaultVisibility = admin
+    ? {}
+    : { OR: [{ createdById: userId }, { sharedWith: { some: { userId } } }] };
+
+  const [projectAttachments, linkedVaultEntries, availableVaultEntries] = await Promise.all([
+    prisma.projectAttachment.findMany({
+      where: { projectId },
+      include: { uploadedBy: { select: { name: true } } },
+      orderBy: { position: "asc" },
+    }),
+    prisma.vaultEntry.findMany({
+      where: { projects: { some: { projectId } }, ...vaultVisibility },
+      select: { id: true, title: true, username: true, url: true },
+      orderBy: { title: "asc" },
+    }),
+    prisma.vaultEntry.findMany({
+      where: { projects: { none: { projectId } }, ...vaultVisibility },
+      select: { id: true, title: true, username: true, url: true },
+      orderBy: { title: "asc" },
+    }),
+  ]);
+
+  const canManageProject = staff || admin;
+
   return (
     <div>
       <div style={{ marginBottom: "1rem" }}>
@@ -102,6 +130,26 @@ export default async function TaskPage({
           />
         }
       />
+
+      {/* Configuración general del proyecto — siempre visible en el detalle de la tarea */}
+      <div style={{ marginTop: "1.5rem" }}>
+        <h2 style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.75rem" }}>
+          Configuración del proyecto: {task.project?.name}
+        </h2>
+        {(linkedVaultEntries.length > 0 || canManageProject) && (
+          <ProjectVaultPanel
+            projectId={projectId}
+            linkedEntries={linkedVaultEntries}
+            availableEntries={availableVaultEntries}
+            canManage={canManageProject}
+          />
+        )}
+        <ProjectAttachmentsPanel
+          projectId={projectId}
+          attachments={projectAttachments}
+          canManage={canManageProject}
+        />
+      </div>
     </div>
   );
 }

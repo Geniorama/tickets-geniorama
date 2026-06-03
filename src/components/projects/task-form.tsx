@@ -6,6 +6,8 @@ import { createTask, updateTask } from "@/actions/task.actions";
 import type { TaskConflict } from "@/actions/task.actions";
 import type { Task } from "@/generated/prisma";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { TASK_CATEGORY_GROUPS, TASK_CATEGORIES } from "@/lib/task-categories";
 
 interface StaffUser {
   id: string;
@@ -21,11 +23,23 @@ interface ExistingAttachment {
 
 interface Project { id: string; name: string; }
 
+interface TaskPrefill {
+  title?: string;
+  description?: string;
+  priority?: string;
+  category?: string | null;
+  estimatedHours?: number | null;
+  checklist?: string[];
+}
+
 interface TaskFormProps {
   projectId?: string;
   projects?: Project[];   // si se pasa, muestra selector de proyecto
   staffUsers: StaffUser[];
+  reviewerCandidates?: { id: string; name: string }[];
+  defaultReviewerIds?: string[];
   task?: Task;
+  prefill?: TaskPrefill;   // valores iniciales (p. ej. desde una plantilla)
   existingAttachments?: ExistingAttachment[];
 }
 
@@ -60,15 +74,16 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export function TaskForm({ projectId, projects, staffUsers, task, existingAttachments = [] }: TaskFormProps) {
+export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates = [], defaultReviewerIds = [], task, prefill, existingAttachments = [] }: TaskFormProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<TaskConflict[] | null>(null);
+  const [reviewerIds, setReviewerIds] = useState<string[]>(defaultReviewerIds);
   const savedFormData = useRef<FormData | null>(null);
   const isEdit = !!task;
 
   // Checklist state
-  const [checklistItems, setChecklistItems] = useState<string[]>([]);
+  const [checklistItems, setChecklistItems] = useState<string[]>(prefill?.checklist ?? []);
   const [checklistInput, setChecklistInput] = useState("");
 
   // Attachment state
@@ -197,7 +212,7 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
         <input
           name="title"
           required
-          defaultValue={task?.title ?? ""}
+          defaultValue={task?.title ?? prefill?.title ?? ""}
           placeholder="Título de la tarea"
           style={inputStyle}
         />
@@ -207,7 +222,7 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
         <label style={labelStyle}>Descripción</label>
         <MarkdownEditor
           name="description"
-          defaultValue={task?.description ?? ""}
+          defaultValue={task?.description ?? prefill?.description ?? ""}
           placeholder="Describe la tarea en detalle..."
         />
       </div>
@@ -569,7 +584,7 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
         </div>
         <div>
           <label style={labelStyle}>Prioridad</label>
-          <select name="priority" defaultValue={task?.priority ?? "MEDIA"} style={inputStyle}>
+          <select name="priority" defaultValue={task?.priority ?? prefill?.priority ?? "MEDIA"} style={inputStyle}>
             <option value="BAJA">Baja</option>
             <option value="MEDIA">Media</option>
             <option value="ALTA">Alta</option>
@@ -578,16 +593,22 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
         </div>
         <div>
           <label style={labelStyle}>Categoría</label>
-          <select name="category" defaultValue={task?.category ?? ""} style={inputStyle}>
+          <select name="category" defaultValue={task?.category ?? prefill?.category ?? ""} style={inputStyle}>
             <option value="">Sin categoría</option>
-            <option value="Frontend">Frontend</option>
-            <option value="Backend">Backend</option>
-            <option value="Diseño">Diseño</option>
-            <option value="Base de datos">Base de datos</option>
-            <option value="DevOps">DevOps</option>
-            <option value="QA">QA</option>
-            <option value="Documentación">Documentación</option>
-            <option value="Otro">Otro</option>
+            {/* Permite conservar una categoría previa que ya no esté en la lista */}
+            {(() => {
+              const cat = task?.category ?? prefill?.category ?? null;
+              return cat && !TASK_CATEGORIES.includes(cat) ? <option value={cat}>{cat}</option> : null;
+            })()}
+            {TASK_CATEGORY_GROUPS.map((group) => (
+              <optgroup key={group.label} label={group.label}>
+                {group.options.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
           </select>
         </div>
         <div>
@@ -602,6 +623,26 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
           </select>
         </div>
       </div>
+
+      {reviewerCandidates.length > 0 && (
+        <div>
+          <label style={labelStyle}>
+            Revisores <span style={{ fontWeight: 400, color: "var(--app-text-muted)" }}>(opcional)</span>
+          </label>
+          <MultiSelect
+            options={reviewerCandidates.map((u) => ({ value: u.id, label: u.name }))}
+            value={reviewerIds}
+            onChange={setReviewerIds}
+            placeholder="Por defecto: quien crea la tarea"
+            triggerStyle={inputStyle}
+            searchable
+          />
+          <input type="hidden" name="reviewerIds" value={reviewerIds.join(",")} />
+          <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
+            Quienes revisan la tarea cuando pasa a «En revisión». Si lo dejas vacío, será el creador.
+          </p>
+        </div>
+      )}
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "1rem", alignItems: "end" }}>
         {/* Inicio */}
@@ -680,7 +721,7 @@ export function TaskForm({ projectId, projects, staffUsers, task, existingAttach
             type="number"
             min="0"
             step="0.5"
-            defaultValue={task?.estimatedHours ?? ""}
+            defaultValue={task?.estimatedHours ?? prefill?.estimatedHours ?? ""}
             placeholder="0"
             style={inputStyle}
           />
