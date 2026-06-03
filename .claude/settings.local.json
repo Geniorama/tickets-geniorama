@@ -56,7 +56,16 @@
       "Bash(curl -sI \"https://geniorama.co/apple-touch-icon.png\" -o NUL -w \"apple-touch: %{http_code} | type: %{content_type} | size: %{size_download}\\\\n\")",
       "Bash(curl -sL \"https://geniorama.co/\")",
       "Bash(curl -sL \"https://geniorama.co/\" -o response.html -w \"HTTP %{http_code} | size %{size_download}\\\\n\")",
-      "Read(//c/Users/Janus/Downloads/**)"
+      "Read(//c/Users/Janus/Downloads/**)",
+      "Bash(npx eslint *)",
+      "Bash(sed -n '1,40p' src/components/vault/project-vault-panel.tsx)",
+      "Bash(sed -n '1,45p' src/components/projects/project-attachments-panel.tsx)",
+      "Bash(git add *)",
+      "Bash(git restore *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(gh pr create --base main --head develop --title 'Release v1.24.0 — Panel, plantillas, webhooks, revisores y mejoras' --body ' *)",
+      "PowerShell(\\(Get-Command gh -ErrorAction SilentlyContinue\\).Source)"
     ]
   }
 }
