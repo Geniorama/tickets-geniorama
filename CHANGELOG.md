@@ -9,6 +9,11 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.24.1] — 2026-06-03
+
+### Corrección de día desfasado en el cronograma
+- En la vista de **Calendario / Cronograma** del detalle de proyecto, las tareas con fecha aparecían un día antes (p. ej. una tarea del lunes se mostraba el domingo). Las fechas sin hora se guardan como medianoche UTC y `react-big-calendar` las renderizaba en hora local (America/Bogota, UTC-5), desfasándolas un día. Ahora `task-calendar.tsx` reconstruye cada fecha a medianoche local usando las partes UTC (`toLocalDateOnly`), igual que ya hacía `formatDate`, de modo que el día mostrado coincide con el día programado.
+
 ## [1.24.0] — 2026-06-03
 
 ### Configuración del proyecto visible en el detalle de tarea

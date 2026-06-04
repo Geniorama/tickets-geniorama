@@ -38,6 +38,17 @@ interface CalendarEvent extends Event {
   assignee: string | null;
 }
 
+/**
+ * Las fechas sin hora se guardan como medianoche UTC. react-big-calendar las
+ * renderiza en hora local (America/Bogota, UTC-5), lo que desfasa el evento un
+ * día hacia atrás. Reconstruimos la fecha a medianoche local usando las partes
+ * UTC para que el día mostrado coincida con el día programado.
+ */
+function toLocalDateOnly(value: Date | string): Date {
+  const d = new Date(value);
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
 const messages = {
   allDay: "Todo el día",
   previous: "←",
@@ -87,8 +98,8 @@ export function TaskCalendar({
     .filter((t) => t.dueDate)
     .map((task) => ({
       title: task.number > 0 ? `${taskCode(task.project?.name ?? "GLB", task.number)} ${task.title}` : task.title,
-      start: task.startDate ? new Date(task.startDate) : new Date(task.dueDate!),
-      end: new Date(task.dueDate!),
+      start: task.startDate ? toLocalDateOnly(task.startDate) : toLocalDateOnly(task.dueDate!),
+      end: toLocalDateOnly(task.dueDate!),
       taskId: task.id,
       projectId: task.project?.id ?? null,
       status: task.status as TaskStatus,
