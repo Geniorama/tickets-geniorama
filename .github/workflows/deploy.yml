@@ -27,12 +27,12 @@ jobs:
 
             # 3. CARGA DIRECTA DE BINARIOS
             # Esto agrega la versión específica de Node directamente al PATH
-            export NVM_DIR="/home/ubuntu/.nvm"
-            export PATH="$NVM_DIR/versions/node/v22.13.1/bin:$PATH"
+            # export NVM_DIR="/home/ubuntu/.nvm"
+            # export PATH="$NVM_DIR/versions/node/v22.13.1/bin:$PATH"
             
             # Verificación inmediata
-            node -v
-            npm -v
+            # node -v
+            # npm -v
 
             # 4. Instalar y Compilar
             npm install
@@ -40,5 +40,5 @@ jobs:
 
             # 5. Reiniciar con PM2 usando la ruta completa para evitar fallos
             # Cargamos PM2 si no está en el PATH
-            export PATH="$PATH:$(npm config get prefix)/bin"
-            pm2 restart tickets-app || pm2 start npm --name "tickets-app" -- start
+            # export PATH="$PATH:$(npm config get prefix)/bin"
+            pm2 restart tickets-geniorama || pm2 start npm --name "tickets-geniorama" -- start
