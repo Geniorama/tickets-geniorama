@@ -47,6 +47,10 @@ export async function createTicket(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
+  // Modo borrador: solo el staff puede guardar borradores; el ticket queda
+  // privado para su creador y no dispara notificaciones hasta publicarse.
+  const isDraft = isStaff(session.user.role) && formData.get("isDraft") === "true";
+
   // Los clientes no pueden asignar tickets a ningún usuario
   if (session.user.role === "CLIENTE") {
     parsed.data.assignedToId = undefined;
@@ -122,7 +126,9 @@ export async function createTicket(formData: FormData) {
         siteId: parsed.data.siteId ?? null,
         dueDate,
         prefix,
-        number: (last?.number ?? 0) + 1,
+        // El número (y por tanto el código) se asigna solo al publicar
+        number: isDraft ? 0 : (last?.number ?? 0) + 1,
+        isDraft,
         reviewers: { connect: reviewerIds.map((id) => ({ id })) },
         ...(session.user.role === "CLIENTE" ? { status: "POR_ASIGNAR" as never } : {}),
       },
@@ -179,42 +185,112 @@ export async function createTicket(formData: FormData) {
     gchatParts.push(`Límite: ${fmt}`);
   }
 
-  // Notificar al asignado si no es el creador
+  // Los borradores no notifican a nadie hasta que se publican
+  if (!isDraft) {
+    // Notificar al asignado si no es el creador
+    if (ticket.assignedToId && ticket.assignedToId !== session.user.id) {
+      await notify(
+        ticket.assignedToId,
+        "ticket_assigned",
+        "Ticket asignado",
+        `Se te asignó: "${ticket.title}"`,
+        `/tickets/${ticket.id}`
+      );
+    }
+
+    if (session.user.role === "CLIENTE") {
+      // Cliente crea ticket → notificar a admins en-app + GChat
+      const admins = await prisma.user.findMany({
+        where: { role: "ADMINISTRADOR", isActive: true },
+        select: { id: true },
+      });
+      await notifyMany(
+        admins.map((a) => a.id),
+        "ticket_new",
+        "Nuevo ticket",
+        `${session.user.name} abrió: ${gchatParts.join(" · ")}`,
+        `/tickets/${ticket.id}`
+      );
+    } else {
+      // Staff crea ticket → solo GChat (no in-app)
+      await sendGChatNotification(
+        "ticket_new",
+        "Nuevo ticket",
+        `${session.user.name} creó: ${gchatParts.join(" · ")}`,
+        `/tickets/${ticket.id}`
+      );
+    }
+  }
+
+  revalidatePath("/tickets");
+  redirect(`/tickets/${ticket.id}`);
+}
+
+/**
+ * Publica un ticket que estaba en modo borrador: lo vuelve visible para todos
+ * y dispara las notificaciones de "nuevo ticket" (igual que al crearlo).
+ */
+export async function publishTicket(ticketId: string) {
+  const session = await getRequiredSession();
+  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+
+  const ticket = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    select: {
+      title: true,
+      isDraft: true,
+      createdById: true,
+      assignedToId: true,
+      dueDate: true,
+      prefix: true,
+      assignedTo: { select: { name: true } },
+    },
+  });
+  if (!ticket) return { error: "Ticket no encontrado" };
+  // Solo el creador del borrador puede publicarlo (los borradores son privados)
+  if (ticket.createdById !== session.user.id) return { error: "Sin permisos" };
+  if (!ticket.isDraft) return { error: "El ticket ya está publicado" };
+
+  // Asignar el número/código consecutivo recién al publicar
+  await prisma.$transaction(async (tx) => {
+    const last = await tx.ticket.findFirst({
+      where: { prefix: ticket.prefix },
+      orderBy: { number: "desc" },
+      select: { number: true },
+    });
+    await tx.ticket.update({
+      where: { id: ticketId },
+      data: { isDraft: false, number: (last?.number ?? 0) + 1 },
+    });
+  });
+
+  const gchatParts: string[] = [`"${ticket.title}"`];
+  if (ticket.assignedTo?.name) gchatParts.push(`Asignado a: ${ticket.assignedTo.name}`);
+  if (ticket.dueDate) {
+    const fmt = ticket.dueDate.toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
+    gchatParts.push(`Límite: ${fmt}`);
+  }
+
   if (ticket.assignedToId && ticket.assignedToId !== session.user.id) {
     await notify(
       ticket.assignedToId,
       "ticket_assigned",
       "Ticket asignado",
       `Se te asignó: "${ticket.title}"`,
-      `/tickets/${ticket.id}`
+      `/tickets/${ticketId}`
     );
   }
 
-  if (session.user.role === "CLIENTE") {
-    // Cliente crea ticket → notificar a admins en-app + GChat
-    const admins = await prisma.user.findMany({
-      where: { role: "ADMINISTRADOR", isActive: true },
-      select: { id: true },
-    });
-    await notifyMany(
-      admins.map((a) => a.id),
-      "ticket_new",
-      "Nuevo ticket",
-      `${session.user.name} abrió: ${gchatParts.join(" · ")}`,
-      `/tickets/${ticket.id}`
-    );
-  } else {
-    // Staff crea ticket → solo GChat (no in-app)
-    await sendGChatNotification(
-      "ticket_new",
-      "Nuevo ticket",
-      `${session.user.name} creó: ${gchatParts.join(" · ")}`,
-      `/tickets/${ticket.id}`
-    );
-  }
+  await sendGChatNotification(
+    "ticket_new",
+    "Nuevo ticket",
+    `${session.user.name} creó: ${gchatParts.join(" · ")}`,
+    `/tickets/${ticketId}`
+  );
 
+  revalidatePath(`/tickets/${ticketId}`);
   revalidatePath("/tickets");
-  redirect(`/tickets/${ticket.id}`);
+  return { success: true };
 }
 
 const ticketStatusLabels: Record<string, string> = {

@@ -9,7 +9,7 @@ import type { Ticket, TicketComment, TicketAttachment, TimeEntry, User, TicketSt
 import { TicketTimer } from "./ticket-timer";
 import { TicketAiAssistant } from "./ticket-ai-assistant";
 import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
-import { updateTicketStatus, deleteTicket } from "@/actions/ticket.actions";
+import { updateTicketStatus, deleteTicket, publishTicket } from "@/actions/ticket.actions";
 import { DuplicateTicketButton } from "./duplicate-ticket-button";
 import { addComment, deleteComment, editComment, getTicketComments } from "@/actions/comment.actions";
 import { isStaff, isAdmin } from "@/lib/roles";
@@ -111,8 +111,32 @@ export function TicketDetail({
     startTransition(() => deleteTicket(ticket.id));
   }
 
+  function handlePublish() {
+    if (!confirm("¿Publicar este ticket? Se notificará a los implicados.")) return;
+    startTransition(() => { void publishTicket(ticket.id); });
+  }
+
+  const canPublish = ticket.isDraft && session.user.id === ticket.createdBy.id;
+
   return (
     <div>
+      {ticket.isDraft && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm text-amber-800">
+            <strong>Borrador.</strong> Este ticket es privado y no notifica a nadie hasta que lo publiques.
+          </p>
+          {canPublish && (
+            <button
+              onClick={handlePublish}
+              disabled={isPending}
+              className="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 disabled:opacity-60 transition-colors"
+            >
+              {isPending ? "Publicando..." : "Publicar ticket"}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Full-width top panel */}
       {isAdmin(role) && ticket.status === "POR_ASIGNAR" && (
         <div className="mb-6">

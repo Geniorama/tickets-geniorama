@@ -7,7 +7,7 @@ import type { Task, TaskComment, TaskAttachment, TaskTimeEntry, TaskStatus, Prio
 import type { Session } from "next-auth";
 import { TaskStatusBadge, TaskPriorityBadge } from "./project-status-badge";
 import { TaskCommentSection } from "./task-comment-form";
-import { updateTaskStatus, deleteTask, moveTask } from "@/actions/task.actions";
+import { updateTaskStatus, deleteTask, moveTask, publishTask } from "@/actions/task.actions";
 import { DuplicateTaskButton } from "./duplicate-task-button";
 import { TaskTimer } from "./task-timer";
 import { formatDate, formatDateTimeLong } from "@/lib/format-date";
@@ -95,6 +95,15 @@ export function TaskDetail({
     });
   }
 
+  function handlePublish() {
+    if (!confirm("¿Publicar esta tarea? Se notificará a los implicados.")) return;
+    startTransition(async () => {
+      await publishTask(task.id, task.project?.id ?? null);
+    });
+  }
+
+  const canPublish = task.isDraft && session.user.id === task.createdBy.id;
+
   const infoRowStyle: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
@@ -104,7 +113,48 @@ export function TaskDetail({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div>
+      {task.isDraft && (
+        <div
+          style={{
+            marginBottom: "1.5rem",
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "0.75rem",
+            borderRadius: "0.75rem",
+            border: "1px solid #fcd34d",
+            backgroundColor: "#fffbeb",
+            padding: "0.75rem 1rem",
+          }}
+        >
+          <p style={{ fontSize: "0.875rem", color: "#92400e", margin: 0 }}>
+            <strong>Borrador.</strong> Esta tarea es privada y no notifica a nadie hasta que la publiques.
+          </p>
+          {canPublish && (
+            <button
+              onClick={handlePublish}
+              disabled={isPending}
+              style={{
+                backgroundColor: "#f59e0b",
+                color: "#ffffff",
+                padding: "0.5rem 1.25rem",
+                borderRadius: "0.5rem",
+                fontSize: "0.875rem",
+                fontWeight: 500,
+                border: "none",
+                cursor: isPending ? "not-allowed" : "pointer",
+                opacity: isPending ? 0.6 : 1,
+              }}
+            >
+              {isPending ? "Publicando..." : "Publicar tarea"}
+            </button>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* ── Left column ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
           {/* Main card */}
@@ -574,5 +624,6 @@ export function TaskDetail({
           </div>
         </div>
       </div>
+    </div>
   );
 }

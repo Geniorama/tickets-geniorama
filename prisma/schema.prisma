@@ -168,6 +168,7 @@ model Ticket {
   status       TicketStatus @default(ABIERTO)
   priority     Priority     @default(MEDIA)
   category     String?
+  isDraft      Boolean      @default(false) @map("is_draft")
 
   createdById  String   @map("created_by_id")
   assignedToId String?  @map("assigned_to_id")
@@ -408,6 +409,7 @@ model Task {
   status         TaskStatus @default(PENDIENTE)
   priority       Priority   @default(MEDIA)
   category       String?
+  isDraft        Boolean    @default(false) @map("is_draft")
 
   number         Int        @default(0)
 

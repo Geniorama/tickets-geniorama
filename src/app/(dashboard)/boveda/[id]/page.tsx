@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { getRequiredSession } from "@/lib/auth-helpers";
-import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/vault-crypto";
 import { BackButton } from "@/components/ui/back-button";
@@ -19,18 +18,16 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function VaultEntryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await getRequiredSession();
-  const admin = isAdmin(session.user.role);
 
+  // Solo el creador y los usuarios con los que se comparte pueden ver la entrada
   const entry = await prisma.vaultEntry.findFirst({
-    where: admin
-      ? { id }
-      : {
-          id,
-          OR: [
-            { createdById: session.user.id },
-            { sharedWith: { some: { userId: session.user.id } } },
-          ],
-        },
+    where: {
+      id,
+      OR: [
+        { createdById: session.user.id },
+        { sharedWith: { some: { userId: session.user.id } } },
+      ],
+    },
     include: {
       company:    { select: { id: true, name: true } },
       site:       { select: { id: true, name: true, domain: true } },
@@ -44,7 +41,7 @@ export default async function VaultEntryPage({ params }: { params: Promise<{ id:
 
   const decryptedPassword = decrypt(entry.password);
   const isOwner = entry.createdById === session.user.id;
-  const canManage = admin || isOwner;
+  const canManage = isOwner;
 
   const allUsers = await prisma.user.findMany({
     where: { isActive: true, id: { not: entry.createdById } },

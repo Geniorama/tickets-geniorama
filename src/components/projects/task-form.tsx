@@ -80,6 +80,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
   const [conflicts, setConflicts] = useState<TaskConflict[] | null>(null);
   const [reviewerIds, setReviewerIds] = useState<string[]>(defaultReviewerIds);
   const savedFormData = useRef<FormData | null>(null);
+  const submitAsDraft = useRef(false);
   const isEdit = !!task;
 
   // Checklist state
@@ -171,6 +172,8 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
     if (isEdit) {
       formData.set("deletedAttachmentIds", JSON.stringify(deletedAttachmentIds));
     }
+    formData.set("isDraft", submitAsDraft.current ? "true" : "false");
+    submitAsDraft.current = false;
     savedFormData.current = formData;
     submit(formData);
   }
@@ -834,9 +837,30 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
         >
           Cancelar
         </button>
+        {!isEdit && (
+          <button
+            type="submit"
+            disabled={isPending}
+            onClick={() => { submitAsDraft.current = true; }}
+            style={{
+              backgroundColor: "transparent",
+              color: "var(--app-body-text)",
+              padding: "0.5rem 1.25rem",
+              borderRadius: "0.5rem",
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              border: "1px solid var(--app-border)",
+              cursor: isPending ? "not-allowed" : "pointer",
+              opacity: isPending ? 0.6 : 1,
+            }}
+          >
+            {isPending ? "Guardando..." : "Guardar como borrador"}
+          </button>
+        )}
         <button
           type="submit"
           disabled={isPending}
+          onClick={() => { submitAsDraft.current = false; }}
           style={{
             backgroundColor: "#fd1384",
             color: "#ffffff",

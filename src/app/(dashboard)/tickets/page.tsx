@@ -107,6 +107,8 @@ export default async function TicketsPage({
     ...(companyValues.length     ? { createdBy: { companies: { some: { id: { in: companyValues } } } } }          : {}),
     ...(statusValues.length      ? { status: { in: statusValues as never[] } }                                    : {}),
     ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
+    // Los borradores son privados: cada quien solo ve los suyos
+    AND: [{ OR: [{ isDraft: false }, { createdById: id }] }],
   };
 
   const sortBy = params.sortBy ?? "dueDate";

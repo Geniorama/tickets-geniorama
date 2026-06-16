@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
 import { getRequiredSession } from "@/lib/auth-helpers";
-import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/vault-crypto";
 import { VaultForm } from "@/components/vault/vault-form";
@@ -15,11 +14,11 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function EditVaultEntryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await getRequiredSession();
-  const admin = isAdmin(session.user.role);
 
   const entry = await prisma.vaultEntry.findUnique({ where: { id } });
   if (!entry) notFound();
-  if (!admin && entry.createdById !== session.user.id) notFound();
+  // Solo el creador puede editar
+  if (entry.createdById !== session.user.id) notFound();
 
   const [companies, sites, services] = await Promise.all([
     prisma.company.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),

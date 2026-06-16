@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
-import { isAdmin } from "@/lib/roles";
 import { encrypt } from "@/lib/vault-crypto";
+import { notify } from "@/lib/notify";
 
 const vaultSchema = z.object({
   title:     z.string().min(1, "El título es requerido").max(200),
@@ -55,11 +55,10 @@ export async function createVaultEntry(formData: FormData) {
 
 export async function updateVaultEntry(entryId: string, formData: FormData) {
   const session = await getRequiredSession();
-  const admin = isAdmin(session.user.role);
 
   const entry = await prisma.vaultEntry.findUnique({ where: { id: entryId } });
   if (!entry) return { error: "Entrada no encontrada" };
-  if (!admin && entry.createdById !== session.user.id) return { error: "Sin permiso" };
+  if (entry.createdById !== session.user.id) return { error: "Sin permiso" };
 
   const parsed = vaultSchema.safeParse({
     title:     formData.get("title"),
@@ -95,11 +94,10 @@ export async function updateVaultEntry(entryId: string, formData: FormData) {
 
 export async function deleteVaultEntry(entryId: string) {
   const session = await getRequiredSession();
-  const admin = isAdmin(session.user.role);
 
   const entry = await prisma.vaultEntry.findUnique({ where: { id: entryId } });
   if (!entry) return { error: "Entrada no encontrada" };
-  if (!admin && entry.createdById !== session.user.id) return { error: "Sin permiso" };
+  if (entry.createdById !== session.user.id) return { error: "Sin permiso" };
 
   await prisma.vaultEntry.delete({ where: { id: entryId } });
   revalidatePath("/boveda");
@@ -108,12 +106,17 @@ export async function deleteVaultEntry(entryId: string) {
 
 export async function addVaultShare(entryId: string, userId: string) {
   const session = await getRequiredSession();
-  const admin = isAdmin(session.user.role);
 
   const entry = await prisma.vaultEntry.findUnique({ where: { id: entryId } });
   if (!entry) return { error: "Entrada no encontrada" };
-  if (!admin && entry.createdById !== session.user.id) return { error: "Sin permiso" };
+  if (entry.createdById !== session.user.id) return { error: "Sin permiso" };
   if (userId === entry.createdById) return { error: "No puedes compartir contigo mismo" };
+
+  // Detectar si es un nuevo acceso para notificar solo una vez
+  const existing = await prisma.vaultShare.findUnique({
+    where: { vaultEntryId_userId: { vaultEntryId: entryId, userId } },
+    select: { vaultEntryId: true },
+  });
 
   await prisma.vaultShare.upsert({
     where: { vaultEntryId_userId: { vaultEntryId: entryId, userId } },
@@ -121,19 +124,29 @@ export async function addVaultShare(entryId: string, userId: string) {
     update: {},
   });
 
+  // Notificar al usuario que recibe el acceso (solo si es nuevo).
+  // skipGChat: es una notificación de acceso sensible, solo in-app/webhook personal.
+  if (!existing) {
+    await notify(
+      userId,
+      "vault_shared",
+      "Acceso compartido en la Bóveda",
+      `${session.user.name} compartió contigo el acceso: "${entry.title}"`,
+      `/boveda/${entryId}`,
+      true
+    );
+  }
+
   revalidatePath(`/boveda/${entryId}`);
   return { success: true };
 }
 
 export async function linkVaultToProject(projectId: string, vaultEntryId: string) {
   const session = await getRequiredSession();
-  const admin = isAdmin(session.user.role);
 
-  // Verificar acceso a la entrada
+  // Verificar acceso a la entrada (solo creador o usuarios con los que se comparte)
   const entry = await prisma.vaultEntry.findFirst({
-    where: admin
-      ? { id: vaultEntryId }
-      : { id: vaultEntryId, OR: [{ createdById: session.user.id }, { sharedWith: { some: { userId: session.user.id } } }] },
+    where: { id: vaultEntryId, OR: [{ createdById: session.user.id }, { sharedWith: { some: { userId: session.user.id } } }] },
   });
   if (!entry) return { error: "Sin acceso a esta entrada de Bóveda" };
 
@@ -149,13 +162,10 @@ export async function linkVaultToProject(projectId: string, vaultEntryId: string
 
 export async function unlinkVaultFromProject(projectId: string, vaultEntryId: string) {
   const session = await getRequiredSession();
-  const admin = isAdmin(session.user.role);
 
-  // Solo admin o quien tenga acceso a la entrada puede desvinculara
+  // Solo quien tenga acceso a la entrada (creador o compartido) puede desvincularla
   const entry = await prisma.vaultEntry.findFirst({
-    where: admin
-      ? { id: vaultEntryId }
-      : { id: vaultEntryId, OR: [{ createdById: session.user.id }, { sharedWith: { some: { userId: session.user.id } } }] },
+    where: { id: vaultEntryId, OR: [{ createdById: session.user.id }, { sharedWith: { some: { userId: session.user.id } } }] },
   });
   if (!entry) return { error: "Sin acceso a esta entrada de Bóveda" };
 
@@ -167,12 +177,9 @@ export async function unlinkVaultFromProject(projectId: string, vaultEntryId: st
 
 export async function linkVaultToTicket(ticketId: string, vaultEntryId: string) {
   const session = await getRequiredSession();
-  const admin = isAdmin(session.user.role);
 
   const entry = await prisma.vaultEntry.findFirst({
-    where: admin
-      ? { id: vaultEntryId }
-      : { id: vaultEntryId, OR: [{ createdById: session.user.id }, { sharedWith: { some: { userId: session.user.id } } }] },
+    where: { id: vaultEntryId, OR: [{ createdById: session.user.id }, { sharedWith: { some: { userId: session.user.id } } }] },
   });
   if (!entry) return { error: "Sin acceso a esta entrada de Bóveda" };
 
@@ -188,12 +195,9 @@ export async function linkVaultToTicket(ticketId: string, vaultEntryId: string) 
 
 export async function unlinkVaultFromTicket(ticketId: string, vaultEntryId: string) {
   const session = await getRequiredSession();
-  const admin = isAdmin(session.user.role);
 
   const entry = await prisma.vaultEntry.findFirst({
-    where: admin
-      ? { id: vaultEntryId }
-      : { id: vaultEntryId, OR: [{ createdById: session.user.id }, { sharedWith: { some: { userId: session.user.id } } }] },
+    where: { id: vaultEntryId, OR: [{ createdById: session.user.id }, { sharedWith: { some: { userId: session.user.id } } }] },
   });
   if (!entry) return { error: "Sin acceso a esta entrada de Bóveda" };
 
@@ -205,11 +209,10 @@ export async function unlinkVaultFromTicket(ticketId: string, vaultEntryId: stri
 
 export async function removeVaultShare(entryId: string, userId: string) {
   const session = await getRequiredSession();
-  const admin = isAdmin(session.user.role);
 
   const entry = await prisma.vaultEntry.findUnique({ where: { id: entryId } });
   if (!entry) return { error: "Entrada no encontrada" };
-  if (!admin && entry.createdById !== session.user.id) return { error: "Sin permiso" };
+  if (entry.createdById !== session.user.id) return { error: "Sin permiso" };
 
   await prisma.vaultShare.deleteMany({
     where: { vaultEntryId: entryId, userId },

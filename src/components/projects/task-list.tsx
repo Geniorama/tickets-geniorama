@@ -99,6 +99,11 @@ export function TaskList({
                         {taskCode(task.project?.name ?? "GLB", task.number)}
                       </span>
                     )}
+                    {task.isDraft && (
+                      <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "#b45309", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: "0.25rem", padding: "0.1rem 0.35rem", marginRight: "0.375rem" }}>
+                        Borrador
+                      </span>
+                    )}
                     {task.title}
                   </span>
                   <TaskPriorityBadge priority={task.priority as Priority} />
@@ -206,6 +211,11 @@ export function TaskList({
                     {task.number > 0 && (
                       <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--app-text-muted)", background: "var(--app-content-bg)", border: "1px solid var(--app-border)", borderRadius: "0.25rem", padding: "0.1rem 0.35rem", letterSpacing: "0.03em", flexShrink: 0 }}>
                         {taskCode(task.project?.name ?? "GLB", task.number)}
+                      </span>
+                    )}
+                    {task.isDraft && (
+                      <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "#b45309", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: "0.25rem", padding: "0.1rem 0.35rem", flexShrink: 0 }}>
+                        Borrador
                       </span>
                     )}
                     {task.title}

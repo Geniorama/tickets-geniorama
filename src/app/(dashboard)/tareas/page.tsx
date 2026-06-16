@@ -89,6 +89,8 @@ export default async function TareasPage({
     ...(projectValues?.length  ? { projectId:   { in: projectValues } }  : {}),
     ...(assigneeValues?.length ? { assignedToId:{ in: assigneeValues } } : {}),
     ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
+    // Los borradores son privados: cada quien solo ve los suyos
+    AND: [{ OR: [{ isDraft: false }, { createdById: userId }] }],
   };
 
   // Proyectos disponibles para el filtro (misma lógica de rol)

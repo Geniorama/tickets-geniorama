@@ -90,7 +90,7 @@ export default async function ProyectosReportesPage({
     include: {
       company: { select: { name: true } },
       manager: { select: { name: true } },
-      tasks:   { select: { status: true, dueDate: true } },
+      tasks:   { where: { isDraft: false }, select: { status: true, dueDate: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -131,6 +131,7 @@ export default async function ProyectosReportesPage({
           company: { select: { name: true } },
           manager: { select: { name: true } },
           tasks: {
+            where: { isDraft: false },
             select: {
               status: true,
               priority: true,

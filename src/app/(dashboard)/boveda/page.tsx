@@ -1,5 +1,4 @@
 import { getRequiredSession } from "@/lib/auth-helpers";
-import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Plus } from "lucide-react";
@@ -18,7 +17,6 @@ export default async function BovedaPage({
   searchParams: Promise<Record<string, string>>;
 }) {
   const session = await getRequiredSession();
-  const admin = isAdmin(session.user.role);
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const pageSize = getPageSize(params.pageSize);
@@ -29,11 +27,9 @@ export default async function BovedaPage({
   const createdByFilter = params.createdById || undefined;
   const access = params.access === "owned" || params.access === "shared" ? params.access : undefined;
 
-  // Filtro de acceso base
+  // Filtro de acceso base: solo el creador y los usuarios con los que se comparte
   let accessFilter: object;
-  if (admin) {
-    accessFilter = {};
-  } else if (access === "owned") {
+  if (access === "owned") {
     accessFilter = { createdById: session.user.id };
   } else if (access === "shared") {
     accessFilter = { sharedWith: { some: { userId: session.user.id } } };
@@ -134,7 +130,7 @@ export default async function BovedaPage({
             companies={companies}
             services={services}
             creators={creators}
-            showAccess={!admin}
+            showAccess
           />
         </Suspense>
       </div>

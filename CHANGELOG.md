@@ -9,6 +9,27 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.26.0] — 2026-06-16
+
+### Bóveda: notificación al compartir y visibilidad restringida
+- Al **compartir** una entrada de la Bóveda con un usuario, ahora se le **notifica** (notificación in-app `vault_shared` con enlace a la entrada). Solo se notifica cuando el acceso es nuevo, no al reintentar uno existente. Es una notificación sensible: no se envía a Google Chat.
+- Las entradas de la Bóveda ahora son **visibles solo para su creador y los usuarios con los que se comparte**. Se eliminó la excepción que permitía a los administradores ver y gestionar todas las entradas: ahora los admins quedan en igualdad de condiciones (solo ven/gestionan lo propio o lo compartido con ellos).
+- La restricción aplica en todas las superficies: lista y detalle de Bóveda, edición, y los paneles de Bóveda embebidos en el detalle de tickets, proyectos y tareas. Editar, borrar y compartir siguen siendo exclusivos del **creador**; los usuarios compartidos solo pueden ver.
+
+---
+
+## [1.25.0] — 2026-06-16
+
+### Tickets y tareas en modo borrador
+- El **staff** (administradores y colaboradores) puede ahora **guardar tickets y tareas como borrador** desde el formulario de creación, mediante el botón «Guardar como borrador» junto al de crear. Los clientes siguen creando tickets directamente (sin borradores).
+- Los borradores son **privados de su creador**: no aparecen en las listas, el dashboard, el panel, los reportes, el calendario, las alertas de vencimiento ni el cron de vencidos para nadie más, y su detalle devuelve 404 a quien no los creó.
+- Un borrador **no dispara notificaciones** (in-app, Google Chat ni email) ni cuenta en la detección de conflictos de horario hasta que se publica.
+- El creador ve sus borradores en sus listas de tickets/tareas con una etiqueta **«Borrador»**, y en el detalle aparece un aviso con el botón **«Publicar»**, que vuelve el ticket/tarea visible para todos y lanza las notificaciones de creación habituales.
+- El **número/código consecutivo se asigna recién al publicar** (los borradores quedan en `number = 0` y no muestran código), de modo que no se consumen números ni se generan huecos por borradores que nunca se publican.
+- Esquema: nuevo campo `isDraft` (`is_draft`, por defecto `false`) en `Ticket` y `Task`. Nuevas server actions `publishTicket` y `publishTask`.
+
+---
+
 ## [1.24.1] — 2026-06-03
 
 ### Corrección de día desfasado en el cronograma

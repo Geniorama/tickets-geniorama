@@ -12,6 +12,7 @@ export async function OverdueAlertLoader({ userId }: { userId: string }) {
   const [overdueTickets, overdueTasks] = await Promise.all([
     prisma.ticket.findMany({
       where: {
+        isDraft: false,
         assignedToId: userId,
         status: { not: "CERRADO" },
         dueDate: { lt: today },
@@ -22,6 +23,7 @@ export async function OverdueAlertLoader({ userId }: { userId: string }) {
     }),
     prisma.task.findMany({
       where: {
+        isDraft: false,
         assignedToId: userId,
         status: { not: "COMPLETADO" },
         dueDate: { lt: today },
