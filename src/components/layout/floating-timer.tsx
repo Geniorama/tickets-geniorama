@@ -57,7 +57,8 @@ export function FloatingTimer() {
       className="no-print"
       style={{
         position: "fixed",
-        bottom: "1.5rem",
+        // Elevado para no solaparse con el botón flotante del Asistente IA
+        bottom: "5.5rem",
         right: "1.5rem",
         zIndex: 9000,
         display: "flex",

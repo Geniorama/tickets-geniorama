@@ -31,6 +31,7 @@ export async function POST(req: NextRequest) {
   const [overdueTickets, overdueTasks] = await Promise.all([
     prisma.ticket.findMany({
       where: {
+        isDraft: false,
         status: { notIn: ["CERRADO", "EN_REVISION"] },
         dueDate: { lt: today },
       },
@@ -46,6 +47,7 @@ export async function POST(req: NextRequest) {
     }),
     prisma.task.findMany({
       where: {
+        isDraft: false,
         status: { notIn: ["COMPLETADO", "EN_REVISION"] },
         dueDate: { lt: today },
         OR: [

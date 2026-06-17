@@ -92,6 +92,11 @@ export function TicketList({
                       {ticketCode(ticket.prefix, ticket.number)}
                     </span>
                   )}
+                  {ticket.isDraft && (
+                    <span className="inline-block align-middle mr-1.5 px-1.5 py-0.5 rounded text-[0.6875rem] font-semibold text-amber-700 bg-amber-50 border border-amber-200">
+                      Borrador
+                    </span>
+                  )}
                   {ticket.title}
                 </span>
                 <PriorityBadge priority={ticket.priority as Priority} />
@@ -153,6 +158,11 @@ export function TicketList({
                     {ticket.number > 0 && (
                       <span className="inline-block align-middle mr-1.5 px-1.5 py-0.5 rounded text-[0.6875rem] font-semibold text-gray-500 bg-gray-50 border border-gray-200">
                         {ticketCode(ticket.prefix, ticket.number)}
+                      </span>
+                    )}
+                    {ticket.isDraft && (
+                      <span className="inline-block align-middle mr-1.5 px-1.5 py-0.5 rounded text-[0.6875rem] font-semibold text-amber-700 bg-amber-50 border border-amber-200">
+                        Borrador
                       </span>
                     )}
                     {ticket.title}

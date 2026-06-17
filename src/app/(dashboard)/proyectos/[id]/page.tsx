@@ -41,6 +41,8 @@ export default async function ProjectPage({
       createdBy: { select: { name: true } },
       members: { select: { userId: true } },
       tasks: {
+        // Los borradores son privados: cada quien solo ve los suyos
+        where: { OR: [{ isDraft: false }, { createdById: userId }] },
         include: {
           assignedTo: { select: { name: true } },
           createdBy: { select: { name: true } },
@@ -58,16 +60,18 @@ export default async function ProjectPage({
 
   if (!project) notFound();
 
-  // Vault entries linked to this project, filtered by user visibility
+  // Vault entries linked to this project, visibles solo para el creador y los compartidos
+  const vaultVisibility = {
+    OR: [
+      { createdById: userId },
+      { sharedWith: { some: { userId } } },
+    ],
+  };
+
   const linkedVaultEntries = await prisma.vaultEntry.findMany({
     where: {
       projects: { some: { projectId } },
-      ...(admin ? {} : {
-        OR: [
-          { createdById: userId },
-          { sharedWith: { some: { userId } } },
-        ],
-      }),
+      ...vaultVisibility,
     },
     select: { id: true, title: true, username: true, url: true },
     orderBy: { title: "asc" },
@@ -78,12 +82,7 @@ export default async function ProjectPage({
     ? await prisma.vaultEntry.findMany({
         where: {
           projects: { none: { projectId } },
-          ...(admin ? {} : {
-            OR: [
-              { createdById: userId },
-              { sharedWith: { some: { userId } } },
-            ],
-          }),
+          ...vaultVisibility,
         },
         select: { id: true, title: true, username: true, url: true },
         orderBy: { title: "asc" },

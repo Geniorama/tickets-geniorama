@@ -87,6 +87,7 @@ export default async function NewTicketPage() {
           sites={sites}
           reviewerCandidates={reviewerCandidates}
           canSetDueDate={isStaff(session.user.role)}
+          canSaveDraft={isStaff(session.user.role)}
         />
       </div>
     </div>

@@ -77,6 +77,7 @@ export default async function PanelPage({
 
   // ── Ticket where ──
   const ticketAnd = sharedAnd<Prisma.TicketWhereInput>();
+  ticketAnd.push({ isDraft: false }); // los borradores no aparecen en el panel
   if (overdueOnly) {
     ticketAnd.push({ dueDate: { lt: now } });
     ticketAnd.push({ status: { not: "CERRADO" } });
@@ -87,6 +88,7 @@ export default async function PanelPage({
 
   // ── Task where (colaborador: solo asignadas a él o de proyectos que gestiona) ──
   const taskAnd = sharedAnd<Prisma.TaskWhereInput>();
+  taskAnd.push({ isDraft: false }); // los borradores no aparecen en el panel
   if (!admin) {
     taskAnd.push({ OR: [{ assignedToId: userId }, { project: { managerId: userId } }] });
   }

@@ -86,7 +86,10 @@ export default async function DashboardPage() {
   const dayAfterTomorrow = new Date(Date.UTC(by, bm - 1, bd + 2));
 
   // ── Filters by role ────────────────────────────────────────────────────────
-  const ticketWhere  = staff ? {} : { OR: [{ createdById: userId }, { clientId: userId }] };
+  const ticketWhere: Record<string, unknown> = {
+    isDraft: false,
+    ...(staff ? {} : { OR: [{ createdById: userId }, { clientId: userId }] }),
+  };
 
   let projectWhere: Record<string, unknown> = {};
   let taskWhere:    Record<string, unknown> = {};
@@ -106,6 +109,9 @@ export default async function DashboardPage() {
     projectWhere = { companyId: { in: companyIds } };
     taskWhere    = { project: { companyId: { in: companyIds } } };
   }
+
+  // Los borradores no aparecen en el dashboard hasta publicarse
+  taskWhere.isDraft = false;
 
   // ── Parallel queries ───────────────────────────────────────────────────────
   const [
@@ -234,7 +240,7 @@ export default async function DashboardPage() {
 
       {/* Welcome */}
       <div style={{ marginBottom: "1.5rem" }}>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
+        <h1 data-tour-id="page-title" style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
           Hola, {name} 👋
         </h1>
         <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
@@ -243,7 +249,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── KPI row ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+      <div data-tour-id="page-stats" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
         <KpiCard
           icon={Ticket}
           label="Tickets"

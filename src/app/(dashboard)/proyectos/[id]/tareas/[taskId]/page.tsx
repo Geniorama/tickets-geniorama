@@ -38,6 +38,7 @@ export default async function TaskPage({
         include: {
           author: { select: { name: true } },
           reactions: { select: { type: true, userId: true } },
+          attachments: { select: { type: true, url: true, name: true }, orderBy: { createdAt: "asc" } },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -54,6 +55,9 @@ export default async function TaskPage({
   });
 
   if (!task || task.projectId !== projectId) notFound();
+
+  // Los borradores son privados: solo su creador puede verlos
+  if (task.isDraft && task.createdById !== userId) notFound();
 
   const moveableProjects = admin
     ? await prisma.project.findMany({
@@ -87,9 +91,8 @@ export default async function TaskPage({
   }
 
   // Configuración general del proyecto (accesos + adjuntos), visible también aquí
-  const vaultVisibility = admin
-    ? {}
-    : { OR: [{ createdById: userId }, { sharedWith: { some: { userId } } }] };
+  // La Bóveda es visible solo para el creador y los usuarios con los que se comparte
+  const vaultVisibility = { OR: [{ createdById: userId }, { sharedWith: { some: { userId } } }] };
 
   const [projectAttachments, linkedVaultEntries, availableVaultEntries] = await Promise.all([
     prisma.projectAttachment.findMany({

@@ -36,6 +36,7 @@ export default async function GlobalTaskPage({
         include: {
           author: { select: { name: true } },
           reactions: { select: { type: true, userId: true } },
+          attachments: { select: { type: true, url: true, name: true }, orderBy: { createdAt: "asc" } },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -52,6 +53,9 @@ export default async function GlobalTaskPage({
   });
 
   if (!task) notFound();
+
+  // Los borradores son privados: solo su creador puede verlos
+  if (task.isDraft && task.createdById !== session.user.id) notFound();
 
   if (task.projectId) {
     redirect(`/proyectos/${task.projectId}/tareas/${taskId}`);

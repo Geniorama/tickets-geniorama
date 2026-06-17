@@ -44,6 +44,7 @@ export default async function TicketPage({
         include: {
           author: { select: { name: true, role: true } },
           reactions: { select: { type: true, userId: true } },
+          attachments: { select: { type: true, url: true, name: true }, orderBy: { createdAt: "asc" } },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -51,6 +52,9 @@ export default async function TicketPage({
   });
 
   if (!ticket) notFound();
+
+  // Los borradores son privados: solo su creador puede verlos
+  if (ticket.isDraft && ticket.createdById !== userId) notFound();
 
   // Para clientes: verificar acceso via empresa compartida
   if (!staff) {
@@ -77,9 +81,8 @@ export default async function TicketPage({
     }
   }
 
-  const vaultAccessFilter = admin
-    ? {}
-    : { OR: [{ createdById: userId }, { sharedWith: { some: { userId } } }] };
+  // La Bóveda es visible solo para el creador y los usuarios con los que se comparte
+  const vaultAccessFilter = { OR: [{ createdById: userId }, { sharedWith: { some: { userId } } }] };
 
   const [linkedVaultEntries, availableVaultEntries, collaborators] = await Promise.all([
     prisma.vaultEntry.findMany({

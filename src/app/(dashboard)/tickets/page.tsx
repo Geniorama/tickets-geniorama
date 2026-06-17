@@ -107,6 +107,8 @@ export default async function TicketsPage({
     ...(companyValues.length     ? { createdBy: { companies: { some: { id: { in: companyValues } } } } }          : {}),
     ...(statusValues.length      ? { status: { in: statusValues as never[] } }                                    : {}),
     ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
+    // Los borradores son privados: cada quien solo ve los suyos
+    AND: [{ OR: [{ isDraft: false }, { createdById: id }] }],
   };
 
   const sortBy = params.sortBy ?? "dueDate";
@@ -185,8 +187,8 @@ export default async function TicketsPage({
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Tickets</h1>
-        <div className="flex items-center gap-2 sm:gap-3">
+        <h1 data-tour-id="page-title" className="text-2xl font-bold text-gray-900">Tickets</h1>
+        <div className="flex items-center gap-2 sm:gap-3" data-tour-id="page-primary-action">
           {staff && <ViewToggle current={view} />}
           {canCreateTicket ? (
             <Link
@@ -205,7 +207,7 @@ export default async function TicketsPage({
         </div>
       </div>
 
-      <div style={{ marginBottom: "1rem" }}>
+      <div style={{ marginBottom: "1rem" }} data-tour-id="page-filters">
         <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
           <SearchInput placeholder="Buscar tickets..." />
         </Suspense>

@@ -12,6 +12,7 @@ import { FilterTags, type FilterTag } from "@/components/ui/filter-tags";
 import Link from "next/link";
 import { Plus, Repeat } from "lucide-react";
 import { getPageSize } from "@/lib/pagination";
+import { PlannerLauncher } from "@/components/assistant/planner-tool";
 
 const TASK_STATUS_LABELS: Record<string, string> = {
   PENDIENTE: "Pendiente",
@@ -89,6 +90,8 @@ export default async function TareasPage({
     ...(projectValues?.length  ? { projectId:   { in: projectValues } }  : {}),
     ...(assigneeValues?.length ? { assignedToId:{ in: assigneeValues } } : {}),
     ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
+    // Los borradores son privados: cada quien solo ve los suyos
+    AND: [{ OR: [{ isDraft: false }, { createdById: userId }] }],
   };
 
   // Proyectos disponibles para el filtro (misma lógica de rol)
@@ -177,10 +180,10 @@ export default async function TareasPage({
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
+        <h1 data-tour-id="page-title" style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
           Tareas
         </h1>
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }} data-tour-id="page-primary-action">
           {admin && (
             <Link
               href="/admin/tareas-recurrentes"
@@ -202,6 +205,7 @@ export default async function TareasPage({
               Recurrentes
             </Link>
           )}
+          {(admin || staff) && <PlannerLauncher isAdmin={admin} />}
           {(admin || staff) && (
             <Link
               href="/tareas/new"
@@ -225,7 +229,7 @@ export default async function TareasPage({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 mb-5">
+      <div className="flex flex-col gap-3 mb-5" data-tour-id="page-filters">
         <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
           <SearchInput placeholder="Buscar tareas..." />
         </Suspense>

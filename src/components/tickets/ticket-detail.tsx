@@ -3,13 +3,13 @@
 import { useTransition, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { formatDateTimeLong, formatDateTime, formatDate } from "@/lib/format-date";
-import { Pencil, Trash2, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Link2, Paperclip, FileText, ExternalLink, Globe, ChevronDown, MoreVertical, Eye } from "lucide-react";
+import { Pencil, Trash2, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Globe, ChevronDown, MoreVertical, Eye } from "lucide-react";
 import type { Session } from "next-auth";
 import type { Ticket, TicketComment, TicketAttachment, TimeEntry, User, TicketStatus, Priority } from "@/generated/prisma";
 import { TicketTimer } from "./ticket-timer";
 import { TicketAiAssistant } from "./ticket-ai-assistant";
 import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
-import { updateTicketStatus, deleteTicket } from "@/actions/ticket.actions";
+import { updateTicketStatus, deleteTicket, publishTicket } from "@/actions/ticket.actions";
 import { DuplicateTicketButton } from "./duplicate-ticket-button";
 import { addComment, deleteComment, editComment, getTicketComments } from "@/actions/comment.actions";
 import { isStaff, isAdmin } from "@/lib/roles";
@@ -22,6 +22,10 @@ import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { CommentBody } from "@/components/ui/comment-body";
 import { TicketAssignPanel } from "./ticket-assign-panel";
 import { CommentReactions, type ReactionEntry } from "@/components/ui/comment-reactions";
+import {
+  CommentAttachmentsInput, CommentAttachmentsDisplay, appendCommentAttachments, mergeAttachments,
+  type PendingLink, type CommentAttachment,
+} from "@/components/ui/comment-attachments-input";
 import { toggleTicketCommentReaction } from "@/actions/reaction.actions";
 import type { ReactionType } from "@/generated/prisma";
 import { ReportGenerator } from "@/components/ui/report-generator";
@@ -40,6 +44,7 @@ type TicketWithDetails = Ticket & {
   comments: (TicketComment & {
     author: Pick<User, "name" | "role">;
     reactions: ReactionEntry[];
+    attachments: CommentAttachment[];
   })[];
 };
 
@@ -111,8 +116,32 @@ export function TicketDetail({
     startTransition(() => deleteTicket(ticket.id));
   }
 
+  function handlePublish() {
+    if (!confirm("¿Publicar este ticket? Se notificará a los implicados.")) return;
+    startTransition(() => { void publishTicket(ticket.id); });
+  }
+
+  const canPublish = ticket.isDraft && session.user.id === ticket.createdBy.id;
+
   return (
     <div>
+      {ticket.isDraft && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm text-amber-800">
+            <strong>Borrador.</strong> Este ticket es privado y no notifica a nadie hasta que lo publiques.
+          </p>
+          {canPublish && (
+            <button
+              onClick={handlePublish}
+              disabled={isPending}
+              className="bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-amber-600 disabled:opacity-60 transition-colors"
+            >
+              {isPending ? "Publicando..." : "Publicar ticket"}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Full-width top panel */}
       {isAdmin(role) && ticket.status === "POR_ASIGNAR" && (
         <div className="mb-6">
@@ -304,9 +333,15 @@ export function TicketDetail({
               ticketId={ticket.id}
               isAdmin={isAdmin(role)}
             />
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <AttachmentUploader ticketId={ticket.id} />
-            </div>
+            {staff ? (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <AttachmentUploader ticketId={ticket.id} />
+              </div>
+            ) : (
+              <p className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400">
+                Para enviar archivos adicionales, adjúntalos en un comentario.
+              </p>
+            )}
           </div>
 
           {(linkedVaultEntries.length > 0 || staff) && (
@@ -388,7 +423,7 @@ function TicketCommentItem({
   currentUserId,
   isAdmin,
 }: {
-  comment: TicketComment & { author: Pick<User, "name" | "role">; reactions: ReactionEntry[] };
+  comment: TicketComment & { author: Pick<User, "name" | "role">; reactions: ReactionEntry[]; attachments: CommentAttachment[] };
   ticketId: string;
   currentUserId: string;
   isAdmin: boolean;
@@ -485,27 +520,8 @@ function TicketCommentItem({
         <CommentBody body={comment.body} className="text-gray-700" />
       )}
 
-      {!editing && comment.attachmentUrl && comment.attachmentType === "link" && (
-        <a
-          href={comment.attachmentUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
-        >
-          <ExternalLink className="w-3.5 h-3.5 shrink-0" />
-          {comment.attachmentName ?? comment.attachmentUrl}
-        </a>
-      )}
-      {!editing && comment.attachmentUrl && comment.attachmentType === "file" && (
-        <a
-          href={comment.attachmentUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-2 inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 hover:underline"
-        >
-          <FileText className="w-3.5 h-3.5 shrink-0" />
-          {comment.attachmentName ?? "Archivo adjunto"}
-        </a>
+      {!editing && (
+        <CommentAttachmentsDisplay attachments={mergeAttachments(comment, comment.attachments)} />
       )}
 
       {!editing && (
@@ -570,33 +586,15 @@ function SiteContextPanel({
   );
 }
 
-type AttachmentMode = "none" | "link" | "file";
-
 const COMMENT_MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
-
-function formatFileSize(bytes: number) {
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+const COMMENT_FILE_ACCEPT = ".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx";
 
 function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean }) {
   const [isPending, startTransition] = useTransition();
   const [internal, setInternal] = useState(false);
-  const [attachMode, setAttachMode] = useState<AttachmentMode>("none");
+  const [files, setFiles] = useState<File[]>([]);
+  const [links, setLinks] = useState<PendingLink[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > COMMENT_MAX_FILE_BYTES) {
-      setError(
-        `"${file.name}" supera los 10 MB (${formatFileSize(file.size)}). Comprime el archivo o súbelo a un servicio externo y compártelo como enlace.`
-      );
-      e.target.value = "";
-      return;
-    }
-    setError(null);
-  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -604,8 +602,8 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
     const form = e.currentTarget;
     const formData = new FormData(form);
     formData.set("isInternal", String(internal));
-    formData.set("attachmentType", attachMode === "none" ? "" : attachMode);
-    const hasFile = attachMode === "file";
+    appendCommentAttachments(formData, files, links);
+    const hasFile = files.length > 0;
 
     startTransition(async () => {
       try {
@@ -615,14 +613,15 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
         } else {
           form.reset();
           setInternal(false);
-          setAttachMode("none");
+          setFiles([]);
+          setLinks([]);
         }
       } catch (err) {
         console.error("[addComment]", err);
         const msg = err instanceof Error ? err.message : "";
         if (hasFile && /unexpected response|fetch|network|413/i.test(msg)) {
           setError(
-            "No se pudo enviar el comentario: el archivo adjunto fue rechazado por el servidor (puede ser demasiado pesado). Intenta con un archivo más pequeño o súbelo como enlace."
+            "No se pudo enviar el comentario: los archivos adjuntos fueron rechazados por el servidor (pueden ser demasiado pesados). Intenta con archivos más pequeños o compártelos como enlace."
           );
         } else {
           setError("No se pudo enviar el comentario. Intenta de nuevo en unos segundos.");
@@ -643,77 +642,17 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
         placeholder="Escribe un comentario… usa @ para mencionar a alguien"
       />
 
-      {/* Adjunto — solo staff */}
+      {/* Adjuntos múltiples — solo staff */}
       {isStaff && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Adjuntar:</span>
-            <button
-              type="button"
-              onClick={() => setAttachMode(attachMode === "link" ? "none" : "link")}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                attachMode === "link"
-                  ? "bg-indigo-50 border-indigo-300 text-indigo-700"
-                  : "border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-              }`}
-            >
-              <Link2 className="w-3 h-3" />
-              Enlace
-            </button>
-            <button
-              type="button"
-              onClick={() => setAttachMode(attachMode === "file" ? "none" : "file")}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
-                attachMode === "file"
-                  ? "bg-indigo-50 border-indigo-300 text-indigo-700"
-                  : "border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-              }`}
-            >
-              <Paperclip className="w-3 h-3" />
-              Archivo
-            </button>
-          </div>
-
-          {attachMode === "link" && (
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">URL *</label>
-                <input
-                  name="linkUrl"
-                  type="url"
-                  required
-                  placeholder="https://..."
-                  className={inputCls}
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Etiqueta (opcional)</label>
-                <input
-                  name="linkLabel"
-                  type="text"
-                  placeholder="Nombre del enlace"
-                  className={inputCls}
-                />
-              </div>
-            </div>
-          )}
-
-          {attachMode === "file" && (
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">
-                Archivo * (imágenes, PDF, Word — máx. 10 MB)
-              </label>
-              <input
-                name="attachmentFile"
-                type="file"
-                required
-                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-                onChange={handleFileChange}
-                className="w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-              />
-            </div>
-          )}
-        </div>
+        <CommentAttachmentsInput
+          files={files}
+          setFiles={setFiles}
+          links={links}
+          setLinks={setLinks}
+          maxFileBytes={COMMENT_MAX_FILE_BYTES}
+          accept={COMMENT_FILE_ACCEPT}
+          onFileError={setError}
+        />
       )}
 
       {error && (

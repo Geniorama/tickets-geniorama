@@ -27,7 +27,8 @@ export default async function ReportesPage({
       : {};
 
   // ── Build ticket filter ────────────────────────────────────
-  let ticketFilter: Record<string, unknown> = { ...dateFilter };
+  // Los borradores no se contabilizan en reportes hasta publicarse
+  let ticketFilter: Record<string, unknown> = { ...dateFilter, isDraft: false };
 
   if (isClient) {
     ticketFilter = { ...ticketFilter, OR: [{ clientId: userId }, { createdById: userId }] };

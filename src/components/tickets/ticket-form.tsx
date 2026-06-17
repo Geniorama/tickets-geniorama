@@ -23,6 +23,7 @@ export function TicketForm({
   sites = [],
   reviewerCandidates = [],
   canSetDueDate = false,
+  canSaveDraft = false,
 }: {
   collaborators?: Collaborator[];
   clients?: Client[];
@@ -30,8 +31,10 @@ export function TicketForm({
   sites?: Site[];
   reviewerCandidates?: { id: string; name: string }[];
   canSetDueDate?: boolean;
+  canSaveDraft?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
+  const submitAsDraft = useRef(false);
   const [selectedClientId, setSelectedClientId] = useState("");
   const [reviewerIds, setReviewerIds] = useState<string[]>([]);
   const [checklistItems, setChecklistItems] = useState<string[]>([]);
@@ -94,6 +97,8 @@ export function TicketForm({
     for (const file of selectedFiles) {
       formData.append("files", file);
     }
+    formData.set("isDraft", submitAsDraft.current ? "true" : "false");
+    submitAsDraft.current = false;
     startTransition(async () => { await createTicket(formData); });
   }
 
@@ -412,9 +417,20 @@ export function TicketForm({
         >
           Cancelar
         </button>
+        {canSaveDraft && (
+          <button
+            type="submit"
+            disabled={isPending}
+            onClick={() => { submitAsDraft.current = true; }}
+            className="px-4 py-2 rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-60 transition-colors"
+          >
+            {isPending ? "Guardando..." : "Guardar como borrador"}
+          </button>
+        )}
         <button
           type="submit"
           disabled={isPending}
+          onClick={() => { submitAsDraft.current = false; }}
           className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors"
         >
           {isPending ? "Creando..." : "Crear ticket"}

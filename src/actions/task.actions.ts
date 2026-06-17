@@ -45,6 +45,7 @@ async function findScheduleConflicts(
   const overlapping = await prisma.task.findMany({
     where: {
       assignedToId,
+      isDraft: false, // los borradores no generan conflicto de horario
       status: { not: "COMPLETADO" }, // tareas completadas no generan conflicto
       ...(excludeTaskId ? { id: { not: excludeTaskId } } : {}),
       // Condición de solapamiento: startA <= rangeEnd AND dueA >= rangeStart
@@ -101,6 +102,7 @@ const taskSchema = z.object({
   endTime:        z.string().optional(),
   estimatedHours: z.string().optional(),
   force:          z.boolean().default(false), // omitir verificación de conflictos
+  isDraft:        z.boolean().default(false), // guardar como borrador
 });
 
 // ─── createTask ───────────────────────────────────────────────────────────────
@@ -125,9 +127,12 @@ export async function createTask(projectIdArg: string | null, formData: FormData
     endTime:        formData.get("endTime")         || undefined,
     estimatedHours: formData.get("estimatedHours") || undefined,
     force:          formData.get("force") === "true",
+    isDraft:        formData.get("isDraft") === "true",
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const isDraft = parsed.data.isDraft;
 
   if (parsed.data.assignedToId) {
     const assignee = await prisma.user.findUnique({
@@ -136,8 +141,8 @@ export async function createTask(projectIdArg: string | null, formData: FormData
     });
     if (!assignee) return { error: "El usuario asignado no existe o está inactivo" };
 
-    // Verificar conflictos de horario (solo si hay fechas y no se forzó)
-    if (!parsed.data.force) {
+    // Verificar conflictos de horario (solo si hay fechas, no se forzó y no es borrador)
+    if (!parsed.data.force && !isDraft) {
       const startDate = parsed.data.startDate ? new Date(parsed.data.startDate) : null;
       const dueDate   = parsed.data.dueDate   ? new Date(parsed.data.dueDate)   : null;
       const conflicts = await findScheduleConflicts(parsed.data.assignedToId, startDate, dueDate);
@@ -149,10 +154,15 @@ export async function createTask(projectIdArg: string | null, formData: FormData
   const reviewerIds = await resolveReviewerIds(parseReviewerIds(formData), session.user.id);
 
   const task = await prisma.$transaction(async (tx) => {
-    const count = await tx.task.count({ where: { projectId } });
+    const last = await tx.task.findFirst({
+      where: { projectId },
+      orderBy: { number: "desc" },
+      select: { number: true },
+    });
     return tx.task.create({
       data: {
-        number:         count + 1,
+        // El número se asigna solo al publicar; los borradores quedan en 0
+        number:         isDraft ? 0 : (last?.number ?? 0) + 1,
         title:          parsed.data.title,
         description:    parsed.data.description,
         status:         parsed.data.status,
@@ -166,6 +176,7 @@ export async function createTask(projectIdArg: string | null, formData: FormData
         dueDate:        parsed.data.dueDate         ? new Date(parsed.data.dueDate)   : null,
         endTime:        parsed.data.endTime         ?? null,
         estimatedHours: parsed.data.estimatedHours ? parseFloat(parsed.data.estimatedHours) : null,
+        isDraft,
         reviewers:      { connect: reviewerIds.map((id) => ({ id })) },
       },
     });
@@ -220,35 +231,105 @@ export async function createTask(projectIdArg: string | null, formData: FormData
 
   const projectIsPrivate = project?.isPrivate ?? false;
 
-  // Construir mensaje enriquecido para GChat
-  const msgParts: string[] = [`"${task.title}"${project ? ` en ${project.name}` : ""}`];
-  if (assignee?.name) msgParts.push(`Asignado a: ${assignee.name}`);
-  if (task.dueDate) msgParts.push(`Vence: ${fmt(task.dueDate)}`);
+  // Los borradores no notifican a nadie hasta que se publican
+  if (!isDraft) {
+    // Construir mensaje enriquecido para GChat
+    const msgParts: string[] = [`"${task.title}"${project ? ` en ${project.name}` : ""}`];
+    if (assignee?.name) msgParts.push(`Asignado a: ${assignee.name}`);
+    if (task.dueDate) msgParts.push(`Vence: ${fmt(task.dueDate)}`);
 
-  // Notificar creación de tarea al webhook (sin destinatario en-app)
-  if (!projectIsPrivate) {
-    await sendGChatNotification(
-      "task_new",
-      "Nueva tarea",
-      msgParts.join(" · "),
-      `/proyectos/${projectId}/tareas/${task.id}`
-    );
+    // Notificar creación de tarea al webhook (sin destinatario en-app)
+    if (!projectIsPrivate) {
+      await sendGChatNotification(
+        "task_new",
+        "Nueva tarea",
+        msgParts.join(" · "),
+        `/proyectos/${projectId}/tareas/${task.id}`
+      );
+    }
+
+    // Notificar al asignado si no es el creador
+    if (task.assignedToId && task.assignedToId !== session.user.id) {
+      await notify(
+        task.assignedToId,
+        "task_assigned",
+        "Tarea asignada",
+        `Se te asignó: "${task.title}"${project ? ` en ${project.name}` : ""}`,
+        `/proyectos/${projectId}/tareas/${task.id}`,
+        projectIsPrivate
+      );
+    }
   }
 
-  // Notificar al asignado si no es el creador
+  revalidatePath(`/proyectos/${projectId}`);
+  redirect(`/proyectos/${projectId}/tareas/${task.id}`);
+}
+
+/**
+ * Publica una tarea que estaba en modo borrador: la vuelve visible para todos
+ * y dispara las notificaciones de "nueva tarea" (igual que al crearla).
+ */
+export async function publishTask(taskId: string, projectId: string | null) {
+  const session = await getRequiredSession();
+  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    select: {
+      title: true,
+      isDraft: true,
+      createdById: true,
+      assignedToId: true,
+      dueDate: true,
+      projectId: true,
+      assignedTo: { select: { name: true } },
+      project: { select: { id: true, name: true, isPrivate: true } },
+    },
+  });
+  if (!task) return { error: "Tarea no encontrada" };
+  // Solo el creador del borrador puede publicarlo (los borradores son privados)
+  if (task.createdById !== session.user.id) return { error: "Sin permisos" };
+  if (!task.isDraft) return { error: "La tarea ya está publicada" };
+
+  // Asignar el número/código consecutivo recién al publicar
+  await prisma.$transaction(async (tx) => {
+    const last = await tx.task.findFirst({
+      where: { projectId: task.projectId },
+      orderBy: { number: "desc" },
+      select: { number: true },
+    });
+    await tx.task.update({
+      where: { id: taskId },
+      data: { isDraft: false, number: (last?.number ?? 0) + 1 },
+    });
+  });
+
+  const pid = task.project?.id ?? projectId;
+  const taskUrl = pid ? `/proyectos/${pid}/tareas/${taskId}` : `/tareas/${taskId}`;
+  const projectIsPrivate = task.project?.isPrivate ?? false;
+
+  const msgParts: string[] = [`"${task.title}"${task.project ? ` en ${task.project.name}` : ""}`];
+  if (task.assignedTo?.name) msgParts.push(`Asignado a: ${task.assignedTo.name}`);
+  if (task.dueDate) msgParts.push(`Vence: ${fmt(task.dueDate)}`);
+
+  if (!projectIsPrivate) {
+    await sendGChatNotification("task_new", "Nueva tarea", msgParts.join(" · "), taskUrl);
+  }
+
   if (task.assignedToId && task.assignedToId !== session.user.id) {
     await notify(
       task.assignedToId,
       "task_assigned",
       "Tarea asignada",
-      `Se te asignó: "${task.title}"${project ? ` en ${project.name}` : ""}`,
-      `/proyectos/${projectId}/tareas/${task.id}`,
+      `Se te asignó: "${task.title}"${task.project ? ` en ${task.project.name}` : ""}`,
+      taskUrl,
       projectIsPrivate
     );
   }
 
-  revalidatePath(`/proyectos/${projectId}`);
-  redirect(`/proyectos/${projectId}/tareas/${task.id}`);
+  if (pid) revalidatePath(`/proyectos/${pid}`);
+  revalidatePath(taskUrl);
+  return { success: true };
 }
 
 // ─── updateTask ───────────────────────────────────────────────────────────────

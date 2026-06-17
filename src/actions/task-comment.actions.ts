@@ -75,39 +75,31 @@ export async function addTaskComment(
   const parsed = commentSchema.safeParse({ body: formData.get("body") });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const attachmentType = formData.get("attachmentType")?.toString() || null;
-  let attachmentUrl: string | null = null;
-  let attachmentName: string | null = null;
-  let attachmentStoragePath: string | null = null;
+  // Adjuntos múltiples (enlaces y archivos)
+  const attachmentsData: { type: string; url: string; name: string | null; storagePath: string | null }[] = [];
 
-  if (attachmentType === "link") {
-    const url = formData.get("linkUrl")?.toString().trim() ?? "";
-    const label = formData.get("linkLabel")?.toString().trim() || null;
-    if (!url) return { error: "La URL del enlace es requerida" };
+  const linksRaw = formData.get("links")?.toString();
+  if (linksRaw) {
     try {
-      new URL(url);
-    } catch {
-      return { error: "La URL no es válida" };
-    }
-    attachmentUrl = url;
-    attachmentName = label ?? url;
+      const linksList = JSON.parse(linksRaw) as { url?: string; label?: string }[];
+      for (const { url, label } of linksList) {
+        const u = (url ?? "").trim();
+        if (!u) continue;
+        try { new URL(u); } catch { return { error: `Enlace inválido: ${u}` }; }
+        attachmentsData.push({ type: "link", url: u, name: label?.trim() || u, storagePath: null });
+      }
+    } catch { /* JSON inválido, ignorar */ }
   }
 
-  if (attachmentType === "file") {
-    const file = formData.get("attachmentFile");
-    if (!(file instanceof File) || file.size === 0)
-      return { error: "No se seleccionó ningún archivo" };
+  const files = formData.getAll("attachmentFiles").filter((f): f is File => f instanceof File && f.size > 0);
+  for (const file of files) {
     const validationError = validateFile(file);
-    if (validationError) return { error: validationError };
+    if (validationError) return { error: `"${file.name}": ${validationError}` };
     try {
       const { storagePath, fileUrl } = await uploadCommentFile(file, taskId);
-      attachmentUrl = fileUrl;
-      attachmentName = file.name;
-      attachmentStoragePath = storagePath;
+      attachmentsData.push({ type: "file", url: fileUrl, name: file.name, storagePath });
     } catch (err) {
-      return {
-        error: err instanceof Error ? err.message : "Error al subir archivo",
-      };
+      return { error: err instanceof Error ? err.message : "Error al subir archivo" };
     }
   }
 
@@ -116,10 +108,7 @@ export async function addTaskComment(
       taskId,
       authorId: session.user.id,
       body: parsed.data.body,
-      attachmentType,
-      attachmentUrl,
-      attachmentName,
-      attachmentStoragePath,
+      ...(attachmentsData.length ? { attachments: { create: attachmentsData } } : {}),
     },
   });
 
@@ -202,6 +191,7 @@ export async function getTaskComments(
     include: {
       author: { select: { name: true } },
       reactions: { select: { type: true, userId: true } },
+      attachments: { select: { type: true, url: true, name: true }, orderBy: { createdAt: "asc" } },
     },
     orderBy: { createdAt: "desc" },
   });
