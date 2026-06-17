@@ -17,6 +17,7 @@ import { isStaff, isAdmin } from "@/lib/roles";
 import { ExternalLink, FileText, Link2 } from "lucide-react";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import type { ReactionEntry } from "@/components/ui/comment-reactions";
+import type { CommentAttachment } from "@/components/ui/comment-attachments-input";
 import { ReportGenerator } from "@/components/ui/report-generator";
 import { generateTaskReport } from "@/actions/report.actions";
 
@@ -25,7 +26,7 @@ type TaskWithDetails = Task & {
   assignedTo: Pick<User, "id" | "name"> | null;
   reviewers: Pick<User, "id" | "name">[];
   createdBy: Pick<User, "id" | "name">;
-  comments: (TaskComment & { author: Pick<User, "name">; reactions: ReactionEntry[] })[];
+  comments: (TaskComment & { author: Pick<User, "name">; reactions: ReactionEntry[]; attachments: CommentAttachment[] })[];
   checklistItems: { id: string; title: string; isChecked: boolean }[];
   attachments: TaskAttachment[];
   timeEntries: (TaskTimeEntry & { user: Pick<User, "name"> })[];
@@ -613,6 +614,7 @@ export function TaskDetail({
                 attachmentType: c.attachmentType,
                 attachmentUrl: c.attachmentUrl,
                 attachmentName: c.attachmentName,
+                attachments: c.attachments,
                 createdAt: c.createdAt,
                 author: c.author,
                 reactions: c.reactions,

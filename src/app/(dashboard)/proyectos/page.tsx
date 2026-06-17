@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ProjectList } from "@/components/projects/project-list";
 import { ProjectFilters } from "@/components/projects/project-filters";
 import { ProjectViewToggle } from "@/components/projects/project-view-toggle";
+import { PlannerLauncher } from "@/components/assistant/planner-tool";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import type { ProjectStatus } from "@/generated/prisma";
@@ -160,12 +161,13 @@ export default async function ProyectosPage({
     <div>
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
+        <h1 data-tour-id="page-title" style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
           Proyectos
         </h1>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2" data-tour-id="page-primary-action">
           <ProjectViewToggle current={view} />
+          {staff && <PlannerLauncher isAdmin={admin} />}
           {admin && (
             <Link
               href="/proyectos/new"
@@ -190,7 +192,7 @@ export default async function ProyectosPage({
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-3 mb-5">
+      <div className="flex flex-col gap-3 mb-5" data-tour-id="page-filters">
         <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
           <SearchInput placeholder="Buscar proyectos..." />
         </Suspense>

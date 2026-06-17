@@ -9,6 +9,56 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.29.0] — 2026-06-16
+
+### Tour guiado para nuevos usuarios
+- Nuevo **recorrido guiado** que explica para qué sirve cada módulo y cada parte de la app, construido sobre `driver.js`.
+- **Tour de bienvenida**: resalta los ítems del menú lateral y las herramientas principales (notificaciones, tema, perfil, asistente IA, botón de ayuda), **adaptado al rol** (administrador, colaborador y cliente ven los pasos correspondientes a sus módulos).
+- **Recorridos por sección**: al entrar por primera vez a Dashboard, Tickets, Proyectos, Tareas y Bóveda, un mini‑tour explica el encabezado, los filtros/búsqueda y la acción principal de esa página.
+- **Inicio automático** en el primer ingreso; se recuerda lo ya visto en el navegador (`localStorage`), sin volver a interrumpir. Cada recorrido puede **repetirse** desde el nuevo botón de **ayuda (?)** en la barra superior.
+- Textos en español; los pasos cuyo elemento no está visible (p. ej. el menú en móvil) se omiten automáticamente.
+
+---
+
+## [1.28.0] — 2026-06-16
+
+### Múltiples adjuntos en comentarios
+- Los comentarios (de **tickets** y **tareas**) ahora permiten adjuntar **varios archivos y varios enlaces** en un mismo comentario, en lugar de uno solo. Se pueden ir agregando enlaces (URL + etiqueta) y archivos de forma incremental, con vista previa y opción de quitarlos antes de enviar.
+- Nuevo modelo de datos: tablas `ticket_comment_attachments` y `task_comment_attachments` (1‑N con el comentario). Cambio **no destructivo**: los comentarios existentes conservan su adjunto único y se siguen mostrando; los nuevos usan la tabla de adjuntos múltiples. La visualización unifica ambos.
+- En tickets, adjuntar sigue siendo exclusivo del **staff**; en tareas, disponible para cualquier usuario con acceso (se mantiene el comportamiento previo). Límite de 10 MB por archivo.
+- Componente compartido `ui/comment-attachments-input` reutilizado por los formularios de comentarios de tickets y tareas. Los botones **«Adjuntar archivo» / «Adjuntar enlace»** ahora son más visibles y muestran un contador de adjuntos pendientes.
+- **Clientes:** ya no pueden adjuntar archivos al ticket desde el detalle después de creado; solo pueden hacerlo dentro de los **comentarios**. La subida directa al ticket queda reservada al equipo (restricción aplicada también en el servidor, no solo en la UI).
+- **Requiere ejecutar la migración** `20260616180000_add_comment_attachments` en la base de datos.
+
+---
+
+## [1.27.0] — 2026-06-16
+
+### Asistente IA para colaboradores
+- Nueva sección **«Asistente IA»** en el menú lateral (solo staff: administradores y colaboradores) con un **chat global** que ayuda a **diagnosticar, planear y avanzar** las tareas de proyectos.
+- El asistente tiene contexto de las **tareas activas** del colaborador (pendientes, en progreso y en revisión): proyecto, prioridad, fechas de inicio/vencimiento (marca las **vencidas**), estimación y checklist. Puede priorizar, sugerir en qué enfocarse y descomponer trabajo en pasos.
+- También accede a los **comentarios recientes** de cada tarea y a los **tickets activos** asignados al colaborador (con su descripción, sitio/app afectado, prioridad, vencimiento y comentarios), para diagnosticar con más contexto. Los tickets son de solo consulta: las acciones de un clic siguen aplicando únicamente a tareas.
+- **Revisores:** el asistente conoce las **tareas pendientes de tu revisión** (donde eres revisor) y puede ayudarte a descubrirlas y, tras revisarlas, aprobarlas (marcar completadas) o devolverlas. Se añadieron prompts sugeridos en el chat para revisar pendientes, resumir tickets, detectar comentarios que requieren atención y armar un plan del día.
+- **Acciones de un clic** que el colaborador confirma manualmente (el asistente nunca ejecuta solo): **cambiar el estado** de una tarea, **agregar ítems de checklist** y **crear una tarea** nueva en uno de sus proyectos. Cada propuesta se muestra como una tarjeta con botones «Confirmar» / «Descartar».
+- **Botón flotante** de acceso rápido (esquina inferior derecha, visible en toda la app para staff) que abre el asistente con un clic; se expande al pasar el cursor y se oculta cuando ya estás en la sección. El cronómetro flotante se reubicó para no solaparse con él.
+- Construido sobre la integración existente con **Gemini 2.5 Flash** (function-calling). Los IDs propuestos por el modelo se validan contra el contexto real y los permisos se re-verifican en el servidor antes de aplicar cualquier cambio.
+- Se extrajo el renderizador de Markdown a un componente compartido (`ui/markdown-text`), reutilizado por el asistente de tickets y el nuevo chat.
+
+### Planificador con IA (desde documentos)
+- Nueva herramienta **«Planificar con IA»** disponible en las secciones de **Proyectos** y **Tareas** (staff), que genera un plan de trabajo a partir de un documento: **notas de reunión, briefs, etc.**
+- El documento se puede **pegar como texto y/o subir como archivo** (PDF, Word `.docx` o `.txt`). Los PDF se procesan de forma nativa con Gemini y los Word se extraen con `mammoth`.
+- La IA propone un **plan estructurado**: un **proyecto nuevo** (nombre, descripción, empresa y fechas sugeridas) o tareas para un **proyecto existente**, con una lista de **tareas** (prioridad, estimación) y sus **subtareas** (checklist). También **sugiere responsables** del equipo según el contenido del documento.
+- El plan es **revisable y editable** antes de aplicarse: se puede ajustar el proyecto, incluir/excluir tareas, cambiar prioridad y responsable, y quitar subtareas. Con un clic se crean el proyecto (si aplica), todas las tareas y sus checklists.
+- **Permisos:** crear proyectos nuevos sigue siendo exclusivo de administradores; los colaboradores generan tareas y subtareas sobre proyectos existentes. Los responsables sugeridos se validan contra el equipo activo y los permisos se re-verifican en el servidor.
+- Al aplicar el plan se envía una notificación-resumen a cada responsable y un aviso a Google Chat (en proyectos no privados), evitando spam por tarea.
+
+### OpenAI como proveedor de IA alternativo
+- El **chat del asistente** y el **planificador desde documentos** permiten ahora elegir el proveedor de IA **por petición** con un selector **Gemini / OpenAI**.
+- Nueva capa de abstracción (`lib/ai`) que unifica ambos proveedores tanto para el chat con herramientas (function-calling) como para la salida estructurada del planificador. OpenAI procesa los PDF mediante entrada de archivo nativa.
+- Modelo de OpenAI por defecto: **gpt-4o-mini**, configurable con la variable `OPENAI_MODEL`. Requiere `OPENAI_API_KEY`; si falta, el selector muestra un error claro al usar OpenAI. Gemini sigue siendo el predeterminado.
+
+---
+
 ## [1.26.0] — 2026-06-16
 
 ### Bóveda: notificación al compartir y visibilidad restringida

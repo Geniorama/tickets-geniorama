@@ -36,51 +36,43 @@ export async function addComment(ticketId: string, formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  const attachmentType = formData.get("attachmentType")?.toString() || null;
-  let attachmentUrl: string | null = null;
-  let attachmentName: string | null = null;
-  let attachmentStoragePath: string | null = null;
+  // Adjuntos múltiples (enlaces y archivos) — solo staff puede adjuntar en tickets
+  const attachmentsData: { type: string; url: string; name: string | null; storagePath: string | null }[] = [];
 
-  if (attachmentType === "link" && isStaff(session.user.role)) {
-    const url = formData.get("linkUrl")?.toString().trim() ?? "";
-    const label = formData.get("linkLabel")?.toString().trim() || null;
-
-    if (!url) return { error: "La URL del enlace es requerida" };
-    try { new URL(url); } catch { return { error: "La URL no es válida" }; }
-
-    attachmentUrl  = url;
-    attachmentName = label ?? url;
-  }
-
-  if (attachmentType === "file" && isStaff(session.user.role)) {
-    const file = formData.get("attachmentFile");
-    if (!(file instanceof File) || file.size === 0) {
-      return { error: "No se seleccionó ningún archivo" };
+  if (isStaff(session.user.role)) {
+    const linksRaw = formData.get("links")?.toString();
+    if (linksRaw) {
+      try {
+        const linksList = JSON.parse(linksRaw) as { url?: string; label?: string }[];
+        for (const { url, label } of linksList) {
+          const u = (url ?? "").trim();
+          if (!u) continue;
+          try { new URL(u); } catch { return { error: `Enlace inválido: ${u}` }; }
+          attachmentsData.push({ type: "link", url: u, name: label?.trim() || u, storagePath: null });
+        }
+      } catch { /* JSON inválido, ignorar */ }
     }
-    const validationError = validateFile(file);
-    if (validationError) return { error: validationError };
 
-    try {
-      const { storagePath, fileUrl } = await uploadFile(file, ticketId);
-      attachmentUrl         = fileUrl;
-      attachmentName        = file.name;
-      attachmentStoragePath = storagePath;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Error al subir archivo";
-      return { error: message };
+    const files = formData.getAll("attachmentFiles").filter((f): f is File => f instanceof File && f.size > 0);
+    for (const file of files) {
+      const validationError = validateFile(file);
+      if (validationError) return { error: `"${file.name}": ${validationError}` };
+      try {
+        const { storagePath, fileUrl } = await uploadFile(file, ticketId);
+        attachmentsData.push({ type: "file", url: fileUrl, name: file.name, storagePath });
+      } catch (err) {
+        return { error: err instanceof Error ? err.message : "Error al subir archivo" };
+      }
     }
   }
 
   await prisma.ticketComment.create({
     data: {
       ticketId,
-      authorId:             session.user.id,
-      body:                 parsed.data.body,
-      isInternal:           parsed.data.isInternal,
-      attachmentType,
-      attachmentUrl,
-      attachmentName,
-      attachmentStoragePath,
+      authorId:   session.user.id,
+      body:       parsed.data.body,
+      isInternal: parsed.data.isInternal,
+      ...(attachmentsData.length ? { attachments: { create: attachmentsData } } : {}),
     },
   });
 
@@ -160,6 +152,7 @@ export async function getTicketComments(
     include: {
       author: { select: { name: true, role: true } },
       reactions: { select: { type: true, userId: true } },
+      attachments: { select: { type: true, url: true, name: true }, orderBy: { createdAt: "asc" } },
     },
     orderBy: { createdAt: "desc" },
   });

@@ -106,13 +106,14 @@ export default async function BovedaPage({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold" style={{ color: "var(--app-body-text)" }}>Bóveda</h1>
+          <h1 data-tour-id="page-title" className="text-2xl font-bold" style={{ color: "var(--app-body-text)" }}>Bóveda</h1>
           <p className="text-sm mt-1" style={{ color: "var(--app-text-muted)" }}>
             Credenciales seguras vinculadas a tus clientes y plataformas.
           </p>
         </div>
         <Link
           href="/boveda/new"
+          data-tour-id="page-primary-action"
           className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium"
           style={{ backgroundColor: "#fd1384", color: "#ffffff" }}
         >

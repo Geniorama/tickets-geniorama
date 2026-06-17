@@ -187,8 +187,8 @@ export default async function TicketsPage({
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Tickets</h1>
-        <div className="flex items-center gap-2 sm:gap-3">
+        <h1 data-tour-id="page-title" className="text-2xl font-bold text-gray-900">Tickets</h1>
+        <div className="flex items-center gap-2 sm:gap-3" data-tour-id="page-primary-action">
           {staff && <ViewToggle current={view} />}
           {canCreateTicket ? (
             <Link
@@ -207,7 +207,7 @@ export default async function TicketsPage({
         </div>
       </div>
 
-      <div style={{ marginBottom: "1rem" }}>
+      <div style={{ marginBottom: "1rem" }} data-tour-id="page-filters">
         <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
           <SearchInput placeholder="Buscar tickets..." />
         </Suspense>

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, Ticket, Building2, Users, BookOpen, CreditCard,
   BarChart3, FolderKanban, ListTodo, TrendingUp, ChevronDown, Server as ServerIcon, Globe, KeyRound, Plug, Sparkles,
-  ChevronsLeft, ChevronsRight, Repeat, Webhook, LayoutList, LayoutTemplate,
+  ChevronsLeft, ChevronsRight, Repeat, Webhook, LayoutList, LayoutTemplate, Bot,
 } from "lucide-react";
 
 type NavChild = {
@@ -31,6 +31,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { href: "/dashboard",          label: "Dashboard",     icon: LayoutDashboard, roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"] },
   { href: "/panel",              label: "Panel",         icon: LayoutList,      roles: ["ADMINISTRADOR", "COLABORADOR"] },
+  { href: "/asistente",          label: "Asistente IA",  icon: Bot,             roles: ["ADMINISTRADOR", "COLABORADOR"] },
   {
     href: "/tickets",            label: "Tickets",        icon: Ticket,          roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"],
     children: [
@@ -183,6 +184,7 @@ export function Sidebar({
                 <div className="flex items-stretch">
                   <Link
                     href={item.href}
+                    data-tour-id={item.href}
                     title={collapsed ? item.label : undefined}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all flex-1",

@@ -36,6 +36,7 @@ export default async function GlobalTaskPage({
         include: {
           author: { select: { name: true } },
           reactions: { select: { type: true, userId: true } },
+          attachments: { select: { type: true, url: true, name: true }, orderBy: { createdAt: "asc" } },
         },
         orderBy: { createdAt: "asc" },
       },

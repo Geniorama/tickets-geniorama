@@ -3,20 +3,18 @@
 import { useState, useTransition } from "react";
 import { addTaskComment, deleteTaskComment, editTaskComment, getTaskComments } from "@/actions/task-comment.actions";
 import { toggleTaskCommentReaction } from "@/actions/reaction.actions";
-import { Link2, Paperclip, ExternalLink, FileText, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { CommentBody } from "@/components/ui/comment-body";
 import { CommentReactions, type ReactionEntry } from "@/components/ui/comment-reactions";
+import {
+  CommentAttachmentsInput, CommentAttachmentsDisplay, appendCommentAttachments, mergeAttachments,
+  type PendingLink, type CommentAttachment,
+} from "@/components/ui/comment-attachments-input";
 import type { ReactionType } from "@/generated/prisma";
 
-type AttachmentMode = "none" | "link" | "file";
-
 const COMMENT_MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
-
-function formatFileSize(bytes: number) {
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+const COMMENT_FILE_ACCEPT = ".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx";
 
 interface Comment {
   id: string;
@@ -25,6 +23,7 @@ interface Comment {
   attachmentType: string | null;
   attachmentUrl: string | null;
   attachmentName: string | null;
+  attachments: CommentAttachment[];
   createdAt: Date;
   author: { name: string };
   reactions: ReactionEntry[];
@@ -83,6 +82,7 @@ export function TaskCommentSection({
                   attachmentType: c.attachmentType,
                   attachmentUrl: c.attachmentUrl,
                   attachmentName: c.attachmentName,
+                  attachments: c.attachments,
                   createdAt: new Date(c.createdAt),
                   author: c.author,
                   reactions: c.reactions,
@@ -310,43 +310,8 @@ function TaskCommentItem({
         />
       )}
 
-      {!editing && comment.attachmentUrl && comment.attachmentType === "link" && (
-        <a
-          href={comment.attachmentUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            marginTop: "0.5rem",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.375rem",
-            fontSize: "0.75rem",
-            color: "#fd1384",
-            textDecoration: "none",
-          }}
-        >
-          <ExternalLink style={{ width: "0.875rem", height: "0.875rem" }} />
-          {comment.attachmentName ?? comment.attachmentUrl}
-        </a>
-      )}
-      {!editing && comment.attachmentUrl && comment.attachmentType === "file" && (
-        <a
-          href={comment.attachmentUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            marginTop: "0.5rem",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.375rem",
-            fontSize: "0.75rem",
-            color: "#fd1384",
-            textDecoration: "none",
-          }}
-        >
-          <FileText style={{ width: "0.875rem", height: "0.875rem" }} />
-          {comment.attachmentName ?? "Archivo adjunto"}
-        </a>
+      {!editing && (
+        <CommentAttachmentsDisplay attachments={mergeAttachments(comment, comment.attachments)} />
       )}
 
       {!editing && (
@@ -370,21 +335,9 @@ function TaskCommentForm({
   projectId: string | null;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [attachMode, setAttachMode] = useState<AttachmentMode>("none");
+  const [files, setFiles] = useState<File[]>([]);
+  const [links, setLinks] = useState<PendingLink[]>([]);
   const [error, setError] = useState<string | null>(null);
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > COMMENT_MAX_FILE_BYTES) {
-      setError(
-        `"${file.name}" supera los 10 MB (${formatFileSize(file.size)}). Comprime el archivo o súbelo a un servicio externo y compártelo como enlace.`
-      );
-      e.target.value = "";
-      return;
-    }
-    setError(null);
-  }
 
   const inputStyle: React.CSSProperties = {
     width: "100%",
@@ -403,8 +356,8 @@ function TaskCommentForm({
     setError(null);
     const form = e.currentTarget;
     const formData = new FormData(form);
-    formData.set("attachmentType", attachMode === "none" ? "" : attachMode);
-    const hasFile = attachMode === "file";
+    appendCommentAttachments(formData, files, links);
+    const hasFile = files.length > 0;
 
     startTransition(async () => {
       try {
@@ -413,14 +366,15 @@ function TaskCommentForm({
           setError(result.error);
         } else {
           form.reset();
-          setAttachMode("none");
+          setFiles([]);
+          setLinks([]);
         }
       } catch (err) {
         console.error("[addTaskComment]", err);
         const msg = err instanceof Error ? err.message : "";
         if (hasFile && /unexpected response|fetch|network|413/i.test(msg)) {
           setError(
-            "No se pudo enviar el comentario: el archivo adjunto fue rechazado por el servidor (puede ser demasiado pesado). Intenta con un archivo más pequeño o súbelo como enlace."
+            "No se pudo enviar el comentario: los archivos adjuntos fueron rechazados por el servidor (pueden ser demasiado pesados). Intenta con archivos más pequeños o compártelos como enlace."
           );
         } else {
           setError("No se pudo enviar el comentario. Intenta de nuevo en unos segundos.");
@@ -438,84 +392,15 @@ function TaskCommentForm({
         style={inputStyle}
       />
 
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-        <span style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
-          Adjuntar:
-        </span>
-        <button
-          type="button"
-          onClick={() => setAttachMode(attachMode === "link" ? "none" : "link")}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.25rem",
-            padding: "0.25rem 0.625rem",
-            borderRadius: "9999px",
-            fontSize: "0.75rem",
-            fontWeight: 500,
-            border: `1px solid ${attachMode === "link" ? "#fd1384" : "var(--app-border)"}`,
-            backgroundColor: attachMode === "link" ? "rgba(253,19,132,0.08)" : "transparent",
-            color: attachMode === "link" ? "#fd1384" : "var(--app-text-muted)",
-            cursor: "pointer",
-          }}
-        >
-          <Link2 style={{ width: "0.75rem", height: "0.75rem" }} />
-          Enlace
-        </button>
-        <button
-          type="button"
-          onClick={() => setAttachMode(attachMode === "file" ? "none" : "file")}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.25rem",
-            padding: "0.25rem 0.625rem",
-            borderRadius: "9999px",
-            fontSize: "0.75rem",
-            fontWeight: 500,
-            border: `1px solid ${attachMode === "file" ? "#fd1384" : "var(--app-border)"}`,
-            backgroundColor: attachMode === "file" ? "rgba(253,19,132,0.08)" : "transparent",
-            color: attachMode === "file" ? "#fd1384" : "var(--app-text-muted)",
-            cursor: "pointer",
-          }}
-        >
-          <Paperclip style={{ width: "0.75rem", height: "0.75rem" }} />
-          Archivo
-        </button>
-      </div>
-
-      {attachMode === "link" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
-          <div>
-            <label style={{ display: "block", fontSize: "0.75rem", color: "var(--app-text-muted)", marginBottom: "0.25rem" }}>
-              URL *
-            </label>
-            <input name="linkUrl" type="url" required placeholder="https://..." style={inputStyle} />
-          </div>
-          <div>
-            <label style={{ display: "block", fontSize: "0.75rem", color: "var(--app-text-muted)", marginBottom: "0.25rem" }}>
-              Etiqueta (opcional)
-            </label>
-            <input name="linkLabel" type="text" placeholder="Nombre del enlace" style={inputStyle} />
-          </div>
-        </div>
-      )}
-
-      {attachMode === "file" && (
-        <div>
-          <label style={{ display: "block", fontSize: "0.75rem", color: "var(--app-text-muted)", marginBottom: "0.25rem" }}>
-            Archivo * (imágenes, PDF, Word — máx. 10 MB)
-          </label>
-          <input
-            name="attachmentFile"
-            type="file"
-            required
-            accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-            onChange={handleFileChange}
-            style={{ fontSize: "0.875rem", color: "var(--app-text-muted)" }}
-          />
-        </div>
-      )}
+      <CommentAttachmentsInput
+        files={files}
+        setFiles={setFiles}
+        links={links}
+        setLinks={setLinks}
+        maxFileBytes={COMMENT_MAX_FILE_BYTES}
+        accept={COMMENT_FILE_ACCEPT}
+        onFileError={setError}
+      />
 
       {error && (
         <p

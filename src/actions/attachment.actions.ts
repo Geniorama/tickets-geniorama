@@ -2,11 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getRequiredSession, requireRole } from "@/lib/auth-helpers";
+import { getRequiredSession, requireRole, isStaff } from "@/lib/auth-helpers";
 import { validateFile, uploadFile, deleteFile } from "@/lib/s3";
 
 export async function addAttachment(ticketId: string, formData: FormData) {
   const session = await getRequiredSession();
+
+  // Los clientes no pueden adjuntar archivos al ticket tras su creación; solo en comentarios.
+  if (!isStaff(session.user.role)) {
+    return { error: "Solo el equipo puede adjuntar archivos al ticket. Los clientes pueden adjuntar en los comentarios." };
+  }
 
   const files = formData.getAll("files") as File[];
   const validFiles = files.filter((f) => f instanceof File && f.size > 0);

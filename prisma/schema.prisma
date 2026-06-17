@@ -239,8 +239,25 @@ model TicketComment {
   ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   author     User     @relation(fields: [authorId], references: [id])
   reactions  TicketCommentReaction[]
+  attachments TicketCommentAttachment[]
 
   @@map("ticket_comments")
+}
+
+model TicketCommentAttachment {
+  id          String   @id @default(cuid())
+  type        String   // "link" | "file"
+  url         String
+  name        String?
+  storagePath String?  @map("storage_path") // null para enlaces
+
+  commentId   String   @map("comment_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  comment     TicketComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([commentId])
+  @@map("ticket_comment_attachments")
 }
 
 model TicketCommentReaction {
@@ -516,8 +533,25 @@ model TaskComment {
   task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   author    User @relation(fields: [authorId], references: [id])
   reactions TaskCommentReaction[]
+  attachments TaskCommentAttachment[]
 
   @@map("task_comments")
+}
+
+model TaskCommentAttachment {
+  id          String   @id @default(cuid())
+  type        String   // "link" | "file"
+  url         String
+  name        String?
+  storagePath String?  @map("storage_path") // null para enlaces
+
+  commentId   String   @map("comment_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  comment     TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([commentId])
+  @@map("task_comment_attachments")
 }
 
 model TaskCommentReaction {

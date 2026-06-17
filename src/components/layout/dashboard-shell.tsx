@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { FloatingTimer } from "./floating-timer";
+import { AssistantFab } from "@/components/assistant/assistant-fab";
+import { TourController } from "@/components/tour/tour-controller";
 import type { Session } from "next-auth";
 import type { Role } from "@/generated/prisma";
 
@@ -70,6 +72,8 @@ export function DashboardShell({
       </div>
 
       <FloatingTimer />
+      <AssistantFab role={role} />
+      <TourController role={role} />
     </div>
   );
 }

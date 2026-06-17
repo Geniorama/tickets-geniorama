@@ -44,6 +44,7 @@ export default async function TicketPage({
         include: {
           author: { select: { name: true, role: true } },
           reactions: { select: { type: true, userId: true } },
+          attachments: { select: { type: true, url: true, name: true }, orderBy: { createdAt: "asc" } },
         },
         orderBy: { createdAt: "asc" },
       },

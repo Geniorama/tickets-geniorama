@@ -5,6 +5,7 @@ import type { Session } from "next-auth";
 import { LogOut, UserCircle, KeyRound, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { TourHelpButton } from "@/components/tour/tour-help-button";
 
 const roleLabels = {
   ADMINISTRADOR: "Administrador",
@@ -45,8 +46,13 @@ export function Topbar({
       <div className="hidden lg:block" />
 
       <div className="flex items-center gap-2 sm:gap-3">
-        <NotificationBell initialUnreadCount={unreadCount} />
-        <ThemeToggle />
+        <TourHelpButton />
+        <span data-tour-id="notifications" className="flex items-center">
+          <NotificationBell initialUnreadCount={unreadCount} />
+        </span>
+        <span data-tour-id="theme" className="flex items-center">
+          <ThemeToggle />
+        </span>
         <UserCircle className="w-8 h-8 hidden sm:block" style={{ color: "var(--app-icon-color)" }} />
         {/* Nombre y rol — oculto en móvil */}
         <div className="text-right hidden sm:block">
@@ -55,6 +61,7 @@ export function Topbar({
         </div>
         <Link
           href="/perfil"
+          data-tour-id="profile"
           className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
           style={{ color: "var(--app-icon-color)" }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "var(--app-body-text)")}
