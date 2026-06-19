@@ -5,12 +5,15 @@ import { Sparkles, RotateCcw, AlertCircle, X, Minus, Maximize2 } from "lucide-re
 import { createPortal } from "react-dom";
 import { getTicketDiagnosis } from "@/actions/ai.actions";
 import { MarkdownText } from "@/components/ui/markdown-text";
+import { ProviderToggle } from "@/components/assistant/provider-toggle";
+import type { AiProvider } from "@/lib/ai";
 
 export function TicketAiAssistant({ ticketId }: { ticketId: string }) {
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [provider, setProvider] = useState<AiProvider>("gemini");
   const [isPending, startTransition] = useTransition();
 
   function requestDiagnosis() {
@@ -18,7 +21,7 @@ export function TicketAiAssistant({ ticketId }: { ticketId: string }) {
     setOpen(true);
     setMinimized(false);
     startTransition(async () => {
-      const res = await getTicketDiagnosis(ticketId);
+      const res = await getTicketDiagnosis(ticketId, provider);
       if (res.error) setError(res.error);
       else setResult(res.text ?? null);
     });
@@ -36,6 +39,8 @@ export function TicketAiAssistant({ ticketId }: { ticketId: string }) {
           <Sparkles className="w-4 h-4 text-indigo-500 shrink-0" />
           Asistente IA
         </span>
+        <div className="flex items-center gap-2">
+        <ProviderToggle value={provider} onChange={setProvider} disabled={isPending} />
         <button
           type="button"
           onClick={requestDiagnosis}
@@ -54,6 +59,7 @@ export function TicketAiAssistant({ ticketId }: { ticketId: string }) {
             </>
           )}
         </button>
+        </div>
       </div>
 
       {open && createPortal(

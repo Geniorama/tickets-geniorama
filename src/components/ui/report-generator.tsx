@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { FileText, Download, Loader2, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
 import type { GeneratedReport, ReportHeader } from "@/actions/report.actions";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
+import { ProviderToggle } from "@/components/assistant/provider-toggle";
+import type { AiProvider } from "@/lib/ai";
 
 // ─── Export helpers ────────────────────────────────────────────────────────────
 
@@ -217,7 +219,7 @@ export function ReportGenerator({
   label = "Informe IA",
   options,
 }: {
-  generateFn: () => Promise<{ error?: string; report?: GeneratedReport }>;
+  generateFn: (provider: AiProvider) => Promise<{ error?: string; report?: GeneratedReport }>;
   label?: string;
   options?: React.ReactNode;
 }) {
@@ -226,12 +228,13 @@ export function ReportGenerator({
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
+  const [provider, setProvider] = useState<AiProvider>("gemini");
 
   function generate() {
     setError(null);
     setOpen(true);
     startTransition(async () => {
-      const res = await generateFn();
+      const res = await generateFn(provider);
       if (res.error) { setError(res.error); return; }
       setReport(res.report ?? null);
     });
@@ -273,6 +276,8 @@ export function ReportGenerator({
         </span>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+          <ProviderToggle value={provider} onChange={setProvider} disabled={isPending} />
+
           {report && (
             <>
               <button

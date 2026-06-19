@@ -16,7 +16,7 @@ export default async function EditServicioPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
   const { id } = await params;
 
   const [service, companies] = await Promise.all([

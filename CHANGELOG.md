@@ -9,6 +9,38 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.31.0] — 2026-06-19
+
+### Plantillas y checklists en tareas recurrentes
+- Al crear o editar una **tarea recurrente**, ahora se puede **prellenar el formulario desde una plantilla de tarea** existente (copia título, descripción, prioridad, categoría, horas estimadas y checklist), y luego ajustar los campos.
+- Las tareas recurrentes ahora admiten un **checklist**: cada tarea generada —tanto la generación manual («Generar tarea ahora») como la automática del cron— crea sus ítems de checklist a partir de la plantilla recurrente.
+- Nuevo campo `checklist` (lista de textos) en el modelo `RecurringTaskTemplate`. Cambio **no destructivo** (columna con valor por defecto vacío); las plantillas existentes siguen funcionando sin checklist.
+
+### Selector de modelo IA en los informes
+- Los **informes IA** de **tareas**, **proyectos** y **tickets** ahora incluyen el mismo **switch de modelo (Gemini / OpenAI)** que el asistente y el diagnóstico. El staff elige el proveedor antes de generar el informe.
+- Antes los informes estaban fijos a Gemini; ahora enrutan la llamada al servicio del proveedor elegido (por defecto sigue siendo Gemini).
+
+### Webhooks de equipo: sin avisos de asignación individual
+- Las notificaciones de **asignación** de tickets y tareas («Se te asignó…») **ya no se envían al webhook de equipo (Google Chat)**, porque están redactadas en segunda persona y no corresponden a un canal compartido. El canal de equipo ya recibe el aviso de **«Nuevo ticket / Nueva tarea»**, que incluye el encargado.
+- Se conservan intactas la **notificación in-app** del destinatario, su **webhook personal** y el **correo al cliente**. Solo se omite el reenvío redundante al canal de equipo.
+
+### Servicios accesible para colaboradores
+- La sección **Servicios** ahora es visible y gestionable para **colaboradores**, igual que **Sitios y apps**. Pueden ver, crear, editar, duplicar y eliminar servicios.
+- La vista **«Mis servicios»** de clientes no cambia.
+
+### Corrección de UI
+- Se corrigió el selector de **revisores** en la creación/edición de tickets, que perdía su estructura (la flecha y la alineación se veían mal). El componente de multiselección ahora conserva siempre su layout, sin importar si recibe estilos por clase o inline.
+
+---
+
+## [1.30.0] — 2026-06-18
+
+### Selector de modelo IA en el diagnóstico de tickets
+- La herramienta de **diagnóstico IA** del detalle de ticket ahora incluye el mismo **switch de modelo (Gemini / OpenAI)** que el asistente global y el planificador. El staff puede elegir el proveedor antes de solicitar el diagnóstico.
+- Antes el diagnóstico estaba fijo a Gemini; ahora valida que el proveedor elegido esté configurado y enruta la llamada al servicio correspondiente.
+
+---
+
 ## [1.29.0] — 2026-06-16
 
 ### Tour guiado para nuevos usuarios

@@ -8,7 +8,7 @@ export const metadata = { title: "Nueva tarea recurrente" };
 export default async function NewRecurringTaskPage() {
   await requireRole(["ADMINISTRADOR"]);
 
-  const [projects, staffUsers] = await Promise.all([
+  const [projects, staffUsers, taskTemplates] = await Promise.all([
     prisma.project.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
@@ -18,6 +18,19 @@ export default async function NewRecurringTaskPage() {
       where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
+    }),
+    prisma.taskTemplate.findMany({
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        title: true,
+        description: true,
+        priority: true,
+        category: true,
+        estimatedHours: true,
+        checklist: true,
+      },
     }),
   ]);
 
@@ -30,7 +43,7 @@ export default async function NewRecurringTaskPage() {
         Nueva tarea recurrente
       </h1>
 
-      <RecurringTaskForm projects={projects} staffUsers={staffUsers} />
+      <RecurringTaskForm projects={projects} staffUsers={staffUsers} taskTemplates={taskTemplates} />
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Plus, X } from "lucide-react";
 import {
   createRecurringTemplate,
   updateRecurringTemplate,
@@ -13,6 +14,17 @@ import { TASK_CATEGORY_GROUPS, TASK_CATEGORIES } from "@/lib/task-categories";
 type Project = { id: string; name: string };
 type StaffUser = { id: string; name: string };
 
+export type TaskTemplateOption = {
+  id: string;
+  name: string;
+  title: string;
+  description: string;
+  priority: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+  category: string | null;
+  estimatedHours: number | null;
+  checklist: string[];
+};
+
 export type RecurringFormData = {
   id?: string;
   title: string;
@@ -20,6 +32,7 @@ export type RecurringFormData = {
   priority: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
   category: string | null;
   estimatedHours: number | null;
+  checklist: string[];
   projectId: string | null;
   assignedToId: string | null;
   frequency: "DIARIA" | "SEMANAL" | "MENSUAL";
@@ -64,14 +77,17 @@ export function RecurringTaskForm({
   initial,
   projects,
   staffUsers,
+  taskTemplates = [],
 }: {
   initial?: RecurringFormData;
   projects: Project[];
   staffUsers: StaffUser[];
+  taskTemplates?: TaskTemplateOption[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [checklistInput, setChecklistInput] = useState("");
 
   const [data, setData] = useState<RecurringFormData>(
     initial ?? {
@@ -80,6 +96,7 @@ export function RecurringTaskForm({
       priority: "MEDIA",
       category: null,
       estimatedHours: null,
+      checklist: [],
       projectId: null,
       assignedToId: null,
       frequency: "DIARIA",
@@ -97,6 +114,31 @@ export function RecurringTaskForm({
     setData((d) => ({ ...d, [key]: value }));
   }
 
+  function applyTemplate(templateId: string) {
+    const tpl = taskTemplates.find((t) => t.id === templateId);
+    if (!tpl) return;
+    setData((d) => ({
+      ...d,
+      title: tpl.title,
+      description: tpl.description,
+      priority: tpl.priority,
+      category: tpl.category,
+      estimatedHours: tpl.estimatedHours,
+      checklist: [...tpl.checklist],
+    }));
+  }
+
+  function addChecklistItem() {
+    const t = checklistInput.trim();
+    if (!t) return;
+    setData((d) => ({ ...d, checklist: [...d.checklist, t] }));
+    setChecklistInput("");
+  }
+
+  function removeChecklistItem(idx: number) {
+    setData((d) => ({ ...d, checklist: d.checklist.filter((_, i) => i !== idx) }));
+  }
+
   function toggleDay(d: number) {
     setData((s) => ({
       ...s,
@@ -111,6 +153,7 @@ export function RecurringTaskForm({
     fd.set("priority", data.priority);
     if (data.category) fd.set("category", data.category);
     if (data.estimatedHours !== null) fd.set("estimatedHours", String(data.estimatedHours));
+    fd.set("checklist", JSON.stringify(data.checklist));
     if (data.projectId) fd.set("projectId", data.projectId);
     if (data.assignedToId) fd.set("assignedToId", data.assignedToId);
     fd.set("frequency", data.frequency);
@@ -167,6 +210,30 @@ export function RecurringTaskForm({
         <h3 style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--app-body-text)", marginBottom: "1rem" }}>
           Información de la tarea
         </h3>
+
+        {taskTemplates.length > 0 && (
+          <div style={{ marginBottom: "0.875rem" }}>
+            <label style={labelStyle}>Usar plantilla de tarea (opcional)</label>
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) applyTemplate(e.target.value);
+                e.target.value = "";
+              }}
+              style={inputStyle}
+            >
+              <option value="">— Prellenar desde una plantilla —</option>
+              {taskTemplates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            <p style={{ fontSize: "0.6875rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
+              Copia título, descripción, prioridad, categoría, horas y checklist. Luego puedes ajustar los campos.
+            </p>
+          </div>
+        )}
 
         <div style={{ marginBottom: "0.875rem" }}>
           <label style={labelStyle}>Título</label>
@@ -277,6 +344,60 @@ export function RecurringTaskForm({
               style={inputStyle}
             />
           </div>
+        </div>
+
+        {/* Checklist */}
+        <div style={{ marginTop: "0.875rem" }}>
+          <label style={labelStyle}>
+            Checklist (opcional)
+          </label>
+          {data.checklist.length > 0 && (
+            <ul style={{ listStyle: "none", margin: "0 0 0.5rem", padding: 0, display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+              {data.checklist.map((item, idx) => (
+                <li
+                  key={idx}
+                  style={{
+                    display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem",
+                    border: "1px solid var(--app-border)", borderRadius: "0.375rem", padding: "0.375rem 0.625rem",
+                    color: "var(--app-body-text)",
+                  }}
+                >
+                  <span style={{ flex: 1 }}>{item}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeChecklistItem(idx)}
+                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--app-text-muted)", display: "flex" }}
+                  >
+                    <X style={{ width: "0.875rem", height: "0.875rem" }} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div style={{ display: "flex", gap: "0.5rem" }}>
+            <input
+              type="text"
+              value={checklistInput}
+              onChange={(e) => setChecklistInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addChecklistItem(); } }}
+              placeholder="Agregar ítem y pulsar Enter"
+              style={inputStyle}
+            />
+            <button
+              type="button"
+              onClick={addChecklistItem}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "0.25rem", padding: "0.5rem 0.75rem",
+                borderRadius: "0.5rem", border: "1px solid var(--app-border)", backgroundColor: "var(--app-content-bg)",
+                color: "var(--app-body-text)", fontSize: "0.8125rem", cursor: "pointer", whiteSpace: "nowrap",
+              }}
+            >
+              <Plus style={{ width: "0.875rem", height: "0.875rem" }} /> Agregar
+            </button>
+          </div>
+          <p style={{ fontSize: "0.6875rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
+            Cada tarea generada incluirá estos ítems como checklist.
+          </p>
         </div>
       </div>
 

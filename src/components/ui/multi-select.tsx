@@ -77,11 +77,20 @@ export function MultiSelect({
 
   const hasValue = value.length > 0;
 
-  const defaultTriggerStyle: React.CSSProperties = {
+  // Estructura del trigger (layout flex). Se aplica SIEMPRE, incluso cuando se usa
+  // triggerClassName, porque el contenido interno (label flexible + flecha alineada
+  // a la derecha) depende de flexbox; las clases Tailwind solo aportan lo visual.
+  const triggerLayout: React.CSSProperties = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     width: "100%",
+    textAlign: "left",
+    gap: "0.5rem",
+  };
+
+  const defaultTriggerStyle: React.CSSProperties = {
+    ...triggerLayout,
     border: "1px solid var(--app-border, #d1d5db)",
     borderRadius: "0.5rem",
     padding: "0.375rem 0.75rem",
@@ -89,8 +98,6 @@ export function MultiSelect({
     color: hasValue ? "var(--app-body-text, #111827)" : "var(--app-text-muted, #6b7280)",
     backgroundColor: "var(--app-card-bg, #ffffff)",
     cursor: "pointer",
-    textAlign: "left",
-    gap: "0.5rem",
     background: "none",
   };
 
@@ -100,7 +107,7 @@ export function MultiSelect({
         type="button"
         onClick={handleTriggerClick}
         className={triggerClassName}
-        style={triggerClassName ? undefined : { ...defaultTriggerStyle, ...triggerStyle }}
+        style={triggerClassName ? triggerLayout : { ...defaultTriggerStyle, ...triggerStyle }}
       >
         <span
           style={{

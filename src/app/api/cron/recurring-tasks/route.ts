@@ -57,6 +57,15 @@ export async function POST(req: NextRequest) {
             recurringTemplateId: tpl.id,
             dueDate: due,
             number: nextNumber,
+            checklistItems: tpl.checklist.length
+              ? {
+                  create: tpl.checklist.map((title, position) => ({
+                    title,
+                    position,
+                    createdById: tpl.createdById,
+                  })),
+                }
+              : undefined,
           },
         });
 

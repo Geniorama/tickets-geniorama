@@ -15,7 +15,7 @@ export default async function ServiciosPage({
 }: {
   searchParams: Promise<Record<string, string>>;
 }) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
   const params = await searchParams;
   const companyFilter = params.companyId;
   const typeFilter    = params.type;

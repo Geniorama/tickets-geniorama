@@ -194,7 +194,8 @@ export async function createTicket(formData: FormData) {
         "ticket_assigned",
         "Ticket asignado",
         `Se te asignó: "${ticket.title}"`,
-        `/tickets/${ticket.id}`
+        `/tickets/${ticket.id}`,
+        true // asignación individual: no va al webhook de equipo (GChat)
       );
     }
 
@@ -277,7 +278,8 @@ export async function publishTicket(ticketId: string) {
       "ticket_assigned",
       "Ticket asignado",
       `Se te asignó: "${ticket.title}"`,
-      `/tickets/${ticketId}`
+      `/tickets/${ticketId}`,
+      true // asignación individual: no va al webhook de equipo (GChat)
     );
   }
 
@@ -397,7 +399,8 @@ export async function assignTicket(ticketId: string, userId: string | null) {
       "ticket_assigned",
       "Ticket asignado",
       `Se te asignó: "${ticket.title}"`,
-      `/tickets/${ticketId}`
+      `/tickets/${ticketId}`,
+      true // asignación individual: no va al webhook de equipo (GChat)
     );
 
     if (ticket.client) {
@@ -569,7 +572,7 @@ export async function configureTicket(ticketId: string, formData: FormData) {
   const ticketUrl = `${APP_URL}/tickets/${ticketId}`;
 
   if (assignedToId && assignedToId !== ticket?.assignedToId && assignedToId !== session.user.id) {
-    await notify(assignedToId, "ticket_assigned", "Ticket asignado", `Se te asignó: "${ticket?.title}"`, `/tickets/${ticketId}`);
+    await notify(assignedToId, "ticket_assigned", "Ticket asignado", `Se te asignó: "${ticket?.title}"`, `/tickets/${ticketId}`, true);
 
     if (ticket?.client) {
       void sendTicketAssignedEmail(ticket.client, ticket.title, ticketUrl).catch(console.error);

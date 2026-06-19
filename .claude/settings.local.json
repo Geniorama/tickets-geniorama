@@ -65,7 +65,26 @@
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
       "Bash(gh pr create --base main --head develop --title 'Release v1.24.0 — Panel, plantillas, webhooks, revisores y mejoras' --body ' *)",
-      "PowerShell(\\(Get-Command gh -ErrorAction SilentlyContinue\\).Source)"
+      "PowerShell(\\(Get-Command gh -ErrorAction SilentlyContinue\\).Source)",
+      "Bash(PORT=3137 npm run dev)",
+      "Bash(echo \"dev server starting \\(pid $!\\)\")",
+      "Bash(npm i *)",
+      "Bash(echo \"npm exit $?\")",
+      "Bash(npx playwright *)",
+      "Bash(echo \"browser install exit $?\")",
+      "Read(//tmp/**)",
+      "Bash(rm -f scripts/_verify_draft.mjs scripts/_verify_detail.png scripts/_verify_list.png)",
+      "Bash(npm rm *)",
+      "Bash(echo \"uninstall exit $?\")",
+      "Bash(git checkout *)",
+      "Bash(git commit *)",
+      "Bash(git ls-remote *)",
+      "Bash(ls -la Dockerfile* .dockerignore)",
+      "Bash(docker --version)",
+      "Bash(rm -f .dockerignore Dockerfile.deploybuild scripts/deploy.sh)",
+      "Bash(rmdir scripts *)",
+      "PowerShell(npx tsc --noEmit)",
+      "Bash(git check-ignore *)"
     ]
   }
 }

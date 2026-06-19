@@ -256,7 +256,7 @@ export async function createTask(projectIdArg: string | null, formData: FormData
         "Tarea asignada",
         `Se te asignó: "${task.title}"${project ? ` en ${project.name}` : ""}`,
         `/proyectos/${projectId}/tareas/${task.id}`,
-        projectIsPrivate
+        true // asignación individual: no va al webhook de equipo (GChat)
       );
     }
   }
@@ -323,7 +323,7 @@ export async function publishTask(taskId: string, projectId: string | null) {
       "Tarea asignada",
       `Se te asignó: "${task.title}"${task.project ? ` en ${task.project.name}` : ""}`,
       taskUrl,
-      projectIsPrivate
+      true // asignación individual: no va al webhook de equipo (GChat)
     );
   }
 
@@ -425,7 +425,7 @@ export async function updateTask(taskId: string, projectId: string | null, formD
       "Tarea asignada",
       `Se te asignó: "${parsed.data.title}"${project ? ` en ${project.name}` : ""}`,
       taskUrl,
-      projectIsPrivate
+      true // asignación individual: no va al webhook de equipo (GChat)
     );
   }
 

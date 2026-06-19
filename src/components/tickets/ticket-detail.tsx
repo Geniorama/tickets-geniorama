@@ -361,7 +361,7 @@ export function TicketDetail({
           {staff && (
             <ReportGenerator
               label="Informe IA"
-              generateFn={() => generateTicketReport(ticket.id)}
+              generateFn={(provider) => generateTicketReport(ticket.id, provider)}
             />
           )}
 
