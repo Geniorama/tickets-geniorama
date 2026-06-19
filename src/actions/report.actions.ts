@@ -1,9 +1,9 @@
 "use server";
 
-import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { taskCode, projectPrefix } from "@/lib/task-code";
+import { runTextCompletion, type AiProvider } from "@/lib/ai";
 
 export interface ReportHeader {
   projectName?: string;
@@ -37,26 +37,18 @@ function today() {
   });
 }
 
-async function callGemini(prompt: string): Promise<string> {
-  const ai = new GoogleGenAI({
-    apiKey: process.env.GOOGLE_AI_API_KEY!,
-    httpOptions: { baseUrl: "https://generativelanguage.googleapis.com" },
-  });
-  const response = await Promise.race([
-    ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-    }),
+async function callAi(prompt: string, provider: AiProvider): Promise<string> {
+  return Promise.race([
+    runTextCompletion({ provider, prompt }),
     new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Gemini timeout (25s)")), 25000),
+      setTimeout(() => reject(new Error("AI timeout (30s)")), 30000),
     ),
   ]);
-  return response.text ?? "";
 }
 
 // ─── Tarea ────────────────────────────────────────────────────────────────────
 
-export async function generateTaskReport(taskId: string): Promise<{ error?: string; report?: GeneratedReport }> {
+export async function generateTaskReport(taskId: string, provider: AiProvider = "gemini"): Promise<{ error?: string; report?: GeneratedReport }> {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
@@ -153,7 +145,7 @@ Redacta en español formal, de forma clara y estructurada. Usa markdown.
 ${ctx}`;
 
   try {
-    const body = await callGemini(prompt);
+    const body = await callAi(prompt, provider);
     return { report: { header, body } };
   } catch {
     return { error: "Error al generar el informe con IA." };
@@ -173,6 +165,7 @@ const projectStatusLabel: Record<string, string> = {
 export async function generateProjectReport(
   projectId: string,
   options: { includeAssignees: boolean; extraInstructions: string },
+  provider: AiProvider = "gemini",
 ): Promise<{ error?: string; report?: GeneratedReport }> {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
@@ -267,7 +260,7 @@ Redacta en español formal, de forma clara y estructurada. Usa markdown.${extraB
 ${ctx}`;
 
   try {
-    const body = await callGemini(prompt);
+    const body = await callAi(prompt, provider);
     return { report: { header, body } };
   } catch {
     return { error: "Error al generar el informe con IA." };
@@ -276,7 +269,7 @@ ${ctx}`;
 
 // ─── Ticket ───────────────────────────────────────────────────────────────────
 
-export async function generateTicketReport(ticketId: string): Promise<{ error?: string; report?: GeneratedReport }> {
+export async function generateTicketReport(ticketId: string, provider: AiProvider = "gemini"): Promise<{ error?: string; report?: GeneratedReport }> {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
@@ -357,7 +350,7 @@ Redacta en español formal, de forma clara y estructurada. Usa markdown.
 ${ctx}`;
 
   try {
-    const body = await callGemini(prompt);
+    const body = await callAi(prompt, provider);
     return { report: { header, body } };
   } catch {
     return { error: "Error al generar el informe con IA." };

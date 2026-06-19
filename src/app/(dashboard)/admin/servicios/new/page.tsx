@@ -9,7 +9,7 @@ export default async function NewServicioPage({
 }: {
   searchParams: Promise<Record<string, string>>;
 }) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
   const params = await searchParams;
 
   const companies = await prisma.company.findMany({

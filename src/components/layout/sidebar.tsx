@@ -57,7 +57,7 @@ const navItems: NavItem[] = [
   { href: "/mis-servicios",      label: "Mis servicios",  icon: ServerIcon,      roles: ["CLIENTE"] },
   { href: "/admin/companies",    label: "Empresas",       icon: Building2,       roles: ["ADMINISTRADOR"] },
   { href: "/admin/sitios",       label: "Sitios y apps",  icon: Globe,           roles: ["ADMINISTRADOR", "COLABORADOR"] },
-  { href: "/admin/servicios",    label: "Servicios",      icon: ServerIcon,      roles: ["ADMINISTRADOR"] },
+  { href: "/admin/servicios",    label: "Servicios",      icon: ServerIcon,      roles: ["ADMINISTRADOR", "COLABORADOR"] },
   { href: "/admin/users",        label: "Usuarios",       icon: Users,           roles: ["ADMINISTRADOR"] },
   { href: "/admin/estadisticas", label: "Productividad",  icon: TrendingUp,      roles: ["ADMINISTRADOR"] },
   { href: "/admin/plans",        label: "Planes",         icon: BookOpen,        roles: ["ADMINISTRADOR"] },

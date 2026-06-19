@@ -11,8 +11,8 @@ export function ProjectReportGenerator({ projectId }: { projectId: string }) {
   return (
     <ReportGenerator
       label="Informe IA del proyecto"
-      generateFn={() =>
-        generateProjectReport(projectId, { includeAssignees, extraInstructions })
+      generateFn={(provider) =>
+        generateProjectReport(projectId, { includeAssignees, extraInstructions }, provider)
       }
       options={
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>

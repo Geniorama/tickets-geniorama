@@ -19,7 +19,7 @@ export default async function EditRecurringTaskPage({
   await requireRole(["ADMINISTRADOR"]);
   const { id } = await params;
 
-  const [tpl, projects, staffUsers] = await Promise.all([
+  const [tpl, projects, staffUsers, taskTemplates] = await Promise.all([
     prisma.recurringTaskTemplate.findUnique({ where: { id } }),
     prisma.project.findMany({
       where: { isActive: true },
@@ -30,6 +30,19 @@ export default async function EditRecurringTaskPage({
       where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
+    }),
+    prisma.taskTemplate.findMany({
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        title: true,
+        description: true,
+        priority: true,
+        category: true,
+        estimatedHours: true,
+        checklist: true,
+      },
     }),
   ]);
 
@@ -42,6 +55,7 @@ export default async function EditRecurringTaskPage({
     priority: tpl.priority,
     category: tpl.category,
     estimatedHours: tpl.estimatedHours,
+    checklist: tpl.checklist,
     projectId: tpl.projectId,
     assignedToId: tpl.assignedToId,
     frequency: tpl.frequency,
@@ -67,7 +81,7 @@ export default async function EditRecurringTaskPage({
         {tpl.lastRunAt ? `Última: ${tpl.lastRunAt.toLocaleString("es-CO")}` : "Nunca ejecutada"}
       </p>
 
-      <RecurringTaskForm initial={initial} projects={projects} staffUsers={staffUsers} />
+      <RecurringTaskForm initial={initial} projects={projects} staffUsers={staffUsers} taskTemplates={taskTemplates} />
     </div>
   );
 }

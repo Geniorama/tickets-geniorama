@@ -17,6 +17,7 @@ const schema = z.object({
   priority: z.enum(["BAJA", "MEDIA", "ALTA", "CRITICA"]),
   category: z.string().optional(),
   estimatedHours: z.number().optional(),
+  checklist: z.array(z.string().min(1).max(500)).max(100).optional(),
   projectId: z.string().optional(),
   assignedToId: z.string().optional(),
   frequency: z.enum(["DIARIA", "SEMANAL", "MENSUAL"]),
@@ -39,6 +40,19 @@ function parseFormData(formData: FormData): Input {
   const categoryRaw = formData.get("category");
   const endDateRaw = formData.get("endDate");
   const dayOfMonthRaw = formData.get("dayOfMonth");
+  const checklistRaw = formData.get("checklist");
+
+  let checklist: string[] | undefined;
+  if (checklistRaw) {
+    try {
+      const parsed = JSON.parse(String(checklistRaw));
+      if (Array.isArray(parsed)) {
+        checklist = parsed.map((v) => String(v).trim()).filter((v) => v.length > 0);
+      }
+    } catch {
+      checklist = undefined;
+    }
+  }
 
   return {
     title: String(formData.get("title") ?? "").trim(),
@@ -46,6 +60,7 @@ function parseFormData(formData: FormData): Input {
     priority: String(formData.get("priority") ?? "MEDIA") as Input["priority"],
     category: categoryRaw ? String(categoryRaw).trim() || undefined : undefined,
     estimatedHours: estimatedHoursRaw ? Number(estimatedHoursRaw) || undefined : undefined,
+    checklist,
     projectId: projectIdRaw ? String(projectIdRaw) || undefined : undefined,
     assignedToId: assignedToIdRaw ? String(assignedToIdRaw) || undefined : undefined,
     frequency: String(formData.get("frequency") ?? "DIARIA") as RecurrenceFrequency,
@@ -83,6 +98,7 @@ export async function createRecurringTemplate(formData: FormData) {
       priority: data.priority,
       category: data.category || null,
       estimatedHours: data.estimatedHours ?? null,
+      checklist: data.checklist ?? [],
       projectId: data.projectId || null,
       assignedToId: data.assignedToId || null,
       createdById: session.user.id,
@@ -138,6 +154,7 @@ export async function updateRecurringTemplate(id: string, formData: FormData) {
       priority: data.priority,
       category: data.category || null,
       estimatedHours: data.estimatedHours ?? null,
+      checklist: data.checklist ?? [],
       projectId: data.projectId || null,
       assignedToId: data.assignedToId || null,
       frequency: data.frequency,
@@ -212,6 +229,15 @@ export async function runRecurringNow(id: string) {
         recurringTemplateId: tpl.id,
         dueDate: due,
         number: nextNumber,
+        checklistItems: tpl.checklist.length
+          ? {
+              create: tpl.checklist.map((title, position) => ({
+                title,
+                position,
+                createdById: session.user.id,
+              })),
+            }
+          : undefined,
       },
     });
 

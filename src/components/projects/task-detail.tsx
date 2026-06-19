@@ -568,7 +568,7 @@ export function TaskDetail({
           {staff && (
             <ReportGenerator
               label="Informe IA"
-              generateFn={() => generateTaskReport(task.id)}
+              generateFn={(provider) => generateTaskReport(task.id, provider)}
             />
           )}
 
