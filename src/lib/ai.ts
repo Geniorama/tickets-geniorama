@@ -91,6 +91,30 @@ export async function runAssistantChat(opts: {
   return { text: response.text ?? "", toolCalls };
 }
 
+// ─── Texto libre (sin herramientas ni JSON) ──────────────────────────────────
+
+export async function runTextCompletion(opts: {
+  provider: AiProvider;
+  prompt: string;
+}): Promise<string> {
+  if (opts.provider === "openai") {
+    const client = openaiClient();
+    const res = await client.chat.completions.create({
+      model: OPENAI_MODEL,
+      messages: [{ role: "user", content: opts.prompt }],
+    });
+    return res.choices[0]?.message?.content ?? "";
+  }
+
+  // Gemini
+  const ai = geminiClient();
+  const response = await ai.models.generateContent({
+    model: GEMINI_MODEL,
+    contents: opts.prompt,
+  });
+  return response.text ?? "";
+}
+
 // ─── Salida JSON estructurada (con documento opcional) ───────────────────────
 
 export async function runStructuredJson(opts: {

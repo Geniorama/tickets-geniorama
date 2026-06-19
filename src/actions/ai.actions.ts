@@ -1,12 +1,24 @@
 "use server";
 
-import { GoogleGenAI } from "@google/genai";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
+import {
+  type AiProvider,
+  isValidProvider,
+  providerConfigError,
+  runTextCompletion,
+} from "@/lib/ai";
 
-export async function getTicketDiagnosis(ticketId: string) {
+export async function getTicketDiagnosis(
+  ticketId: string,
+  provider: AiProvider = "gemini"
+) {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+
+  if (!isValidProvider(provider)) provider = "gemini";
+  const cfgErr = providerConfigError(provider);
+  if (cfgErr) return { error: cfgErr };
 
   const ticket = await prisma.ticket.findUnique({
     where: { id: ticketId },
@@ -68,17 +80,10 @@ ${ticket.description}
   prompt += `\n---\nResponde en español de forma clara y estructurada. Sé concreto y práctico.`;
 
   try {
-    const ai = new GoogleGenAI({
-      apiKey: process.env.GOOGLE_AI_API_KEY!,
-      httpOptions: { baseUrl: "https://generativelanguage.googleapis.com" },
-    });
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-    });
-    return { text: response.text ?? "" };
+    const text = await runTextCompletion({ provider, prompt });
+    return { text };
   } catch (err) {
-    console.error("Gemini error:", err);
+    console.error(`${provider} error:`, err);
     return { error: "Error al contactar el servicio de IA. Verifica la configuración." };
   }
 }
