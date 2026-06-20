@@ -1,7 +1,9 @@
 import { config } from "dotenv";
 import { defineConfig } from "prisma/config";
 
-config({ path: ".env.local" });
+// Carga `.env.local` (dev) y `.env` (prod/servidor). dotenv no sobrescribe
+// variables ya definidas, así que el primero de la lista tiene prioridad.
+config({ path: [".env.local", ".env"] });
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

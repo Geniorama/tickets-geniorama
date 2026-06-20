@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.31.1] — 2026-06-19
+
+### Build movido a CI — el servidor ya no compila
+- El **build de Next.js se ejecuta ahora en GitHub Actions** (runner `ubuntu-latest`), no en el servidor. El servidor solo **recibe el bundle ya compilado** y reinicia PM2: se acabaron las caídas por falta de RAM durante `next build`.
+- Se activó el **output `standalone`** de Next (`next.config.ts`): genera un servidor autocontenido con solo las dependencias necesarias, así no hay que subir todo `node_modules` ni correr `npm install` en el servidor.
+- El bundle se sube por **`rsync`** a `/home/ubuntu/tickets-geniorama-app/` (con `--exclude=.env*` para no tocar el `.env.local` del servidor) y arranca con `node server.js` bajo PM2.
+- `next.config.ts`: se añadió `outputFileTracingIncludes` para que el query engine de Prisma (WASM, en la ruta custom `src/generated/prisma`) viaje dentro del bundle standalone.
+
+> **Nota de despliegue:** las migraciones de Prisma se siguen ejecutando manualmente desde el servidor (el runner de CI no tiene acceso a RDS). Ver pasos de configuración inicial en el README/notas de deploy.
+
+---
+
 ## [1.31.0] — 2026-06-19
 
 ### Plantillas y checklists en tareas recurrentes

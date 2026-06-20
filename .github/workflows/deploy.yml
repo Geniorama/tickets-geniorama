@@ -6,39 +6,64 @@ on:
       - main # Se activa cuando haces push a main
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout del código
         uses: actions/checkout@v4
 
-      - name: Desplegar vía SSH
+      - name: Configurar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # El build pesado ocurre AQUÍ, en el runner (CPU/RAM de sobra),
+      # no en el servidor.
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Build (output standalone)
+        run: npm run build
+        env:
+          # Variables que el build necesita. `prisma generate` (postinstall)
+          # NO necesita conexión, pero dejamos DATABASE_URL por si alguna
+          # ruta se evalúa en build. Añade aquí cualquier NEXT_PUBLIC_* extra.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      # El bundle standalone no incluye /static ni /public: hay que añadirlos.
+      - name: Empaquetar static y public en el bundle
+        run: |
+          cp -r .next/static .next/standalone/.next/static
+          cp -r public .next/standalone/public
+
+      # Sube SOLO el bundle ya compilado. --delete limpia chunks viejos.
+      # --exclude=.env* protege el .env.local que vive en el servidor.
+      - name: Subir bundle al servidor
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avzr --delete --exclude=.env*
+          path: .next/standalone/
+          remote_path: /home/ubuntu/tickets-geniorama-app/
+          remote_host: ${{ secrets.HOST }}
+          remote_user: ${{ secrets.USERNAME }}
+          remote_key: ${{ secrets.KEY }}
+          remote_port: ${{ secrets.PORT }}
+
+      # El servidor solo reinicia el proceso — sin install, sin build.
+      - name: Reiniciar PM2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
-          command_timeout: 30m 
           port: ${{ secrets.PORT }}
           script: |
-            cd ~/tickets-geniorama 
-            git pull origin main
-
-            # 3. CARGA DIRECTA DE BINARIOS
-            # Esto agrega la versión específica de Node directamente al PATH
-            # export NVM_DIR="/home/ubuntu/.nvm"
-            # export PATH="$NVM_DIR/versions/node/v22.13.1/bin:$PATH"
-            
-            # Verificación inmediata
-            # node -v
-            # npm -v
-
-            # 4. Instalar y Compilar
-            npm install
-            NODE_OPTIONS="--max-old-space-size=1536" npm run build
-
-            # 5. Reiniciar con PM2 usando la ruta completa para evitar fallos
-            # Cargamos PM2 si no está en el PATH
-            # export PATH="$PATH:$(npm config get prefix)/bin"
-            pm2 restart tickets-geniorama || pm2 start npm --name "tickets-geniorama" -- start
+            cd /home/ubuntu/tickets-geniorama-app
+            export NODE_ENV=production
+            export HOSTNAME=0.0.0.0
+            export PORT=3000
+            pm2 restart tickets-geniorama --update-env \
+              || pm2 start server.js --name "tickets-geniorama" --update-env
+            pm2 save

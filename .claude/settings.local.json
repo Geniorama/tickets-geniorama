@@ -84,7 +84,10 @@
       "Bash(rm -f .dockerignore Dockerfile.deploybuild scripts/deploy.sh)",
       "Bash(rmdir scripts *)",
       "PowerShell(npx tsc --noEmit)",
-      "Bash(git check-ignore *)"
+      "Bash(git check-ignore *)",
+      "PowerShell(npx prisma generate 2>&1 | Select-Object -Last 25)",
+      "PowerShell(npm run *)",
+      "PowerShell(Get-ChildItem -Recurse \".next\\\\standalone\" -Filter \"server.js\" | Select-Object FullName; \"---\"; Get-ChildItem \".next\\\\standalone\" | Select-Object Name; \"--- wasm ---\"; Get-ChildItem -Recurse \".next\\\\standalone\" -Filter \"*.wasm\" | Select-Object FullName)"
     ]
   }
 }
