@@ -1,14 +1,20 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X } from "lucide-react";
+import { CalendarClock, CheckCircle2, Plus, X } from "lucide-react";
 import {
   createRecurringTemplate,
   updateRecurringTemplate,
   deleteRecurringTemplate,
   runRecurringNow,
 } from "@/actions/recurring-task.actions";
+import {
+  computeNextRunAt,
+  describeRecurrence,
+  serializeDaysOfWeek,
+  type RecurrencePattern,
+} from "@/lib/recurrence";
 import { TASK_CATEGORY_GROUPS, TASK_CATEGORIES } from "@/lib/task-categories";
 
 type Project = { id: string; name: string };
@@ -47,6 +53,15 @@ export type RecurringFormData = {
 
 const DAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
+const PREVIEW_COUNT = 5;
+
+const previewDateFmt = new Intl.DateTimeFormat("es-CO", {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
+
 const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "0.5rem 0.75rem",
@@ -78,16 +93,28 @@ export function RecurringTaskForm({
   projects,
   staffUsers,
   taskTemplates = [],
+  justCreated = false,
 }: {
   initial?: RecurringFormData;
   projects: Project[];
   staffUsers: StaffUser[];
   taskTemplates?: TaskTemplateOption[];
+  justCreated?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(
+    justCreated ? "Plantilla recurrente creada correctamente." : null
+  );
   const [checklistInput, setChecklistInput] = useState("");
+
+  // Auto-oculta el aviso de éxito tras unos segundos.
+  useEffect(() => {
+    if (!success) return;
+    const t = setTimeout(() => setSuccess(null), 5000);
+    return () => clearTimeout(t);
+  }, [success]);
 
   const [data, setData] = useState<RecurringFormData>(
     initial ?? {
@@ -146,6 +173,47 @@ export function RecurringTaskForm({
     }));
   }
 
+  // Vista previa de las próximas tareas que generará esta plantilla. Reproduce
+  // la lógica real del runner: la 1ª ocurrencia es la fecha de inicio (el action
+  // setea nextRunAt = startDate) y de ahí se encadena computeNextRunAt.
+  const preview = useMemo(() => {
+    const interval = Number.isNaN(data.interval) || data.interval < 1 ? 1 : data.interval;
+    const offset = Number.isNaN(data.dueDateOffsetDays) || data.dueDateOffsetDays < 0 ? 0 : data.dueDateOffsetDays;
+    const pattern: RecurrencePattern = {
+      frequency: data.frequency,
+      interval,
+      daysOfWeek:
+        data.frequency === "SEMANAL" && data.daysOfWeek.length > 0
+          ? serializeDaysOfWeek(data.daysOfWeek)
+          : null,
+      dayOfMonth: data.frequency === "MENSUAL" ? data.dayOfMonth : null,
+    };
+    const label = describeRecurrence(pattern);
+
+    const start = data.startDate ? new Date(`${data.startDate}T00:00:00`) : null;
+    if (!start || Number.isNaN(start.getTime())) return { label, dates: [] as Date[] };
+
+    // El `endDate` solo aplica cuando no hay offset de vencimiento (igual que en buildFormData).
+    const end = offset === 0 && data.endDate ? new Date(`${data.endDate}T00:00:00`) : null;
+
+    const dates: Date[] = [];
+    let cursor = start;
+    for (let i = 0; i < PREVIEW_COUNT; i++) {
+      if (end && cursor.getTime() > end.getTime()) break;
+      dates.push(cursor);
+      cursor = computeNextRunAt(cursor, pattern);
+    }
+    return { label, dates };
+  }, [
+    data.frequency,
+    data.interval,
+    data.daysOfWeek,
+    data.dayOfMonth,
+    data.startDate,
+    data.endDate,
+    data.dueDateOffsetDays,
+  ]);
+
   function buildFormData(): FormData {
     const fd = new FormData();
     fd.set("title", data.title);
@@ -172,14 +240,18 @@ export function RecurringTaskForm({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     startTransition(async () => {
       const fd = buildFormData();
+      // En creación el action redirige (lanza), así que el éxito se muestra al
+      // aterrizar en la página de edición vía ?created=1.
       const result = initial?.id
         ? await updateRecurringTemplate(initial.id, fd)
         : await createRecurringTemplate(fd);
       if (result && "error" in result && result.error) {
         setError(result.error);
       } else {
+        setSuccess("Cambios guardados correctamente.");
         router.refresh();
       }
     });
@@ -196,10 +268,15 @@ export function RecurringTaskForm({
   function handleRunNow() {
     if (!initial?.id) return;
     if (!confirm("¿Generar una tarea ahora desde esta plantilla?")) return;
+    setError(null);
+    setSuccess(null);
     startTransition(async () => {
       const result = await runRecurringNow(initial.id!);
       if (result && "error" in result && result.error) setError(result.error);
-      else router.refresh();
+      else {
+        setSuccess("Tarea generada correctamente.");
+        router.refresh();
+      }
     });
   }
 
@@ -523,7 +600,86 @@ export function RecurringTaskForm({
           />
           Plantilla activa (genera tareas automáticamente)
         </label>
+
+        {/* Vista previa de las próximas tareas que se generarán */}
+        <div
+          style={{
+            marginTop: "1.25rem",
+            border: "1px dashed var(--app-border)",
+            borderRadius: "0.5rem",
+            padding: "0.875rem 1rem",
+            backgroundColor: "var(--app-content-bg)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.375rem" }}>
+            <CalendarClock style={{ width: "1rem", height: "1rem", color: "#fd1384" }} />
+            <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-body-text)" }}>
+              Próximas tareas a crear
+            </span>
+          </div>
+          {preview.label && (
+            <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", margin: "0 0 0.625rem" }}>
+              {preview.label}
+            </p>
+          )}
+          {preview.dates.length === 0 ? (
+            <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", margin: 0 }}>
+              Define una fecha de inicio válida para ver la programación.
+            </p>
+          ) : (
+            <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+              {preview.dates.map((d, i) => (
+                <li
+                  key={i}
+                  style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--app-body-text)" }}
+                >
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: "1.25rem",
+                      height: "1.25rem",
+                      borderRadius: "9999px",
+                      backgroundColor: "rgba(253,19,132,0.12)",
+                      color: "#fd1384",
+                      fontSize: "0.6875rem",
+                      fontWeight: 600,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {i + 1}
+                  </span>
+                  <span style={{ textTransform: "capitalize" }}>{previewDateFmt.format(d)}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+          <p style={{ fontSize: "0.6875rem", color: "var(--app-text-muted)", margin: "0.625rem 0 0" }}>
+            Se muestran las próximas {PREVIEW_COUNT}. La generación automática requiere que la plantilla esté activa.
+          </p>
+        </div>
       </div>
+
+      {success && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            padding: "0.75rem 1rem",
+            marginBottom: "1rem",
+            backgroundColor: "rgba(22,163,74,0.1)",
+            border: "1px solid #16a34a",
+            borderRadius: "0.5rem",
+            color: "#16a34a",
+            fontSize: "0.875rem",
+          }}
+        >
+          <CheckCircle2 style={{ width: "1rem", height: "1rem", flexShrink: 0 }} />
+          {success}
+        </div>
+      )}
 
       {error && (
         <div style={{ padding: "0.75rem 1rem", marginBottom: "1rem", backgroundColor: "rgba(220,38,38,0.1)", border: "1px solid #dc2626", borderRadius: "0.5rem", color: "#dc2626", fontSize: "0.875rem" }}>

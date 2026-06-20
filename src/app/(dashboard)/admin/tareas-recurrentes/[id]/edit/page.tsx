@@ -13,11 +13,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 
 export default async function EditRecurringTaskPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ created?: string }>;
 }) {
   await requireRole(["ADMINISTRADOR"]);
   const { id } = await params;
+  const { created } = await searchParams;
 
   const [tpl, projects, staffUsers, taskTemplates] = await Promise.all([
     prisma.recurringTaskTemplate.findUnique({ where: { id } }),
@@ -81,7 +84,7 @@ export default async function EditRecurringTaskPage({
         {tpl.lastRunAt ? `Última: ${tpl.lastRunAt.toLocaleString("es-CO")}` : "Nunca ejecutada"}
       </p>
 
-      <RecurringTaskForm initial={initial} projects={projects} staffUsers={staffUsers} taskTemplates={taskTemplates} />
+      <RecurringTaskForm initial={initial} projects={projects} staffUsers={staffUsers} taskTemplates={taskTemplates} justCreated={created === "1"} />
     </div>
   );
 }

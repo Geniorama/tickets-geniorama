@@ -9,6 +9,21 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.32.0] — 2026-06-19
+
+### Vista previa de programación en plantillas recurrentes
+- El formulario de plantillas recurrentes muestra ahora una **vista previa de las próximas 5 tareas** que generará, con su fecha y una descripción legible de la cadencia (p. ej. _"Cada semana (Lun, Mié)"_). Se recalcula en vivo al cambiar frecuencia, intervalo, días, fecha de inicio/fin u offset de vencimiento.
+- La previsualización reutiliza la **lógica real del runner** (`computeNextRunAt` / `describeRecurrence` de `src/lib/recurrence.ts`): la 1ª ocurrencia es la fecha de inicio (`nextRunAt = startDate`) y de ahí encadena; respeta `endDate` cuando no hay offset de vencimiento.
+
+### Avisos de éxito al guardar
+- Se añadieron **mensajes de confirmación** (toast verde) al guardar cambios, al "Ejecutar ahora" una plantilla y al crear una nueva (vía `?created=1` tras el redirect a edición). Se auto-ocultan a los 5 segundos.
+
+### Corrección: la columna "Próxima" coincide con la vista previa
+- **"Ejecutar ahora"** avanzaba `nextRunAt` anclándolo a `now` (instante del clic, con hora del día), en vez de encadenar desde la fecha programada como hace el cron. Resultado: la columna **"Próxima"** del listado dejaba de coincidir con la vista previa. Ahora `runRecurringNow` usa la misma lógica que el cron (encadena desde `nextRunAt` y salta lo vencido) y **no altera la cadencia** si la próxima fecha aún es futura.
+- `toDateLocal` ahora fija la **medianoche UTC** explícita, de modo que `formatDate` (que lee partes UTC) muestre siempre el día tecleado sin depender de la zona horaria del servidor.
+
+---
+
 ## [1.31.1] — 2026-06-19
 
 ### Build movido a CI — el servidor ya no compila

@@ -75,7 +75,9 @@ function parseFormData(formData: FormData): Input {
 }
 
 function toDateLocal(dateStr: string): Date {
-  return new Date(`${dateStr}T00:00:00`);
+  // Medianoche UTC explícita: así `formatDate` (que lee partes UTC) muestra
+  // siempre el día del calendario tecleado, sin depender de la TZ del servidor.
+  return new Date(`${dateStr}T00:00:00Z`);
 }
 
 export async function createRecurringTemplate(formData: FormData) {
@@ -115,7 +117,7 @@ export async function createRecurringTemplate(formData: FormData) {
   });
 
   revalidatePath("/admin/tareas-recurrentes");
-  redirect(`/admin/tareas-recurrentes/${created.id}/edit`);
+  redirect(`/admin/tareas-recurrentes/${created.id}/edit?created=1`);
 }
 
 export async function updateRecurringTemplate(id: string, formData: FormData) {
@@ -241,12 +243,23 @@ export async function runRecurringNow(id: string) {
       },
     });
 
-    const nextRun = computeNextRunAt(now, {
+    // Avanzamos la programación igual que el cron: encadenando desde el
+    // `nextRunAt` programado (a las 00:00), NO desde `now`. Así la columna
+    // "Próxima" sigue coincidiendo con la vista previa del formulario.
+    // Una ejecución manual sobre una plantilla cuya próxima fecha aún es
+    // futura es una tarea extra y NO debe alterar la cadencia.
+    const pattern = {
       frequency: tpl.frequency,
       interval: tpl.interval,
       daysOfWeek: tpl.daysOfWeek,
       dayOfMonth: tpl.dayOfMonth,
-    });
+    };
+    let nextRun = tpl.nextRunAt;
+    if (nextRun.getTime() <= now.getTime()) {
+      do {
+        nextRun = computeNextRunAt(nextRun, pattern);
+      } while (nextRun.getTime() <= now.getTime());
+    }
 
     await tx.recurringTaskTemplate.update({
       where: { id: tpl.id },
