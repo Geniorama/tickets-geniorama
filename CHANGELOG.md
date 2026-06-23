@@ -9,6 +9,17 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.33.0] — 2026-06-23
+
+### Plantillas de ticket
+- Nuevo módulo de **plantillas de ticket** (`/tickets/plantillas`), análogo al de plantillas de tarea. El staff (ADMINISTRADOR/COLABORADOR) puede crear, editar y eliminar plantillas reutilizables con **nombre, título, descripción, prioridad, categoría y checklist**.
+- El formulario de **«Nuevo ticket»** muestra ahora un **selector de plantilla** (solo staff): al elegir una, prellena título, descripción, prioridad, categoría y checklist, que siguen siendo editables antes de crear el ticket.
+- Las plantillas son **globales** (compartidas por el staff) y **no** incluyen cliente/plan/sitio, ya que esos datos dependen del ticket concreto.
+- Nuevo modelo Prisma `TicketTemplate` (tabla `ticket_templates`) y server actions `createTicketTemplate` / `updateTicketTemplate` / `deleteTicketTemplate`.
+- Acceso desde el sidebar: **Tickets → Plantillas**.
+
+---
+
 ## [1.32.0] — 2026-06-19
 
 ### Vista previa de programación en plantillas recurrentes

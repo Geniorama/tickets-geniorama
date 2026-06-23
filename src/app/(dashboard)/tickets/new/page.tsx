@@ -2,13 +2,20 @@ import { getRequiredSession } from "@/lib/auth-helpers";
 import { isAdmin, isStaff } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { TicketForm } from "@/components/tickets/ticket-form";
+import { TemplatePicker } from "@/components/tasks/template-picker";
 import { getClientActivePlan } from "@/lib/plans.server";
 
 export const metadata = { title: "Nuevo ticket" };
 
-export default async function NewTicketPage() {
+export default async function NewTicketPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ template?: string }>;
+}) {
   const session = await getRequiredSession();
   const admin = isAdmin(session.user.role);
+  const staff = isStaff(session.user.role);
+  const { template: templateId } = await searchParams;
 
   // Check plan for clients
   if (session.user.role === "CLIENTE") {
@@ -28,7 +35,7 @@ export default async function NewTicketPage() {
     }
   }
 
-  const [collaborators, clients, plans, sites, reviewerCandidates] = await Promise.all([
+  const [collaborators, clients, plans, sites, reviewerCandidates, templates] = await Promise.all([
     admin
       ? prisma.user.findMany({
           where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
@@ -67,27 +74,48 @@ export default async function NewTicketPage() {
           select: { id: true, name: true, domain: true, companyId: true },
         }),
     // Revisores elegibles: cualquier usuario activo (solo para staff)
-    isStaff(session.user.role)
+    staff
       ? prisma.user.findMany({
           where: { isActive: true },
           orderBy: { name: "asc" },
           select: { id: true, name: true },
         })
       : Promise.resolve([]),
+    // Plantillas de ticket (solo staff)
+    staff
+      ? prisma.ticketTemplate.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+      : Promise.resolve([]),
   ]);
+
+  // Plantilla seleccionada para prellenar el formulario
+  const template = staff && templateId
+    ? await prisma.ticketTemplate.findUnique({ where: { id: templateId } })
+    : null;
+  const prefill = template
+    ? {
+        title: template.title,
+        description: template.description,
+        priority: template.priority as string,
+        category: template.category,
+        checklist: template.checklist,
+      }
+    : undefined;
 
   return (
     <div className="max-w-2xl">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Nuevo ticket</h1>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
+        {staff && <TemplatePicker templates={templates} selected={templateId} />}
         <TicketForm
+          key={templateId ?? "blank"}
           collaborators={collaborators}
           clients={clients}
           plans={plans}
           sites={sites}
           reviewerCandidates={reviewerCandidates}
-          canSetDueDate={isStaff(session.user.role)}
-          canSaveDraft={isStaff(session.user.role)}
+          canSetDueDate={staff}
+          canSaveDraft={staff}
+          prefill={prefill}
         />
       </div>
     </div>

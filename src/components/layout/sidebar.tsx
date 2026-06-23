@@ -35,6 +35,7 @@ const navItems: NavItem[] = [
   {
     href: "/tickets",            label: "Tickets",        icon: Ticket,          roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"],
     children: [
+      { href: "/tickets/plantillas", label: "Plantillas",  icon: LayoutTemplate, roles: ["ADMINISTRADOR", "COLABORADOR"] },
       { href: "/reportes",       label: "Reportes",       icon: BarChart3,       roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"] },
     ],
   },

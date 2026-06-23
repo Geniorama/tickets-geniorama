@@ -16,6 +16,14 @@ interface Client { id: string; name: string; companies: { id: string; name: stri
 interface Plan { id: string; name: string; type: string; companyId: string; company: { name: string }; }
 interface Site { id: string; name: string; domain: string; companyId: string; }
 
+interface TicketPrefill {
+  title: string;
+  description: string;
+  priority: string;
+  category: string | null;
+  checklist: string[];
+}
+
 export function TicketForm({
   collaborators = [],
   clients = [],
@@ -24,6 +32,7 @@ export function TicketForm({
   reviewerCandidates = [],
   canSetDueDate = false,
   canSaveDraft = false,
+  prefill,
 }: {
   collaborators?: Collaborator[];
   clients?: Client[];
@@ -32,12 +41,13 @@ export function TicketForm({
   reviewerCandidates?: { id: string; name: string }[];
   canSetDueDate?: boolean;
   canSaveDraft?: boolean;
+  prefill?: TicketPrefill;
 }) {
   const [isPending, startTransition] = useTransition();
   const submitAsDraft = useRef(false);
   const [selectedClientId, setSelectedClientId] = useState("");
   const [reviewerIds, setReviewerIds] = useState<string[]>([]);
-  const [checklistItems, setChecklistItems] = useState<string[]>([]);
+  const [checklistItems, setChecklistItems] = useState<string[]>(prefill?.checklist ?? []);
   const [checklistInput, setChecklistInput] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -109,6 +119,7 @@ export function TicketForm({
         <input
           name="title"
           required
+          defaultValue={prefill?.title ?? ""}
           className={inputClass}
           placeholder="Resumen breve del problema"
         />
@@ -118,6 +129,7 @@ export function TicketForm({
         <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
         <MarkdownEditor
           name="description"
+          defaultValue={prefill?.description ?? ""}
           placeholder="Describe el problema en detalle..."
         />
       </div>
@@ -280,7 +292,7 @@ export function TicketForm({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
-          <select name="priority" defaultValue="MEDIA" className={inputClass}>
+          <select name="priority" defaultValue={prefill?.priority ?? "MEDIA"} className={inputClass}>
             <option value="BAJA">Baja</option>
             <option value="MEDIA">Media</option>
             <option value="ALTA">Alta</option>
@@ -290,7 +302,7 @@ export function TicketForm({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-          <select name="category" defaultValue="" className={inputClass}>
+          <select name="category" defaultValue={prefill?.category ?? ""} className={inputClass}>
             <option value="">Sin categoría</option>
             <option value="Soporte técnico">Soporte técnico</option>
             <option value="Facturación">Facturación</option>

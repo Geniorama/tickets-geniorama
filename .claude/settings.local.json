@@ -87,7 +87,14 @@
       "Bash(git check-ignore *)",
       "PowerShell(npx prisma generate 2>&1 | Select-Object -Last 25)",
       "PowerShell(npm run *)",
-      "PowerShell(Get-ChildItem -Recurse \".next\\\\standalone\" -Filter \"server.js\" | Select-Object FullName; \"---\"; Get-ChildItem \".next\\\\standalone\" | Select-Object Name; \"--- wasm ---\"; Get-ChildItem -Recurse \".next\\\\standalone\" -Filter \"*.wasm\" | Select-Object FullName)"
+      "PowerShell(Get-ChildItem -Recurse \".next\\\\standalone\" -Filter \"server.js\" | Select-Object FullName; \"---\"; Get-ChildItem \".next\\\\standalone\" | Select-Object Name; \"--- wasm ---\"; Get-ChildItem -Recurse \".next\\\\standalone\" -Filter \"*.wasm\" | Select-Object FullName)",
+      "Bash(gh auth *)",
+      "Bash(gh run *)",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 40)",
+      "PowerShell(npx eslint src/components/admin/recurring-task-form.tsx \"src/app/\\(dashboard\\)/admin/tareas-recurrentes/[id]/edit/page.tsx\" src/actions/recurring-task.actions.ts 2>&1 | Select-Object -First 40)",
+      "Bash(npm run *)",
+      "PowerShell(npx prisma db push)",
+      "PowerShell(npx eslint src/actions/ticket-template.actions.ts \"src/components/tickets/ticket-template-form.tsx\" \"src/components/tickets/ticket-template-actions.tsx\" \"src/components/tickets/ticket-form.tsx\" \"src/app/\\(dashboard\\)/tickets/new/page.tsx\" \"src/app/\\(dashboard\\)/tickets/plantillas/page.tsx\" \"src/components/layout/sidebar.tsx\")"
     ]
   }
 }

@@ -157,6 +157,7 @@ model User {
   createdRecurringTemplates  RecurringTaskTemplate[] @relation("RecurringCreatedBy")
   assignedRecurringTemplates RecurringTaskTemplate[] @relation("RecurringAssignedTo")
   createdTaskTemplates       TaskTemplate[]          @relation("TaskTemplateCreatedBy")
+  createdTicketTemplates     TicketTemplate[]        @relation("TicketTemplateCreatedBy")
 
   @@map("users")
 }
@@ -515,6 +516,27 @@ model TaskTemplate {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@map("task_templates")
+}
+
+// Plantillas reutilizables de ticket. Sirven para prellenar el formulario de
+// "Nuevo ticket". Son globales (compartidas por todo el staff) y no incluyen
+// cliente/plan/sitio (esos dependen del ticket concreto que se crea).
+model TicketTemplate {
+  id             String   @id @default(cuid())
+  name           String
+  title          String
+  description    String   @db.Text
+  priority       Priority @default(MEDIA)
+  category       String?
+  checklist      String[] @default([])
+
+  createdById    String   @map("created_by_id")
+  createdBy      User     @relation("TicketTemplateCreatedBy", fields: [createdById], references: [id])
+
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("ticket_templates")
 }
 
 model TaskComment {
