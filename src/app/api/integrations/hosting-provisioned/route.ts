@@ -38,7 +38,10 @@ function unauthorized() {
 }
 
 function getExpectedToken(): string | null {
-  return process.env.INTEGRATION_HOSTING_TOKEN ?? null;
+  // Trim to tolerate a trailing newline/space in the deployment env value —
+  // verifyAuth compares lengths first, so an accidental whitespace char would
+  // otherwise cause a silent 401.
+  return process.env.INTEGRATION_HOSTING_TOKEN?.trim() || null;
 }
 
 function verifyAuth(req: Request): boolean {
