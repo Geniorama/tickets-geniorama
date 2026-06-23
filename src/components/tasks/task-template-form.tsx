@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { TASK_CATEGORY_GROUPS, TASK_CATEGORIES } from "@/lib/task-categories";
+import { parseChecklistPaste } from "@/lib/checklist-paste";
 import { createTaskTemplate, updateTaskTemplate } from "@/actions/task-template.actions";
 
 export interface TaskTemplateData {
@@ -51,6 +52,15 @@ export function TaskTemplateForm({ template }: { template?: TaskTemplateData }) 
     if (!t) return;
     setChecklist((prev) => [...prev, t]);
     setChecklistInput("");
+  }
+
+  function handleChecklistPaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const items = parseChecklistPaste(e.clipboardData.getData("text"));
+    if (items.length > 1) {
+      e.preventDefault();
+      setChecklist((prev) => [...prev, ...items]);
+      setChecklistInput("");
+    }
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -172,6 +182,7 @@ export function TaskTemplateForm({ template }: { template?: TaskTemplateData }) 
             value={checklistInput}
             onChange={(e) => setChecklistInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addChecklistItem(); } }}
+            onPaste={handleChecklistPaste}
             placeholder="Agregar ítem y pulsar Enter"
             style={inputStyle}
           />

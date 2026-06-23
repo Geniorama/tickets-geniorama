@@ -94,7 +94,8 @@
       "PowerShell(npx eslint src/components/admin/recurring-task-form.tsx \"src/app/\\(dashboard\\)/admin/tareas-recurrentes/[id]/edit/page.tsx\" src/actions/recurring-task.actions.ts 2>&1 | Select-Object -First 40)",
       "Bash(npm run *)",
       "PowerShell(npx prisma db push)",
-      "PowerShell(npx eslint src/actions/ticket-template.actions.ts \"src/components/tickets/ticket-template-form.tsx\" \"src/components/tickets/ticket-template-actions.tsx\" \"src/components/tickets/ticket-form.tsx\" \"src/app/\\(dashboard\\)/tickets/new/page.tsx\" \"src/app/\\(dashboard\\)/tickets/plantillas/page.tsx\" \"src/components/layout/sidebar.tsx\")"
+      "PowerShell(npx eslint src/actions/ticket-template.actions.ts \"src/components/tickets/ticket-template-form.tsx\" \"src/components/tickets/ticket-template-actions.tsx\" \"src/components/tickets/ticket-form.tsx\" \"src/app/\\(dashboard\\)/tickets/new/page.tsx\" \"src/app/\\(dashboard\\)/tickets/plantillas/page.tsx\" \"src/components/layout/sidebar.tsx\")",
+      "PowerShell(npx eslint src/lib/checklist-paste.ts src/actions/checklist.actions.ts \"src/components/ui/checklist-panel.tsx\" \"src/components/tickets/ticket-form.tsx\" \"src/components/tickets/ticket-template-form.tsx\" \"src/components/tasks/task-template-form.tsx\" \"src/components/projects/task-form.tsx\" \"src/components/admin/recurring-task-form.tsx\")"
     ]
   }
 }

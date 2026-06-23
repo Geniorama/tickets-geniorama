@@ -9,6 +9,16 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.34.0] — 2026-06-23
+
+### Pegar listas en el checklist las separa en ítems
+- Al **pegar texto en cualquier checklist** (tickets y tareas: formularios de creación/edición, plantillas, recurrentes y el panel de la vista de detalle), cada renglón se detecta y se agrega como un **ítem independiente**.
+- Se reconocen y limpian los marcadores de lista más comunes: **viñetas** (`-`, `*`, `•`, `·`, `◦`, flechas…), **numeración/letras** (`1.`, `1)`, `a.`, `a)`), **casillas** (`[ ]`, `[x]`) y **renglones tabulados/indentados**. Las líneas vacías se descartan.
+- Si lo pegado es una sola línea, el comportamiento no cambia (se escribe en el campo como siempre).
+- Nuevo helper `src/lib/checklist-paste.ts` (`parseChecklistPaste`) y server actions de inserción múltiple `addTicketChecklistItems` / `addTaskChecklistItems` (vía `createMany`) para el panel de detalle.
+
+---
+
 ## [1.33.0] — 2026-06-23
 
 ### Plantillas de ticket

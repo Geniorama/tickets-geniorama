@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, X } from "lucide-react";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
+import { parseChecklistPaste } from "@/lib/checklist-paste";
 import { createTicketTemplate, updateTicketTemplate } from "@/actions/ticket-template.actions";
 
 export interface TicketTemplateData {
@@ -61,6 +62,15 @@ export function TicketTemplateForm({ template }: { template?: TicketTemplateData
     if (!t) return;
     setChecklist((prev) => [...prev, t]);
     setChecklistInput("");
+  }
+
+  function handleChecklistPaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const items = parseChecklistPaste(e.clipboardData.getData("text"));
+    if (items.length > 1) {
+      e.preventDefault();
+      setChecklist((prev) => [...prev, ...items]);
+      setChecklistInput("");
+    }
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -166,6 +176,7 @@ export function TicketTemplateForm({ template }: { template?: TicketTemplateData
             value={checklistInput}
             onChange={(e) => setChecklistInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addChecklistItem(); } }}
+            onPaste={handleChecklistPaste}
             placeholder="Agregar ítem y pulsar Enter"
             style={inputStyle}
           />

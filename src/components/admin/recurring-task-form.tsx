@@ -16,6 +16,7 @@ import {
   type RecurrencePattern,
 } from "@/lib/recurrence";
 import { TASK_CATEGORY_GROUPS, TASK_CATEGORIES } from "@/lib/task-categories";
+import { parseChecklistPaste } from "@/lib/checklist-paste";
 
 type Project = { id: string; name: string };
 type StaffUser = { id: string; name: string };
@@ -160,6 +161,15 @@ export function RecurringTaskForm({
     if (!t) return;
     setData((d) => ({ ...d, checklist: [...d.checklist, t] }));
     setChecklistInput("");
+  }
+
+  function handleChecklistPaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const items = parseChecklistPaste(e.clipboardData.getData("text"));
+    if (items.length > 1) {
+      e.preventDefault();
+      setData((d) => ({ ...d, checklist: [...d.checklist, ...items] }));
+      setChecklistInput("");
+    }
   }
 
   function removeChecklistItem(idx: number) {
@@ -457,6 +467,7 @@ export function RecurringTaskForm({
               value={checklistInput}
               onChange={(e) => setChecklistInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addChecklistItem(); } }}
+              onPaste={handleChecklistPaste}
               placeholder="Agregar ítem y pulsar Enter"
               style={inputStyle}
             />

@@ -4,14 +4,17 @@ import { useState, useEffect, useTransition } from "react";
 import { Check, Plus, X } from "lucide-react";
 import {
   addTicketChecklistItem,
+  addTicketChecklistItems,
   toggleTicketChecklistItem,
   deleteTicketChecklistItem,
 } from "@/actions/checklist.actions";
 import {
   addTaskChecklistItem,
+  addTaskChecklistItems,
   toggleTaskChecklistItem,
   deleteTaskChecklistItem,
 } from "@/actions/checklist.actions";
+import { parseChecklistPaste } from "@/lib/checklist-paste";
 
 type Item = { id: string; title: string; isChecked: boolean };
 
@@ -23,12 +26,14 @@ function ChecklistUI({
   onToggle,
   onDelete,
   onAdd,
+  onAddMany,
 }: {
   items: Item[];
   canDelete: boolean;
   onToggle: (item: Item) => void;
   onDelete: (id: string) => void;
   onAdd: (title: string) => void;
+  onAddMany: (titles: string[]) => void;
 }) {
   const [newTitle, setNewTitle] = useState("");
   const [addOpen, setAddOpen] = useState(false);
@@ -44,6 +49,16 @@ function ChecklistUI({
     setNewTitle("");
     setAddOpen(false);
     onAdd(t);
+  }
+
+  function handlePaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const titles = parseChecklistPaste(e.clipboardData.getData("text"));
+    if (titles.length > 1) {
+      e.preventDefault();
+      setNewTitle("");
+      setAddOpen(false);
+      onAddMany(titles);
+    }
   }
 
   return (
@@ -160,7 +175,8 @@ function ChecklistUI({
               if (e.key === "Enter") handleAdd();
               if (e.key === "Escape") { setAddOpen(false); setNewTitle(""); }
             }}
-            placeholder="Nuevo ítem…"
+            onPaste={handlePaste}
+            placeholder="Nuevo ítem… (pega una lista para varios)"
             maxLength={200}
             style={{
               flex: 1,
@@ -262,6 +278,14 @@ export function TicketChecklistPanel({
     });
   }
 
+  function handleAddMany(titles: string[]) {
+    const temp = titles.map((title, i) => ({ id: `temp-${Date.now()}-${i}`, title, isChecked: false }));
+    setItems((prev) => [...prev, ...temp]);
+    startTransition(async () => {
+      await addTicketChecklistItems(ticketId, titles);
+    });
+  }
+
   return (
     <ChecklistUI
       items={items}
@@ -269,6 +293,7 @@ export function TicketChecklistPanel({
       onToggle={handleToggle}
       onDelete={handleDelete}
       onAdd={handleAdd}
+      onAddMany={handleAddMany}
     />
   );
 }
@@ -313,6 +338,14 @@ export function TaskChecklistPanel({
     });
   }
 
+  function handleAddMany(titles: string[]) {
+    const temp = titles.map((title, i) => ({ id: `temp-${Date.now()}-${i}`, title, isChecked: false }));
+    setItems((prev) => [...prev, ...temp]);
+    startTransition(async () => {
+      await addTaskChecklistItems(taskId, projectId, titles);
+    });
+  }
+
   return (
     <ChecklistUI
       items={items}
@@ -320,6 +353,7 @@ export function TaskChecklistPanel({
       onToggle={handleToggle}
       onDelete={handleDelete}
       onAdd={handleAdd}
+      onAddMany={handleAddMany}
     />
   );
 }

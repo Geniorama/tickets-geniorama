@@ -8,6 +8,7 @@ import type { Task } from "@/generated/prisma";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { TASK_CATEGORY_GROUPS, TASK_CATEGORIES } from "@/lib/task-categories";
+import { parseChecklistPaste } from "@/lib/checklist-paste";
 
 interface StaffUser {
   id: string;
@@ -437,6 +438,10 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
                   onChange={(e) => setChecklistInput(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") { e.preventDefault(); const t = checklistInput.trim(); if (t) { setChecklistItems((p) => [...p, t]); setChecklistInput(""); } }
+                  }}
+                  onPaste={(e) => {
+                    const items = parseChecklistPaste(e.clipboardData.getData("text"));
+                    if (items.length > 1) { e.preventDefault(); setChecklistItems((p) => [...p, ...items]); setChecklistInput(""); }
                   }}
                   placeholder="Agregar ítem al checklist…"
                   style={{ ...inputStyle, flex: 1, boxSizing: "border-box" }}

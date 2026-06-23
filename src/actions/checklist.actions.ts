@@ -25,6 +25,25 @@ export async function addTicketChecklistItem(ticketId: string, title: string) {
   revalidatePath(`/tickets/${ticketId}`);
 }
 
+export async function addTicketChecklistItems(ticketId: string, titles: string[]) {
+  const session = await getRequiredSession();
+  const clean = titles.map((t) => t.trim()).filter((t) => t.length > 0);
+  if (clean.length === 0) return { error: "Sin ítems para agregar" };
+
+  const count = await prisma.ticketChecklistItem.count({ where: { ticketId } });
+
+  await prisma.ticketChecklistItem.createMany({
+    data: clean.map((title, i) => ({
+      ticketId,
+      title,
+      position: count + i,
+      createdById: session.user.id,
+    })),
+  });
+
+  revalidatePath(`/tickets/${ticketId}`);
+}
+
 export async function toggleTicketChecklistItem(itemId: string, ticketId: string) {
   await getRequiredSession();
 
@@ -63,6 +82,25 @@ export async function addTaskChecklistItem(taskId: string, projectId: string | n
       position: count,
       createdById: session.user.id,
     },
+  });
+
+  revalidatePath(projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`);
+}
+
+export async function addTaskChecklistItems(taskId: string, projectId: string | null, titles: string[]) {
+  const session = await getRequiredSession();
+  const clean = titles.map((t) => t.trim()).filter((t) => t.length > 0);
+  if (clean.length === 0) return { error: "Sin ítems para agregar" };
+
+  const count = await prisma.taskChecklistItem.count({ where: { taskId } });
+
+  await prisma.taskChecklistItem.createMany({
+    data: clean.map((title, i) => ({
+      taskId,
+      title,
+      position: count + i,
+      createdById: session.user.id,
+    })),
   });
 
   revalidatePath(projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`);

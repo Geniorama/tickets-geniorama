@@ -5,6 +5,7 @@ import { FileText, Paperclip, Plus, X } from "lucide-react";
 import { createTicket } from "@/actions/ticket.actions";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { parseChecklistPaste } from "@/lib/checklist-paste";
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -96,6 +97,15 @@ export function TicketForm({
     if (!t) return;
     setChecklistItems((prev) => [...prev, t]);
     setChecklistInput("");
+  }
+
+  function handleChecklistPaste(e: React.ClipboardEvent<HTMLInputElement>) {
+    const items = parseChecklistPaste(e.clipboardData.getData("text"));
+    if (items.length > 1) {
+      e.preventDefault();
+      setChecklistItems((prev) => [...prev, ...items]);
+      setChecklistInput("");
+    }
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -259,6 +269,7 @@ export function TicketForm({
             value={checklistInput}
             onChange={(e) => setChecklistInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addChecklistItem(); } }}
+            onPaste={handleChecklistPaste}
             placeholder="Agregar ítem al checklist…"
             style={{ flex: 1, border: "1px solid var(--app-border)", borderRadius: "0.5rem", padding: "0.5rem 0.75rem", fontSize: "0.8125rem", color: "var(--app-body-text)", backgroundColor: "var(--app-bg)", outline: "none", boxSizing: "border-box" }}
           />
