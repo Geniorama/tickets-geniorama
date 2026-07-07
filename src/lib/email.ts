@@ -109,6 +109,45 @@ export async function sendTicketClosedEmail(to: Recipient, ticketTitle: string, 
   });
 }
 
+export async function sendTicketStatusChangedEmail(
+  to: Recipient,
+  ticketTitle: string,
+  statusLabel: string,
+  ticketUrl: string
+) {
+  await client.sendMail({
+    from: FROM,
+    to: [{ email_address: { address: to.email, name: to.name } }],
+    subject: `Tu ticket cambió de estado — ${ticketTitle}`,
+    htmlbody: `
+      <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; color: #1f2937;">
+        <div style="background: #4f46e5; padding: 24px 32px; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; color: #ffffff; font-size: 20px;">Geniorama Tickets</h1>
+        </div>
+        <div style="background: #ffffff; padding: 32px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+          <p style="margin-top: 0;">Hola <strong>${to.name}</strong>,</p>
+          <p>El estado de tu ticket ha sido actualizado.</p>
+          <p style="background: #f5f3ff; border-left: 4px solid #4f46e5; padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 24px 0;">
+            <strong>${ticketTitle}</strong><br>
+            <span style="color: #6b7280; font-size: 13px;">Nuevo estado:</span>
+            <span style="display: inline-block; background: #4f46e5; color: #ffffff; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: bold; margin-left: 4px;">${statusLabel}</span>
+          </p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${ticketUrl}"
+               style="background: #4f46e5; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 15px;">
+              Ver ticket
+            </a>
+          </div>
+          <p style="color: #6b7280; font-size: 13px;">
+            Puedes hacer seguimiento del avance desde el portal.<br>
+            <a href="${ticketUrl}" style="color: #4f46e5; word-break: break-all;">${ticketUrl}</a>
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}
+
 export async function sendMentionEmail(
   to: Recipient,
   mentionedBy: string,

@@ -9,6 +9,17 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.35.0] — 2026-07-07
+
+### Correo al cliente en cada cambio de estado del ticket
+- Ahora, cada vez que un ticket **cambia de estado**, se envía un **correo al cliente** asociado avisándole del nuevo estado (Por asignar, Abierto, En progreso, En revisión, Cerrado).
+- Nueva plantilla `sendTicketStatusChangedEmail` en `src/lib/email.ts` (estilo consistente con los demás correos, badge con el estado).
+- Cableado en las tres acciones que modifican el estado: `updateTicketStatus`, `updateTicket` y `configureTicket`. El correo solo se envía cuando el estado **realmente cambia** y el ticket tiene cliente.
+- El estado **Cerrado** conserva su plantilla dedicada (`sendTicketClosedEmail`); en `configureTicket` se evita duplicar el correo cuando el cambio coincide con el de asignación (`sendTicketAssignedEmail`).
+- Envío *fire-and-forget* (`.catch(console.error)`): un fallo de correo no interrumpe la actualización del ticket.
+
+---
+
 ## [1.34.0] — 2026-06-23
 
 ### Pegar listas en el checklist las separa en ítems

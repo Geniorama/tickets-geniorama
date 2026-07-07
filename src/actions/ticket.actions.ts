@@ -10,7 +10,7 @@ import { validateFile, uploadFile } from "@/lib/s3";
 import { getClientActivePlan } from "@/lib/plans.server";
 import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
-import { sendTicketAssignedEmail, sendTicketClosedEmail } from "@/lib/email";
+import { sendTicketAssignedEmail, sendTicketClosedEmail, sendTicketStatusChangedEmail } from "@/lib/email";
 import { ticketPrefix } from "@/lib/ticket-code";
 import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/reviewers";
 
@@ -351,9 +351,14 @@ export async function updateTicketStatus(ticketId: string, status: string) {
       await notifyReviewers("ticket", ticketId, ticket.title, `/tickets/${ticketId}`, session.user.id, true);
     }
 
-    if (status === "CERRADO" && ticket.client) {
+    // Email al cliente en cada cambio de estado (CERRADO usa su propia plantilla)
+    if (status !== ticket.status && ticket.client) {
       const url = `${APP_URL}/tickets/${ticketId}`;
-      void sendTicketClosedEmail(ticket.client, ticket.title, url).catch(console.error);
+      if (status === "CERRADO") {
+        void sendTicketClosedEmail(ticket.client, ticket.title, url).catch(console.error);
+      } else {
+        void sendTicketStatusChangedEmail(ticket.client, ticket.title, label, url).catch(console.error);
+      }
     }
 
     // Webhook: notificar cuando el ticket vuelve a Abierto (pendiente)
@@ -510,10 +515,15 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     );
   }
 
-  // Email al cliente si el ticket se cierra
-  if (parsed.data.status === "CERRADO" && oldTicket?.status !== "CERRADO" && oldTicket?.client) {
+  // Email al cliente en cada cambio de estado (CERRADO usa su propia plantilla)
+  if (parsed.data.status !== oldTicket?.status && oldTicket?.client) {
     const url = `${APP_URL}/tickets/${ticketId}`;
-    void sendTicketClosedEmail(oldTicket.client, parsed.data.title, url).catch(console.error);
+    if (parsed.data.status === "CERRADO") {
+      void sendTicketClosedEmail(oldTicket.client, parsed.data.title, url).catch(console.error);
+    } else {
+      const label = ticketStatusLabels[parsed.data.status] ?? parsed.data.status;
+      void sendTicketStatusChangedEmail(oldTicket.client, parsed.data.title, label, url).catch(console.error);
+    }
   }
 
   revalidatePath(`/tickets/${ticketId}`);
@@ -571,11 +581,13 @@ export async function configureTicket(ticketId: string, formData: FormData) {
 
   const ticketUrl = `${APP_URL}/tickets/${ticketId}`;
 
+  let assignedEmailSent = false;
   if (assignedToId && assignedToId !== ticket?.assignedToId && assignedToId !== session.user.id) {
     await notify(assignedToId, "ticket_assigned", "Ticket asignado", `Se te asignó: "${ticket?.title}"`, `/tickets/${ticketId}`, true);
 
     if (ticket?.client) {
       void sendTicketAssignedEmail(ticket.client, ticket.title, ticketUrl).catch(console.error);
+      assignedEmailSent = true;
     }
   }
 
@@ -583,8 +595,15 @@ export async function configureTicket(ticketId: string, formData: FormData) {
     await notifyReviewers("ticket", ticketId, ticket?.title ?? "", `/tickets/${ticketId}`, session.user.id, true);
   }
 
-  if (status === "CERRADO" && ticket?.status !== "CERRADO" && ticket?.client) {
-    void sendTicketClosedEmail(ticket.client, ticket.title, ticketUrl).catch(console.error);
+  // Email al cliente en cada cambio de estado (CERRADO usa su propia plantilla;
+  // si ya se envió el correo de asignación en esta misma acción, no duplicamos)
+  if (status !== ticket?.status && ticket?.client) {
+    if (status === "CERRADO") {
+      void sendTicketClosedEmail(ticket.client, ticket.title, ticketUrl).catch(console.error);
+    } else if (!assignedEmailSent) {
+      const label = ticketStatusLabels[status] ?? status;
+      void sendTicketStatusChangedEmail(ticket.client, ticket.title, label, ticketUrl).catch(console.error);
+    }
   }
 
   // Notificar cambio de fecha límite
