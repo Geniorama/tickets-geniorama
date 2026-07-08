@@ -22,8 +22,14 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: "11mb",
+      // Debe cubrir el archivo más grande que permite validateFile (video 100 MB)
+      // más el overhead del multipart y los campos del formulario.
+      bodySizeLimit: "110mb",
     },
+    // El request de /tickets/new pasa por el middleware de NextAuth. Sin esto,
+    // el middleware trunca el body a 10 MB (default) antes de que llegue al
+    // Server Action, rompiendo el multipart ("Unexpected end of form").
+    middlewareClientMaxBodySize: "110mb",
   },
   images: {
     remotePatterns: [

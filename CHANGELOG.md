@@ -9,6 +9,15 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.35.1] — 2026-07-08
+
+### Fix: clientes no podían crear tickets con archivos grandes
+- Los clientes recibían un error al crear tickets al adjuntar archivos: el request se cortaba con `Error: Unexpected end of form`.
+- **Causa:** el request de `/tickets/new` pasa por el middleware de NextAuth, que trunca el body a **10 MB** por defecto (`middlewareClientMaxBodySize`) antes de que llegue al Server Action. Como `validateFile` permite video hasta 100 MB e imágenes/docs hasta 10 MB, cualquier adjunto que superara los 10 MB rompía el multipart.
+- **Fix:** en `next.config.ts` se alinean los límites con lo que la app ya permite — `experimental.middlewareClientMaxBodySize` y `serverActions.bodySizeLimit` se suben a **110 MB** (100 MB del video más overhead del multipart y campos del formulario).
+
+---
+
 ## [1.35.0] — 2026-07-07
 
 ### Correo al cliente en cada cambio de estado del ticket
