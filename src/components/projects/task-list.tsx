@@ -17,6 +17,38 @@ type TaskWithRelations = Task & {
   _count: { comments: number };
 };
 
+// Envuelve el contenido en un Link, salvo en modo readOnly (clientes), donde se
+// renderiza como texto sin enlace (el detalle de tarea no es accesible para clientes).
+function MaybeLink({
+  readOnly,
+  href,
+  style,
+  block,
+  hover,
+  children,
+}: {
+  readOnly: boolean;
+  href: string;
+  style: React.CSSProperties;
+  block?: boolean;
+  hover?: boolean;
+  children: React.ReactNode;
+}) {
+  if (readOnly) {
+    return block ? <div style={style}>{children}</div> : <span style={style}>{children}</span>;
+  }
+  return (
+    <Link
+      href={href}
+      style={style}
+      onMouseEnter={hover ? (e) => ((e.currentTarget as HTMLElement).style.color = "#fd1384") : undefined}
+      onMouseLeave={hover ? (e) => ((e.currentTarget as HTMLElement).style.color = "var(--app-body-text)") : undefined}
+    >
+      {children}
+    </Link>
+  );
+}
+
 // Cuando se pasa projectId se omite la columna "Proyecto" (vista dentro de un proyecto)
 // Cuando no se pasa se muestra la columna "Proyecto" (vista global /tareas)
 export function TaskList({
@@ -26,6 +58,7 @@ export function TaskList({
   sortDir,
   basePath,
   paramsStr,
+  readOnly = false,
 }: {
   tasks: TaskWithRelations[];
   projectId?: string;
@@ -33,6 +66,7 @@ export function TaskList({
   sortDir?: string;
   basePath?: string;
   paramsStr?: string;
+  readOnly?: boolean;
 }) {
   const showProject = !projectId;
 
@@ -92,7 +126,7 @@ export function TaskList({
           const href = task.project ? `/proyectos/${task.project.id}/tareas/${task.id}` : `/tareas/${task.id}`;
           return (
             <li key={task.id}>
-              <Link href={href} style={{ display: "block", padding: "0.875rem 1rem", textDecoration: "none" }}>
+              <MaybeLink readOnly={readOnly} href={href} block style={{ display: "block", padding: "0.875rem 1rem", textDecoration: "none" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.375rem" }}>
                   <span style={{ fontWeight: 600, color: "var(--app-body-text)", fontSize: "0.875rem", lineHeight: 1.4 }}>
                     {task.number > 0 && (
@@ -124,7 +158,7 @@ export function TaskList({
                   )}
                   {task.estimatedHours && <span>Estimado: {formatEstimatedTime(task.estimatedHours)}</span>}
                 </div>
-              </Link>
+              </MaybeLink>
             </li>
           );
         })}
@@ -210,11 +244,11 @@ export function TaskList({
                 }}
               >
                 <td style={{ padding: "0.75rem 1rem" }}>
-                  <Link
+                  <MaybeLink
+                    readOnly={readOnly}
                     href={href}
+                    hover
                     style={{ fontWeight: 500, color: "var(--app-body-text)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.375rem" }}
-                    onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#fd1384")}
-                    onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = "var(--app-body-text)")}
                   >
                     {task.number > 0 && (
                       <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--app-text-muted)", background: "var(--app-content-bg)", border: "1px solid var(--app-border)", borderRadius: "0.25rem", padding: "0.1rem 0.35rem", letterSpacing: "0.03em", flexShrink: 0 }}>
@@ -227,7 +261,7 @@ export function TaskList({
                       </span>
                     )}
                     {task.title}
-                  </Link>
+                  </MaybeLink>
                   {task._count.comments > 0 && (
                     <span style={{ marginLeft: "0.5rem", fontSize: "0.6875rem", color: "var(--app-text-muted)" }}>
                       {task._count.comments} comentarios

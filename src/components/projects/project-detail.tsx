@@ -212,16 +212,16 @@ export function ProjectDetail({
               Vence: {formatDate(project.dueDate)}
             </span>
           )}
-          {!isClient && (
-            <span>
-              {project.tasks.length} tarea{project.tasks.length !== 1 ? "s" : ""}
-            </span>
-          )}
+          <span>
+            {project.tasks.length} tarea{project.tasks.length !== 1 ? "s" : ""}
+          </span>
         </div>
       </div>
 
-      {/* View toggle + actions — solo para staff/admin */}
-      {!isClient && (
+      {/* Tareas: lista de solo lectura para clientes; vistas completas para staff/admin */}
+      {isClient ? (
+        <TaskList tasks={project.tasks} projectId={project.id} readOnly />
+      ) : (
         <>
           <div
             style={{

@@ -9,6 +9,13 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.39.0] — 2026-07-09
+
+### Los clientes ven las tareas de los proyectos de su empresa
+- En el detalle de un proyecto, los **clientes** ahora ven el **listado de tareas con su estado** (antes la sección de tareas estaba oculta para clientes).
+- Es una lista de **solo lectura**: sin botón «Nueva tarea», sin cambio de vista (Kanban/Calendario) y sin enlaces al detalle de cada tarea (el detalle de tarea sigue siendo de uso interno). El staff conserva la experiencia completa.
+- `TaskList` gana una prop `readOnly` que renderiza las filas como texto en vez de enlaces.
+
 ## [1.38.0] — 2026-07-09
 
 ### Foto de perfil + página de perfil a ancho completo
