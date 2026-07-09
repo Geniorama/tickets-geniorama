@@ -8,6 +8,7 @@ import { isOverdue } from "@/lib/overdue";
 import { ListTodo } from "lucide-react";
 import { SortableHeader } from "@/components/ui/sortable-header";
 import { taskCode } from "@/lib/task-code";
+import { formatEstimatedTime } from "@/lib/estimated-time";
 
 type TaskWithRelations = Task & {
   assignedTo: { name: string } | null;
@@ -121,6 +122,7 @@ export function TaskList({
                       Vence: {formatDate(task.dueDate)}
                     </span>
                   )}
+                  {task.estimatedHours && <span>Estimado: {formatEstimatedTime(task.estimatedHours)}</span>}
                 </div>
               </Link>
             </li>
@@ -188,6 +190,12 @@ export function TaskList({
               <SortableHeader label="Vence" column="dueDate" sortBy={sb} sortDir={sd} basePath={bp} paramsStr={ps} />
             ) : (
               <th style={plainThStyle}>Vence</th>
+            )}
+
+            {sortable ? (
+              <SortableHeader label="Estimado" column="estimatedHours" sortBy={sb} sortDir={sd} basePath={bp} paramsStr={ps} />
+            ) : (
+              <th style={plainThStyle}>Estimado</th>
             )}
           </tr>
         </thead>
@@ -273,6 +281,9 @@ export function TaskList({
                   }}
                 >
                   {task.dueDate ? formatDate(task.dueDate) : "—"}
+                </td>
+                <td style={{ padding: "0.75rem 1rem", color: "var(--app-text-muted)", whiteSpace: "nowrap" }}>
+                  {formatEstimatedTime(task.estimatedHours)}
                 </td>
               </tr>
             );

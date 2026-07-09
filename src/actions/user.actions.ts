@@ -20,6 +20,9 @@ const createUserSchema = z.object({
   companyIds: z.array(z.string()).optional(),
   cargo: z.string().max(120).optional(),
   area: z.string().max(120).optional(),
+  bio: z.string().max(2000).optional(),
+  isProjectManager: z.boolean().optional(),
+  isSupportAgent: z.boolean().optional(),
 });
 
 export async function createUser(formData: FormData) {
@@ -35,6 +38,9 @@ export async function createUser(formData: FormData) {
     companyIds,
     cargo: formData.get("cargo") || undefined,
     area: formData.get("area") || undefined,
+    bio: formData.get("bio") || undefined,
+    isProjectManager: formData.get("isProjectManager") === "true",
+    isSupportAgent: formData.get("isSupportAgent") === "true",
   });
 
   if (!parsed.success) {
@@ -63,6 +69,9 @@ export async function createUser(formData: FormData) {
       role: parsed.data.role,
       cargo: isStaffRole ? (parsed.data.cargo ?? null) : null,
       area: isStaffRole ? (parsed.data.area ?? null) : null,
+      bio: isStaffRole ? (parsed.data.bio ?? null) : null,
+      isProjectManager: isStaffRole ? !!parsed.data.isProjectManager : false,
+      isSupportAgent: isStaffRole ? !!parsed.data.isSupportAgent : false,
       companies: {
         connect: (parsed.data.companyIds ?? []).map((id) => ({ id })),
       },
@@ -99,6 +108,9 @@ export async function updateUser(userId: string, formData: FormData) {
     password: z.string().optional(),
     cargo: z.string().max(120).optional(),
     area: z.string().max(120).optional(),
+    bio: z.string().max(2000).optional(),
+    isProjectManager: z.boolean().optional(),
+    isSupportAgent: z.boolean().optional(),
   });
 
   const parsed = schema.safeParse({
@@ -110,6 +122,9 @@ export async function updateUser(userId: string, formData: FormData) {
     password: formData.get("password") || undefined,
     cargo: formData.get("cargo") || undefined,
     area: formData.get("area") || undefined,
+    bio: formData.get("bio") || undefined,
+    isProjectManager: formData.get("isProjectManager") === "true",
+    isSupportAgent: formData.get("isSupportAgent") === "true",
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -132,6 +147,9 @@ export async function updateUser(userId: string, formData: FormData) {
     isActive: parsed.data.isActive,
     cargo: isStaffRole ? (parsed.data.cargo ?? null) : null,
     area: isStaffRole ? (parsed.data.area ?? null) : null,
+    bio: isStaffRole ? (parsed.data.bio ?? null) : null,
+    isProjectManager: isStaffRole ? !!parsed.data.isProjectManager : false,
+    isSupportAgent: isStaffRole ? !!parsed.data.isSupportAgent : false,
     companies: {
       set: (parsed.data.companyIds ?? []).map((id) => ({ id })),
     },
@@ -145,6 +163,7 @@ export async function updateUser(userId: string, formData: FormData) {
 
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}/edit`);
+  revalidatePath("/agendar");
   return { success: true };
 }
 

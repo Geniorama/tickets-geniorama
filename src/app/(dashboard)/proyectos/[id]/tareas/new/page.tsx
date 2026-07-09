@@ -77,7 +77,7 @@ export default async function NewTaskPage({
 
       <div
         style={{
-          maxWidth: "64rem",
+          width: "100%",
           backgroundColor: "var(--app-card-bg)",
           border: "1px solid var(--app-border)",
           borderRadius: "0.75rem",

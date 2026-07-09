@@ -82,6 +82,11 @@ enum ReactionType {
   REVISANDO
 }
 
+enum SchedulingLinkCategory {
+  PROYECTOS
+  SOPORTE
+}
+
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model Company {
@@ -117,11 +122,17 @@ model User {
   role         Role     @default(CLIENTE)
   cargo        String?
   area         String?
+  bio              String?  @db.Text
+  avatarUrl         String? @map("avatar_url")
+  avatarStoragePath String? @map("avatar_storage_path")
+  isProjectManager Boolean  @default(false) @map("is_project_manager")
+  isSupportAgent   Boolean  @default(false) @map("is_support_agent")
   isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   companies    Company[]
+  schedulingLinks SchedulingLink[]
 
   createdTickets   Ticket[]             @relation("CreatedBy")
   assignedTickets  Ticket[]             @relation("AssignedTo")
@@ -318,6 +329,27 @@ model TaskTimeEntry {
   user      User      @relation(fields: [userId], references: [id])
 
   @@map("task_time_entries")
+}
+
+// Links de agendamiento de llamadas de un colaborador (Google Calendar, Calendly, etc.).
+// Cada link tiene título, descripción opcional y una categoría que determina si aplica a
+// proyectos (tareas) o a soporte (tickets). El agendamiento ocurre en el link externo.
+model SchedulingLink {
+  id          String                 @id @default(cuid())
+  title       String
+  description String?
+  url         String
+  category    SchedulingLinkCategory
+  position    Int                    @default(0)
+
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("scheduling_links")
 }
 
 model PasswordResetToken {

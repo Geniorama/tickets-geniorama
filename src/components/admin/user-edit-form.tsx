@@ -9,6 +9,7 @@ interface User {
   id: string; name: string; email: string;
   role: string; isActive: boolean; companyIds: string[];
   cargo: string | null; area: string | null;
+  bio: string | null; isProjectManager: boolean; isSupportAgent: boolean;
 }
 
 export function UserEditForm({ user, companies }: { user: User; companies: Company[] }) {
@@ -67,6 +68,35 @@ export function UserEditForm({ user, companies }: { user: User; companies: Compa
             <input name="area" defaultValue={user.area ?? ""} className={inputClass} placeholder="Ej: Diseño, Desarrollo, Marketing..." />
           </div>
         </div>
+      )}
+
+      {role !== "CLIENTE" && (
+        <>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Designaciones visibles para clientes</label>
+            <div className="flex flex-col gap-2 border border-gray-300 rounded-lg px-3 py-2">
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input type="checkbox" name="isProjectManager" value="true" defaultChecked={user.isProjectManager}
+                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                Gestor de proyectos
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input type="checkbox" name="isSupportAgent" value="true" defaultChecked={user.isSupportAgent}
+                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                Agente de soporte
+              </label>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Los usuarios designados aparecen en la página «Agendar» de los clientes.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Biografía <span className="text-gray-400 font-normal">(opcional)</span>
+            </label>
+            <textarea name="bio" defaultValue={user.bio ?? ""} rows={3} className={inputClass}
+              placeholder="Breve presentación del colaborador, visible para los clientes." />
+          </div>
+        </>
       )}
 
       {role === "CLIENTE" && (

@@ -12,6 +12,7 @@ import { es } from "date-fns/locale";
 import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/reviewers";
+import { combineEstimatedTime } from "@/lib/estimated-time";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -101,6 +102,7 @@ const taskSchema = z.object({
   dueDate:        z.string().optional(),
   endTime:        z.string().optional(),
   estimatedHours: z.string().optional(),
+  estimatedMinutes: z.string().optional(),
   force:          z.boolean().default(false), // omitir verificación de conflictos
   isDraft:        z.boolean().default(false), // guardar como borrador
 });
@@ -126,6 +128,7 @@ export async function createTask(projectIdArg: string | null, formData: FormData
     dueDate:        formData.get("dueDate")         || undefined,
     endTime:        formData.get("endTime")         || undefined,
     estimatedHours: formData.get("estimatedHours") || undefined,
+    estimatedMinutes: formData.get("estimatedMinutes") || undefined,
     force:          formData.get("force") === "true",
     isDraft:        formData.get("isDraft") === "true",
   });
@@ -175,7 +178,7 @@ export async function createTask(projectIdArg: string | null, formData: FormData
         startTime:      parsed.data.startTime      ?? null,
         dueDate:        parsed.data.dueDate         ? new Date(parsed.data.dueDate)   : null,
         endTime:        parsed.data.endTime         ?? null,
-        estimatedHours: parsed.data.estimatedHours ? parseFloat(parsed.data.estimatedHours) : null,
+        estimatedHours: combineEstimatedTime(parsed.data.estimatedHours, parsed.data.estimatedMinutes),
         isDraft,
         reviewers:      { connect: reviewerIds.map((id) => ({ id })) },
       },
@@ -351,6 +354,7 @@ export async function updateTask(taskId: string, projectId: string | null, formD
     dueDate:        formData.get("dueDate")         || undefined,
     endTime:        formData.get("endTime")         || undefined,
     estimatedHours: formData.get("estimatedHours") || undefined,
+    estimatedMinutes: formData.get("estimatedMinutes") || undefined,
     force:          formData.get("force") === "true",
   });
 
@@ -398,7 +402,7 @@ export async function updateTask(taskId: string, projectId: string | null, formD
       startTime:      parsed.data.startTime      ?? null,
       dueDate:        newDueDate,
       endTime:        parsed.data.endTime         ?? null,
-      estimatedHours: parsed.data.estimatedHours ? parseFloat(parsed.data.estimatedHours) : null,
+      estimatedHours: combineEstimatedTime(parsed.data.estimatedHours, parsed.data.estimatedMinutes),
       reviewers:      { set: reviewerIds.map((id) => ({ id })) },
     },
   });

@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { TicketDetail } from "@/components/tickets/ticket-detail";
 import { BackButton } from "@/components/ui/back-button";
 import { TicketChecklistPanel } from "@/components/ui/checklist-panel";
+import { CollaboratorSchedulingCard } from "@/components/collaborator/collaborator-scheduling-card";
+import { getClientActivePlan } from "@/lib/plans.server";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -106,6 +108,11 @@ export default async function TicketPage({
       : Promise.resolve([]),
   ]);
 
+  // El agendamiento de soporte para clientes requiere un paquete (plan) activo.
+  const supportSchedulingAvailable = staff
+    ? true
+    : (await getClientActivePlan(userId)) !== null;
+
   return (
     <div>
       <div className="mb-4">
@@ -127,6 +134,15 @@ export default async function TicketPage({
           />
         }
       />
+      {supportSchedulingAvailable && (
+        <div className="mt-6">
+          <CollaboratorSchedulingCard
+            userId={ticket.assignedToId}
+            category="SOPORTE"
+            heading="Agenda una llamada con el agente de soporte"
+          />
+        </div>
+      )}
     </div>
   );
 }

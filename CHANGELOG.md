@@ -9,6 +9,48 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.38.0] — 2026-07-09
+
+### Foto de perfil + página de perfil a ancho completo
+- **Foto de perfil para todos los usuarios** (staff y clientes): cada usuario puede subir, cambiar y quitar su foto desde `/perfil`. Se sube a R2 (JPG, PNG, WebP o GIF · máx. 5 MB); la foto anterior se borra automáticamente.
+- La foto aparece en la **barra superior** (reemplaza el ícono genérico) y en las **tarjetas de agendamiento** (`/agendar` y las embebidas en proyecto/ticket). Si no hay foto, se muestra la inicial del nombre o un ícono.
+- **`/perfil` rediseñado a ancho completo:** cabecera con avatar + identidad; en staff, «Perfil público» (designaciones + biografía) y «Cambiar contraseña» en dos columnas, y los links de agendamiento a todo el ancho. Antes todo estaba comprimido en una columna angosta.
+- **Creación de tickets y tareas a ancho completo:** los formularios de «Nuevo ticket» y «Nueva tarea» (global y dentro de un proyecto) ahora aprovechan todo el ancho del contenedor (antes limitados a ~42 rem y 64 rem).
+- **Modelo de datos:** `User` gana `avatar_url` y `avatar_storage_path`. Nuevo helper `validateAvatar`/`uploadAvatar` en `src/lib/s3.ts` y acciones `updateMyAvatar`/`removeMyAvatar` en `src/actions/profile.actions.ts`. Migración `20260709140000_add_user_avatar` (aditiva).
+
+---
+
+## [1.37.0] — 2026-07-09
+
+### Colaboradores agendables por clientes (Gestor de proyectos / Agente de soporte)
+- Los usuarios staff pueden designarse como **Gestor de proyectos** y/o **Agente de soporte** (marcas independientes). Los designados son visibles para los clientes.
+- Cada colaborador puede tener **links de agendamiento de llamadas** (Google Calendar, Calendly, etc.), cada uno con **título**, **descripción** opcional y **URL**. El agendamiento ocurre directamente en el link externo.
+- Los links se dividen por **categoría**: **Proyectos** (tareas) o **Soporte** (tickets).
+- Cada colaborador puede incluir una **Biografía** visible para los clientes.
+- **Gestión doble:** el administrador edita designaciones, biografía y links en `/admin/users/[id]/edit`; además cada colaborador edita su propia biografía y links desde su perfil (`/perfil`, ahora editable para staff).
+- **Acceso al perfil:** en la barra superior, el avatar y el nombre del usuario ahora son un enlace a «Mi perfil» (antes el acceso era un ícono de llave poco descubrible); el avatar es visible y clicable también en móvil.
+- **Visibilidad para clientes en dos lugares:**
+  - Nueva página **«Agendar»** (`/agendar`, en el menú de todos los roles) con dos secciones: *Gestión de proyectos* y *Soporte*, cada una con las tarjetas de los colaboradores (bio + links).
+  - Tarjetas **integradas**: en el detalle de proyecto aparece el gestor del proyecto (links de Proyectos) y en el detalle de ticket, el agente asignado (links de Soporte). Solo se muestran si el usuario está designado y tiene bio o links.
+- **Soporte con paquete activo:** para los clientes, el agendamiento de **Soporte** (la sección en `/agendar` y la tarjeta del agente en el detalle de ticket) solo está disponible si tienen un **plan/paquete activo**; si no, se muestra un aviso. El staff no tiene esta restricción, y el agendamiento de Proyectos sigue disponible sin plan.
+- **Modelo de datos:** `User` gana `bio`, `is_project_manager`, `is_support_agent`; nueva tabla `scheduling_links` (título, descripción, url, categoría, posición) y enum `SchedulingLinkCategory {PROYECTOS, SOPORTE}`. Migración `20260709120000_add_collaborator_scheduling` (aditiva).
+
+---
+
+## [1.36.0] — 2026-07-09
+
+### Tiempo estimado de tareas en horas + minutos
+- El **tiempo estimado** de las tareas ahora se ingresa con dos campos: **horas** y **minutos** (p. ej. `2h 30m`), en lugar de un único campo de horas decimales.
+- Internamente se sigue guardando como horas decimales (`estimatedHours`, `Float`), por lo que **no requiere migración** de base de datos ni afecta los datos existentes.
+- Aplica a los tres formularios que usan tiempo estimado: **nueva/editar tarea** (`task-form`), **plantilla de tarea** (`task-template-form`) y **tarea recurrente** (`recurring-task-form`).
+- Nuevo helper `src/lib/estimated-time.ts` con `splitEstimatedHours` (dividir en horas/minutos), `combineEstimatedTime` (combinar a horas decimales) y `formatEstimatedTime` (mostrar como `2h 30m`).
+- La lectura del valor ahora se muestra con el formato `Xh Ym` en el detalle de la tarea, los reportes de proyecto y el contexto del asistente.
+- Las **tablas de tareas** (`task-list`) muestran una nueva columna **Estimado** (con el formato `Xh Ym`), tanto en la vista de escritorio como en las tarjetas mobile.
+- En la lista global de tareas (`/tareas`) la columna **Estimado** es **ordenable**: al ordenar, las tareas sin estimación quedan al final (`nulls: "last"`).
+- Los tickets **no** cambian: siguen sin campo de tiempo estimado.
+
+---
+
 ## [1.35.1] — 2026-07-08
 
 ### Fix: clientes no podían crear tickets con archivos grandes

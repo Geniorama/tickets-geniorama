@@ -9,6 +9,7 @@ import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { TASK_CATEGORY_GROUPS, TASK_CATEGORIES } from "@/lib/task-categories";
 import { parseChecklistPaste } from "@/lib/checklist-paste";
+import { splitEstimatedHours } from "@/lib/estimated-time";
 
 interface StaffUser {
   id: string;
@@ -101,6 +102,8 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
     if (!d) return "";
     return new Date(d).toISOString().split("T")[0];
   };
+
+  const estimatedParts = splitEstimatedHours(task?.estimatedHours ?? prefill?.estimatedHours ?? null);
 
   const [fileErrors, setFileErrors] = useState<string[]>([]);
 
@@ -721,18 +724,34 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
           </div>
         </div>
 
-        {/* Horas estimadas */}
-        <div style={{ minWidth: "9rem" }}>
-          <label style={labelStyle}>Horas estimadas</label>
-          <input
-            name="estimatedHours"
-            type="number"
-            min="0"
-            step="0.5"
-            defaultValue={task?.estimatedHours ?? prefill?.estimatedHours ?? ""}
-            placeholder="0"
-            style={inputStyle}
-          />
+        {/* Tiempo estimado */}
+        <div style={{ minWidth: "11rem" }}>
+          <label style={labelStyle}>Tiempo estimado</label>
+          <div style={{ display: "flex", gap: "0.375rem", alignItems: "center" }}>
+            <input
+              name="estimatedHours"
+              type="number"
+              min="0"
+              step="1"
+              defaultValue={estimatedParts.hours ?? ""}
+              placeholder="0"
+              aria-label="Horas estimadas"
+              style={{ ...inputStyle, width: "3.5rem", textAlign: "right" }}
+            />
+            <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)" }}>h</span>
+            <input
+              name="estimatedMinutes"
+              type="number"
+              min="0"
+              max="59"
+              step="1"
+              defaultValue={estimatedParts.minutes ?? ""}
+              placeholder="0"
+              aria-label="Minutos estimados"
+              style={{ ...inputStyle, width: "3.5rem", textAlign: "right" }}
+            />
+            <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)" }}>m</span>
+          </div>
         </div>
       </div>
 

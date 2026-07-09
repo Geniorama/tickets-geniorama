@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
+import { combineEstimatedTime } from "@/lib/estimated-time";
 
 const templateSchema = z.object({
   name:           z.string().min(1, "El nombre es requerido").max(120),
@@ -13,6 +14,7 @@ const templateSchema = z.object({
   priority:       z.enum(["BAJA", "MEDIA", "ALTA", "CRITICA"]).default("MEDIA"),
   category:       z.string().optional(),
   estimatedHours: z.string().optional(),
+  estimatedMinutes: z.string().optional(),
 });
 
 function parseChecklist(formData: FormData): string[] {
@@ -36,6 +38,7 @@ function parseForm(formData: FormData) {
     priority:       formData.get("priority")       || "MEDIA",
     category:       formData.get("category")       || undefined,
     estimatedHours: formData.get("estimatedHours") || undefined,
+    estimatedMinutes: formData.get("estimatedMinutes") || undefined,
   });
 }
 
@@ -53,7 +56,7 @@ export async function createTaskTemplate(formData: FormData): Promise<{ error?: 
       description:    parsed.data.description,
       priority:       parsed.data.priority,
       category:       parsed.data.category ?? null,
-      estimatedHours: parsed.data.estimatedHours ? parseFloat(parsed.data.estimatedHours) : null,
+      estimatedHours: combineEstimatedTime(parsed.data.estimatedHours, parsed.data.estimatedMinutes),
       checklist:      parseChecklist(formData),
       createdById:    session.user.id,
     },
@@ -78,7 +81,7 @@ export async function updateTaskTemplate(id: string, formData: FormData): Promis
       description:    parsed.data.description,
       priority:       parsed.data.priority,
       category:       parsed.data.category ?? null,
-      estimatedHours: parsed.data.estimatedHours ? parseFloat(parsed.data.estimatedHours) : null,
+      estimatedHours: combineEstimatedTime(parsed.data.estimatedHours, parsed.data.estimatedMinutes),
       checklist:      parseChecklist(formData),
     },
   });

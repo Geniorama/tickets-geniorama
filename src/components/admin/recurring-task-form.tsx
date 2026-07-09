@@ -17,6 +17,7 @@ import {
 } from "@/lib/recurrence";
 import { TASK_CATEGORY_GROUPS, TASK_CATEGORIES } from "@/lib/task-categories";
 import { parseChecklistPaste } from "@/lib/checklist-paste";
+import { splitEstimatedHours, combineEstimatedTime } from "@/lib/estimated-time";
 
 type Project = { id: string; name: string };
 type StaffUser = { id: string; name: string };
@@ -402,15 +403,34 @@ export function RecurringTaskForm({
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginTop: "0.875rem" }}>
           <div>
-            <label style={labelStyle}>Horas estimadas (opcional)</label>
-            <input
-              type="number"
-              min={0}
-              step={0.5}
-              value={data.estimatedHours ?? ""}
-              onChange={(e) => update("estimatedHours", e.target.value === "" ? null : Number(e.target.value))}
-              style={inputStyle}
-            />
+            <label style={labelStyle}>Tiempo estimado (opcional)</label>
+            <div style={{ display: "flex", gap: "0.375rem", alignItems: "center" }}>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                aria-label="Horas estimadas"
+                value={splitEstimatedHours(data.estimatedHours).hours ?? ""}
+                onChange={(e) =>
+                  update("estimatedHours", combineEstimatedTime(e.target.value, splitEstimatedHours(data.estimatedHours).minutes))
+                }
+                style={{ ...inputStyle, textAlign: "right" }}
+              />
+              <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)" }}>h</span>
+              <input
+                type="number"
+                min={0}
+                max={59}
+                step={1}
+                aria-label="Minutos estimados"
+                value={splitEstimatedHours(data.estimatedHours).minutes ?? ""}
+                onChange={(e) =>
+                  update("estimatedHours", combineEstimatedTime(splitEstimatedHours(data.estimatedHours).hours, e.target.value))
+                }
+                style={{ ...inputStyle, textAlign: "right" }}
+              />
+              <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)" }}>m</span>
+            </div>
           </div>
           <div>
             <label style={labelStyle}>Vencimiento (días desde creación)</label>

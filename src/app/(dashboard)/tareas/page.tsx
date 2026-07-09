@@ -120,6 +120,7 @@ export default async function TareasPage({
       case "createdBy":  return [{ createdBy: { name: d } }];
       case "startDate":  return [{ startDate: d }];
       case "dueDate":    return [{ dueDate: d }, { priority: "desc" }];
+      case "estimatedHours": return [{ estimatedHours: { sort: d, nulls: "last" } }];
       case "createdAt":  return [{ createdAt: d }];
       default:           return [{ dueDate: "asc" }, { priority: "desc" }];
     }

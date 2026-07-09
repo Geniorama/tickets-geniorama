@@ -6,6 +6,7 @@ import type { ProjectStatus, TaskStatus, Priority } from "@/generated/prisma";
 import { ProjectReportPicker } from "@/components/reportes/project-report-picker";
 import { PrintButton } from "@/components/reportes/print-button";
 import { formatDate } from "@/lib/format-date";
+import { formatEstimatedTime } from "@/lib/estimated-time";
 
 export const metadata = { title: "Reportes de proyectos" };
 
@@ -227,7 +228,7 @@ export default async function ProyectosReportesPage({
               { label: "Completadas",  value: individual.completed, color: "#22c55e" },
               { label: "Vencidas",     value: individual.overdue,   color: individual.overdue > 0 ? "#dc2626" : "var(--app-text-muted)" },
               { label: "Progreso",     value: individual.total > 0 ? `${individual.rate}%` : "—", color: individual.rate >= 75 ? "#16a34a" : individual.rate >= 40 ? "#b45309" : individual.total > 0 ? "#dc2626" : "var(--app-text-muted)" },
-              { label: "Horas est.",   value: individual.estimated > 0 ? individual.estimated : "—", color: "var(--app-body-text)" },
+              { label: "Tiempo est.",  value: individual.estimated > 0 ? formatEstimatedTime(individual.estimated) : "—", color: "var(--app-body-text)" },
             ].map(({ label, value, color }) => (
               <div key={label} style={{ backgroundColor: "var(--app-content-bg)", border: "1px solid var(--app-border)", borderRadius: "0.5rem", padding: "0.75rem 1rem" }}>
                 <p style={{ fontSize: "1.5rem", fontWeight: 700, color }}>{value}</p>

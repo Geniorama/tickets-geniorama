@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { notify } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
+import { formatEstimatedTime } from "@/lib/estimated-time";
 import type { TaskStatus, TicketStatus, Priority } from "@/generated/prisma";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -221,7 +222,7 @@ async function buildContext(userId: string): Promise<AssistantContext> {
       const overdue = t.dueDate < now && t.status !== "EN_REVISION";
       parts.push(`Vence: ${fmt(t.dueDate)}${overdue ? " (VENCIDA)" : ""}`);
     }
-    if (t.estimatedHours) parts.push(`Estimado: ${t.estimatedHours}h`);
+    if (t.estimatedHours) parts.push(`Estimado: ${formatEstimatedTime(t.estimatedHours)}`);
     if (t._count.checklistItems > 0) parts.push(`Checklist: ${t._count.checklistItems} ítems`);
     let line = `- ${parts.join(" · ")}`;
     if (t.comments.length > 0) {

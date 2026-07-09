@@ -20,7 +20,7 @@ export default async function DashboardLayout({
   const userId = session.user.id;
 
   // Queries ligeras: count + findFirst — no bloquean significativamente
-  const [unreadCount, activeTicketEntry, activeTaskEntry] = await Promise.all([
+  const [unreadCount, activeTicketEntry, activeTaskEntry, me] = await Promise.all([
     prisma.notification.count({
       where: { userId, isRead: false },
     }),
@@ -37,6 +37,10 @@ export default async function DashboardLayout({
         startedAt: true,
         task: { select: { id: true, title: true, projectId: true } },
       },
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { avatarUrl: true },
     }),
   ]);
 
@@ -69,6 +73,7 @@ export default async function DashboardLayout({
       <DashboardShell
         role={session.user.role}
         user={session.user}
+        avatarUrl={me?.avatarUrl ?? null}
         unreadCount={unreadCount}
       >
         <Suspense fallback={null}>

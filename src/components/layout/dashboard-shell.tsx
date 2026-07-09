@@ -14,11 +14,13 @@ const COLLAPSED_KEY = "sidebar-collapsed";
 export function DashboardShell({
   role,
   user,
+  avatarUrl,
   unreadCount,
   children,
 }: {
   role: Role;
   user: Session["user"];
+  avatarUrl?: string | null;
   unreadCount: number;
   children: React.ReactNode;
 }) {
@@ -60,6 +62,7 @@ export function DashboardShell({
       <div className="flex flex-col flex-1 overflow-hidden min-w-0">
         <Topbar
           user={user}
+          avatarUrl={avatarUrl}
           unreadCount={unreadCount}
           onMenuClick={() => setSidebarOpen((v) => !v)}
         />

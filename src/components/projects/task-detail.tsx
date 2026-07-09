@@ -13,6 +13,7 @@ import { TaskTimer } from "./task-timer";
 import { formatDate, formatDateTimeLong } from "@/lib/format-date";
 import { isOverdue } from "@/lib/overdue";
 import { taskCode } from "@/lib/task-code";
+import { formatEstimatedTime } from "@/lib/estimated-time";
 import { isStaff, isAdmin } from "@/lib/roles";
 import { ExternalLink, FileText, Link2 } from "lucide-react";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
@@ -492,8 +493,8 @@ export function TaskDetail({
               {task.estimatedHours && (
                 <span style={infoRowStyle}>
                   <Clock style={{ width: "0.875rem", height: "0.875rem" }} />
-                  Horas estimadas:{" "}
-                  <strong style={{ color: "var(--app-body-text)" }}>{task.estimatedHours}h</strong>
+                  Tiempo estimado:{" "}
+                  <strong style={{ color: "var(--app-body-text)" }}>{formatEstimatedTime(task.estimatedHours)}</strong>
                 </span>
               )}
               <span style={infoRowStyle}>

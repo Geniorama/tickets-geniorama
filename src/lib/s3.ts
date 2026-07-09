@@ -78,6 +78,16 @@ export function validateLogo(file: File): string | null {
   return null;
 }
 
+const AVATAR_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 MB
+
+export function validateAvatar(file: File): string | null {
+  if (file.size > MAX_AVATAR_BYTES) return "La foto no puede superar los 5 MB";
+  if (!AVATAR_MIME_TYPES.includes(file.type))
+    return "Solo se permiten imágenes (JPG, PNG, WebP, GIF)";
+  return null;
+}
+
 // ─── Upload / Delete ──────────────────────────────────────────────────────────
 
 async function putObject(storagePath: string, file: File): Promise<void> {
@@ -111,6 +121,20 @@ export async function uploadLogo(
 ): Promise<{ storagePath: string; fileUrl: string }> {
   const ext = file.name.split(".").pop();
   const storagePath = `companies/${companyId}/logo.${ext}`;
+
+  await putObject(storagePath, file);
+  const fileUrl = await getFileUrl(storagePath);
+
+  return { storagePath, fileUrl };
+}
+
+export async function uploadAvatar(
+  file: File,
+  userId: string
+): Promise<{ storagePath: string; fileUrl: string }> {
+  const ext = file.name.split(".").pop();
+  // UUID en el nombre para invalidar caché al cambiar la foto (URL pública permanente).
+  const storagePath = `users/${userId}/avatar-${crypto.randomUUID()}.${ext}`;
 
   await putObject(storagePath, file);
   const fileUrl = await getFileUrl(storagePath);

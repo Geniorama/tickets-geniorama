@@ -4,6 +4,7 @@ import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { ProjectDetail } from "@/components/projects/project-detail";
 import { BackButton } from "@/components/ui/back-button";
+import { CollaboratorSchedulingCard } from "@/components/collaborator/collaborator-scheduling-card";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -127,6 +128,13 @@ export default async function ProjectPage({
         linkedVaultEntries={linkedVaultEntries}
         availableVaultEntries={availableVaultEntries}
       />
+      <div style={{ marginTop: "1.5rem" }}>
+        <CollaboratorSchedulingCard
+          userId={project.managerId}
+          category="PROYECTOS"
+          heading="Agenda una llamada con el responsable del proyecto"
+        />
+      </div>
     </div>
   );
 }

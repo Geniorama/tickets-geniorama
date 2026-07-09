@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import type { Session } from "next-auth";
-import { LogOut, UserCircle, KeyRound, Menu } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationBell } from "@/components/layout/notification-bell";
 import { TourHelpButton } from "@/components/tour/tour-help-button";
@@ -13,12 +14,22 @@ const roleLabels = {
   CLIENTE: "Cliente",
 };
 
+// Iniciales: primera letra del primer y último nombre (o solo la primera).
+function getInitials(name: string | null | undefined): string {
+  const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
 export function Topbar({
   user,
+  avatarUrl,
   unreadCount,
   onMenuClick,
 }: {
   user: Session["user"];
+  avatarUrl?: string | null;
   unreadCount: number;
   onMenuClick?: () => void;
 }) {
@@ -53,22 +64,38 @@ export function Topbar({
         <span data-tour-id="theme" className="flex items-center">
           <ThemeToggle />
         </span>
-        <UserCircle className="w-8 h-8 hidden sm:block" style={{ color: "var(--app-icon-color)" }} />
-        {/* Nombre y rol — oculto en móvil */}
-        <div className="text-right hidden sm:block">
-          <p className="text-sm font-medium" style={{ color: "var(--app-body-text)" }}>{user.name}</p>
-          <p className="text-xs" style={{ color: "var(--app-text-muted)" }}>{roleLabels[user.role]}</p>
-        </div>
+        {/* Avatar + nombre: link a la página de perfil */}
         <Link
           href="/perfil"
           data-tour-id="profile"
-          className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
-          style={{ color: "var(--app-icon-color)" }}
+          className="flex items-center gap-2 sm:gap-3 rounded-lg px-1 py-1 transition-colors"
+          style={{ color: "var(--app-icon-color)", textDecoration: "none" }}
           onMouseEnter={(e) => (e.currentTarget.style.color = "var(--app-body-text)")}
           onMouseLeave={(e) => (e.currentTarget.style.color = "var(--app-icon-color)")}
           title="Mi perfil"
         >
-          <KeyRound className="w-4 h-4" />
+          {avatarUrl ? (
+            <Image
+              src={avatarUrl}
+              alt={user.name ?? "Avatar"}
+              width={32}
+              height={32}
+              className="w-8 h-8 rounded-full object-cover"
+            />
+          ) : (
+            <span
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
+              style={{ backgroundColor: "rgba(253,19,132,0.12)", color: "#fd1384" }}
+              aria-hidden="true"
+            >
+              {getInitials(user.name)}
+            </span>
+          )}
+          {/* Nombre y rol — oculto en móvil */}
+          <span className="text-right hidden sm:block">
+            <span className="block text-sm font-medium" style={{ color: "var(--app-body-text)" }}>{user.name}</span>
+            <span className="block text-xs" style={{ color: "var(--app-text-muted)" }}>{roleLabels[user.role]}</span>
+          </span>
         </Link>
         {/* Botón logout: pausa timers activos antes de navegar a /api/logout */}
         <button

@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireRole, isStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { UserEditForm } from "@/components/admin/user-edit-form";
+import { SchedulingLinksManager } from "@/components/collaborator/scheduling-links-manager";
+import type { SchedulingLinkData } from "@/lib/scheduling";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,8 +24,12 @@ export default async function EditUserPage({
       where: { id },
       select: {
         id: true, name: true, email: true, role: true, isActive: true,
-        cargo: true, area: true,
+        cargo: true, area: true, bio: true, isProjectManager: true, isSupportAgent: true,
         companies: { select: { id: true } },
+        schedulingLinks: {
+          select: { id: true, title: true, description: true, url: true, category: true },
+          orderBy: [{ category: "asc" }, { position: "asc" }],
+        },
       },
     }),
     prisma.company.findMany({
@@ -35,8 +41,9 @@ export default async function EditUserPage({
 
   if (!userRaw) notFound();
 
+  const { schedulingLinks, ...userScalar } = userRaw;
   const user = {
-    ...userRaw,
+    ...userScalar,
     companyIds: userRaw.companies.map((c) => c.id),
   };
 
@@ -46,6 +53,14 @@ export default async function EditUserPage({
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <UserEditForm user={user} companies={companies} />
       </div>
+
+      {isStaff(userRaw.role) && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6 mt-6">
+          <h2 className="text-base font-semibold text-gray-800 mb-1">Links de agendamiento</h2>
+          <p className="text-xs text-gray-400 mb-4">Enlaces para que los clientes agenden llamadas (Google Calendar, Calendly, etc.).</p>
+          <SchedulingLinksManager userId={userRaw.id} links={schedulingLinks as SchedulingLinkData[]} />
+        </div>
+      )}
     </div>
   );
 }
