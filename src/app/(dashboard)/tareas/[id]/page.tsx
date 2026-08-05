@@ -23,7 +23,10 @@ export default async function GlobalTaskPage({
   const staff = isStaff(role);
   const admin = isAdmin(role);
 
-  if (!staff && !admin) redirect("/tareas");
+  // Los clientes no tienen lista global de tareas, pero sí pueden llegar aquí
+  // desde un enlace: se resuelve más abajo redirigiendo al detalle del proyecto,
+  // que es donde se evalúa su acceso (mención o revisor).
+  const client = !staff && !admin;
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
@@ -60,6 +63,9 @@ export default async function GlobalTaskPage({
   if (task.projectId) {
     redirect(`/proyectos/${task.projectId}/tareas/${taskId}`);
   }
+
+  // Tarea global (sin proyecto): no hay empresa que valide el acceso del cliente
+  if (client) redirect("/dashboard");
 
   const moveableProjects = admin
     ? await prisma.project.findMany({

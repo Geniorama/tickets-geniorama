@@ -7,6 +7,7 @@ import { getRequiredSession } from "@/lib/auth-helpers";
 import { validateFile } from "@/lib/s3";
 import { notifyMany } from "@/lib/notify";
 import { sendMentionEmail } from "@/lib/email";
+import { canInteractWithTask } from "@/lib/task-access";
 
 function extractMentionIds(body: string): string[] {
   const regex = /@\[[^\]]+\]\(([^)]+)\)/g;
@@ -72,6 +73,10 @@ export async function addTaskComment(
 ) {
   const session = await getRequiredSession();
 
+  // El staff siempre puede; el cliente solo en tareas donde lo involucraron
+  const allowed = await canInteractWithTask(taskId, session.user.id, session.user.role);
+  if (!allowed) return { error: "Sin permisos" };
+
   const parsed = commentSchema.safeParse({ body: formData.get("body") });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -124,6 +129,9 @@ export async function addTaskComment(
   });
 
   const projectIsPrivate = task?.project?.isPrivate ?? false;
+  const taskPath = projectId
+    ? `/proyectos/${projectId}/tareas/${taskId}`
+    : `/tareas/${taskId}`;
 
   // Notificar a usuarios mencionados
   const mentionedIds = extractMentionIds(parsed.data.body).filter(
@@ -135,7 +143,7 @@ export async function addTaskComment(
       "mention",
       `${session.user.name} te mencionó`,
       `En la tarea: "${task?.title ?? ""}"`,
-      `/proyectos/${projectId}/tareas/${taskId}`,
+      taskPath,
       projectIsPrivate
     );
 
@@ -145,7 +153,7 @@ export async function addTaskComment(
       where: { id: { in: mentionedIds }, role: "CLIENTE", isActive: true },
       select: { name: true, email: true },
     });
-    const taskUrl = `${APP_URL}/proyectos/${projectId}/tareas/${taskId}`;
+    const taskUrl = `${APP_URL}${taskPath}`;
     for (const client of mentionedClients) {
       void sendMentionEmail(
         { name: client.name, email: client.email },
@@ -166,7 +174,7 @@ export async function addTaskComment(
       "task_comment",
       "Nuevo comentario en tarea",
       `${session.user.name} comentó en: "${task.title}"`,
-      `/proyectos/${projectId}/tareas/${taskId}`,
+      taskPath,
       projectIsPrivate
     );
   }
@@ -180,7 +188,10 @@ export async function getTaskComments(
   cursor: string,
   take = 50,
 ) {
-  await getRequiredSession();
+  const session = await getRequiredSession();
+
+  const allowed = await canInteractWithTask(taskId, session.user.id, session.user.role);
+  if (!allowed) return [];
 
   const comments = await prisma.taskComment.findMany({
     where: {

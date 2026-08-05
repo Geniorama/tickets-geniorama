@@ -9,6 +9,20 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.40.0] — 2026-08-05
+
+### Los clientes acceden al detalle de las tareas donde los involucran
+- Un **cliente** ahora puede abrir el **detalle de una tarea** cuando el staff lo involucró de forma deliberada: lo **mencionó en un comentario** (`@[Nombre](id)`) o lo puso como **revisor** de la tarea.
+- Se exige además que la tarea pertenezca a un **proyecto de su empresa**, para que una mención accidental en el proyecto de otro cliente no filtre nada. Un **proyecto privado no bloquea**: la mención pesa más, pero el acceso se limita a esa tarea y no al proyecto.
+- Cierra un flujo que ya estaba a medias: las **notificaciones y correos de mención** a clientes y el aviso **«Pendiente de tu revisión»** a los revisores ya enlazaban al detalle de la tarea, pero la página los expulsaba. Ahora el enlace funciona.
+- En el **listado de tareas del proyecto** (vista de cliente), las tareas accesibles vuelven a ser **enlaces**; el resto sigue como texto plano.
+- **Qué puede hacer el cliente:** leer la tarea y **comentar y reaccionar** (con menciones y adjuntos). No ve el temporizador ni los registros de tiempo, no cambia el estado, no edita/mueve/elimina, ve el **checklist en solo lectura** y no ve la sección **«Configuración del proyecto»** (bóveda y adjuntos del proyecto).
+- **Endurecimiento de permisos:** `addTaskComment`, `getTaskComments` y `toggleTaskCommentReaction` exigían solo estar autenticado — ahora validan acceso a la tarea. Las cuatro acciones de **checklist de tarea** quedan restringidas al staff.
+- **Corrección:** las notificaciones y correos de comentarios en tareas **sin proyecto** generaban un enlace roto (`/proyectos/null/tareas/…`); ahora apuntan a `/tareas/[id]`.
+- Nuevo helper `src/lib/task-access.ts` (`canClientAccessTask`, `getClientAccessibleTaskIds`, `canInteractWithTask`). **Sin migración de base de datos.**
+
+---
+
 ## [1.39.0] — 2026-07-09
 
 ### Los clientes ven las tareas de los proyectos de su empresa

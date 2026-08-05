@@ -50,6 +50,7 @@ export function ProjectDetail({
   isAdmin,
   isStaff,
   isClient,
+  accessibleTaskIds = [],
   linkedVaultEntries = [],
   availableVaultEntries = [],
 }: {
@@ -58,6 +59,8 @@ export function ProjectDetail({
   isAdmin: boolean;
   isStaff: boolean;
   isClient: boolean;
+  /** Tareas del proyecto cuyo detalle puede abrir el cliente (mención/revisor). */
+  accessibleTaskIds?: string[];
   linkedVaultEntries?: VaultEntry[];
   availableVaultEntries?: VaultEntry[];
 }) {
@@ -220,7 +223,12 @@ export function ProjectDetail({
 
       {/* Tareas: lista de solo lectura para clientes; vistas completas para staff/admin */}
       {isClient ? (
-        <TaskList tasks={project.tasks} projectId={project.id} readOnly />
+        <TaskList
+          tasks={project.tasks}
+          projectId={project.id}
+          readOnly
+          accessibleTaskIds={accessibleTaskIds}
+        />
       ) : (
         <>
           <div

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
+import { getClientAccessibleTaskIds } from "@/lib/task-access";
 import { prisma } from "@/lib/prisma";
 import { ProjectDetail } from "@/components/projects/project-detail";
 import { BackButton } from "@/components/ui/back-button";
@@ -114,6 +115,12 @@ export default async function ProjectPage({
     if (!companyIds.includes(project.companyId)) notFound();
   }
 
+  // El cliente enlaza al detalle solo de las tareas donde lo involucraron
+  const isClient = !staff && !admin;
+  const accessibleTaskIds = isClient
+    ? [...(await getClientAccessibleTaskIds(project.tasks.map((t) => t.id), userId))]
+    : [];
+
   return (
     <div style={{ padding: "1.5rem" }}>
       <div style={{ marginBottom: "1rem" }}>
@@ -124,7 +131,8 @@ export default async function ProjectPage({
         view={view as "lista" | "kanban" | "calendario"}
         isAdmin={admin}
         isStaff={staff}
-        isClient={!staff && !admin}
+        isClient={isClient}
+        accessibleTaskIds={accessibleTaskIds}
         linkedVaultEntries={linkedVaultEntries}
         availableVaultEntries={availableVaultEntries}
       />

@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
+import { canClientAccessTask } from "@/lib/task-access";
 import { prisma } from "@/lib/prisma";
 import { TaskDetail } from "@/components/projects/task-detail";
 import { BackButton } from "@/components/ui/back-button";
@@ -24,13 +25,12 @@ export default async function TaskPage({
   const { id: userId, role } = session.user;
   const staff = isStaff(role);
   const admin = isAdmin(role);
-
-  if (!staff && !admin) redirect(`/proyectos/${projectId}`);
+  const client = !staff && !admin;
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
     include: {
-      project: { select: { id: true, name: true, companyId: true } },
+      project: { select: { id: true, name: true, companyId: true, isPrivate: true } },
       assignedTo: { select: { id: true, name: true } },
       reviewers: { select: { id: true, name: true } },
       createdBy: { select: { id: true, name: true } },
@@ -79,50 +79,55 @@ export default async function TaskPage({
       project?.managerId === userId || task.assignedToId === userId;
     if (!hasAccess) notFound();
   } else {
-    // CLIENTE: must belong to project's company
-    const project = task.project;
-    if (!project || !project.companyId) notFound();
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { companies: { select: { id: true } } },
-    });
-    const companyIds = (user?.companies ?? []).map((c) => c.id);
-    if (!companyIds.includes(project.companyId)) notFound();
+    // CLIENTE: solo si el staff lo involucró — mencionado en un comentario o
+    // revisor de la tarea — y la tarea es de un proyecto de su empresa.
+    const hasAccess = await canClientAccessTask(taskId, userId);
+    if (!hasAccess) redirect(`/proyectos/${projectId}`);
   }
 
-  // Configuración general del proyecto (accesos + adjuntos), visible también aquí
-  // La Bóveda es visible solo para el creador y los usuarios con los que se comparte
+  // Configuración general del proyecto (accesos + adjuntos), visible también aquí.
+  // La Bóveda es visible solo para el creador y los usuarios con los que se comparte.
+  // Los clientes no ven esta sección: su acceso es a la tarea, no al proyecto.
   const vaultVisibility = { OR: [{ createdById: userId }, { sharedWith: { some: { userId } } }] };
 
-  const [projectAttachments, linkedVaultEntries, availableVaultEntries] = await Promise.all([
-    prisma.projectAttachment.findMany({
-      where: { projectId },
-      include: { uploadedBy: { select: { name: true } } },
-      orderBy: { position: "asc" },
-    }),
-    prisma.vaultEntry.findMany({
-      where: { projects: { some: { projectId } }, ...vaultVisibility },
-      select: { id: true, title: true, username: true, url: true },
-      orderBy: { title: "asc" },
-    }),
-    prisma.vaultEntry.findMany({
-      where: { projects: { none: { projectId } }, ...vaultVisibility },
-      select: { id: true, title: true, username: true, url: true },
-      orderBy: { title: "asc" },
-    }),
-  ]);
+  const [projectAttachments, linkedVaultEntries, availableVaultEntries] = client
+    ? [[], [], []]
+    : await Promise.all([
+        prisma.projectAttachment.findMany({
+          where: { projectId },
+          include: { uploadedBy: { select: { name: true } } },
+          orderBy: { position: "asc" },
+        }),
+        prisma.vaultEntry.findMany({
+          where: { projects: { some: { projectId } }, ...vaultVisibility },
+          select: { id: true, title: true, username: true, url: true },
+          orderBy: { title: "asc" },
+        }),
+        prisma.vaultEntry.findMany({
+          where: { projects: { none: { projectId } }, ...vaultVisibility },
+          select: { id: true, title: true, username: true, url: true },
+          orderBy: { title: "asc" },
+        }),
+      ]);
 
   const canManageProject = staff || admin;
 
   return (
     <div>
       <div style={{ marginBottom: "1rem" }}>
-        <BackButton fallback={`/proyectos/${projectId}`} />
+        {/* Un cliente con acceso a la tarea de un proyecto privado no puede
+            abrir el proyecto: se le devuelve al listado */}
+        <BackButton
+          fallback={
+            client && task.project?.isPrivate ? "/proyectos" : `/proyectos/${projectId}`
+          }
+        />
       </div>
       <TaskDetail
         task={task}
         session={session}
         projects={moveableProjects}
+        canOpenProject={!client || !task.project?.isPrivate}
         checklistSlot={
           <TaskChecklistPanel
             key="checklist"
@@ -130,11 +135,13 @@ export default async function TaskPage({
             projectId={projectId}
             initialItems={task.checklistItems}
             canDelete={admin}
+            readOnly={client}
           />
         }
       />
 
-      {/* Configuración general del proyecto — siempre visible en el detalle de la tarea */}
+      {/* Configuración general del proyecto — interna, oculta para clientes */}
+      {!client && (
       <div style={{ marginTop: "1.5rem" }}>
         <h2 style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.75rem" }}>
           Configuración del proyecto: {task.project?.name}
@@ -153,6 +160,7 @@ export default async function TaskPage({
           canManage={canManageProject}
         />
       </div>
+      )}
     </div>
   );
 }

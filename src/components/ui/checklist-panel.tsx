@@ -23,6 +23,7 @@ type Item = { id: string; title: string; isChecked: boolean };
 function ChecklistUI({
   items,
   canDelete,
+  readOnly = false,
   onToggle,
   onDelete,
   onAdd,
@@ -30,6 +31,8 @@ function ChecklistUI({
 }: {
   items: Item[];
   canDelete: boolean;
+  /** Modo consulta (clientes): muestra el avance sin permitir modificarlo. */
+  readOnly?: boolean;
   onToggle: (item: Item) => void;
   onDelete: (id: string) => void;
   onAdd: (title: string) => void;
@@ -42,6 +45,9 @@ function ChecklistUI({
   const checked = items.filter((i) => i.isChecked).length;
   const pct     = total > 0 ? Math.round((checked / total) * 100) : 0;
   const done    = total > 0 && checked === total;
+
+  // En modo consulta, un checklist vacío no aporta nada: no se muestra el panel
+  if (readOnly && total === 0) return null;
 
   function handleAdd() {
     const t = newTitle.trim();
@@ -105,6 +111,7 @@ function ChecklistUI({
               <button
                 type="button"
                 onClick={() => onToggle(item)}
+                disabled={readOnly}
                 style={{
                   flexShrink: 0,
                   width: "1.125rem",
@@ -115,7 +122,7 @@ function ChecklistUI({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  cursor: "pointer",
+                  cursor: readOnly ? "default" : "pointer",
                   transition: "border-color 0.15s, background-color 0.15s",
                   padding: 0,
                 }}
@@ -134,7 +141,7 @@ function ChecklistUI({
               >
                 {item.title}
               </span>
-              {canDelete && (
+              {canDelete && !readOnly && (
                 <button
                   type="button"
                   onClick={() => onDelete(item.id)}
@@ -164,7 +171,7 @@ function ChecklistUI({
       )}
 
       {/* Add item */}
-      {addOpen ? (
+      {readOnly ? null : addOpen ? (
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <input
             autoFocus
@@ -305,11 +312,14 @@ export function TaskChecklistPanel({
   projectId,
   initialItems,
   canDelete,
+  readOnly = false,
 }: {
   taskId: string;
   projectId: string | null;
   initialItems: Item[];
   canDelete: boolean;
+  /** Los clientes con acceso a la tarea ven el avance pero no lo modifican. */
+  readOnly?: boolean;
 }) {
   const [items, setItems] = useState<Item[]>(initialItems);
   const [, startTransition] = useTransition();
@@ -350,6 +360,7 @@ export function TaskChecklistPanel({
     <ChecklistUI
       items={items}
       canDelete={canDelete}
+      readOnly={readOnly}
       onToggle={handleToggle}
       onDelete={handleDelete}
       onAdd={handleAdd}

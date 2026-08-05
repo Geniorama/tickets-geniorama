@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
+import { isStaff } from "@/lib/roles";
 
 // ─── Tickets ─────────────────────────────────────────────────────────────────
 
@@ -68,8 +69,13 @@ export async function deleteTicketChecklistItem(itemId: string, ticketId: string
 
 // ─── Tasks ────────────────────────────────────────────────────────────────────
 
+// El checklist de una tarea es de gestión interna. Los clientes con acceso al
+// detalle (mención o revisor) lo ven en solo lectura, así que estas acciones
+// quedan restringidas al staff.
+
 export async function addTaskChecklistItem(taskId: string, projectId: string | null, title: string) {
   const session = await getRequiredSession();
+  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
   const t = title.trim();
   if (!t) return { error: "El título no puede estar vacío" };
 
@@ -89,6 +95,7 @@ export async function addTaskChecklistItem(taskId: string, projectId: string | n
 
 export async function addTaskChecklistItems(taskId: string, projectId: string | null, titles: string[]) {
   const session = await getRequiredSession();
+  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
   const clean = titles.map((t) => t.trim()).filter((t) => t.length > 0);
   if (clean.length === 0) return { error: "Sin ítems para agregar" };
 
@@ -107,7 +114,8 @@ export async function addTaskChecklistItems(taskId: string, projectId: string | 
 }
 
 export async function toggleTaskChecklistItem(itemId: string, taskId: string, projectId: string | null) {
-  await getRequiredSession();
+  const session = await getRequiredSession();
+  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
   const item = await prisma.taskChecklistItem.findUnique({ where: { id: itemId } });
   if (!item) return { error: "Ítem no encontrado" };
@@ -121,7 +129,8 @@ export async function toggleTaskChecklistItem(itemId: string, taskId: string, pr
 }
 
 export async function deleteTaskChecklistItem(itemId: string, taskId: string, projectId: string | null) {
-  await getRequiredSession();
+  const session = await getRequiredSession();
+  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
   await prisma.taskChecklistItem.delete({ where: { id: itemId } });
 

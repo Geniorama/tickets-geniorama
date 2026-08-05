@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
+import { canInteractWithTask } from "@/lib/task-access";
 import type { ReactionType } from "@/generated/prisma";
 
 export async function toggleTicketCommentReaction(
@@ -40,6 +41,10 @@ export async function toggleTaskCommentReaction(
 ) {
   const session = await getRequiredSession();
   const userId = session.user.id;
+
+  // El staff siempre puede; el cliente solo en tareas donde lo involucraron
+  const allowed = await canInteractWithTask(taskId, userId, session.user.role);
+  if (!allowed) return;
 
   const existing = await prisma.taskCommentReaction.findUnique({
     where: { commentId_userId: { commentId, userId } },

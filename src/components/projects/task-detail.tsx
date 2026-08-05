@@ -46,12 +46,16 @@ export function TaskDetail({
   totalComments = task.comments.length,
   projects = [],
   checklistSlot,
+  canOpenProject = true,
 }: {
   task: TaskWithDetails;
   session: Session;
   totalComments?: number;
   projects?: { id: string; name: string }[];
   checklistSlot?: React.ReactNode;
+  /** false cuando el usuario llega a la tarea pero no puede abrir el proyecto
+      (cliente mencionado en una tarea de un proyecto privado). */
+  canOpenProject?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -434,13 +438,15 @@ export function TaskDetail({
               <span style={infoRowStyle}>
                 <FolderOpen style={{ width: "0.875rem", height: "0.875rem" }} />
                 Proyecto:{" "}
-                {task.project ? (
+                {task.project && canOpenProject ? (
                   <Link
                     href={`/proyectos/${task.project.id}`}
                     style={{ color: "#fd1384", textDecoration: "none", fontWeight: 500 }}
                   >
                     {task.project.name}
                   </Link>
+                ) : task.project ? (
+                  <strong style={{ color: "var(--app-body-text)" }}>{task.project.name}</strong>
                 ) : (
                   <strong style={{ color: "var(--app-text-muted)", fontStyle: "italic" }}>
                     Sin proyecto

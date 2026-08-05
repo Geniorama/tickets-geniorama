@@ -18,7 +18,8 @@ type TaskWithRelations = Task & {
 };
 
 // Envuelve el contenido en un Link, salvo en modo readOnly (clientes), donde se
-// renderiza como texto sin enlace (el detalle de tarea no es accesible para clientes).
+// renderiza como texto sin enlace. Los clientes solo enlazan las tareas en las
+// que el staff los involucró (mención o revisor); el resto sigue sin enlace.
 function MaybeLink({
   readOnly,
   href,
@@ -59,6 +60,7 @@ export function TaskList({
   basePath,
   paramsStr,
   readOnly = false,
+  accessibleTaskIds,
 }: {
   tasks: TaskWithRelations[];
   projectId?: string;
@@ -67,8 +69,11 @@ export function TaskList({
   basePath?: string;
   paramsStr?: string;
   readOnly?: boolean;
+  /** En modo readOnly, IDs de tareas cuyo detalle sí puede abrir el usuario. */
+  accessibleTaskIds?: string[];
 }) {
   const showProject = !projectId;
+  const accessible = new Set(accessibleTaskIds ?? []);
 
   if (tasks.length === 0) {
     return (
@@ -124,9 +129,10 @@ export function TaskList({
       <ul className="md:hidden divide-y" style={{ borderColor: "var(--app-border)" }}>
         {tasks.map((task) => {
           const href = task.project ? `/proyectos/${task.project.id}/tareas/${task.id}` : `/tareas/${task.id}`;
+          const noLink = readOnly && !accessible.has(task.id);
           return (
             <li key={task.id}>
-              <MaybeLink readOnly={readOnly} href={href} block style={{ display: "block", padding: "0.875rem 1rem", textDecoration: "none" }}>
+              <MaybeLink readOnly={noLink} href={href} block style={{ display: "block", padding: "0.875rem 1rem", textDecoration: "none" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.375rem" }}>
                   <span style={{ fontWeight: 600, color: "var(--app-body-text)", fontSize: "0.875rem", lineHeight: 1.4 }}>
                     {task.number > 0 && (
@@ -236,6 +242,7 @@ export function TaskList({
         <tbody>
           {tasks.map((task, i) => {
             const href = task.project ? `/proyectos/${task.project.id}/tareas/${task.id}` : `/tareas/${task.id}`;
+            const noLink = readOnly && !accessible.has(task.id);
             return (
               <tr
                 key={task.id}
@@ -245,7 +252,7 @@ export function TaskList({
               >
                 <td style={{ padding: "0.75rem 1rem" }}>
                   <MaybeLink
-                    readOnly={readOnly}
+                    readOnly={noLink}
                     href={href}
                     hover
                     style={{ fontWeight: 500, color: "var(--app-body-text)", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.375rem" }}
