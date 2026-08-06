@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main # Se activa cuando haces push a main
+  # Permite lanzarlo a mano desde la pestaña Actions ("Run workflow"), para
+  # redesplegar sin inventar un commit o para probar que Actions responde.
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
