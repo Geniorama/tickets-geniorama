@@ -2,10 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X } from "lucide-react";
+import { DraftChecklist } from "@/components/ui/draft-checklist";
+import type { ChecklistGroup } from "@/lib/checklist";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { TASK_CATEGORY_GROUPS, TASK_CATEGORIES } from "@/lib/task-categories";
-import { parseChecklistPaste } from "@/lib/checklist-paste";
 import { splitEstimatedHours } from "@/lib/estimated-time";
 import { createTaskTemplate, updateTaskTemplate } from "@/actions/task-template.actions";
 
@@ -17,7 +17,7 @@ export interface TaskTemplateData {
   priority: string;
   category: string | null;
   estimatedHours: number | null;
-  checklist: string[];
+  checklist: ChecklistGroup[];
 }
 
 const inputStyle: React.CSSProperties = {
@@ -45,25 +45,8 @@ export function TaskTemplateForm({ template }: { template?: TaskTemplateData }) 
   const isEdit = !!template;
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [checklist, setChecklist] = useState<string[]>(template?.checklist ?? []);
-  const [checklistInput, setChecklistInput] = useState("");
+  const [checklist, setChecklist] = useState<ChecklistGroup[]>(template?.checklist ?? []);
   const estimatedParts = splitEstimatedHours(template?.estimatedHours ?? null);
-
-  function addChecklistItem() {
-    const t = checklistInput.trim();
-    if (!t) return;
-    setChecklist((prev) => [...prev, t]);
-    setChecklistInput("");
-  }
-
-  function handleChecklistPaste(e: React.ClipboardEvent<HTMLInputElement>) {
-    const items = parseChecklistPaste(e.clipboardData.getData("text"));
-    if (items.length > 1) {
-      e.preventDefault();
-      setChecklist((prev) => [...prev, ...items]);
-      setChecklistInput("");
-    }
-  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -172,50 +155,11 @@ export function TaskTemplateForm({ template }: { template?: TaskTemplateData }) 
         <label style={labelStyle}>
           Checklist <span style={{ fontWeight: 400, color: "var(--app-text-muted)" }}>(opcional)</span>
         </label>
-        {checklist.length > 0 && (
-          <ul style={{ listStyle: "none", margin: "0 0 0.5rem", padding: 0, display: "flex", flexDirection: "column", gap: "0.375rem" }}>
-            {checklist.map((item, idx) => (
-              <li
-                key={idx}
-                style={{
-                  display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem",
-                  border: "1px solid var(--app-border)", borderRadius: "0.375rem", padding: "0.375rem 0.625rem",
-                  color: "var(--app-body-text)",
-                }}
-              >
-                <span style={{ flex: 1 }}>{item}</span>
-                <button
-                  type="button"
-                  onClick={() => setChecklist((prev) => prev.filter((_, i) => i !== idx))}
-                  style={{ background: "none", border: "none", cursor: "pointer", color: "var(--app-text-muted)", display: "flex" }}
-                >
-                  <X style={{ width: "0.875rem", height: "0.875rem" }} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <input
-            value={checklistInput}
-            onChange={(e) => setChecklistInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addChecklistItem(); } }}
-            onPaste={handleChecklistPaste}
-            placeholder="Agregar ítem y pulsar Enter"
-            style={inputStyle}
-          />
-          <button
-            type="button"
-            onClick={addChecklistItem}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: "0.25rem", padding: "0.5rem 0.75rem",
-              borderRadius: "0.5rem", border: "1px solid var(--app-border)", backgroundColor: "var(--app-card-bg)",
-              color: "var(--app-body-text)", fontSize: "0.8125rem", cursor: "pointer", whiteSpace: "nowrap",
-            }}
-          >
-            <Plus style={{ width: "0.875rem", height: "0.875rem" }} /> Agregar
-          </button>
-        </div>
+        <DraftChecklist
+          groups={checklist}
+          onChange={setChecklist}
+          placeholder="Agregar ítem y pulsar Enter"
+        />
       </div>
 
       {error && (

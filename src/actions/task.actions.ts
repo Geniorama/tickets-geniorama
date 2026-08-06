@@ -13,6 +13,7 @@ import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/reviewers";
 import { combineEstimatedTime } from "@/lib/estimated-time";
+import { parseChecklistGroups } from "@/lib/checklist";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -210,19 +211,24 @@ export async function createTask(projectIdArg: string | null, formData: FormData
     } catch { /* JSON inválido, ignorar */ }
   }
 
-  // Crear ítems de checklist si se enviaron
-  const checklistRaw = formData.get("checklist") as string | null;
-  if (checklistRaw) {
-    try {
-      const items = JSON.parse(checklistRaw) as string[];
-      const checklistData = items
-        .map((item, i) => ({ title: item?.trim(), position: i }))
-        .filter((item): item is { title: string; position: number } => !!item.title)
-        .map(({ title, position }) => ({
-          taskId: task.id, title, position, createdById: session.user.id,
-        }));
-      if (checklistData.length > 0) await prisma.taskChecklistItem.createMany({ data: checklistData });
-    } catch { /* JSON inválido, ignorar */ }
+  // Crear los checklists si se enviaron
+  const checklistGroups = parseChecklistGroups(formData.get("checklist"));
+  for (const [index, group] of checklistGroups.entries()) {
+    await prisma.taskChecklist.create({
+      data: {
+        taskId: task.id,
+        title: group.title,
+        position: index,
+        createdById: session.user.id,
+        items: {
+          create: group.items.map((title, position) => ({
+            title,
+            position,
+            createdById: session.user.id,
+          })),
+        },
+      },
+    });
   }
 
   const [project, assignee] = await Promise.all([

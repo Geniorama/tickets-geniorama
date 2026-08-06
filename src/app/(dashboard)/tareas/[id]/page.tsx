@@ -43,7 +43,10 @@ export default async function GlobalTaskPage({
         },
         orderBy: { createdAt: "asc" },
       },
-      checklistItems: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
+      checklists: {
+        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+        include: { items: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] } },
+      },
       attachments: {
         include: { uploadedBy: { select: { name: true } } },
         orderBy: { createdAt: "asc" },
@@ -89,7 +92,7 @@ export default async function GlobalTaskPage({
             key="checklist"
             taskId={taskId}
             projectId={null}
-            initialItems={task.checklistItems}
+            initialChecklists={task.checklists}
             canDelete={admin}
           />
         }

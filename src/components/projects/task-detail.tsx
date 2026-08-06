@@ -28,7 +28,7 @@ type TaskWithDetails = Task & {
   reviewers: Pick<User, "id" | "name">[];
   createdBy: Pick<User, "id" | "name">;
   comments: (TaskComment & { author: Pick<User, "name">; reactions: ReactionEntry[]; attachments: CommentAttachment[] })[];
-  checklistItems: { id: string; title: string; isChecked: boolean }[];
+  checklists: { id: string; title: string; items: { id: string; title: string; isChecked: boolean }[] }[];
   attachments: TaskAttachment[];
   timeEntries: (TaskTimeEntry & { user: Pick<User, "name"> })[];
 };

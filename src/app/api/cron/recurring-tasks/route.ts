@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { computeNextRunAt } from "@/lib/recurrence";
+import { normalizeChecklistGroups } from "@/lib/checklist";
 
 export const maxDuration = 30;
 
@@ -57,15 +58,20 @@ export async function POST(req: NextRequest) {
             recurringTemplateId: tpl.id,
             dueDate: due,
             number: nextNumber,
-            checklistItems: tpl.checklist.length
-              ? {
-                  create: tpl.checklist.map((title, position) => ({
+            checklists: {
+              create: normalizeChecklistGroups(tpl.checklist).map((group, position) => ({
+                title: group.title,
+                position,
+                createdById: tpl.createdById,
+                items: {
+                  create: group.items.map((title, itemPosition) => ({
                     title,
-                    position,
+                    position: itemPosition,
                     createdById: tpl.createdById,
                   })),
-                }
-              : undefined,
+                },
+              })),
+            },
           },
         });
 

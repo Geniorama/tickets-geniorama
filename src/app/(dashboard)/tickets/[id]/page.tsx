@@ -35,7 +35,10 @@ export default async function TicketPage({
       plan: { select: { id: true, name: true, type: true } },
       site: { select: { id: true, name: true, domain: true, documentation: true, architecture: true } },
       attachments: { orderBy: { createdAt: "asc" } },
-      checklistItems: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] },
+      checklists: {
+        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+        include: { items: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] } },
+      },
       timeEntries: {
         take: 200,
         orderBy: { startedAt: "asc" },
@@ -129,7 +132,7 @@ export default async function TicketPage({
           <TicketChecklistPanel
             key="checklist"
             ticketId={ticketId}
-            initialItems={ticket.checklistItems}
+            initialChecklists={ticket.checklists}
             canDelete={admin}
           />
         }

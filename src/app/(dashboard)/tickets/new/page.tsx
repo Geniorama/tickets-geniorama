@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { TicketForm } from "@/components/tickets/ticket-form";
 import { TemplatePicker } from "@/components/tasks/template-picker";
 import { getClientActivePlan } from "@/lib/plans.server";
+import { normalizeChecklistGroups } from "@/lib/checklist";
 
 export const metadata = { title: "Nuevo ticket" };
 
@@ -97,7 +98,7 @@ export default async function NewTicketPage({
         description: template.description,
         priority: template.priority as string,
         category: template.category,
-        checklist: template.checklist,
+        checklist: normalizeChecklistGroups(template.checklist),
       }
     : undefined;
 

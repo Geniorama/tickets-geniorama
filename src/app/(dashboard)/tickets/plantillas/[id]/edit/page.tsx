@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { TicketTemplateForm } from "@/components/tickets/ticket-template-form";
 import { BackButton } from "@/components/ui/back-button";
+import { normalizeChecklistGroups } from "@/lib/checklist";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,7 +29,7 @@ export default async function EditTicketTemplatePage({
     description: template.description,
     priority: template.priority as string,
     category: template.category,
-    checklist: template.checklist,
+    checklist: normalizeChecklistGroups(template.checklist),
   };
 
   return (

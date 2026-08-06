@@ -1,11 +1,12 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { FileText, Paperclip, Plus, X } from "lucide-react";
+import { FileText, Paperclip, X } from "lucide-react";
 import { createTicket } from "@/actions/ticket.actions";
+import { DraftChecklist } from "@/components/ui/draft-checklist";
+import type { ChecklistGroup } from "@/lib/checklist";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { parseChecklistPaste } from "@/lib/checklist-paste";
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -22,7 +23,7 @@ interface TicketPrefill {
   description: string;
   priority: string;
   category: string | null;
-  checklist: string[];
+  checklist: ChecklistGroup[];
 }
 
 export function TicketForm({
@@ -48,8 +49,7 @@ export function TicketForm({
   const submitAsDraft = useRef(false);
   const [selectedClientId, setSelectedClientId] = useState("");
   const [reviewerIds, setReviewerIds] = useState<string[]>([]);
-  const [checklistItems, setChecklistItems] = useState<string[]>(prefill?.checklist ?? []);
-  const [checklistInput, setChecklistInput] = useState("");
+  const [checklistItems, setChecklistItems] = useState<ChecklistGroup[]>(prefill?.checklist ?? []);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -91,22 +91,6 @@ export function TicketForm({
   const availableSites = selectedClientId && selectedClient
     ? sites.filter((s) => selectedClient.companies.some((co) => co.id === s.companyId))
     : sites;
-
-  function addChecklistItem() {
-    const t = checklistInput.trim();
-    if (!t) return;
-    setChecklistItems((prev) => [...prev, t]);
-    setChecklistInput("");
-  }
-
-  function handleChecklistPaste(e: React.ClipboardEvent<HTMLInputElement>) {
-    const items = parseChecklistPaste(e.clipboardData.getData("text"));
-    if (items.length > 1) {
-      e.preventDefault();
-      setChecklistItems((prev) => [...prev, ...items]);
-      setChecklistInput("");
-    }
-  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -234,70 +218,7 @@ export function TicketForm({
           Checklist <span style={{ fontWeight: 400, color: "var(--app-text-muted)" }}>(opcional)</span>
         </label>
 
-        {checklistItems.length > 0 && (
-          <ul style={{ listStyle: "none", margin: "0 0 0.5rem", padding: 0, display: "flex", flexDirection: "column", gap: "0.375rem" }}>
-            {checklistItems.map((item, idx) => (
-              <li
-                key={idx}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  fontSize: "0.8125rem",
-                  backgroundColor: "var(--app-bg)",
-                  border: "1px solid var(--app-border)",
-                  borderRadius: "0.375rem",
-                  padding: "0.375rem 0.625rem",
-                }}
-              >
-                <span style={{ flex: 1, color: "var(--app-body-text)" }}>{item}</span>
-                <button
-                  type="button"
-                  onClick={() => setChecklistItems((prev) => prev.filter((_, i) => i !== idx))}
-                  style={{ display: "flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", color: "var(--app-text-muted)" }}
-                >
-                  <X style={{ width: "0.875rem", height: "0.875rem" }} />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <div style={{ display: "flex", gap: "0.5rem" }}>
-          <input
-            type="text"
-            value={checklistInput}
-            onChange={(e) => setChecklistInput(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addChecklistItem(); } }}
-            onPaste={handleChecklistPaste}
-            placeholder="Agregar ítem al checklist…"
-            style={{ flex: 1, border: "1px solid var(--app-border)", borderRadius: "0.5rem", padding: "0.5rem 0.75rem", fontSize: "0.8125rem", color: "var(--app-body-text)", backgroundColor: "var(--app-bg)", outline: "none", boxSizing: "border-box" }}
-          />
-          <button
-            type="button"
-            onClick={addChecklistItem}
-            disabled={!checklistInput.trim()}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.25rem",
-              fontSize: "0.8125rem",
-              fontWeight: 500,
-              color: "#fd1384",
-              backgroundColor: "transparent",
-              border: "1px solid rgba(253,19,132,0.35)",
-              borderRadius: "0.5rem",
-              padding: "0.5rem 0.75rem",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              flexShrink: 0,
-              opacity: checklistInput.trim() ? 1 : 0.4,
-            }}
-          >
-            <Plus style={{ width: "0.875rem", height: "0.875rem" }} />
-            Agregar
-          </button>
-        </div>
+        <DraftChecklist groups={checklistItems} onChange={setChecklistItems} />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -9,6 +9,7 @@ import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { notify } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { formatEstimatedTime } from "@/lib/estimated-time";
+import { DEFAULT_CHECKLIST_TITLE } from "@/lib/checklist";
 import type { TaskStatus, TicketStatus, Priority } from "@/generated/prisma";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -112,7 +113,7 @@ async function buildContext(userId: string): Promise<AssistantContext> {
         dueDate: true,
         estimatedHours: true,
         project: { select: { id: true, name: true } },
-        _count: { select: { checklistItems: true } },
+        checklists: { select: { _count: { select: { items: true } } } },
         comments: {
           orderBy: { createdAt: "desc" },
           take: 4,
@@ -223,7 +224,8 @@ async function buildContext(userId: string): Promise<AssistantContext> {
       parts.push(`Vence: ${fmt(t.dueDate)}${overdue ? " (VENCIDA)" : ""}`);
     }
     if (t.estimatedHours) parts.push(`Estimado: ${formatEstimatedTime(t.estimatedHours)}`);
-    if (t._count.checklistItems > 0) parts.push(`Checklist: ${t._count.checklistItems} ítems`);
+    const checklistCount = t.checklists.reduce((sum, c) => sum + c._count.items, 0);
+    if (checklistCount > 0) parts.push(`Checklist: ${checklistCount} ítems`);
     let line = `- ${parts.join(" · ")}`;
     if (t.comments.length > 0) {
       line += `\n  Comentarios recientes:\n${formatComments(t.comments)}`;
@@ -600,10 +602,30 @@ export async function executeAssistantAction(
     });
     if (!task) return { error: "Tarea no encontrada" };
 
-    const count = await prisma.taskChecklistItem.count({ where: { taskId: action.taskId } });
+    // Los ítems van al primer checklist de la tarea; si no tiene ninguno, se crea.
+    const existing = await prisma.taskChecklist.findFirst({
+      where: { taskId: action.taskId },
+      orderBy: { position: "asc" },
+      select: { id: true },
+    });
+    const checklistId = existing
+      ? existing.id
+      : (
+          await prisma.taskChecklist.create({
+            data: {
+              taskId: action.taskId,
+              title: DEFAULT_CHECKLIST_TITLE,
+              position: 0,
+              createdById: userId,
+            },
+            select: { id: true },
+          })
+        ).id;
+
+    const count = await prisma.taskChecklistItem.count({ where: { checklistId } });
     await prisma.taskChecklistItem.createMany({
       data: items.map((title, i) => ({
-        taskId: action.taskId,
+        checklistId,
         title,
         position: count + i,
         createdById: userId,

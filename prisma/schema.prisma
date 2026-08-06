@@ -162,6 +162,8 @@ model User {
   taskCommentReactions      TaskCommentReaction[]
   notifications             Notification[]
   webhooks                  UserWebhook[]
+  ticketChecklists          TicketChecklist[]
+  taskChecklists            TaskChecklist[]
   ticketChecklistItems      TicketChecklistItem[]
   taskChecklistItems        TaskChecklistItem[]
 
@@ -205,7 +207,7 @@ model Ticket {
   attachments     TicketAttachment[]
   timeEntries     TimeEntry[]
   vaultEntries    TicketVaultEntry[]
-  checklistItems  TicketChecklistItem[]
+  checklists      TicketChecklist[]
 
   @@map("tickets")
 }
@@ -485,7 +487,7 @@ model Task {
   comments       TaskComment[]
   attachments    TaskAttachment[]
   timeEntries    TaskTimeEntry[]
-  checklistItems TaskChecklistItem[]
+  checklists     TaskChecklist[]
 
   @@map("tasks")
 }
@@ -497,7 +499,8 @@ model RecurringTaskTemplate {
   priority          Priority @default(MEDIA)
   category          String?
   estimatedHours    Float?   @map("estimated_hours")
-  checklist         String[] @default([])
+  /// Checklists en borrador: `[{ title, items: string[] }]` (ver src/lib/checklist.ts)
+  checklist         Json     @default("[]")
 
   projectId         String?  @map("project_id")
   assignedToId      String?  @map("assigned_to_id")
@@ -539,7 +542,8 @@ model TaskTemplate {
   priority       Priority @default(MEDIA)
   category       String?
   estimatedHours Float?   @map("estimated_hours")
-  checklist      String[] @default([])
+  /// Checklists en borrador: `[{ title, items: string[] }]` (ver src/lib/checklist.ts)
+  checklist      Json     @default("[]")
 
   createdById    String   @map("created_by_id")
   createdBy      User     @relation("TaskTemplateCreatedBy", fields: [createdById], references: [id])
@@ -560,7 +564,8 @@ model TicketTemplate {
   description    String   @db.Text
   priority       Priority @default(MEDIA)
   category       String?
-  checklist      String[] @default([])
+  /// Checklists en borrador: `[{ title, items: string[] }]` (ver src/lib/checklist.ts)
+  checklist      Json     @default("[]")
 
   createdById    String   @map("created_by_id")
   createdBy      User     @relation("TicketTemplateCreatedBy", fields: [createdById], references: [id])
@@ -793,10 +798,12 @@ model UserWebhook {
 
 // ─── Checklists ───────────────────────────────────────────────────────────────
 
-model TicketChecklistItem {
+// Un ticket/tarea puede tener varios checklists, cada uno con su título. Los
+// ítems cuelgan del checklist, no del ticket/tarea.
+
+model TicketChecklist {
   id          String   @id @default(cuid())
   title       String
-  isChecked   Boolean  @default(false) @map("is_checked")
   position    Int      @default(0)
 
   ticketId    String   @map("ticket_id")
@@ -805,16 +812,36 @@ model TicketChecklistItem {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  ticket      Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  createdBy   User     @relation(fields: [createdById], references: [id])
+  ticket      Ticket                @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  createdBy   User                  @relation(fields: [createdById], references: [id])
+  items       TicketChecklistItem[]
 
-  @@map("ticket_checklist_items")
+  @@index([ticketId])
+  @@map("ticket_checklists")
 }
 
-model TaskChecklistItem {
+model TicketChecklistItem {
   id          String   @id @default(cuid())
   title       String
   isChecked   Boolean  @default(false) @map("is_checked")
+  position    Int      @default(0)
+
+  checklistId String   @map("checklist_id")
+  createdById String   @map("created_by_id")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  checklist   TicketChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  createdBy   User            @relation(fields: [createdById], references: [id])
+
+  @@index([checklistId])
+  @@map("ticket_checklist_items")
+}
+
+model TaskChecklist {
+  id          String   @id @default(cuid())
+  title       String
   position    Int      @default(0)
 
   taskId      String   @map("task_id")
@@ -823,8 +850,29 @@ model TaskChecklistItem {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  createdBy   User     @relation(fields: [createdById], references: [id])
+  task        Task                @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  createdBy   User                @relation(fields: [createdById], references: [id])
+  items       TaskChecklistItem[]
 
+  @@index([taskId])
+  @@map("task_checklists")
+}
+
+model TaskChecklistItem {
+  id          String   @id @default(cuid())
+  title       String
+  isChecked   Boolean  @default(false) @map("is_checked")
+  position    Int      @default(0)
+
+  checklistId String   @map("checklist_id")
+  createdById String   @map("created_by_id")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  checklist   TaskChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  createdBy   User          @relation(fields: [createdById], references: [id])
+
+  @@index([checklistId])
   @@map("task_checklist_items")
 }

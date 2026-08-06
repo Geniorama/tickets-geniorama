@@ -5,6 +5,7 @@ import { TaskForm } from "@/components/projects/task-form";
 import { TemplatePicker } from "@/components/tasks/template-picker";
 import { BackButton } from "@/components/ui/back-button";
 import { redirect } from "next/navigation";
+import { normalizeChecklistGroups } from "@/lib/checklist";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -52,7 +53,7 @@ export default async function NewTaskPage({
         priority: template.priority as string,
         category: template.category,
         estimatedHours: template.estimatedHours,
-        checklist: template.checklist,
+        checklist: normalizeChecklistGroups(template.checklist),
       }
     : undefined;
 

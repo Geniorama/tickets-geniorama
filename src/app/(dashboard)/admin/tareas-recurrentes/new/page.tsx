@@ -2,6 +2,7 @@ import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/ui/back-button";
 import { RecurringTaskForm } from "@/components/admin/recurring-task-form";
+import { normalizeChecklistGroups } from "@/lib/checklist";
 
 export const metadata = { title: "Nueva tarea recurrente" };
 
@@ -34,6 +35,11 @@ export default async function NewRecurringTaskPage() {
     }),
   ]);
 
+  const templateOptions = taskTemplates.map((t) => ({
+    ...t,
+    checklist: normalizeChecklistGroups(t.checklist),
+  }));
+
   return (
     <div>
       <div style={{ marginBottom: "1rem" }}>
@@ -43,7 +49,7 @@ export default async function NewRecurringTaskPage() {
         Nueva tarea recurrente
       </h1>
 
-      <RecurringTaskForm projects={projects} staffUsers={staffUsers} taskTemplates={taskTemplates} />
+      <RecurringTaskForm projects={projects} staffUsers={staffUsers} taskTemplates={templateOptions} />
     </div>
   );
 }

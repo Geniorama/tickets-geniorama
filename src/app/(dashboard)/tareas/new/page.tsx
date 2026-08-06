@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { TaskForm } from "@/components/projects/task-form";
 import { TemplatePicker } from "@/components/tasks/template-picker";
 import { BackButton } from "@/components/ui/back-button";
+import { normalizeChecklistGroups } from "@/lib/checklist";
 
 export const metadata = { title: "Nueva tarea" };
 
@@ -43,7 +44,7 @@ export default async function NewTaskGlobalPage({
         priority: template.priority as string,
         category: template.category,
         estimatedHours: template.estimatedHours,
-        checklist: template.checklist,
+        checklist: normalizeChecklistGroups(template.checklist),
       }
     : undefined;
 

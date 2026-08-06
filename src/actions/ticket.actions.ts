@@ -12,6 +12,7 @@ import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { sendTicketAssignedEmail, sendTicketClosedEmail, sendTicketStatusChangedEmail } from "@/lib/email";
 import { ticketPrefix } from "@/lib/ticket-code";
+import { parseChecklistGroups } from "@/lib/checklist";
 import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/reviewers";
 
 const APP_URL = process.env.AUTH_URL ?? "http://localhost:3000";
@@ -158,19 +159,24 @@ export async function createTicket(formData: FormData) {
     }
   }
 
-  // Crear ítems de checklist si se enviaron
-  const checklistRaw = formData.get("checklist") as string | null;
-  if (checklistRaw) {
-    try {
-      const items = JSON.parse(checklistRaw) as string[];
-      const checklistData = items
-        .map((item, i) => ({ title: item?.trim(), position: i }))
-        .filter((item): item is { title: string; position: number } => !!item.title)
-        .map(({ title, position }) => ({
-          ticketId: ticket.id, title, position, createdById: session.user.id,
-        }));
-      if (checklistData.length > 0) await prisma.ticketChecklistItem.createMany({ data: checklistData });
-    } catch { /* JSON inválido, ignorar */ }
+  // Crear los checklists si se enviaron
+  const checklistGroups = parseChecklistGroups(formData.get("checklist"));
+  for (const [index, group] of checklistGroups.entries()) {
+    await prisma.ticketChecklist.create({
+      data: {
+        ticketId: ticket.id,
+        title: group.title,
+        position: index,
+        createdById: session.user.id,
+        items: {
+          create: group.items.map((title, position) => ({
+            title,
+            position,
+            createdById: session.user.id,
+          })),
+        },
+      },
+    });
   }
 
   // Resolver nombre del asignado para enriquecer notificaciones

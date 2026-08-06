@@ -5,10 +5,11 @@ import { Paperclip, Link2, X, Plus, FileText } from "lucide-react";
 import { createTask, updateTask } from "@/actions/task.actions";
 import type { TaskConflict } from "@/actions/task.actions";
 import type { Task } from "@/generated/prisma";
+import { DraftChecklist } from "@/components/ui/draft-checklist";
+import type { ChecklistGroup } from "@/lib/checklist";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { TASK_CATEGORY_GROUPS, TASK_CATEGORIES } from "@/lib/task-categories";
-import { parseChecklistPaste } from "@/lib/checklist-paste";
 import { splitEstimatedHours } from "@/lib/estimated-time";
 
 interface StaffUser {
@@ -31,7 +32,7 @@ interface TaskPrefill {
   priority?: string;
   category?: string | null;
   estimatedHours?: number | null;
-  checklist?: string[];
+  checklist?: ChecklistGroup[];
 }
 
 interface TaskFormProps {
@@ -86,8 +87,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
   const isEdit = !!task;
 
   // Checklist state
-  const [checklistItems, setChecklistItems] = useState<string[]>(prefill?.checklist ?? []);
-  const [checklistInput, setChecklistInput] = useState("");
+  const [checklistItems, setChecklistItems] = useState<ChecklistGroup[]>(prefill?.checklist ?? []);
 
   // Attachment state
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -405,75 +405,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
                 Checklist <span style={{ fontWeight: 400, color: "var(--app-text-muted)" }}>(opcional)</span>
               </p>
 
-              {checklistItems.length > 0 && (
-                <ul style={{ listStyle: "none", margin: "0 0 0.5rem", padding: 0, display: "flex", flexDirection: "column", gap: "0.375rem" }}>
-                  {checklistItems.map((item, idx) => (
-                    <li
-                      key={idx}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        fontSize: "0.8125rem",
-                        backgroundColor: "var(--app-bg)",
-                        border: "1px solid var(--app-border)",
-                        borderRadius: "0.375rem",
-                        padding: "0.375rem 0.625rem",
-                      }}
-                    >
-                      <span style={{ flex: 1, color: "var(--app-body-text)" }}>{item}</span>
-                      <button
-                        type="button"
-                        onClick={() => setChecklistItems((prev) => prev.filter((_, i) => i !== idx))}
-                        style={{ display: "flex", alignItems: "center", background: "none", border: "none", cursor: "pointer", color: "var(--app-text-muted)" }}
-                      >
-                        <X style={{ width: "0.875rem", height: "0.875rem" }} />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <input
-                  type="text"
-                  value={checklistInput}
-                  onChange={(e) => setChecklistInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") { e.preventDefault(); const t = checklistInput.trim(); if (t) { setChecklistItems((p) => [...p, t]); setChecklistInput(""); } }
-                  }}
-                  onPaste={(e) => {
-                    const items = parseChecklistPaste(e.clipboardData.getData("text"));
-                    if (items.length > 1) { e.preventDefault(); setChecklistItems((p) => [...p, ...items]); setChecklistInput(""); }
-                  }}
-                  placeholder="Agregar ítem al checklist…"
-                  style={{ ...inputStyle, flex: 1, boxSizing: "border-box" }}
-                />
-                <button
-                  type="button"
-                  onClick={() => { const t = checklistInput.trim(); if (t) { setChecklistItems((p) => [...p, t]); setChecklistInput(""); } }}
-                  disabled={!checklistInput.trim()}
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: "0.25rem",
-                    fontSize: "0.8125rem",
-                    fontWeight: 500,
-                    color: "#fd1384",
-                    backgroundColor: "transparent",
-                    border: "1px solid rgba(253,19,132,0.35)",
-                    borderRadius: "0.5rem",
-                    padding: "0.5rem 0.75rem",
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                    opacity: checklistInput.trim() ? 1 : 0.4,
-                  }}
-                >
-                  <Plus style={{ width: "0.875rem", height: "0.875rem" }} />
-                  Agregar
-                </button>
-              </div>
+              <DraftChecklist groups={checklistItems} onChange={setChecklistItems} />
             </div>
           )}
 

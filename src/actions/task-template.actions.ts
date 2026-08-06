@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { combineEstimatedTime } from "@/lib/estimated-time";
+import { normalizeChecklistGroups, parseChecklistGroups } from "@/lib/checklist";
 
 const templateSchema = z.object({
   name:           z.string().min(1, "El nombre es requerido").max(120),
@@ -16,19 +17,6 @@ const templateSchema = z.object({
   estimatedHours: z.string().optional(),
   estimatedMinutes: z.string().optional(),
 });
-
-function parseChecklist(formData: FormData): string[] {
-  const raw = formData.get("checklist") as string | null;
-  if (!raw) return [];
-  try {
-    const items = JSON.parse(raw) as unknown[];
-    return items
-      .map((i) => (typeof i === "string" ? i.trim() : ""))
-      .filter((i): i is string => i.length > 0);
-  } catch {
-    return [];
-  }
-}
 
 function parseForm(formData: FormData) {
   return templateSchema.safeParse({
@@ -57,7 +45,7 @@ export async function createTaskTemplate(formData: FormData): Promise<{ error?: 
       priority:       parsed.data.priority,
       category:       parsed.data.category ?? null,
       estimatedHours: combineEstimatedTime(parsed.data.estimatedHours, parsed.data.estimatedMinutes),
-      checklist:      parseChecklist(formData),
+      checklist:      parseChecklistGroups(formData.get("checklist")),
       createdById:    session.user.id,
     },
   });
@@ -82,7 +70,7 @@ export async function updateTaskTemplate(id: string, formData: FormData): Promis
       priority:       parsed.data.priority,
       category:       parsed.data.category ?? null,
       estimatedHours: combineEstimatedTime(parsed.data.estimatedHours, parsed.data.estimatedMinutes),
-      checklist:      parseChecklist(formData),
+      checklist:      parseChecklistGroups(formData.get("checklist")),
     },
   });
 
@@ -116,9 +104,20 @@ export async function createTaskFromTemplate(templateId: string): Promise<{ erro
       category:       tpl.category,
       estimatedHours: tpl.estimatedHours,
       createdById:    session.user.id,
-      checklistItems: tpl.checklist.length
-        ? { create: tpl.checklist.map((title, position) => ({ title, position, createdById: session.user.id })) }
-        : undefined,
+      checklists: {
+        create: normalizeChecklistGroups(tpl.checklist).map((group, position) => ({
+          title:       group.title,
+          position,
+          createdById: session.user.id,
+          items: {
+            create: group.items.map((title, itemPosition) => ({
+              title,
+              position:    itemPosition,
+              createdById: session.user.id,
+            })),
+          },
+        })),
+      },
     },
   });
 

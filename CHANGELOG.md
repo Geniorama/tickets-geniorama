@@ -9,6 +9,34 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.42.0] — 2026-08-06
+
+### Varios checklists con título por ticket y por tarea
+- Un ticket o una tarea ahora puede tener **varios checklists**, cada uno con su **título editable** (clic sobre el nombre para renombrarlo). Antes solo existía una lista plana.
+- Los checklists se **reordenan arrastrando** por su cabecera, y un **ítem se puede mover de un checklist a otro** arrastrándolo.
+- La cabecera del panel muestra el **avance global** (todos los ítems de todos los checklists) y cada checklist muestra el suyo.
+- Los **formularios de creación** (nuevo ticket, nueva tarea) y las **plantillas** (ticket, tarea y recurrente) también permiten definir varios checklists con título, que se crean tal cual al generar el ticket/tarea.
+- **Modelo de datos:** nuevos modelos `TicketChecklist` y `TaskChecklist`; los ítems pasan a colgar del checklist (`checklist_id`) en vez del ticket/tarea. El campo `checklist` de las tres plantillas pasa de `String[]` a `Json` con la forma `[{ title, items: [] }]`.
+- **Migración `20260806120000_add_checklist_groups` (con datos).** Los ítems y las plantillas que ya existían se agrupan en un checklist llamado **«Checklist»**, conservando su orden. ⚠️ No aplicar con `prisma db push`: hay que ejecutar el SQL de la migración, que preserva los datos.
+- Acciones nuevas: `addTicketChecklist`, `renameTicketChecklist`, `deleteTicketChecklist`, `reorderTicketChecklists` y sus equivalentes de tarea. El reordenamiento viaja como un único *layout* (checklists + ítems), así que una sola acción cubre reordenar listas, reordenar ítems y moverlos entre listas. Las acciones de ítem ahora **validan que el ítem pertenezca al ticket/tarea**.
+- Nuevos helpers `src/lib/checklist.ts` (normalización del JSON de plantillas, tolerante al formato antiguo) y `src/lib/checklist-dnd.ts` (lógica de arrastre compartida entre el panel y el editor en borrador).
+- El **asistente IA** y el **planificador** siguen agregando ítems: van al primer checklist de la tarea, y lo crean si no hay ninguno.
+
+---
+
+## [1.41.0] — 2026-08-06
+
+### Los ítems del checklist se editan, se reordenan arrastrando y van numerados
+- **Numeración:** cada ítem muestra su número de orden (`1.`, `2.`, `3.`…), tanto en el checklist de tickets y tareas como en los que se arman al crear un ticket/tarea o una plantilla.
+- **Edición en línea:** clic sobre el texto de un ítem lo convierte en campo editable. **Enter** o salir del campo guarda; **Escape** cancela. Antes el título solo se podía fijar al crear el ítem: para corregir una errata había que borrarlo y volverlo a escribir.
+- **Reordenar arrastrando:** cada ítem tiene una manija (aparece al pasar el mouse en el detalle) para moverlo a otra posición. El nuevo orden se guarda de inmediato y de forma optimista, con el mismo patrón que ya usaban los adjuntos de proyecto.
+- El reordenamiento **reescribe `position` de 0 en adelante**, así que también cierra los huecos que dejaban los ítems eliminados.
+- **Alcance:** aplica al checklist del **detalle de ticket** y del **detalle de tarea**, y a los checklists en borrador de **nuevo ticket**, **nueva tarea**, **plantillas de ticket**, **plantillas de tarea** y **tareas recurrentes**.
+- **Permisos sin cambios:** editar, eliminar y reordenar siguen la misma regla que ya tenía eliminar (admin en tickets, staff en tareas). Los clientes con acceso a una tarea la siguen viendo en **solo lectura**: ven la numeración, no la manija ni la edición.
+- Nuevas acciones `updateTicketChecklistItem`, `reorderTicketChecklistItems`, `updateTaskChecklistItem` y `reorderTaskChecklistItems`; las de reordenar ignoran ids que no pertenezcan al ticket/tarea. Nuevo componente compartido `src/components/ui/draft-checklist.tsx`, que reemplaza las cinco copias del checklist en borrador de los formularios. **Sin migración de base de datos.**
+
+---
+
 ## [1.40.0] — 2026-08-05
 
 ### Los clientes acceden al detalle de las tareas donde los involucran

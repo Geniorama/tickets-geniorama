@@ -10,6 +10,7 @@ import {
   serializeDaysOfWeek,
 } from "@/lib/recurrence";
 import type { RecurrenceFrequency } from "@/generated/prisma";
+import { normalizeChecklistGroups, parseChecklistGroups } from "@/lib/checklist";
 
 const schema = z.object({
   title: z.string().min(1, "Título requerido").max(200),
@@ -17,7 +18,10 @@ const schema = z.object({
   priority: z.enum(["BAJA", "MEDIA", "ALTA", "CRITICA"]),
   category: z.string().optional(),
   estimatedHours: z.number().optional(),
-  checklist: z.array(z.string().min(1).max(500)).max(100).optional(),
+  checklist: z
+    .array(z.object({ title: z.string().min(1).max(120), items: z.array(z.string().min(1).max(500)) }))
+    .max(20)
+    .optional(),
   projectId: z.string().optional(),
   assignedToId: z.string().optional(),
   frequency: z.enum(["DIARIA", "SEMANAL", "MENSUAL"]),
@@ -40,19 +44,7 @@ function parseFormData(formData: FormData): Input {
   const categoryRaw = formData.get("category");
   const endDateRaw = formData.get("endDate");
   const dayOfMonthRaw = formData.get("dayOfMonth");
-  const checklistRaw = formData.get("checklist");
-
-  let checklist: string[] | undefined;
-  if (checklistRaw) {
-    try {
-      const parsed = JSON.parse(String(checklistRaw));
-      if (Array.isArray(parsed)) {
-        checklist = parsed.map((v) => String(v).trim()).filter((v) => v.length > 0);
-      }
-    } catch {
-      checklist = undefined;
-    }
-  }
+  const checklist = parseChecklistGroups(formData.get("checklist"));
 
   return {
     title: String(formData.get("title") ?? "").trim(),
@@ -231,15 +223,20 @@ export async function runRecurringNow(id: string) {
         recurringTemplateId: tpl.id,
         dueDate: due,
         number: nextNumber,
-        checklistItems: tpl.checklist.length
-          ? {
-              create: tpl.checklist.map((title, position) => ({
+        checklists: {
+          create: normalizeChecklistGroups(tpl.checklist).map((group, position) => ({
+            title: group.title,
+            position,
+            createdById: session.user.id,
+            items: {
+              create: group.items.map((title, itemPosition) => ({
                 title,
-                position,
+                position: itemPosition,
                 createdById: session.user.id,
               })),
-            }
-          : undefined,
+            },
+          })),
+        },
       },
     });
 

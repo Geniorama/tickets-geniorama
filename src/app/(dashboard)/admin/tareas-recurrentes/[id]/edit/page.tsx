@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/ui/back-button";
 import { RecurringTaskForm } from "@/components/admin/recurring-task-form";
 import { parseDaysOfWeek } from "@/lib/recurrence";
+import { normalizeChecklistGroups } from "@/lib/checklist";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -51,6 +52,11 @@ export default async function EditRecurringTaskPage({
 
   if (!tpl) notFound();
 
+  const templateOptions = taskTemplates.map((t) => ({
+    ...t,
+    checklist: normalizeChecklistGroups(t.checklist),
+  }));
+
   const initial = {
     id: tpl.id,
     title: tpl.title,
@@ -58,7 +64,7 @@ export default async function EditRecurringTaskPage({
     priority: tpl.priority,
     category: tpl.category,
     estimatedHours: tpl.estimatedHours,
-    checklist: tpl.checklist,
+    checklist: normalizeChecklistGroups(tpl.checklist),
     projectId: tpl.projectId,
     assignedToId: tpl.assignedToId,
     frequency: tpl.frequency,
@@ -84,7 +90,7 @@ export default async function EditRecurringTaskPage({
         {tpl.lastRunAt ? `Última: ${tpl.lastRunAt.toLocaleString("es-CO")}` : "Nunca ejecutada"}
       </p>
 
-      <RecurringTaskForm initial={initial} projects={projects} staffUsers={staffUsers} taskTemplates={taskTemplates} justCreated={created === "1"} />
+      <RecurringTaskForm initial={initial} projects={projects} staffUsers={staffUsers} taskTemplates={templateOptions} justCreated={created === "1"} />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { Plus, LayoutTemplate } from "lucide-react";
 import { TaskTemplateActions } from "@/components/tasks/task-template-actions";
+import { checklistLabel } from "@/lib/checklist";
 
 export const metadata = { title: "Plantillas de tarea" };
 
@@ -84,7 +85,7 @@ export default async function TaskTemplatesPage() {
                       {t.category ?? "—"}
                     </td>
                     <td style={{ padding: "0.75rem 1rem", color: "var(--app-text-muted)", fontSize: "0.8125rem" }}>
-                      {t.checklist.length > 0 ? `${t.checklist.length} ítem${t.checklist.length !== 1 ? "s" : ""}` : "—"}
+                      {checklistLabel(t.checklist)}
                     </td>
                     <td style={{ padding: "0.75rem 1rem" }}>
                       <TaskTemplateActions id={t.id} name={t.name} />

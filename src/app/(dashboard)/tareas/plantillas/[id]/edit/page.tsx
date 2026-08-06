@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { TaskTemplateForm } from "@/components/tasks/task-template-form";
 import { BackButton } from "@/components/ui/back-button";
+import { normalizeChecklistGroups } from "@/lib/checklist";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,7 +30,7 @@ export default async function EditTaskTemplatePage({
     priority: template.priority as string,
     category: template.category,
     estimatedHours: template.estimatedHours,
-    checklist: template.checklist,
+    checklist: normalizeChecklistGroups(template.checklist),
   };
 
   return (
