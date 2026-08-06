@@ -32,6 +32,17 @@ jobs:
           # ruta se evalúa en build. Añade aquí cualquier NEXT_PUBLIC_* extra.
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
+      # Las migraciones van DESPUÉS del build (que ya validó que el código
+      # compila) y ANTES de subir el bundle: si una migración falla, el job se
+      # corta y no se despliega código que la base no soporta.
+      #
+      # El bundle standalone no incluye `prisma/`, así que esto tiene que
+      # correr aquí, en el runner, no en el servidor.
+      - name: Aplicar migraciones de base de datos
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       # El bundle standalone no incluye /static ni /public: hay que añadirlos.
       - name: Empaquetar static y public en el bundle
         run: |

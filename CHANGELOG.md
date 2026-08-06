@@ -9,6 +9,15 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.42.1] — 2026-08-06
+
+### El deploy aplica las migraciones de base de datos
+- El workflow de GitHub Actions ahora corre `prisma migrate deploy` **después del build y antes de subir el bundle**: si una migración falla, el job se corta y no se despliega código que la base no soporta. Antes el deploy solo compilaba, copiaba y reiniciaba PM2, así que cada cambio de esquema había que aplicarlo a mano.
+- Corre en el runner, no en el servidor, porque el bundle standalone no incluye la carpeta `prisma/`.
+- ⚠️ `migrate deploy` aplica **todas** las migraciones pendientes. La carpeta `prisma/migrations` está desfasada (varias tablas se crearon con `db push` y no tienen migración), así que si alguno de esos folders no está registrado en `_prisma_migrations` el deploy fallará al intentar recrear tablas existentes. Verificar con `select migration_name from _prisma_migrations;` y marcar los faltantes con `prisma migrate resolve --applied <folder>`.
+
+---
+
 ## [1.42.0] — 2026-08-06
 
 ### Varios checklists con título por ticket y por tarea
