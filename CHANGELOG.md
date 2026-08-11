@@ -9,6 +9,38 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.44.0] — 2026-08-11
+
+### Fase 0, paso 2: adjuntos polimórficos
+
+Continuación del núcleo compartido. Sin cambios visibles: los adjuntos de tickets, tareas y proyectos se ven y se comportan igual.
+
+- **Un solo modelo de adjunto.** `TicketAttachment`, `TaskAttachment` y `ProjectAttachment` se unifican en `Attachment`, identificado por `entityType` + `entityId`.
+- **Se normalizan tres convenciones distintas** para distinguir un enlace de un archivo, que era la causa de que cada módulo tuviera su propia lógica: los tickets no tenían enlaces, los proyectos usaban la columna `type`, y **las tareas marcaban el enlace con el centinela `storagePath = "link"`**. Ahora manda `type` y `storagePath` es `null` en los enlaces.
+- **Nuevo `src/lib/attachments.ts`**: `listAttachments`, `addFileAttachments`, `addLinkAttachments`, `deleteAttachment`, `reorderAttachments` y `deleteAttachmentsFor`. Sustituye a cinco bloques de subida repartidos entre `attachment.actions.ts`, `project-attachment.actions.ts`, `ticket.actions.ts` y `task.actions.ts` (dos en este último).
+- **`position` para todos.** Solo los proyectos tenían orden manual. Tickets y tareas reciben su posición a partir del orden de visualización actual, así que el orden no cambia pero queda la base para reordenarlos.
+
+#### Endurecimiento de permisos
+
+Tres acciones aceptaban un id de adjunto sin comprobar a qué entidad pertenecía. Ahora todas van acotadas:
+
+- `reorderProjectAttachments` no verificaba nada: un id de otro proyecto colado en la petición alteraba su orden. El `updateMany` va acotado por `entityType` + `entityId`.
+- El borrado de adjuntos al editar una tarea (`deletedAttachmentIds`) no comprobaba que el adjunto fuera de esa tarea.
+- `deleteAttachment` de ticket tampoco lo comprobaba.
+
+#### ⚠️ Borrado en cascada, igual que con los comentarios
+
+`deleteAttachmentsFor()` se añadió a `deleteTicket`, `deleteTask` y `deleteProject`, en la misma transacción que ya limpiaba los comentarios. Se borran **solo los registros**: los objetos en R2 se quedan, que es exactamente lo que ocurría antes cuando la cascada de la base eliminaba las filas.
+
+#### Migración `20260811100000_add_shared_attachment_kernel` (con datos)
+
+- Copia los 355 adjuntos conservando los ids, traduce el centinela de tareas a `type='link'` con `storagePath` nulo y genera `position` por orden de creación.
+- Los prefijos en R2 no cambian (incluido el heredado `tickets/projects/…` de los archivos de proyecto), así que las URLs existentes siguen resolviendo.
+- **Las tablas viejas no se eliminan**, igual que en 1.43.0.
+- Verificada en base desechable con las tres convenciones representadas; `prisma migrate diff` no detecta diferencias.
+
+---
+
 ## [1.43.0] — 2026-08-10
 
 ### Fase 0 del núcleo compartido: comentarios polimórficos

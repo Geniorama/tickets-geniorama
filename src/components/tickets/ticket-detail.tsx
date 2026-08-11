@@ -7,7 +7,7 @@ import { Pencil, Trash2, User as UserIcon, Building2, UserCheck, Calendar, Check
 import type { Session } from "next-auth";
 // `CommentRecord` es el comentario compartido del núcleo (tabla `comments`),
 // con alias para no chocar con el tipo global `Comment` del DOM.
-import type { Ticket, Comment as CommentRecord, TicketAttachment, TimeEntry, User, TicketStatus, Priority } from "@/generated/prisma";
+import type { Ticket, Comment as CommentRecord, Attachment, TimeEntry, User, TicketStatus, Priority } from "@/generated/prisma";
 import { TicketTimer } from "./ticket-timer";
 import { TicketAiAssistant } from "./ticket-ai-assistant";
 import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
@@ -40,7 +40,7 @@ type TicketWithDetails = Ticket & {
   client: (Pick<User, "id" | "name"> & { companies: { name: string }[] }) | null;
   plan: { id: string; name: string; type: string } | null;
   site: { id: string; name: string; domain: string; documentation: string | null; architecture: string | null } | null;
-  attachments: TicketAttachment[];
+  attachments: Attachment[];
   checklists: { id: string; title: string; items: { id: string; title: string; isChecked: boolean }[] }[];
   timeEntries: (TimeEntry & { user: Pick<User, "name"> })[];
   comments: (CommentRecord & {

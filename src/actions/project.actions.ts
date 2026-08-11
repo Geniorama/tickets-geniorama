@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, requireRole } from "@/lib/auth-helpers";
 import { deleteCommentsFor } from "@/lib/comments";
+import { deleteAttachmentsFor } from "@/lib/attachments";
 
 const projectSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -118,6 +119,8 @@ export async function deleteProject(projectId: string) {
   await prisma.$transaction(async (tx) => {
     await deleteCommentsFor("TASK", taskIds, tx);
     await deleteCommentsFor("PROJECT", projectId, tx);
+    await deleteAttachmentsFor("TASK", taskIds, tx);
+    await deleteAttachmentsFor("PROJECT", projectId, tx);
     await tx.project.delete({ where: { id: projectId } });
   });
   revalidatePath("/proyectos");

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { listAttachments } from "@/lib/attachments";
 import { TaskForm } from "@/components/projects/task-form";
 import { BackButton } from "@/components/ui/back-button";
 
@@ -23,7 +24,6 @@ export default async function EditTaskPage({
       where: { id: taskId },
       include: {
         project: { select: { id: true, name: true } },
-        attachments: { orderBy: { createdAt: "asc" } },
         reviewers: { select: { id: true } },
       },
     }),
@@ -40,6 +40,9 @@ export default async function EditTaskPage({
   ]);
 
   if (!task || task.projectId !== projectId) notFound();
+
+  // Los adjuntos viven en la tabla compartida, fuera de la relación.
+  const attachments = await listAttachments("TASK", taskId);
 
   return (
     <div style={{ padding: "1.5rem" }}>
@@ -69,7 +72,7 @@ export default async function EditTaskPage({
           padding: "1.5rem",
         }}
       >
-        <TaskForm projectId={projectId} staffUsers={staffUsers} reviewerCandidates={reviewerCandidates} defaultReviewerIds={task.reviewers.map((r) => r.id)} task={task} existingAttachments={task.attachments} />
+        <TaskForm projectId={projectId} staffUsers={staffUsers} reviewerCandidates={reviewerCandidates} defaultReviewerIds={task.reviewers.map((r) => r.id)} task={task} existingAttachments={attachments} />
       </div>
     </div>
   );

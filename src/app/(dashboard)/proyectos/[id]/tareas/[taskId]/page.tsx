@@ -9,6 +9,7 @@ import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
 import { ProjectVaultPanel } from "@/components/vault/project-vault-panel";
 import { ProjectAttachmentsPanel } from "@/components/projects/project-attachments-panel";
 import { listComments } from "@/lib/comments";
+import { listAttachments } from "@/lib/attachments";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const { taskId } = await params;
@@ -38,10 +39,6 @@ export default async function TaskPage({
       checklists: {
         orderBy: [{ position: "asc" }, { createdAt: "asc" }],
         include: { items: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] } },
-      },
-      attachments: {
-        include: { uploadedBy: { select: { name: true } } },
-        orderBy: { createdAt: "asc" },
       },
       timeEntries: {
         include: { user: { select: { name: true } } },
@@ -81,13 +78,12 @@ export default async function TaskPage({
     if (!hasAccess) redirect(`/proyectos/${projectId}`);
   }
 
-  // Los comentarios viven en la tabla compartida; se cargan una vez superado el
-  // control de acceso de arriba.
-  const comments = await listComments({
-    entityType: "TASK",
-    entityId: taskId,
-    includeInternal: true,
-  });
+  // Comentarios y adjuntos viven en tablas compartidas; se cargan una vez
+  // superado el control de acceso de arriba.
+  const [comments, attachments] = await Promise.all([
+    listComments({ entityType: "TASK", entityId: taskId, includeInternal: true }),
+    listAttachments("TASK", taskId),
+  ]);
 
   // Configuración general del proyecto (accesos + adjuntos), visible también aquí.
   // La Bóveda es visible solo para el creador y los usuarios con los que se comparte.
@@ -97,11 +93,7 @@ export default async function TaskPage({
   const [projectAttachments, linkedVaultEntries, availableVaultEntries] = client
     ? [[], [], []]
     : await Promise.all([
-        prisma.projectAttachment.findMany({
-          where: { projectId },
-          include: { uploadedBy: { select: { name: true } } },
-          orderBy: { position: "asc" },
-        }),
+        listAttachments("PROJECT", projectId),
         prisma.vaultEntry.findMany({
           where: { projects: { some: { projectId } }, ...vaultVisibility },
           select: { id: true, title: true, username: true, url: true },
@@ -128,7 +120,7 @@ export default async function TaskPage({
         />
       </div>
       <TaskDetail
-        task={{ ...task, comments }}
+        task={{ ...task, comments, attachments }}
         session={session}
         projects={moveableProjects}
         canOpenProject={!client || !task.project?.isPrivate}

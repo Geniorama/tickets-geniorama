@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import type { TicketAttachment } from "@/generated/prisma";
+import type { Attachment } from "@/generated/prisma";
 import { deleteAttachment } from "@/actions/attachment.actions";
 
 function fileIcon(fileName: string) {
@@ -17,7 +17,7 @@ export function AttachmentList({
   ticketId,
   isAdmin,
 }: {
-  attachments: TicketAttachment[];
+  attachments: Attachment[];
   ticketId: string;
   isAdmin: boolean;
 }) {
@@ -44,7 +44,7 @@ function AttachmentRow({
   ticketId,
   isAdmin,
 }: {
-  attachment: TicketAttachment;
+  attachment: Attachment;
   ticketId: string;
   isAdmin: boolean;
 }) {

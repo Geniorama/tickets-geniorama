@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { Project, ProjectStatus, Task, TaskStatus, Priority, ProjectAttachment } from "@/generated/prisma";
+import type { Project, ProjectStatus, Task, TaskStatus, Priority, Attachment } from "@/generated/prisma";
 import { ProjectStatusBadge } from "./project-status-badge";
 import { TaskList } from "./task-list";
 import { TaskKanban } from "./task-kanban";
@@ -23,7 +23,7 @@ type TaskWithRelations = Task & {
   _count: { comments: number };
 };
 
-type AttachmentWithUser = ProjectAttachment & {
+type AttachmentWithUser = Attachment & {
   uploadedBy: { name: string };
 };
 

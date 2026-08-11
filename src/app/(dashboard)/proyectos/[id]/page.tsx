@@ -7,6 +7,7 @@ import { ProjectDetail } from "@/components/projects/project-detail";
 import { BackButton } from "@/components/ui/back-button";
 import { CollaboratorSchedulingCard } from "@/components/collaborator/collaborator-scheduling-card";
 import { withCommentCounts } from "@/lib/comments";
+import { listAttachments } from "@/lib/attachments";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -52,10 +53,6 @@ export default async function ProjectPage({
           project: { select: { id: true, name: true } },
         },
         orderBy: { createdAt: "asc" },
-      },
-      attachments: {
-        include: { uploadedBy: { select: { name: true } } },
-        orderBy: { position: "asc" },
       },
     },
   });
@@ -121,8 +118,12 @@ export default async function ProjectPage({
     ? [...(await getClientAccessibleTaskIds(project.tasks.map((t) => t.id), userId))]
     : [];
 
-  // El conteo de comentarios ya no viene por relación: la tabla es compartida.
-  const tasks = await withCommentCounts("TASK", project.tasks);
+  // Conteo de comentarios y adjuntos: ya no vienen por relación, las tablas
+  // son compartidas.
+  const [tasks, attachments] = await Promise.all([
+    withCommentCounts("TASK", project.tasks),
+    listAttachments("PROJECT", projectId),
+  ]);
 
   return (
     <div style={{ padding: "1.5rem" }}>
@@ -130,7 +131,7 @@ export default async function ProjectPage({
         <BackButton fallback="/proyectos" />
       </div>
       <ProjectDetail
-        project={{ ...project, tasks }}
+        project={{ ...project, tasks, attachments }}
         view={view as "lista" | "kanban" | "calendario"}
         isAdmin={admin}
         isStaff={staff}

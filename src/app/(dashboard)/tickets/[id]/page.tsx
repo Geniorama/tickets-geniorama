@@ -8,6 +8,7 @@ import { TicketChecklistPanel } from "@/components/ui/checklist-panel";
 import { CollaboratorSchedulingCard } from "@/components/collaborator/collaborator-scheduling-card";
 import { getClientActivePlan } from "@/lib/plans.server";
 import { listComments } from "@/lib/comments";
+import { listAttachments } from "@/lib/attachments";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,7 +36,6 @@ export default async function TicketPage({
       client: { select: { id: true, name: true, companies: { select: { name: true } } } },
       plan: { select: { id: true, name: true, type: true } },
       site: { select: { id: true, name: true, domain: true, documentation: true, architecture: true } },
-      attachments: { orderBy: { createdAt: "asc" } },
       checklists: {
         orderBy: [{ position: "asc" }, { createdAt: "asc" }],
         include: { items: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] } },
@@ -49,14 +49,6 @@ export default async function TicketPage({
   });
 
   if (!ticket) notFound();
-
-  // Los comentarios viven en la tabla compartida y no son una relación del
-  // ticket, así que se consultan aparte.
-  const comments = await listComments({
-    entityType: "TICKET",
-    entityId: ticketId,
-    includeInternal: staff,
-  });
 
   // Los borradores son privados: solo su creador puede verlos
   if (ticket.isDraft && ticket.createdById !== userId) notFound();
@@ -85,6 +77,13 @@ export default async function TicketPage({
       notFound();
     }
   }
+
+  // Comentarios y adjuntos viven en tablas compartidas y no son relaciones del
+  // ticket, así que se consultan aparte, ya superado el control de acceso.
+  const [comments, attachments] = await Promise.all([
+    listComments({ entityType: "TICKET", entityId: ticketId, includeInternal: staff }),
+    listAttachments("TICKET", ticketId),
+  ]);
 
   // La Bóveda es visible solo para el creador y los usuarios con los que se comparte
   const vaultAccessFilter = { OR: [{ createdById: userId }, { sharedWith: { some: { userId } } }] };
@@ -122,7 +121,7 @@ export default async function TicketPage({
         <BackButton fallback="/tickets" />
       </div>
       <TicketDetail
-        ticket={{ ...ticket, comments }}
+        ticket={{ ...ticket, comments, attachments }}
         session={session}
         totalComments={comments.length}
         linkedVaultEntries={linkedVaultEntries}

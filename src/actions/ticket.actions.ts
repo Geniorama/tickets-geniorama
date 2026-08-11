@@ -6,7 +6,6 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, requireRole, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
-import { validateFile, uploadFile } from "@/lib/s3";
 import { getClientActivePlan } from "@/lib/plans.server";
 import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
@@ -15,6 +14,7 @@ import { ticketPrefix } from "@/lib/ticket-code";
 import { parseChecklistGroups } from "@/lib/checklist";
 import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/reviewers";
 import { deleteCommentsFor } from "@/lib/comments";
+import { addFileAttachments, deleteAttachmentsFor } from "@/lib/attachments";
 
 const APP_URL = process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -137,28 +137,15 @@ export async function createTicket(formData: FormData) {
     });
   });
 
-  // Subir archivos adjuntos si los hay
-  const files = formData.getAll("files") as File[];
-  const validFiles = files.filter((f) => f instanceof File && f.size > 0);
-
-  for (const file of validFiles) {
-    const err = validateFile(file);
-    if (err) continue; // saltar archivos inválidos silenciosamente
-    try {
-      const { storagePath, fileUrl } = await uploadFile(file, ticket.id);
-      await prisma.ticketAttachment.create({
-        data: {
-          ticketId: ticket.id,
-          uploadedById: session.user.id,
-          fileName: file.name,
-          fileUrl,
-          storagePath,
-        },
-      });
-    } catch {
-      // continuar aunque falle un archivo
-    }
-  }
+  // Subir archivos adjuntos si los hay. Los errores por archivo se ignoran a
+  // propósito: un adjunto inválido no debe impedir crear el ticket.
+  await addFileAttachments({
+    entityType: "TICKET",
+    entityId: ticket.id,
+    storageKey: ticket.id,
+    files: formData.getAll("files") as File[],
+    uploadedById: session.user.id,
+  });
 
   // Crear los checklists si se enviaron
   const checklistGroups = parseChecklistGroups(formData.get("checklist"));
@@ -636,10 +623,11 @@ export async function configureTicket(ticketId: string, formData: FormData) {
 export async function deleteTicket(ticketId: string) {
   await requireRole(["ADMINISTRADOR"]);
 
-  // Los comentarios son polimórficos: no hay clave foránea que los borre en
-  // cascada, así que se eliminan explícitamente junto con el ticket.
+  // Comentarios y adjuntos son polimórficos: no hay clave foránea que los borre
+  // en cascada, así que se eliminan explícitamente junto con el ticket.
   await prisma.$transaction(async (tx) => {
     await deleteCommentsFor("TICKET", ticketId, tx);
+    await deleteAttachmentsFor("TICKET", ticketId, tx);
     await tx.ticket.delete({ where: { id: ticketId } });
   });
 

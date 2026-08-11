@@ -3,16 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
-import { validateFile, uploadFile, deleteFile } from "@/lib/s3";
-
-async function nextPosition(projectId: string) {
-  const last = await prisma.projectAttachment.findFirst({
-    where: { projectId },
-    orderBy: { position: "desc" },
-    select: { position: true },
-  });
-  return (last?.position ?? -1) + 1;
-}
+import {
+  addFileAttachments,
+  addLinkAttachments,
+  deleteAttachment as removeAttachment,
+  reorderAttachments,
+} from "@/lib/attachments";
 
 export async function addProjectFile(projectId: string, formData: FormData) {
   const session = await getRequiredSession();
@@ -22,28 +18,17 @@ export async function addProjectFile(projectId: string, formData: FormData) {
     return { error: "No se seleccionó ningún archivo" };
   }
 
-  const validationError = validateFile(file);
-  if (validationError) return { error: validationError };
+  const { errors } = await addFileAttachments({
+    entityType: "PROJECT",
+    entityId: projectId,
+    // Prefijo heredado: los archivos de proyecto viven bajo `tickets/projects/…`
+    // en R2. Se mantiene para no invalidar las URLs ya guardadas.
+    storageKey: `projects/${projectId}`,
+    files: [file],
+    uploadedById: session.user.id,
+  });
 
-  try {
-    const { storagePath, fileUrl } = await uploadFile(file, `projects/${projectId}`);
-    const position = await nextPosition(projectId);
-
-    await prisma.projectAttachment.create({
-      data: {
-        type: "file",
-        projectId,
-        uploadedById: session.user.id,
-        fileName: file.name,
-        fileUrl,
-        storagePath,
-        position,
-      },
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Error desconocido";
-    return { error: message };
-  }
+  if (errors.length > 0) return { error: errors.join(" | ") };
 
   revalidatePath(`/proyectos/${projectId}`);
   return { success: true };
@@ -58,30 +43,14 @@ export async function addProjectLink(projectId: string, formData: FormData) {
   if (!url) return { error: "La URL es requerida" };
   if (!name) return { error: "El nombre del enlace es requerido" };
 
-  try {
-    new URL(url);
-  } catch {
-    return { error: "La URL no es válida" };
-  }
+  const { error } = await addLinkAttachments({
+    entityType: "PROJECT",
+    entityId: projectId,
+    links: [{ url, label: name }],
+    uploadedById: session.user.id,
+  });
 
-  try {
-    const position = await nextPosition(projectId);
-
-    await prisma.projectAttachment.create({
-      data: {
-        type: "link",
-        projectId,
-        uploadedById: session.user.id,
-        fileName: name,
-        fileUrl: url,
-        storagePath: null,
-        position,
-      },
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Error desconocido";
-    return { error: message };
-  }
+  if (error) return { error: "La URL no es válida" };
 
   revalidatePath(`/proyectos/${projectId}`);
   return { success: true };
@@ -90,31 +59,17 @@ export async function addProjectLink(projectId: string, formData: FormData) {
 export async function deleteProjectAttachment(attachmentId: string, projectId: string) {
   const session = await getRequiredSession();
 
-  const attachment = await prisma.projectAttachment.findUnique({
-    where: { id: attachmentId },
-    select: { storagePath: true, type: true, uploadedById: true },
-  });
-
-  if (!attachment) return { error: "Adjunto no encontrado" };
-
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { role: true },
   });
-  const isAdmin = user?.role === "ADMINISTRADOR";
-  if (!isAdmin && attachment.uploadedById !== session.user.id) {
-    return { error: "Sin permiso para eliminar este adjunto" };
-  }
 
-  try {
-    if (attachment.type === "file" && attachment.storagePath) {
-      await deleteFile(attachment.storagePath);
-    }
-    await prisma.projectAttachment.delete({ where: { id: attachmentId } });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Error desconocido";
-    return { error: message };
-  }
+  const { error } = await removeAttachment(
+    attachmentId,
+    { entityType: "PROJECT", entityId: projectId },
+    { id: session.user.id, isAdmin: user?.role === "ADMINISTRADOR" },
+  );
+  if (error) return { error };
 
   revalidatePath(`/proyectos/${projectId}`);
   return { success: true };
@@ -123,14 +78,7 @@ export async function deleteProjectAttachment(attachmentId: string, projectId: s
 export async function reorderProjectAttachments(projectId: string, orderedIds: string[]) {
   await getRequiredSession();
 
-  await prisma.$transaction(
-    orderedIds.map((id, index) =>
-      prisma.projectAttachment.update({
-        where: { id },
-        data: { position: index },
-      })
-    )
-  );
+  await reorderAttachments("PROJECT", projectId, orderedIds);
 
   revalidatePath(`/proyectos/${projectId}`);
   return { success: true };

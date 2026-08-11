@@ -173,6 +173,7 @@ model User {
   // Núcleo compartido
   authoredComments          Comment[]               @relation("CommentAuthor")
   commentReactions          CommentReaction[]       @relation("CommentReactionUser")
+  uploadedAttachments       Attachment[]            @relation("AttachmentUploadedBy")
   notifications             Notification[]
   webhooks                  UserWebhook[]
   ticketChecklists          TicketChecklist[]
@@ -737,6 +738,37 @@ model CommentAttachment {
 
   @@index([commentId])
   @@map("comment_attachments")
+}
+
+// Adjuntos polimórficos: reemplazan a TicketAttachment, TaskAttachment y
+// ProjectAttachment, que se conservan sin uso hasta verificar en producción.
+//
+// Unifica además tres convenciones distintas para distinguir un enlace de un
+// archivo: los tickets no tenían enlaces, los proyectos usaban la columna
+// `type`, y las tareas marcaban el enlace con el centinela
+// `storagePath = "link"`. Aquí manda `type`, y `storagePath` es null en enlaces.
+//
+// Igual que con los comentarios, no hay clave foránea sobre `entityId`: usa
+// `deleteAttachmentsFor()` en todo camino que borre una entidad con adjuntos.
+model Attachment {
+  id           String     @id @default(cuid())
+  entityType   EntityType @map("entity_type")
+  entityId     String     @map("entity_id")
+
+  type         String     @default("file")   // "file" | "link"
+  fileUrl      String     @map("file_url")
+  fileName     String     @map("file_name")
+  storagePath  String?    @map("storage_path") // null en enlaces
+  position     Int        @default(0)
+
+  uploadedById String     @map("uploaded_by_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  uploadedBy   User       @relation("AttachmentUploadedBy", fields: [uploadedById], references: [id])
+
+  @@index([entityType, entityId, position, createdAt])
+  @@index([uploadedById])
+  @@map("attachments")
 }
 
 model CommentReaction {

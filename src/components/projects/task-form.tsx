@@ -21,7 +21,9 @@ interface ExistingAttachment {
   id: string;
   fileName: string;
   fileUrl: string;
-  storagePath: string;
+  // "file" | "link". Antes el enlace se deducía de storagePath === "link".
+  type: string;
+  storagePath: string | null;
 }
 
 interface Project { id: string; name: string; }
@@ -272,7 +274,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
                         padding: "0.375rem 0.625rem",
                       }}
                     >
-                      {att.storagePath === "link" ? (
+                      {att.type === "link" ? (
                         <Link2 style={{ width: "0.875rem", height: "0.875rem", color: "var(--app-text-muted)", flexShrink: 0 }} />
                       ) : (
                         <FileText style={{ width: "0.875rem", height: "0.875rem", color: "var(--app-text-muted)", flexShrink: 0 }} />

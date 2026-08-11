@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff, isAdmin } from "@/lib/auth-helpers";
-import { validateFile, uploadFile, deleteFile } from "@/lib/s3";
 import type { TaskStatus } from "@/generated/prisma";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -15,6 +14,12 @@ import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/rev
 import { combineEstimatedTime } from "@/lib/estimated-time";
 import { parseChecklistGroups } from "@/lib/checklist";
 import { deleteCommentsFor } from "@/lib/comments";
+import {
+  addFileAttachments,
+  addLinkAttachments,
+  deleteAttachment,
+  deleteAttachmentsFor,
+} from "@/lib/attachments";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -187,28 +192,24 @@ export async function createTask(projectIdArg: string | null, formData: FormData
     });
   });
 
-  const files = formData.getAll("files") as File[];
-  for (const file of files) {
-    if (file.size === 0) continue;
-    if (validateFile(file)) continue;
-    try {
-      const { storagePath, fileUrl } = await uploadFile(file, task.id);
-      await prisma.taskAttachment.create({
-        data: { taskId: task.id, uploadedById: session.user.id, fileName: file.name, fileUrl, storagePath },
-      });
-    } catch { /* continuar aunque falle un archivo */ }
-  }
+  await addFileAttachments({
+    entityType: "TASK",
+    entityId: task.id,
+    storageKey: task.id,
+    files: formData.getAll("files") as File[],
+    uploadedById: session.user.id,
+  });
 
   const linksRaw = formData.get("links") as string | null;
   if (linksRaw) {
     try {
       const linksList = JSON.parse(linksRaw) as { url: string; label: string }[];
-      const linkData = linksList
-        .filter(({ url }) => !!url)
-        .map(({ url, label }) => ({
-          taskId: task.id, uploadedById: session.user.id, fileName: label || url, fileUrl: url, storagePath: "link",
-        }));
-      if (linkData.length > 0) await prisma.taskAttachment.createMany({ data: linkData });
+      await addLinkAttachments({
+        entityType: "TASK",
+        entityId: task.id,
+        links: linksList,
+        uploadedById: session.user.id,
+      });
     } catch { /* JSON inválido, ignorar */ }
   }
 
@@ -463,46 +464,42 @@ export async function updateTask(taskId: string, projectId: string | null, formD
     );
   }
 
-  // Borrar adjuntos marcados para eliminar
+  // Borrar adjuntos marcados para eliminar. El borrado va acotado a esta tarea,
+  // así un id ajeno enviado desde el formulario no toca el adjunto de otra.
   const deletedIdsRaw = formData.get("deletedAttachmentIds") as string | null;
   if (deletedIdsRaw) {
     try {
       const ids = JSON.parse(deletedIdsRaw) as string[];
       for (const id of ids) {
-        const att = await prisma.taskAttachment.findUnique({ where: { id }, select: { storagePath: true } });
-        if (!att) continue;
-        if (att.storagePath && att.storagePath !== "link") {
-          try { await deleteFile(att.storagePath); } catch { /* continuar */ }
-        }
-        await prisma.taskAttachment.delete({ where: { id } });
+        await deleteAttachment(
+          id,
+          { entityType: "TASK", entityId: taskId },
+          { id: session.user.id, isAdmin: true },
+        );
       }
     } catch { /* JSON inválido */ }
   }
 
   // Subir nuevos archivos
-  const files = formData.getAll("files") as File[];
-  for (const file of files) {
-    if (file.size === 0) continue;
-    if (validateFile(file)) continue;
-    try {
-      const { storagePath, fileUrl } = await uploadFile(file, taskId);
-      await prisma.taskAttachment.create({
-        data: { taskId, uploadedById: session.user.id, fileName: file.name, fileUrl, storagePath },
-      });
-    } catch { /* continuar */ }
-  }
+  await addFileAttachments({
+    entityType: "TASK",
+    entityId: taskId,
+    storageKey: taskId,
+    files: formData.getAll("files") as File[],
+    uploadedById: session.user.id,
+  });
 
   // Agregar nuevos enlaces
   const linksRaw = formData.get("links") as string | null;
   if (linksRaw) {
     try {
       const linksList = JSON.parse(linksRaw) as { url: string; label: string }[];
-      const linkData = linksList
-        .filter(({ url }) => !!url)
-        .map(({ url, label }) => ({
-          taskId, uploadedById: session.user.id, fileName: label || url, fileUrl: url, storagePath: "link",
-        }));
-      if (linkData.length > 0) await prisma.taskAttachment.createMany({ data: linkData });
+      await addLinkAttachments({
+        entityType: "TASK",
+        entityId: taskId,
+        links: linksList,
+        uploadedById: session.user.id,
+      });
     } catch { /* JSON inválido */ }
   }
 
@@ -618,9 +615,10 @@ export async function deleteTask(taskId: string, projectId: string | null) {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
-  // Comentarios polimórficos: sin cascada en la base de datos, se borran aquí.
+  // Comentarios y adjuntos polimórficos: sin cascada en la base, se borran aquí.
   await prisma.$transaction(async (tx) => {
     await deleteCommentsFor("TASK", taskId, tx);
+    await deleteAttachmentsFor("TASK", taskId, tx);
     await tx.task.delete({ where: { id: taskId } });
   });
   if (projectId) {

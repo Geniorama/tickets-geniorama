@@ -6,6 +6,7 @@ import { TaskDetail } from "@/components/projects/task-detail";
 import { BackButton } from "@/components/ui/back-button";
 import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
 import { listComments } from "@/lib/comments";
+import { listAttachments } from "@/lib/attachments";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -40,10 +41,6 @@ export default async function GlobalTaskPage({
         orderBy: [{ position: "asc" }, { createdAt: "asc" }],
         include: { items: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] } },
       },
-      attachments: {
-        include: { uploadedBy: { select: { name: true } } },
-        orderBy: { createdAt: "asc" },
-      },
       timeEntries: {
         include: { user: { select: { name: true } } },
         orderBy: { startedAt: "asc" },
@@ -63,12 +60,11 @@ export default async function GlobalTaskPage({
   // Tarea global (sin proyecto): no hay empresa que valide el acceso del cliente
   if (client) redirect("/dashboard");
 
-  // Los comentarios viven en la tabla compartida, fuera de la relación.
-  const comments = await listComments({
-    entityType: "TASK",
-    entityId: taskId,
-    includeInternal: true,
-  });
+  // Comentarios y adjuntos viven en tablas compartidas, fuera de la relación.
+  const [comments, attachments] = await Promise.all([
+    listComments({ entityType: "TASK", entityId: taskId, includeInternal: true }),
+    listAttachments("TASK", taskId),
+  ]);
 
   const moveableProjects = admin
     ? await prisma.project.findMany({
@@ -84,7 +80,7 @@ export default async function GlobalTaskPage({
         <BackButton fallback="/tareas" />
       </div>
       <TaskDetail
-        task={{ ...task, comments }}
+        task={{ ...task, comments, attachments }}
         session={session}
         projects={moveableProjects}
         checklistSlot={
