@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/prisma";
+import { stopAllForUser } from "@/lib/time-entries";
 
 export const maxDuration = 15;
 
@@ -19,16 +19,8 @@ export async function POST() {
   const userId = session.user.id;
   const now = new Date();
 
-  await Promise.all([
-    prisma.timeEntry.updateMany({
-      where: { userId, stoppedAt: null },
-      data: { stoppedAt: now },
-    }),
-    prisma.taskTimeEntry.updateMany({
-      where: { userId, stoppedAt: null },
-      data: { stoppedAt: now },
-    }),
-  ]);
+  // Una sola tabla compartida cubre tickets y tareas.
+  await stopAllForUser(userId, now);
 
   return new NextResponse(null, { status: 204 });
 }

@@ -1,5 +1,6 @@
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { elapsedMsByEntity } from "@/lib/time-entries";
 import { getPlanUsedHours } from "@/lib/plans.server";
 import { getEffectiveExpiresAt } from "@/lib/plans";
 import { ReportView } from "@/components/reportes/report-view";
@@ -52,12 +53,12 @@ export default async function ReportesPage({
       client:     { select: { name: true } },
       assignedTo: { select: { name: true } },
       plan:       { select: { name: true, type: true } },
-      timeEntries: {
-        where: { stoppedAt: { not: null } },
-        select: { startedAt: true, stoppedAt: true },
-      },
     },
   });
+
+  // El tiempo ya no cuelga del ticket: se resuelve por lotes desde la tabla
+  // compartida.
+  const ticketMs = await elapsedMsByEntity("TICKET", rawTickets.map((t) => t.id));
 
   const tickets: TicketRow[] = rawTickets.map((t) => ({
     id:         t.id,
@@ -69,10 +70,7 @@ export default async function ReportesPage({
     client:     t.client,
     assignedTo: t.assignedTo,
     plan:       t.plan,
-    totalMs:    t.timeEntries.reduce(
-      (acc, e) => acc + (e.stoppedAt!.getTime() - e.startedAt.getTime()),
-      0,
-    ),
+    totalMs:    ticketMs.get(t.id) ?? 0,
   }));
 
   // ── Plans ──────────────────────────────────────────────────

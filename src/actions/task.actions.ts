@@ -21,6 +21,7 @@ import {
   deleteAttachmentsFor,
 } from "@/lib/attachments";
 import { createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
+import { deleteTimeEntriesFor, startTimer, stopRunningForEntity } from "@/lib/time-entries";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -525,22 +526,12 @@ export async function updateTaskStatus(taskId: string, projectId: string | null,
 
   // Arrancar timer automáticamente al pasar a EN_PROGRESO (si no hay uno activo)
   if (status === "EN_PROGRESO" && oldTask?.status !== "EN_PROGRESO") {
-    const activeTimer = await prisma.taskTimeEntry.findFirst({
-      where: { taskId, stoppedAt: null },
-    });
-    if (!activeTimer) {
-      await prisma.taskTimeEntry.create({
-        data: { taskId, userId: session.user.id, startedAt: new Date() },
-      });
-    }
+    await startTimer({ entityType: "TASK", entityId: taskId }, session.user.id);
   }
 
   // Detener timers activos al pasar a revisión o completar la tarea
   if (["EN_REVISION", "COMPLETADO"].includes(status)) {
-    await prisma.taskTimeEntry.updateMany({
-      where: { taskId, stoppedAt: null },
-      data: { stoppedAt: new Date() },
-    });
+    await stopRunningForEntity({ entityType: "TASK", entityId: taskId });
   }
 
   // Webhook: notificar cambio a EN_PROGRESO
@@ -608,6 +599,7 @@ export async function deleteTask(taskId: string, projectId: string | null) {
     await deleteCommentsFor("TASK", taskId, tx);
     await deleteAttachmentsFor("TASK", taskId, tx);
     await deleteChecklistsFor("TASK", taskId, tx);
+    await deleteTimeEntriesFor("TASK", taskId, tx);
     await tx.task.delete({ where: { id: taskId } });
   });
   if (projectId) {

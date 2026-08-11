@@ -1,18 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { isPlanExpired } from "@/lib/plans";
 
-/** Compute hours used by a plan from time entries on its tickets */
-export async function getPlanUsedHours(planId: string): Promise<number> {
-  const entries = await prisma.timeEntry.findMany({
-    where: { ticket: { planId }, stoppedAt: { not: null } },
-    select: { startedAt: true, stoppedAt: true },
-  });
-  return entries.reduce(
-    (acc, e) =>
-      acc + (e.stoppedAt!.getTime() - e.startedAt.getTime()) / 3_600_000,
-    0
-  );
-}
+// El cálculo vive en el núcleo compartido: los registros de tiempo ya no son
+// una relación del ticket. Se reexporta para no romper a quien lo importaba.
+export { getPlanUsedHours } from "@/lib/time-entries";
+import { getPlanUsedHours } from "@/lib/time-entries";
 
 /** Returns the first active plan for a client user (checks expiry + hours) */
 export async function getClientActivePlan(userId: string) {

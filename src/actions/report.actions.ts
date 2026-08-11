@@ -5,6 +5,7 @@ import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { taskCode, projectPrefix } from "@/lib/task-code";
 import { runTextCompletion, type AiProvider } from "@/lib/ai";
 import { listComments } from "@/lib/comments";
+import { listTimeEntries, totalElapsedMs } from "@/lib/time-entries";
 
 export interface ReportHeader {
   projectName?: string;
@@ -65,11 +66,6 @@ export async function generateTaskReport(taskId: string, provider: AiProvider = 
       },
       assignedTo: { select: { name: true } },
       createdBy: { select: { name: true } },
-      timeEntries: {
-        take: 200,
-        include: { user: { select: { name: true } } },
-        orderBy: { startedAt: "asc" },
-      },
     },
   });
 
@@ -79,6 +75,9 @@ export async function generateTaskReport(taskId: string, provider: AiProvider = 
   const comments = (
     await listComments({ entityType: "TASK", entityId: taskId, includeInternal: true })
   ).slice(0, 100);
+
+  // El tiempo vive en la tabla compartida, fuera de la relación.
+  const timeEntries = await listTimeEntries({ entityType: "TASK", entityId: taskId });
 
   const projectName = task.project?.name ?? "Sin proyecto";
   const code = task.number > 0 ? taskCode(projectName, task.number) : undefined;
@@ -115,14 +114,11 @@ ${task.description}`;
     }
   }
 
-  if (task.timeEntries.length > 0) {
-    const totalMinutes = task.timeEntries.reduce((acc, e) => {
-      if (!e.stoppedAt) return acc;
-      return acc + Math.round((e.stoppedAt.getTime() - e.startedAt.getTime()) / 60000);
-    }, 0);
+  if (timeEntries.length > 0) {
+    const totalMinutes = Math.round(totalElapsedMs(timeEntries) / 60000);
     ctx += `\n\n**Tiempo registrado:** ${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
     ctx += `\n**Entradas de tiempo:**`;
-    for (const e of task.timeEntries) {
+    for (const e of timeEntries) {
       if (!e.stoppedAt) continue;
       const mins = Math.round((e.stoppedAt.getTime() - e.startedAt.getTime()) / 60000);
       ctx += `\n- ${e.startedAt.toLocaleDateString("es-CO")} — ${e.user.name}: ${Math.floor(mins / 60)}h ${mins % 60}m`;
@@ -282,11 +278,6 @@ export async function generateTicketReport(ticketId: string, provider: AiProvide
       client: { select: { name: true, companies: { select: { name: true } } } },
       plan: { select: { name: true, type: true } },
       site: { select: { name: true, domain: true } },
-      timeEntries: {
-        take: 200,
-        include: { user: { select: { name: true } } },
-        orderBy: { startedAt: "asc" },
-      },
     },
   });
 
@@ -297,6 +288,9 @@ export async function generateTicketReport(ticketId: string, provider: AiProvide
   const comments = (
     await listComments({ entityType: "TICKET", entityId: ticketId, includeInternal: false })
   ).slice(0, 100);
+
+  // El tiempo tampoco cuelga ya del ticket.
+  const timeEntries = await listTimeEntries({ entityType: "TICKET", entityId: ticketId });
 
   const header: ReportHeader = {
     itemName: ticket.title,
@@ -327,11 +321,8 @@ ${ticket.description}`;
     }
   }
 
-  if (ticket.timeEntries.length > 0) {
-    const totalMinutes = ticket.timeEntries.reduce((acc, e) => {
-      if (!e.stoppedAt) return acc;
-      return acc + Math.round((e.stoppedAt.getTime() - e.startedAt.getTime()) / 60000);
-    }, 0);
+  if (timeEntries.length > 0) {
+    const totalMinutes = Math.round(totalElapsedMs(timeEntries) / 60000);
     ctx += `\n\n**Tiempo registrado:** ${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
   }
 

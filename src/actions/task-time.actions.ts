@@ -1,44 +1,51 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
+import { canInteractWithTask } from "@/lib/task-access";
+import type { EntityType } from "@/generated/prisma";
+import * as time from "@/lib/time-entries";
+
+/** Contrato de estas acciones: los componentes leen `result?.error`. */
+type TimerResult = { error?: string; success?: boolean };
 
 function revalidate(taskId: string, projectId: string | null) {
   revalidatePath(projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`);
 }
 
-export async function startTaskTimer(taskId: string, projectId: string | null) {
+/** Solo el staff con acceso a la tarea puede cronometrar sobre ella. */
+async function guard(taskId: string, requireAdmin = false) {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!isStaff(session.user.role)) return null;
+  if (requireAdmin && !isAdmin(session.user.role)) return null;
 
-  const active = await prisma.taskTimeEntry.findFirst({
-    where: { taskId, stoppedAt: null },
-  });
-  if (active) return { error: "Ya hay un contador activo para esta tarea" };
+  const allowed = await canInteractWithTask(taskId, session.user.id, session.user.role);
+  if (!allowed) return null;
 
-  await prisma.taskTimeEntry.create({
-    data: { taskId, userId: session.user.id, startedAt: new Date() },
-  });
+  return {
+    userId: session.user.id,
+    entity: { entityType: "TASK" as EntityType, entityId: taskId },
+  };
+}
+
+export async function startTaskTimer(taskId: string, projectId: string | null): Promise<TimerResult> {
+  const ctx = await guard(taskId);
+  if (!ctx) return { error: "Sin permisos" };
+
+  const result = await time.startTimer(ctx.entity, ctx.userId);
+  if (result.error) return result;
 
   revalidate(taskId, projectId);
   return { success: true };
 }
 
-export async function pauseTaskTimer(taskId: string, projectId: string | null) {
-  const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+export async function pauseTaskTimer(taskId: string, projectId: string | null): Promise<TimerResult> {
+  const ctx = await guard(taskId);
+  if (!ctx) return { error: "Sin permisos" };
 
-  const active = await prisma.taskTimeEntry.findFirst({
-    where: { taskId, stoppedAt: null },
-  });
-  if (!active) return { error: "No hay un contador activo" };
-
-  await prisma.taskTimeEntry.update({
-    where: { id: active.id },
-    data: { stoppedAt: new Date() },
-  });
+  const result = await time.pauseTimer(ctx.entity);
+  if (result.error) return result;
 
   revalidate(taskId, projectId);
   return { success: true };
@@ -49,19 +56,12 @@ export async function addManualTaskEntry(
   projectId: string | null,
   hours: number,
   minutes: number,
-) {
-  const session = await getRequiredSession();
-  if (!isAdmin(session.user.role)) return { error: "Sin permisos" };
+): Promise<TimerResult> {
+  const ctx = await guard(taskId, true);
+  if (!ctx) return { error: "Sin permisos" };
 
-  const totalMs = (hours * 60 + minutes) * 60_000;
-  if (totalMs <= 0) return { error: "La duración debe ser mayor a cero" };
-
-  const stoppedAt = new Date();
-  const startedAt = new Date(stoppedAt.getTime() - totalMs);
-
-  await prisma.taskTimeEntry.create({
-    data: { taskId, userId: session.user.id, startedAt, stoppedAt },
-  });
+  const result = await time.addManualEntry(ctx.entity, ctx.userId, hours, minutes);
+  if (result.error) return result;
 
   revalidate(taskId, projectId);
   return { success: true };
@@ -71,21 +71,21 @@ export async function deleteTaskTimeEntry(
   entryId: string,
   taskId: string,
   projectId: string | null,
-) {
-  const session = await getRequiredSession();
-  if (!isAdmin(session.user.role)) return { error: "Sin permisos" };
+): Promise<TimerResult> {
+  const ctx = await guard(taskId, true);
+  if (!ctx) return { error: "Sin permisos" };
 
-  await prisma.taskTimeEntry.delete({ where: { id: entryId } });
+  await time.deleteTimeEntry(ctx.entity, entryId);
 
   revalidate(taskId, projectId);
   return { success: true };
 }
 
-export async function resetTaskTimeEntries(taskId: string, projectId: string | null) {
-  const session = await getRequiredSession();
-  if (!isAdmin(session.user.role)) return { error: "Sin permisos" };
+export async function resetTaskTimeEntries(taskId: string, projectId: string | null): Promise<TimerResult> {
+  const ctx = await guard(taskId, true);
+  if (!ctx) return { error: "Sin permisos" };
 
-  await prisma.taskTimeEntry.deleteMany({ where: { taskId } });
+  await time.resetTimeEntries(ctx.entity);
 
   revalidate(taskId, projectId);
   return { success: true };

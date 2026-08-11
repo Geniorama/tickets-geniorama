@@ -150,7 +150,7 @@ model User {
   comments         TicketComment[]
   attachments      TicketAttachment[]
   resetTokens      PasswordResetToken[]
-  timeEntries      TimeEntry[]
+  legacyTimeEntries TicketTimeEntryLegacy[]
 
   managedProjects  Project[]            @relation("ProjectManager")
   createdProjects  Project[]            @relation("ProjectCreatedBy")
@@ -176,6 +176,7 @@ model User {
   uploadedAttachments       Attachment[]            @relation("AttachmentUploadedBy")
   createdChecklists         Checklist[]             @relation("ChecklistCreatedBy")
   createdChecklistItems     ChecklistItem[]         @relation("ChecklistItemCreatedBy")
+  timeEntries               TimeEntry[]             @relation("TimeEntryUser")
   notifications             Notification[]
   webhooks                  UserWebhook[]
   ticketChecklists          TicketChecklist[]
@@ -221,7 +222,7 @@ model Ticket {
   site         Site?              @relation(fields: [siteId], references: [id])
   comments        TicketComment[]
   attachments     TicketAttachment[]
-  timeEntries     TimeEntry[]
+  legacyTimeEntries TicketTimeEntryLegacy[]
   vaultEntries    TicketVaultEntry[]
   checklists      TicketChecklist[]
 
@@ -321,7 +322,11 @@ model TicketAttachment {
   @@map("ticket_attachments")
 }
 
-model TimeEntry {
+// Legacy: reemplazado por el modelo compartido `TimeEntry`. Se conserva sin uso
+// hasta verificar en producción. Su tabla pasó de `time_entries` a
+// `ticket_time_entries` para liberar el nombre al modelo compartido, quedando
+// además simétrica con su hermana `task_time_entries`.
+model TicketTimeEntryLegacy {
   id         String    @id @default(cuid())
   startedAt  DateTime  @map("started_at")
   stoppedAt  DateTime? @map("stopped_at")
@@ -332,7 +337,7 @@ model TimeEntry {
   ticket     Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   user       User      @relation(fields: [userId], references: [id])
 
-  @@map("time_entries")
+  @@map("ticket_time_entries")
 }
 
 model TaskTimeEntry {
@@ -817,6 +822,30 @@ model ChecklistItem {
 
   @@index([checklistId, position])
   @@map("checklist_items")
+}
+
+// Registros de tiempo polimórficos: reemplazan al par TimeEntry (tickets) y
+// TaskTimeEntry (tareas), conservados sin uso hasta verificar en producción.
+//
+// Es el modelo que alimentará la facturación: el consumo de horas de un plan
+// se calcula sumando las entradas cerradas de los tickets de ese plan
+// (`getPlanUsedHours`). Una entrada con `stoppedAt` nulo es un contador en
+// marcha y no cuenta como tiempo consumido.
+model TimeEntry {
+  id         String     @id @default(cuid())
+  entityType EntityType @map("entity_type")
+  entityId   String     @map("entity_id")
+
+  startedAt  DateTime   @map("started_at")
+  stoppedAt  DateTime?  @map("stopped_at")
+
+  userId     String     @map("user_id")
+  user       User       @relation("TimeEntryUser", fields: [userId], references: [id])
+
+  @@index([entityType, entityId, startedAt])
+  // El contador flotante busca la entrada abierta del usuario en cada carga.
+  @@index([userId, stoppedAt])
+  @@map("time_entries")
 }
 
 model CommentReaction {

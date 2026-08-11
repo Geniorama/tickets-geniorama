@@ -1,82 +1,78 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
+import { canAccessTicket } from "@/lib/ticket-access";
+import type { EntityType } from "@/generated/prisma";
+import * as time from "@/lib/time-entries";
 
-export async function startTimer(ticketId: string) {
+/** Contrato de estas acciones: los componentes leen `result?.error`. */
+type TimerResult = { error?: string; success?: boolean };
+
+/** Solo el staff con acceso al ticket puede cronometrar sobre él. */
+async function guard(ticketId: string, requireAdmin = false) {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!isStaff(session.user.role)) return null;
+  if (requireAdmin && !isAdmin(session.user.role)) return null;
 
-  const active = await prisma.timeEntry.findFirst({
-    where: { ticketId, stoppedAt: null },
-  });
-  if (active) return { error: "Ya hay un contador activo para este ticket" };
+  const allowed = await canAccessTicket(ticketId, session.user.id, session.user.role);
+  if (!allowed) return null;
 
-  await prisma.timeEntry.create({
-    data: {
-      ticketId,
-      userId: session.user.id,
-      startedAt: new Date(),
-    },
-  });
+  return {
+    userId: session.user.id,
+    entity: { entityType: "TICKET" as EntityType, entityId: ticketId },
+  };
+}
+
+export async function startTimer(ticketId: string): Promise<TimerResult> {
+  const ctx = await guard(ticketId);
+  if (!ctx) return { error: "Sin permisos" };
+
+  const result = await time.startTimer(ctx.entity, ctx.userId);
+  if (result.error) return result;
 
   revalidatePath(`/tickets/${ticketId}`);
   return { success: true };
 }
 
-export async function pauseTimer(ticketId: string) {
-  const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+export async function pauseTimer(ticketId: string): Promise<TimerResult> {
+  const ctx = await guard(ticketId);
+  if (!ctx) return { error: "Sin permisos" };
 
-  const active = await prisma.timeEntry.findFirst({
-    where: { ticketId, stoppedAt: null },
-  });
-  if (!active) return { error: "No hay un contador activo" };
-
-  await prisma.timeEntry.update({
-    where: { id: active.id },
-    data: { stoppedAt: new Date() },
-  });
+  const result = await time.pauseTimer(ctx.entity);
+  if (result.error) return result;
 
   revalidatePath(`/tickets/${ticketId}`);
   return { success: true };
 }
 
-export async function deleteTimeEntry(entryId: string, ticketId: string) {
-  const session = await getRequiredSession();
-  if (!isAdmin(session.user.role)) return { error: "Sin permisos" };
+export async function deleteTimeEntry(entryId: string, ticketId: string): Promise<TimerResult> {
+  const ctx = await guard(ticketId, true);
+  if (!ctx) return { error: "Sin permisos" };
 
-  await prisma.timeEntry.delete({ where: { id: entryId } });
-
-  revalidatePath(`/tickets/${ticketId}`);
-  return { success: true };
-}
-
-export async function resetTimeEntries(ticketId: string) {
-  const session = await getRequiredSession();
-  if (!isAdmin(session.user.role)) return { error: "Sin permisos" };
-
-  await prisma.timeEntry.deleteMany({ where: { ticketId } });
+  await time.deleteTimeEntry(ctx.entity, entryId);
 
   revalidatePath(`/tickets/${ticketId}`);
   return { success: true };
 }
 
-export async function addManualEntry(ticketId: string, hours: number, minutes: number) {
-  const session = await getRequiredSession();
-  if (!isAdmin(session.user.role)) return { error: "Sin permisos" };
+export async function resetTimeEntries(ticketId: string): Promise<TimerResult> {
+  const ctx = await guard(ticketId, true);
+  if (!ctx) return { error: "Sin permisos" };
 
-  const totalMs = (hours * 60 + minutes) * 60_000;
-  if (totalMs <= 0) return { error: "La duración debe ser mayor a cero" };
+  await time.resetTimeEntries(ctx.entity);
 
-  const stoppedAt = new Date();
-  const startedAt = new Date(stoppedAt.getTime() - totalMs);
+  revalidatePath(`/tickets/${ticketId}`);
+  return { success: true };
+}
 
-  await prisma.timeEntry.create({
-    data: { ticketId, userId: session.user.id, startedAt, stoppedAt },
-  });
+export async function addManualEntry(ticketId: string, hours: number, minutes: number): Promise<TimerResult> {
+  const ctx = await guard(ticketId, true);
+  if (!ctx) return { error: "Sin permisos" };
+
+  const result = await time.addManualEntry(ctx.entity, ctx.userId, hours, minutes);
+  if (result.error) return result;
 
   revalidatePath(`/tickets/${ticketId}`);
   return { success: true };

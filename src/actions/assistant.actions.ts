@@ -12,6 +12,7 @@ import { formatEstimatedTime } from "@/lib/estimated-time";
 import { DEFAULT_CHECKLIST_TITLE } from "@/lib/checklist";
 import { addChecklistItems, checklistItemCountsByEntity } from "@/lib/checklists";
 import { recentCommentsByEntity } from "@/lib/comments";
+import { startTimer, stopRunningForEntity } from "@/lib/time-entries";
 import type { TaskStatus, TicketStatus, Priority } from "@/generated/prisma";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -561,16 +562,10 @@ export async function executeAssistantAction(
 
     // Replicar el comportamiento de timers de updateTaskStatus
     if (action.estado === "EN_PROGRESO" && task.status !== "EN_PROGRESO") {
-      const active = await prisma.taskTimeEntry.findFirst({ where: { taskId: action.taskId, stoppedAt: null } });
-      if (!active) {
-        await prisma.taskTimeEntry.create({ data: { taskId: action.taskId, userId, startedAt: new Date() } });
-      }
+      await startTimer({ entityType: "TASK", entityId: action.taskId }, userId);
     }
     if (["EN_REVISION", "COMPLETADO"].includes(action.estado)) {
-      await prisma.taskTimeEntry.updateMany({
-        where: { taskId: action.taskId, stoppedAt: null },
-        data: { stoppedAt: new Date() },
-      });
+      await stopRunningForEntity({ entityType: "TASK", entityId: action.taskId });
     }
 
     if (!projectIsPrivate && action.estado === "EN_PROGRESO" && task.status !== "EN_PROGRESO") {

@@ -16,6 +16,7 @@ import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/rev
 import { deleteCommentsFor } from "@/lib/comments";
 import { addFileAttachments, deleteAttachmentsFor } from "@/lib/attachments";
 import { createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
+import { deleteTimeEntriesFor, stopRunningForEntity } from "@/lib/time-entries";
 
 const APP_URL = process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -310,10 +311,7 @@ export async function updateTicketStatus(ticketId: string, status: string) {
 
   // Detener timers activos al pasar a revisión o cerrar el ticket
   if (["EN_REVISION", "CERRADO"].includes(status)) {
-    await prisma.timeEntry.updateMany({
-      where: { ticketId, stoppedAt: null },
-      data: { stoppedAt: new Date() },
-    });
+    await stopRunningForEntity({ entityType: "TICKET", entityId: ticketId });
   }
 
   if (ticket) {
@@ -617,6 +615,7 @@ export async function deleteTicket(ticketId: string) {
     await deleteCommentsFor("TICKET", ticketId, tx);
     await deleteAttachmentsFor("TICKET", ticketId, tx);
     await deleteChecklistsFor("TICKET", ticketId, tx);
+    await deleteTimeEntriesFor("TICKET", ticketId, tx);
     await tx.ticket.delete({ where: { id: ticketId } });
   });
 

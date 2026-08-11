@@ -8,6 +8,7 @@ import { getRequiredSession, requireRole } from "@/lib/auth-helpers";
 import { deleteCommentsFor } from "@/lib/comments";
 import { deleteAttachmentsFor } from "@/lib/attachments";
 import { deleteChecklistsFor } from "@/lib/checklists";
+import { deleteTimeEntriesFor } from "@/lib/time-entries";
 
 const projectSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -122,6 +123,7 @@ export async function deleteProject(projectId: string) {
     await deleteCommentsFor("PROJECT", projectId, tx);
     await deleteAttachmentsFor("TASK", taskIds, tx);
     await deleteChecklistsFor("TASK", taskIds, tx);
+    await deleteTimeEntriesFor("TASK", taskIds, tx);
     await deleteAttachmentsFor("PROJECT", projectId, tx);
     await tx.project.delete({ where: { id: projectId } });
   });

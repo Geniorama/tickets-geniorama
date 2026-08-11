@@ -11,6 +11,7 @@ import { ProjectAttachmentsPanel } from "@/components/projects/project-attachmen
 import { listComments } from "@/lib/comments";
 import { listAttachments } from "@/lib/attachments";
 import { listChecklists } from "@/lib/checklists";
+import { listTimeEntries } from "@/lib/time-entries";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const { taskId } = await params;
@@ -37,10 +38,6 @@ export default async function TaskPage({
       assignedTo: { select: { id: true, name: true } },
       reviewers: { select: { id: true, name: true } },
       createdBy: { select: { id: true, name: true } },
-      timeEntries: {
-        include: { user: { select: { name: true } } },
-        orderBy: { startedAt: "asc" },
-      },
     },
   });
 
@@ -77,10 +74,11 @@ export default async function TaskPage({
 
   // Comentarios y adjuntos viven en tablas compartidas; se cargan una vez
   // superado el control de acceso de arriba.
-  const [comments, attachments, checklists] = await Promise.all([
+  const [comments, attachments, checklists, timeEntries] = await Promise.all([
     listComments({ entityType: "TASK", entityId: taskId, includeInternal: true }),
     listAttachments("TASK", taskId),
     listChecklists({ entityType: "TASK", entityId: taskId }),
+    listTimeEntries({ entityType: "TASK", entityId: taskId }),
   ]);
 
   // Configuración general del proyecto (accesos + adjuntos), visible también aquí.
@@ -118,7 +116,7 @@ export default async function TaskPage({
         />
       </div>
       <TaskDetail
-        task={{ ...task, comments, attachments }}
+        task={{ ...task, comments, attachments, timeEntries }}
         session={session}
         projects={moveableProjects}
         canOpenProject={!client || !task.project?.isPrivate}

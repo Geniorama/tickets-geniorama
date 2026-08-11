@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Pencil, User2, UserCheck, Calendar, Clock, FolderOpen, Check, Trash2, MoveRight, MoreVertical, Eye } from "lucide-react";
 // `CommentRecord` es el comentario compartido del núcleo (tabla `comments`),
 // con alias para no chocar con el tipo global `Comment` del DOM.
-import type { Task, Comment as CommentRecord, Attachment, TaskTimeEntry, TaskStatus, Priority, User } from "@/generated/prisma";
+import type { Task, Comment as CommentRecord, Attachment, TimeEntry, TaskStatus, Priority, User } from "@/generated/prisma";
 import type { Session } from "next-auth";
 import { TaskStatusBadge, TaskPriorityBadge } from "./project-status-badge";
 import { TaskCommentSection } from "./task-comment-form";
@@ -31,7 +31,7 @@ type TaskWithDetails = Task & {
   createdBy: Pick<User, "id" | "name">;
   comments: (CommentRecord & { author: Pick<User, "name">; reactions: ReactionEntry[]; attachments: CommentAttachment[] })[];
   attachments: Attachment[];
-  timeEntries: (TaskTimeEntry & { user: Pick<User, "name"> })[];
+  timeEntries: (TimeEntry & { user: Pick<User, "name"> })[];
 };
 
 const taskStatusOptions: { value: TaskStatus; label: string }[] = [

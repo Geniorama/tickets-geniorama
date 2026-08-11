@@ -9,6 +9,34 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.46.0] — 2026-08-11
+
+### Fase 0, paso 4: registros de tiempo polimórficos
+
+El paso con más superficie hasta ahora, porque el cronómetro toca facturación.
+
+- **Un solo modelo.** `TimeEntry` (tickets) y `TaskTimeEntry` (tareas) se unifican en `TimeEntry`, con toda la lógica en `src/lib/time-entries.ts`. Los dos archivos de acciones quedan como envoltorios de permisos y revalidación.
+- **Renombrado de tabla.** A diferencia de los pasos anteriores, el nombre destino ya estaba ocupado: la tabla vieja de tickets se llamaba `time_entries`. Pasa a `ticket_time_entries` —simétrica con `task_time_entries`— y el nombre limpio queda para la compartida. Incluye renombrar el índice de la clave primaria: en PostgreSQL los nombres de índice son únicos por esquema, así que sin eso la tabla nueva chocaría al crearse.
+- **El contador flotante** hacía dos consultas (una por tipo) para encontrar el cronómetro en marcha; ahora es una, con el título de la entidad resuelto aparte. Lo mismo `/api/timer/pause-all`, que pasa de dos `updateMany` a uno.
+- **Los listados de tiempo** (informes de tarea y de ticket, página de reportes) se resuelven con `listTimeEntries` y `elapsedMsByEntity`, este último por lotes para no convertir un `include` en una consulta por ticket.
+- El arranque y parada automáticos al cambiar de estado —en `updateTaskStatus`, en el cierre de ticket y en el asistente IA— pasan también por el núcleo.
+
+#### Facturación: `getPlanUsedHours`
+
+Calculaba el consumo con un filtro anidado (`where: { ticket: { planId } }`) sobre la relación directa. Sin ella, resuelve primero los tickets del plan y luego suma sus entradas cerradas. Se verificó la **equivalencia exacta en los 20 planes con tiempo registrado** en producción antes de desplegar: mismas horas hasta el cuarto decimal. Las entradas abiertas siguen sin contar como tiempo consumido.
+
+#### 🔒 Permisos
+
+Las acciones del cronómetro comprobaban el rol pero no el acceso a la entidad: bastaba con ser staff y adivinar un `ticketId` o `taskId` para cronometrar, editar o borrar tiempo sobre cualquiera. Ahora usan `canAccessTicket()` y `canInteractWithTask()`, y el borrado de una entrada va acotado por entidad.
+
+#### Migración `20260811180000_add_shared_time_entry_kernel` (con datos)
+
+- Renombra la tabla vieja, crea la compartida y copia los 682 registros conservando ids y el estado abierto/cerrado.
+- Las tablas viejas no se eliminan.
+- Verificada en base desechable, incluido el renombrado; `prisma migrate diff` no detecta diferencias.
+
+---
+
 ## [1.45.0] — 2026-08-11
 
 ### Fase 0, paso 3: checklists polimórficos
