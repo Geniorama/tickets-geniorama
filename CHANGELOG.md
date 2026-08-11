@@ -9,6 +9,38 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.45.0] — 2026-08-11
+
+### Fase 0, paso 3: checklists polimórficos
+
+- **Un solo modelo.** `TicketChecklist` / `TaskChecklist` y sus ítems se unifican en `Checklist` y `ChecklistItem`. `checklist.actions.ts` pasa de 408 líneas con dieciséis funciones (ocho duplicadas) a envoltorios finos sobre el nuevo `src/lib/checklists.ts`.
+- Los ítems **conservan clave foránea real** hacia su checklist, así que la cascada entre ambos sigue existiendo. Solo se pierde el vínculo automático con el ticket o la tarea, cubierto con `deleteChecklistsFor()` en `deleteTicket`, `deleteTask` y `deleteProject`.
+- La creación desde plantillas (plantilla de tarea, tarea recurrente y el cron que las genera) y el asistente IA pasan también por el núcleo compartido.
+
+#### 🔒 Las acciones de checklist de ticket no comprobaban acceso
+
+Solo exigían sesión iniciada. **Cualquier usuario autenticado que adivinara un `ticketId` podía añadir, renombrar, marcar o borrar ítems del checklist de cualquier ticket**, incluido el de otra empresa. Las de tarea sí estaban restringidas al staff.
+
+Se añade `src/lib/ticket-access.ts` con `canAccessTicket()`, que extrae la regla que ya aplicaba la página de detalle (borrador solo para su creador; staff todo; cliente solo lo suyo o lo de su empresa) para poder usarla también en las Server Actions. Las de tarea ahora verifican además acceso a la tarea, no solo el rol.
+
+#### 🐛 Corrige lecturas obsoletas introducidas en 1.43.0
+
+Al migrar los comentarios se pasaron por alto cinco consultas que los leían por la relación vieja de `Ticket`/`Task`. Como esas tablas quedaron congeladas, **desde el 11 de agosto mostraban solo comentarios anteriores a la migración**:
+
+- **Informes de tarea y de ticket** (`report.actions.ts`) — el historial de comentarios que va al informe generado, visible para el cliente.
+- **Resumen IA del ticket** (`ai.actions.ts`).
+- **Contexto del asistente** (`assistant.actions.ts`), tanto en tareas como en tickets, más el conteo de ítems de checklist.
+
+Se añaden `recentCommentsByEntity()` y `checklistItemCountsByEntity()` para resolver por lotes lo que antes hacía el `include`, sin caer en una consulta por entidad.
+
+#### Migración `20260811160000_add_shared_checklist_kernel` (con datos)
+
+- Copia los 43 checklists y 254 ítems conservando ids, títulos, posiciones y estado de marcado.
+- Las tablas viejas no se eliminan.
+- Verificada en base desechable; `prisma migrate diff` no detecta diferencias.
+
+---
+
 ## [1.44.0] — 2026-08-11
 
 ### Fase 0, paso 2: adjuntos polimórficos

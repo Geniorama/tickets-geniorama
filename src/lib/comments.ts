@@ -87,6 +87,49 @@ export function listComments({
 }
 
 /**
+ * Los N comentarios más recientes de cada entidad de una lista, en orden
+ * descendente (el más nuevo primero).
+ *
+ * Existe para sustituir a los `include: { comments: { take: N } }` que antes
+ * colgaban de la relación directa: sin ella habría que consultar entidad por
+ * entidad. Resuelve todo en una consulta y agrupa en memoria.
+ */
+export async function recentCommentsByEntity(
+  entityType: EntityType,
+  entityIds: string[],
+  perEntity: number,
+  includeInternal: boolean,
+): Promise<Map<string, { body: string; isInternal: boolean; author: { name: string } }[]>> {
+  const grouped = new Map<string, { body: string; isInternal: boolean; author: { name: string } }[]>();
+  if (entityIds.length === 0) return grouped;
+
+  const rows = await prisma.comment.findMany({
+    where: {
+      entityType,
+      entityId: { in: entityIds },
+      ...(includeInternal ? {} : { isInternal: false }),
+    },
+    select: {
+      entityId: true,
+      body: true,
+      isInternal: true,
+      author: { select: { name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  for (const { entityId, ...comment } of rows) {
+    const list = grouped.get(entityId) ?? [];
+    if (list.length < perEntity) {
+      list.push(comment);
+      grouped.set(entityId, list);
+    }
+  }
+
+  return grouped;
+}
+
+/**
  * Cuántos comentarios tiene cada entidad de una lista.
  * Sustituye al `_count: { select: { comments: true } }` de las relaciones
  * directas, que ya no existe al ser polimórfica la tabla.

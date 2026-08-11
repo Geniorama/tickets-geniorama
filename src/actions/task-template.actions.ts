@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { combineEstimatedTime } from "@/lib/estimated-time";
 import { normalizeChecklistGroups, parseChecklistGroups } from "@/lib/checklist";
+import { createChecklistGroups } from "@/lib/checklists";
 
 const templateSchema = z.object({
   name:           z.string().min(1, "El nombre es requerido").max(120),
@@ -104,22 +105,14 @@ export async function createTaskFromTemplate(templateId: string): Promise<{ erro
       category:       tpl.category,
       estimatedHours: tpl.estimatedHours,
       createdById:    session.user.id,
-      checklists: {
-        create: normalizeChecklistGroups(tpl.checklist).map((group, position) => ({
-          title:       group.title,
-          position,
-          createdById: session.user.id,
-          items: {
-            create: group.items.map((title, itemPosition) => ({
-              title,
-              position:    itemPosition,
-              createdById: session.user.id,
-            })),
-          },
-        })),
-      },
     },
   });
+
+  await createChecklistGroups(
+    { entityType: "TASK", entityId: task.id },
+    normalizeChecklistGroups(tpl.checklist),
+    session.user.id,
+  );
 
   revalidatePath("/tareas");
   redirect(`/tareas/${task.id}`);

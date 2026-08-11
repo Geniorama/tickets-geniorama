@@ -9,6 +9,7 @@ import { isAdmin } from "@/lib/roles";
 import { notify } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { DEFAULT_CHECKLIST_TITLE } from "@/lib/checklist";
+import { createChecklistGroups } from "@/lib/checklists";
 import type { Priority } from "@/generated/prisma";
 
 const PRIORITY_VALUES: Priority[] = ["BAJA", "MEDIA", "ALTA", "CRITICA"];
@@ -473,17 +474,12 @@ export async function applyPlan(
 
       const subs = (t.subtareas ?? []).map((s) => s.trim()).filter(Boolean).slice(0, 20);
       if (subs.length > 0) {
-        await tx.taskChecklist.create({
-          data: {
-            taskId: row.id,
-            title: DEFAULT_CHECKLIST_TITLE,
-            position: 0,
-            createdById: userId,
-            items: {
-              create: subs.map((title, i) => ({ title, position: i, createdById: userId })),
-            },
-          },
-        });
+        await createChecklistGroups(
+          { entityType: "TASK", entityId: row.id },
+          [{ title: DEFAULT_CHECKLIST_TITLE, items: subs }],
+          userId,
+          tx,
+        );
       }
 
       created.push({ id: row.id, title: t.titulo.trim(), assignedToId, dueDate });

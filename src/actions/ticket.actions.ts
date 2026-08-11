@@ -15,6 +15,7 @@ import { parseChecklistGroups } from "@/lib/checklist";
 import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/reviewers";
 import { deleteCommentsFor } from "@/lib/comments";
 import { addFileAttachments, deleteAttachmentsFor } from "@/lib/attachments";
+import { createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
 
 const APP_URL = process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -148,24 +149,11 @@ export async function createTicket(formData: FormData) {
   });
 
   // Crear los checklists si se enviaron
-  const checklistGroups = parseChecklistGroups(formData.get("checklist"));
-  for (const [index, group] of checklistGroups.entries()) {
-    await prisma.ticketChecklist.create({
-      data: {
-        ticketId: ticket.id,
-        title: group.title,
-        position: index,
-        createdById: session.user.id,
-        items: {
-          create: group.items.map((title, position) => ({
-            title,
-            position,
-            createdById: session.user.id,
-          })),
-        },
-      },
-    });
-  }
+  await createChecklistGroups(
+    { entityType: "TICKET", entityId: ticket.id },
+    parseChecklistGroups(formData.get("checklist")),
+    session.user.id,
+  );
 
   // Resolver nombre del asignado para enriquecer notificaciones
   const assignee = ticket.assignedToId
@@ -628,6 +616,7 @@ export async function deleteTicket(ticketId: string) {
   await prisma.$transaction(async (tx) => {
     await deleteCommentsFor("TICKET", ticketId, tx);
     await deleteAttachmentsFor("TICKET", ticketId, tx);
+    await deleteChecklistsFor("TICKET", ticketId, tx);
     await tx.ticket.delete({ where: { id: ticketId } });
   });
 

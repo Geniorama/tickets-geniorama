@@ -4,7 +4,8 @@
  * Se usa en dos contextos:
  * - Borrador: formularios de creación y plantillas, donde los ítems todavía no
  *   existen en base de datos (`ChecklistGroup`, serializado como JSON).
- * - Persistido: los modelos `TicketChecklist` / `TaskChecklist` y sus ítems.
+ * - Persistido: el modelo compartido `Checklist` y sus `ChecklistItem`
+ *   (ver `src/lib/checklists.ts`).
  */
 
 export type ChecklistGroup = { title: string; items: string[] };

@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { taskCode, projectPrefix } from "@/lib/task-code";
 import { runTextCompletion, type AiProvider } from "@/lib/ai";
+import { listComments } from "@/lib/comments";
 
 export interface ReportHeader {
   projectName?: string;
@@ -64,11 +65,6 @@ export async function generateTaskReport(taskId: string, provider: AiProvider = 
       },
       assignedTo: { select: { name: true } },
       createdBy: { select: { name: true } },
-      comments: {
-        take: 100,
-        include: { author: { select: { name: true } } },
-        orderBy: { createdAt: "asc" },
-      },
       timeEntries: {
         take: 200,
         include: { user: { select: { name: true } } },
@@ -78,6 +74,11 @@ export async function generateTaskReport(taskId: string, provider: AiProvider = 
   });
 
   if (!task) return { error: "Tarea no encontrada" };
+
+  // Los comentarios viven en la tabla compartida, fuera de la relación.
+  const comments = (
+    await listComments({ entityType: "TASK", entityId: taskId, includeInternal: true })
+  ).slice(0, 100);
 
   const projectName = task.project?.name ?? "Sin proyecto";
   const code = task.number > 0 ? taskCode(projectName, task.number) : undefined;
@@ -107,9 +108,9 @@ export async function generateTaskReport(taskId: string, provider: AiProvider = 
 **Descripción:**
 ${task.description}`;
 
-  if (task.comments.length > 0) {
+  if (comments.length > 0) {
     ctx += `\n\n**Historial de comentarios:**`;
-    for (const c of task.comments) {
+    for (const c of comments) {
       ctx += `\n- ${c.createdAt.toLocaleDateString("es-CO")} — ${c.author.name}: ${c.body}`;
     }
   }
@@ -281,12 +282,6 @@ export async function generateTicketReport(ticketId: string, provider: AiProvide
       client: { select: { name: true, companies: { select: { name: true } } } },
       plan: { select: { name: true, type: true } },
       site: { select: { name: true, domain: true } },
-      comments: {
-        take: 100,
-        where: { isInternal: false },
-        include: { author: { select: { name: true } } },
-        orderBy: { createdAt: "asc" },
-      },
       timeEntries: {
         take: 200,
         include: { user: { select: { name: true } } },
@@ -296,6 +291,12 @@ export async function generateTicketReport(ticketId: string, provider: AiProvide
   });
 
   if (!ticket) return { error: "Ticket no encontrado" };
+
+  // Los comentarios viven en la tabla compartida. El informe es para el cliente,
+  // así que las notas internas quedan fuera.
+  const comments = (
+    await listComments({ entityType: "TICKET", entityId: ticketId, includeInternal: false })
+  ).slice(0, 100);
 
   const header: ReportHeader = {
     itemName: ticket.title,
@@ -319,9 +320,9 @@ export async function generateTicketReport(ticketId: string, provider: AiProvide
 **Descripción:**
 ${ticket.description}`;
 
-  if (ticket.comments.length > 0) {
+  if (comments.length > 0) {
     ctx += `\n\n**Historial de comunicación:**`;
-    for (const c of ticket.comments) {
+    for (const c of comments) {
       ctx += `\n- ${c.createdAt.toLocaleDateString("es-CO")} — ${c.author.name}: ${c.body}`;
     }
   }

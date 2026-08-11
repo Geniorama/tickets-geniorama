@@ -7,6 +7,7 @@ import { BackButton } from "@/components/ui/back-button";
 import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
 import { listComments } from "@/lib/comments";
 import { listAttachments } from "@/lib/attachments";
+import { listChecklists } from "@/lib/checklists";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,10 +38,6 @@ export default async function GlobalTaskPage({
       assignedTo: { select: { id: true, name: true } },
       reviewers: { select: { id: true, name: true } },
       createdBy: { select: { id: true, name: true } },
-      checklists: {
-        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
-        include: { items: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] } },
-      },
       timeEntries: {
         include: { user: { select: { name: true } } },
         orderBy: { startedAt: "asc" },
@@ -61,9 +58,10 @@ export default async function GlobalTaskPage({
   if (client) redirect("/dashboard");
 
   // Comentarios y adjuntos viven en tablas compartidas, fuera de la relación.
-  const [comments, attachments] = await Promise.all([
+  const [comments, attachments, checklists] = await Promise.all([
     listComments({ entityType: "TASK", entityId: taskId, includeInternal: true }),
     listAttachments("TASK", taskId),
+    listChecklists({ entityType: "TASK", entityId: taskId }),
   ]);
 
   const moveableProjects = admin
@@ -88,7 +86,7 @@ export default async function GlobalTaskPage({
             key="checklist"
             taskId={taskId}
             projectId={null}
-            initialChecklists={task.checklists}
+            initialChecklists={checklists}
             canDelete={admin}
           />
         }

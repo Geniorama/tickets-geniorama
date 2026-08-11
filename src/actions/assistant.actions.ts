@@ -10,6 +10,8 @@ import { notify } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { formatEstimatedTime } from "@/lib/estimated-time";
 import { DEFAULT_CHECKLIST_TITLE } from "@/lib/checklist";
+import { addChecklistItems, checklistItemCountsByEntity } from "@/lib/checklists";
+import { recentCommentsByEntity } from "@/lib/comments";
 import type { TaskStatus, TicketStatus, Priority } from "@/generated/prisma";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -113,12 +115,6 @@ async function buildContext(userId: string): Promise<AssistantContext> {
         dueDate: true,
         estimatedHours: true,
         project: { select: { id: true, name: true } },
-        checklists: { select: { _count: { select: { items: true } } } },
-        comments: {
-          orderBy: { createdAt: "desc" },
-          take: 4,
-          select: { body: true, author: { select: { name: true } } },
-        },
       },
       orderBy: [{ dueDate: "asc" }, { priority: "desc" }],
       take: 40,
@@ -131,6 +127,7 @@ async function buildContext(userId: string): Promise<AssistantContext> {
         status: { not: "CERRADO" },
       },
       select: {
+        id: true,
         prefix: true,
         number: true,
         title: true,
@@ -140,11 +137,6 @@ async function buildContext(userId: string): Promise<AssistantContext> {
         category: true,
         dueDate: true,
         site: { select: { name: true, domain: true } },
-        comments: {
-          orderBy: { createdAt: "desc" },
-          take: 4,
-          select: { body: true, isInternal: true, author: { select: { name: true } } },
-        },
       },
       orderBy: [{ dueDate: "asc" }, { priority: "desc" }],
       take: 25,
@@ -201,6 +193,14 @@ async function buildContext(userId: string): Promise<AssistantContext> {
     }),
   ]);
 
+  // Comentarios y checklists viven en tablas compartidas: se traen por lotes en
+  // lugar de colgar de la relación de cada tarea o ticket.
+  const [taskComments, ticketComments, checklistCounts] = await Promise.all([
+    recentCommentsByEntity("TASK", tasks.map((t) => t.id), 4, true),
+    recentCommentsByEntity("TICKET", tickets.map((t) => t.id), 4, true),
+    checklistItemCountsByEntity("TASK", tasks.map((t) => t.id)),
+  ]);
+
   const taskMap = new Map<string, TaskCtx>();
   const projectMap = new Map<string, string>();
   for (const p of projects) projectMap.set(p.id, p.name);
@@ -224,11 +224,12 @@ async function buildContext(userId: string): Promise<AssistantContext> {
       parts.push(`Vence: ${fmt(t.dueDate)}${overdue ? " (VENCIDA)" : ""}`);
     }
     if (t.estimatedHours) parts.push(`Estimado: ${formatEstimatedTime(t.estimatedHours)}`);
-    const checklistCount = t.checklists.reduce((sum, c) => sum + c._count.items, 0);
+    const checklistCount = checklistCounts.get(t.id) ?? 0;
     if (checklistCount > 0) parts.push(`Checklist: ${checklistCount} ítems`);
     let line = `- ${parts.join(" · ")}`;
-    if (t.comments.length > 0) {
-      line += `\n  Comentarios recientes:\n${formatComments(t.comments)}`;
+    const comments = taskComments.get(t.id) ?? [];
+    if (comments.length > 0) {
+      line += `\n  Comentarios recientes:\n${formatComments(comments)}`;
     }
     lines.push(line);
   }
@@ -249,8 +250,9 @@ async function buildContext(userId: string): Promise<AssistantContext> {
       parts.push(`Vence: ${fmt(tk.dueDate)}${overdue ? " (VENCIDO)" : ""}`);
     }
     let line = `- ${parts.join(" · ")}`;
-    if (tk.comments.length > 0) {
-      line += `\n  Comentarios recientes:\n${formatComments(tk.comments)}`;
+    const comments = ticketComments.get(tk.id) ?? [];
+    if (comments.length > 0) {
+      line += `\n  Comentarios recientes:\n${formatComments(comments)}`;
     }
     ticketLines.push(line);
   }
@@ -603,34 +605,12 @@ export async function executeAssistantAction(
     if (!task) return { error: "Tarea no encontrada" };
 
     // Los ítems van al primer checklist de la tarea; si no tiene ninguno, se crea.
-    const existing = await prisma.taskChecklist.findFirst({
-      where: { taskId: action.taskId },
-      orderBy: { position: "asc" },
-      select: { id: true },
-    });
-    const checklistId = existing
-      ? existing.id
-      : (
-          await prisma.taskChecklist.create({
-            data: {
-              taskId: action.taskId,
-              title: DEFAULT_CHECKLIST_TITLE,
-              position: 0,
-              createdById: userId,
-            },
-            select: { id: true },
-          })
-        ).id;
-
-    const count = await prisma.taskChecklistItem.count({ where: { checklistId } });
-    await prisma.taskChecklistItem.createMany({
-      data: items.map((title, i) => ({
-        checklistId,
-        title,
-        position: count + i,
-        createdById: userId,
-      })),
-    });
+    await addChecklistItems(
+      { entityType: "TASK", entityId: action.taskId },
+      null,
+      items,
+      userId,
+    );
 
     const taskUrl = task.projectId
       ? `/proyectos/${task.projectId}/tareas/${action.taskId}`

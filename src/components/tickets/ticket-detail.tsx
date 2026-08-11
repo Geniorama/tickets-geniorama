@@ -41,7 +41,6 @@ type TicketWithDetails = Ticket & {
   plan: { id: string; name: string; type: string } | null;
   site: { id: string; name: string; domain: string; documentation: string | null; architecture: string | null } | null;
   attachments: Attachment[];
-  checklists: { id: string; title: string; items: { id: string; title: string; isChecked: boolean }[] }[];
   timeEntries: (TimeEntry & { user: Pick<User, "name"> })[];
   comments: (CommentRecord & {
     author: Pick<User, "name" | "role">;

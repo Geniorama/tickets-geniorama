@@ -10,6 +10,7 @@ import { ProjectVaultPanel } from "@/components/vault/project-vault-panel";
 import { ProjectAttachmentsPanel } from "@/components/projects/project-attachments-panel";
 import { listComments } from "@/lib/comments";
 import { listAttachments } from "@/lib/attachments";
+import { listChecklists } from "@/lib/checklists";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const { taskId } = await params;
@@ -36,10 +37,6 @@ export default async function TaskPage({
       assignedTo: { select: { id: true, name: true } },
       reviewers: { select: { id: true, name: true } },
       createdBy: { select: { id: true, name: true } },
-      checklists: {
-        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
-        include: { items: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] } },
-      },
       timeEntries: {
         include: { user: { select: { name: true } } },
         orderBy: { startedAt: "asc" },
@@ -80,9 +77,10 @@ export default async function TaskPage({
 
   // Comentarios y adjuntos viven en tablas compartidas; se cargan una vez
   // superado el control de acceso de arriba.
-  const [comments, attachments] = await Promise.all([
+  const [comments, attachments, checklists] = await Promise.all([
     listComments({ entityType: "TASK", entityId: taskId, includeInternal: true }),
     listAttachments("TASK", taskId),
+    listChecklists({ entityType: "TASK", entityId: taskId }),
   ]);
 
   // Configuración general del proyecto (accesos + adjuntos), visible también aquí.
@@ -129,7 +127,7 @@ export default async function TaskPage({
             key="checklist"
             taskId={taskId}
             projectId={projectId}
-            initialChecklists={task.checklists}
+            initialChecklists={checklists}
             canDelete={admin}
             readOnly={client}
           />

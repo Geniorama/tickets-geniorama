@@ -11,6 +11,7 @@ import {
 } from "@/lib/recurrence";
 import type { RecurrenceFrequency } from "@/generated/prisma";
 import { normalizeChecklistGroups, parseChecklistGroups } from "@/lib/checklist";
+import { createChecklistGroups } from "@/lib/checklists";
 
 const schema = z.object({
   title: z.string().min(1, "Título requerido").max(200),
@@ -210,7 +211,7 @@ export async function runRecurringNow(id: string) {
       nextNumber = (last?.number ?? 0) + 1;
     }
 
-    await tx.task.create({
+    const task = await tx.task.create({
       data: {
         title: tpl.title,
         description: tpl.description,
@@ -223,22 +224,15 @@ export async function runRecurringNow(id: string) {
         recurringTemplateId: tpl.id,
         dueDate: due,
         number: nextNumber,
-        checklists: {
-          create: normalizeChecklistGroups(tpl.checklist).map((group, position) => ({
-            title: group.title,
-            position,
-            createdById: session.user.id,
-            items: {
-              create: group.items.map((title, itemPosition) => ({
-                title,
-                position: itemPosition,
-                createdById: session.user.id,
-              })),
-            },
-          })),
-        },
       },
     });
+
+    await createChecklistGroups(
+      { entityType: "TASK", entityId: task.id },
+      normalizeChecklistGroups(tpl.checklist),
+      session.user.id,
+      tx,
+    );
 
     // Avanzamos la programación igual que el cron: encadenando desde el
     // `nextRunAt` programado (a las 00:00), NO desde `now`. Así la columna

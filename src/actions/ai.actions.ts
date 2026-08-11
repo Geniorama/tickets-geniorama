@@ -8,6 +8,7 @@ import {
   providerConfigError,
   runTextCompletion,
 } from "@/lib/ai";
+import { listComments } from "@/lib/comments";
 
 export async function getTicketDiagnosis(
   ticketId: string,
@@ -30,15 +31,18 @@ export async function getTicketDiagnosis(
       site: {
         select: { name: true, domain: true, documentation: true, architecture: true },
       },
-      comments: {
-        where: { isInternal: false },
-        orderBy: { createdAt: "asc" },
-        select: { body: true, author: { select: { name: true, role: true } } },
-      },
     },
   });
 
   if (!ticket) return { error: "Ticket no encontrado" };
+
+  // Los comentarios viven en la tabla compartida. Las notas internas quedan
+  // fuera: este resumen puede compartirse con el cliente.
+  const comments = await listComments({
+    entityType: "TICKET",
+    entityId: ticketId,
+    includeInternal: false,
+  });
 
   const priorityLabel: Record<string, string> = {
     BAJA: "Baja", MEDIA: "Media", ALTA: "Alta", CRITICA: "Crítica",
@@ -70,9 +74,9 @@ ${ticket.description}
     }
   }
 
-  if (ticket.comments.length > 0) {
+  if (comments.length > 0) {
     prompt += `\n---\n**Historial de comentarios:**\n`;
-    for (const c of ticket.comments) {
+    for (const c of comments) {
       prompt += `- ${c.author.name}: ${c.body}\n`;
     }
   }

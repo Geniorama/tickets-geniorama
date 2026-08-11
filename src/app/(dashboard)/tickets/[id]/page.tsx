@@ -9,6 +9,7 @@ import { CollaboratorSchedulingCard } from "@/components/collaborator/collaborat
 import { getClientActivePlan } from "@/lib/plans.server";
 import { listComments } from "@/lib/comments";
 import { listAttachments } from "@/lib/attachments";
+import { listChecklists } from "@/lib/checklists";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -36,10 +37,6 @@ export default async function TicketPage({
       client: { select: { id: true, name: true, companies: { select: { name: true } } } },
       plan: { select: { id: true, name: true, type: true } },
       site: { select: { id: true, name: true, domain: true, documentation: true, architecture: true } },
-      checklists: {
-        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
-        include: { items: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] } },
-      },
       timeEntries: {
         take: 200,
         orderBy: { startedAt: "asc" },
@@ -78,11 +75,12 @@ export default async function TicketPage({
     }
   }
 
-  // Comentarios y adjuntos viven en tablas compartidas y no son relaciones del
-  // ticket, así que se consultan aparte, ya superado el control de acceso.
-  const [comments, attachments] = await Promise.all([
+  // Comentarios, adjuntos y checklists viven en tablas compartidas: se
+  // consultan aparte, ya superado el control de acceso.
+  const [comments, attachments, checklists] = await Promise.all([
     listComments({ entityType: "TICKET", entityId: ticketId, includeInternal: staff }),
     listAttachments("TICKET", ticketId),
+    listChecklists({ entityType: "TICKET", entityId: ticketId }),
   ]);
 
   // La Bóveda es visible solo para el creador y los usuarios con los que se comparte
@@ -131,7 +129,7 @@ export default async function TicketPage({
           <TicketChecklistPanel
             key="checklist"
             ticketId={ticketId}
-            initialChecklists={ticket.checklists}
+            initialChecklists={checklists}
             canDelete={admin}
           />
         }

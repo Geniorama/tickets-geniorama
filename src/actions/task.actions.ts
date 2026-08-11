@@ -20,6 +20,7 @@ import {
   deleteAttachment,
   deleteAttachmentsFor,
 } from "@/lib/attachments";
+import { createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -214,24 +215,11 @@ export async function createTask(projectIdArg: string | null, formData: FormData
   }
 
   // Crear los checklists si se enviaron
-  const checklistGroups = parseChecklistGroups(formData.get("checklist"));
-  for (const [index, group] of checklistGroups.entries()) {
-    await prisma.taskChecklist.create({
-      data: {
-        taskId: task.id,
-        title: group.title,
-        position: index,
-        createdById: session.user.id,
-        items: {
-          create: group.items.map((title, position) => ({
-            title,
-            position,
-            createdById: session.user.id,
-          })),
-        },
-      },
-    });
-  }
+  await createChecklistGroups(
+    { entityType: "TASK", entityId: task.id },
+    parseChecklistGroups(formData.get("checklist")),
+    session.user.id,
+  );
 
   const [project, assignee] = await Promise.all([
     prisma.project.findUnique({ where: { id: projectId }, select: { name: true, isPrivate: true } }),
@@ -619,6 +607,7 @@ export async function deleteTask(taskId: string, projectId: string | null) {
   await prisma.$transaction(async (tx) => {
     await deleteCommentsFor("TASK", taskId, tx);
     await deleteAttachmentsFor("TASK", taskId, tx);
+    await deleteChecklistsFor("TASK", taskId, tx);
     await tx.task.delete({ where: { id: taskId } });
   });
   if (projectId) {

@@ -1,250 +1,147 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { isStaff } from "@/lib/roles";
-import { DEFAULT_CHECKLIST_TITLE } from "@/lib/checklist";
+import { canAccessTicket } from "@/lib/ticket-access";
+import { canInteractWithTask } from "@/lib/task-access";
+import type { EntityType } from "@/generated/prisma";
+import {
+  addChecklist,
+  addChecklistItems,
+  deleteChecklist,
+  deleteChecklistItem,
+  renameChecklist,
+  reorderChecklists,
+  toggleChecklistItem,
+  updateChecklistItem,
+  type ChecklistLayout,
+} from "@/lib/checklists";
 
-/**
- * Orden completo del panel: los checklists en su orden y, dentro de cada uno,
- * sus ítems. Con esto una sola acción cubre reordenar checklists, reordenar
- * ítems y mover un ítem de un checklist a otro.
- */
-export type ChecklistLayout = { checklistId: string; itemIds: string[] };
+export type { ChecklistLayout } from "@/lib/checklists";
+
+const SIN_PERMISOS = { error: "Sin permisos" } as const;
 
 function taskPath(taskId: string, projectId: string | null) {
   return projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`;
 }
 
-// ─── Tickets ─────────────────────────────────────────────────────────────────
-
 /**
- * Devuelve el checklist donde debe caer un ítem nuevo: el pedido, si pertenece
- * al ticket; si no, el primero; y si el ticket no tiene ninguno, crea uno.
+ * Sesión + permiso sobre el ticket. Antes estas acciones solo exigían sesión,
+ * así que un `ticketId` adivinado bastaba para tocar el checklist de cualquier
+ * ticket, incluido el de otra empresa.
  */
-async function resolveTicketChecklist(ticketId: string, checklistId: string | null, userId: string) {
-  if (checklistId) {
-    const target = await prisma.ticketChecklist.findFirst({
-      where: { id: checklistId, ticketId },
-      select: { id: true },
-    });
-    if (target) return target.id;
-  }
-
-  const first = await prisma.ticketChecklist.findFirst({
-    where: { ticketId },
-    orderBy: { position: "asc" },
-    select: { id: true },
-  });
-  if (first) return first.id;
-
-  const created = await prisma.ticketChecklist.create({
-    data: { ticketId, title: DEFAULT_CHECKLIST_TITLE, position: 0, createdById: userId },
-    select: { id: true },
-  });
-  return created.id;
+async function ticketGuard(ticketId: string) {
+  const session = await getRequiredSession();
+  const allowed = await canAccessTicket(ticketId, session.user.id, session.user.role);
+  if (!allowed) return null;
+  return { userId: session.user.id, entity: { entityType: "TICKET" as EntityType, entityId: ticketId } };
 }
 
-export async function addTicketChecklist(ticketId: string, title: string) {
+/**
+ * El checklist de una tarea es de gestión interna. Los clientes con acceso al
+ * detalle (mención o revisor) lo ven en solo lectura, así que estas acciones
+ * quedan restringidas al staff con acceso a la tarea.
+ */
+async function taskGuard(taskId: string) {
   const session = await getRequiredSession();
-  const t = title.trim() || DEFAULT_CHECKLIST_TITLE;
+  if (!isStaff(session.user.role)) return null;
+  const allowed = await canInteractWithTask(taskId, session.user.id, session.user.role);
+  if (!allowed) return null;
+  return { userId: session.user.id, entity: { entityType: "TASK" as EntityType, entityId: taskId } };
+}
 
-  const last = await prisma.ticketChecklist.findFirst({
-    where: { ticketId },
-    orderBy: { position: "desc" },
-    select: { position: true },
-  });
+// ─── Tickets ─────────────────────────────────────────────────────────────────
 
-  await prisma.ticketChecklist.create({
-    data: {
-      ticketId,
-      title: t,
-      position: (last?.position ?? -1) + 1,
-      createdById: session.user.id,
-    },
-  });
+export async function addTicketChecklist(ticketId: string, title: string) {
+  const ctx = await ticketGuard(ticketId);
+  if (!ctx) return SIN_PERMISOS;
 
+  await addChecklist(ctx.entity, title, ctx.userId);
   revalidatePath(`/tickets/${ticketId}`);
 }
 
 export async function renameTicketChecklist(checklistId: string, ticketId: string, title: string) {
-  await getRequiredSession();
-  const t = title.trim();
-  if (!t) return { error: "El título no puede estar vacío" };
+  const ctx = await ticketGuard(ticketId);
+  if (!ctx) return SIN_PERMISOS;
 
-  await prisma.ticketChecklist.updateMany({
-    where: { id: checklistId, ticketId },
-    data: { title: t },
-  });
+  const result = await renameChecklist(ctx.entity, checklistId, title);
+  if (result.error) return result;
 
   revalidatePath(`/tickets/${ticketId}`);
 }
 
 export async function deleteTicketChecklist(checklistId: string, ticketId: string) {
-  await getRequiredSession();
+  const ctx = await ticketGuard(ticketId);
+  if (!ctx) return SIN_PERMISOS;
 
-  // Los ítems se van en cascada.
-  await prisma.ticketChecklist.deleteMany({ where: { id: checklistId, ticketId } });
-
+  await deleteChecklist(ctx.entity, checklistId);
   revalidatePath(`/tickets/${ticketId}`);
 }
 
-/** Reescribe el orden de los checklists y de sus ítems según el layout recibido. */
 export async function reorderTicketChecklists(ticketId: string, layout: ChecklistLayout[]) {
-  await getRequiredSession();
+  const ctx = await ticketGuard(ticketId);
+  if (!ctx) return SIN_PERMISOS;
 
-  const checklists = await prisma.ticketChecklist.findMany({
-    where: { ticketId },
-    select: { id: true, items: { select: { id: true } } },
-  });
-  const validLists = new Set(checklists.map((c) => c.id));
-  const validItems = new Set(checklists.flatMap((c) => c.items.map((i) => i.id)));
-
-  const clean = layout
-    .filter((l) => validLists.has(l.checklistId))
-    .map((l) => ({ checklistId: l.checklistId, itemIds: l.itemIds.filter((id) => validItems.has(id)) }));
-  if (clean.length === 0) return { error: "Sin checklists para reordenar" };
-
-  await prisma.$transaction([
-    ...clean.map((l, index) =>
-      prisma.ticketChecklist.update({ where: { id: l.checklistId }, data: { position: index } })
-    ),
-    ...clean.flatMap((l) =>
-      l.itemIds.map((id, position) =>
-        prisma.ticketChecklistItem.update({
-          where: { id },
-          data: { checklistId: l.checklistId, position },
-        })
-      )
-    ),
-  ]);
+  const result = await reorderChecklists(ctx.entity, layout);
+  if (result.error) return result;
 
   revalidatePath(`/tickets/${ticketId}`);
 }
 
 export async function addTicketChecklistItem(ticketId: string, checklistId: string | null, title: string) {
-  const session = await getRequiredSession();
-  const t = title.trim();
-  if (!t) return { error: "El título no puede estar vacío" };
-
-  const targetId = await resolveTicketChecklist(ticketId, checklistId, session.user.id);
-  const count = await prisma.ticketChecklistItem.count({ where: { checklistId: targetId } });
-
-  await prisma.ticketChecklistItem.create({
-    data: { checklistId: targetId, title: t, position: count, createdById: session.user.id },
-  });
-
-  revalidatePath(`/tickets/${ticketId}`);
+  return addTicketChecklistItems(ticketId, checklistId, [title]);
 }
 
-export async function addTicketChecklistItems(ticketId: string, checklistId: string | null, titles: string[]) {
-  const session = await getRequiredSession();
-  const clean = titles.map((t) => t.trim()).filter((t) => t.length > 0);
-  if (clean.length === 0) return { error: "Sin ítems para agregar" };
+export async function addTicketChecklistItems(
+  ticketId: string,
+  checklistId: string | null,
+  titles: string[],
+) {
+  const ctx = await ticketGuard(ticketId);
+  if (!ctx) return SIN_PERMISOS;
 
-  const targetId = await resolveTicketChecklist(ticketId, checklistId, session.user.id);
-  const count = await prisma.ticketChecklistItem.count({ where: { checklistId: targetId } });
-
-  await prisma.ticketChecklistItem.createMany({
-    data: clean.map((title, i) => ({
-      checklistId: targetId,
-      title,
-      position: count + i,
-      createdById: session.user.id,
-    })),
-  });
+  const result = await addChecklistItems(ctx.entity, checklistId, titles, ctx.userId);
+  if (result.error) return result;
 
   revalidatePath(`/tickets/${ticketId}`);
 }
 
 export async function toggleTicketChecklistItem(itemId: string, ticketId: string) {
-  await getRequiredSession();
+  const ctx = await ticketGuard(ticketId);
+  if (!ctx) return SIN_PERMISOS;
 
-  const item = await prisma.ticketChecklistItem.findFirst({
-    where: { id: itemId, checklist: { ticketId } },
-    select: { id: true, isChecked: true },
-  });
-  if (!item) return { error: "Ítem no encontrado" };
-
-  await prisma.ticketChecklistItem.update({
-    where: { id: item.id },
-    data: { isChecked: !item.isChecked },
-  });
+  const result = await toggleChecklistItem(ctx.entity, itemId);
+  if (result.error) return result;
 
   revalidatePath(`/tickets/${ticketId}`);
 }
 
 export async function updateTicketChecklistItem(itemId: string, ticketId: string, title: string) {
-  await getRequiredSession();
-  const t = title.trim();
-  if (!t) return { error: "El título no puede estar vacío" };
+  const ctx = await ticketGuard(ticketId);
+  if (!ctx) return SIN_PERMISOS;
 
-  await prisma.ticketChecklistItem.updateMany({
-    where: { id: itemId, checklist: { ticketId } },
-    data: { title: t },
-  });
+  const result = await updateChecklistItem(ctx.entity, itemId, title);
+  if (result.error) return result;
 
   revalidatePath(`/tickets/${ticketId}`);
 }
 
 export async function deleteTicketChecklistItem(itemId: string, ticketId: string) {
-  await getRequiredSession();
+  const ctx = await ticketGuard(ticketId);
+  if (!ctx) return SIN_PERMISOS;
 
-  await prisma.ticketChecklistItem.deleteMany({ where: { id: itemId, checklist: { ticketId } } });
-
+  await deleteChecklistItem(ctx.entity, itemId);
   revalidatePath(`/tickets/${ticketId}`);
 }
 
 // ─── Tareas ───────────────────────────────────────────────────────────────────
 
-// El checklist de una tarea es de gestión interna. Los clientes con acceso al
-// detalle (mención o revisor) lo ven en solo lectura, así que estas acciones
-// quedan restringidas al staff.
-
-async function resolveTaskChecklist(taskId: string, checklistId: string | null, userId: string) {
-  if (checklistId) {
-    const target = await prisma.taskChecklist.findFirst({
-      where: { id: checklistId, taskId },
-      select: { id: true },
-    });
-    if (target) return target.id;
-  }
-
-  const first = await prisma.taskChecklist.findFirst({
-    where: { taskId },
-    orderBy: { position: "asc" },
-    select: { id: true },
-  });
-  if (first) return first.id;
-
-  const created = await prisma.taskChecklist.create({
-    data: { taskId, title: DEFAULT_CHECKLIST_TITLE, position: 0, createdById: userId },
-    select: { id: true },
-  });
-  return created.id;
-}
-
 export async function addTaskChecklist(taskId: string, projectId: string | null, title: string) {
-  const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
-  const t = title.trim() || DEFAULT_CHECKLIST_TITLE;
+  const ctx = await taskGuard(taskId);
+  if (!ctx) return SIN_PERMISOS;
 
-  const last = await prisma.taskChecklist.findFirst({
-    where: { taskId },
-    orderBy: { position: "desc" },
-    select: { position: true },
-  });
-
-  await prisma.taskChecklist.create({
-    data: {
-      taskId,
-      title: t,
-      position: (last?.position ?? -1) + 1,
-      createdById: session.user.id,
-    },
-  });
-
+  await addChecklist(ctx.entity, title, ctx.userId);
   revalidatePath(taskPath(taskId, projectId));
 }
 
@@ -254,62 +151,33 @@ export async function renameTaskChecklist(
   projectId: string | null,
   title: string,
 ) {
-  const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
-  const t = title.trim();
-  if (!t) return { error: "El título no puede estar vacío" };
+  const ctx = await taskGuard(taskId);
+  if (!ctx) return SIN_PERMISOS;
 
-  await prisma.taskChecklist.updateMany({
-    where: { id: checklistId, taskId },
-    data: { title: t },
-  });
+  const result = await renameChecklist(ctx.entity, checklistId, title);
+  if (result.error) return result;
 
   revalidatePath(taskPath(taskId, projectId));
 }
 
 export async function deleteTaskChecklist(checklistId: string, taskId: string, projectId: string | null) {
-  const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  const ctx = await taskGuard(taskId);
+  if (!ctx) return SIN_PERMISOS;
 
-  await prisma.taskChecklist.deleteMany({ where: { id: checklistId, taskId } });
-
+  await deleteChecklist(ctx.entity, checklistId);
   revalidatePath(taskPath(taskId, projectId));
 }
 
-/** Reescribe el orden de los checklists y de sus ítems según el layout recibido. */
 export async function reorderTaskChecklists(
   taskId: string,
   projectId: string | null,
   layout: ChecklistLayout[],
 ) {
-  const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  const ctx = await taskGuard(taskId);
+  if (!ctx) return SIN_PERMISOS;
 
-  const checklists = await prisma.taskChecklist.findMany({
-    where: { taskId },
-    select: { id: true, items: { select: { id: true } } },
-  });
-  const validLists = new Set(checklists.map((c) => c.id));
-  const validItems = new Set(checklists.flatMap((c) => c.items.map((i) => i.id)));
-
-  const clean = layout
-    .filter((l) => validLists.has(l.checklistId))
-    .map((l) => ({ checklistId: l.checklistId, itemIds: l.itemIds.filter((id) => validItems.has(id)) }));
-  if (clean.length === 0) return { error: "Sin checklists para reordenar" };
-
-  await prisma.$transaction([
-    ...clean.map((l, index) =>
-      prisma.taskChecklist.update({ where: { id: l.checklistId }, data: { position: index } })
-    ),
-    ...clean.flatMap((l) =>
-      l.itemIds.map((id, position) =>
-        prisma.taskChecklistItem.update({
-          where: { id },
-          data: { checklistId: l.checklistId, position },
-        })
-      )
-    ),
-  ]);
+  const result = await reorderChecklists(ctx.entity, layout);
+  if (result.error) return result;
 
   revalidatePath(taskPath(taskId, projectId));
 }
@@ -320,19 +188,7 @@ export async function addTaskChecklistItem(
   checklistId: string | null,
   title: string,
 ) {
-  const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
-  const t = title.trim();
-  if (!t) return { error: "El título no puede estar vacío" };
-
-  const targetId = await resolveTaskChecklist(taskId, checklistId, session.user.id);
-  const count = await prisma.taskChecklistItem.count({ where: { checklistId: targetId } });
-
-  await prisma.taskChecklistItem.create({
-    data: { checklistId: targetId, title: t, position: count, createdById: session.user.id },
-  });
-
-  revalidatePath(taskPath(taskId, projectId));
+  return addTaskChecklistItems(taskId, projectId, checklistId, [title]);
 }
 
 export async function addTaskChecklistItems(
@@ -341,40 +197,21 @@ export async function addTaskChecklistItems(
   checklistId: string | null,
   titles: string[],
 ) {
-  const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
-  const clean = titles.map((t) => t.trim()).filter((t) => t.length > 0);
-  if (clean.length === 0) return { error: "Sin ítems para agregar" };
+  const ctx = await taskGuard(taskId);
+  if (!ctx) return SIN_PERMISOS;
 
-  const targetId = await resolveTaskChecklist(taskId, checklistId, session.user.id);
-  const count = await prisma.taskChecklistItem.count({ where: { checklistId: targetId } });
-
-  await prisma.taskChecklistItem.createMany({
-    data: clean.map((title, i) => ({
-      checklistId: targetId,
-      title,
-      position: count + i,
-      createdById: session.user.id,
-    })),
-  });
+  const result = await addChecklistItems(ctx.entity, checklistId, titles, ctx.userId);
+  if (result.error) return result;
 
   revalidatePath(taskPath(taskId, projectId));
 }
 
 export async function toggleTaskChecklistItem(itemId: string, taskId: string, projectId: string | null) {
-  const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  const ctx = await taskGuard(taskId);
+  if (!ctx) return SIN_PERMISOS;
 
-  const item = await prisma.taskChecklistItem.findFirst({
-    where: { id: itemId, checklist: { taskId } },
-    select: { id: true, isChecked: true },
-  });
-  if (!item) return { error: "Ítem no encontrado" };
-
-  await prisma.taskChecklistItem.update({
-    where: { id: item.id },
-    data: { isChecked: !item.isChecked },
-  });
+  const result = await toggleChecklistItem(ctx.entity, itemId);
+  if (result.error) return result;
 
   revalidatePath(taskPath(taskId, projectId));
 }
@@ -385,24 +222,19 @@ export async function updateTaskChecklistItem(
   projectId: string | null,
   title: string,
 ) {
-  const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
-  const t = title.trim();
-  if (!t) return { error: "El título no puede estar vacío" };
+  const ctx = await taskGuard(taskId);
+  if (!ctx) return SIN_PERMISOS;
 
-  await prisma.taskChecklistItem.updateMany({
-    where: { id: itemId, checklist: { taskId } },
-    data: { title: t },
-  });
+  const result = await updateChecklistItem(ctx.entity, itemId, title);
+  if (result.error) return result;
 
   revalidatePath(taskPath(taskId, projectId));
 }
 
 export async function deleteTaskChecklistItem(itemId: string, taskId: string, projectId: string | null) {
-  const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  const ctx = await taskGuard(taskId);
+  if (!ctx) return SIN_PERMISOS;
 
-  await prisma.taskChecklistItem.deleteMany({ where: { id: itemId, checklist: { taskId } } });
-
+  await deleteChecklistItem(ctx.entity, itemId);
   revalidatePath(taskPath(taskId, projectId));
 }

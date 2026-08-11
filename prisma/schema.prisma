@@ -174,6 +174,8 @@ model User {
   authoredComments          Comment[]               @relation("CommentAuthor")
   commentReactions          CommentReaction[]       @relation("CommentReactionUser")
   uploadedAttachments       Attachment[]            @relation("AttachmentUploadedBy")
+  createdChecklists         Checklist[]             @relation("ChecklistCreatedBy")
+  createdChecklistItems     ChecklistItem[]         @relation("ChecklistItemCreatedBy")
   notifications             Notification[]
   webhooks                  UserWebhook[]
   ticketChecklists          TicketChecklist[]
@@ -769,6 +771,52 @@ model Attachment {
   @@index([entityType, entityId, position, createdAt])
   @@index([uploadedById])
   @@map("attachments")
+}
+
+// Checklists polimórficos: reemplazan a TicketChecklist y TaskChecklist (y sus
+// ítems), que se conservan sin uso hasta verificar en producción.
+//
+// Solo la relación con la entidad es polimórfica. Los ítems mantienen clave
+// foránea real hacia el checklist, así que siguen cayendo en cascada; lo que
+// hay que borrar a mano es el checklist cuando se elimina su ticket o tarea
+// (`deleteChecklistsFor()`).
+model Checklist {
+  id          String     @id @default(cuid())
+  entityType  EntityType @map("entity_type")
+  entityId    String     @map("entity_id")
+
+  title       String
+  position    Int        @default(0)
+
+  createdById String     @map("created_by_id")
+
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  createdBy   User            @relation("ChecklistCreatedBy", fields: [createdById], references: [id])
+  items       ChecklistItem[]
+
+  @@index([entityType, entityId, position])
+  @@map("checklists")
+}
+
+model ChecklistItem {
+  id          String   @id @default(cuid())
+  title       String
+  isChecked   Boolean  @default(false) @map("is_checked")
+  position    Int      @default(0)
+
+  checklistId String   @map("checklist_id")
+  createdById String   @map("created_by_id")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  createdBy   User      @relation("ChecklistItemCreatedBy", fields: [createdById], references: [id])
+
+  @@index([checklistId, position])
+  @@map("checklist_items")
 }
 
 model CommentReaction {

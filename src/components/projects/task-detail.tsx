@@ -30,7 +30,6 @@ type TaskWithDetails = Task & {
   reviewers: Pick<User, "id" | "name">[];
   createdBy: Pick<User, "id" | "name">;
   comments: (CommentRecord & { author: Pick<User, "name">; reactions: ReactionEntry[]; attachments: CommentAttachment[] })[];
-  checklists: { id: string; title: string; items: { id: string; title: string; isChecked: boolean }[] }[];
   attachments: Attachment[];
   timeEntries: (TaskTimeEntry & { user: Pick<User, "name"> })[];
 };
