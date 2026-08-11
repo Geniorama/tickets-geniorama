@@ -7,6 +7,7 @@ import { BackButton } from "@/components/ui/back-button";
 import { TicketChecklistPanel } from "@/components/ui/checklist-panel";
 import { CollaboratorSchedulingCard } from "@/components/collaborator/collaborator-scheduling-card";
 import { getClientActivePlan } from "@/lib/plans.server";
+import { listComments } from "@/lib/comments";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -44,19 +45,18 @@ export default async function TicketPage({
         orderBy: { startedAt: "asc" },
         include: { user: { select: { name: true } } },
       },
-      comments: {
-        where: isStaff(role) ? {} : { isInternal: false },
-        include: {
-          author: { select: { name: true, role: true } },
-          reactions: { select: { type: true, userId: true } },
-          attachments: { select: { type: true, url: true, name: true }, orderBy: { createdAt: "asc" } },
-        },
-        orderBy: { createdAt: "asc" },
-      },
     },
   });
 
   if (!ticket) notFound();
+
+  // Los comentarios viven en la tabla compartida y no son una relación del
+  // ticket, así que se consultan aparte.
+  const comments = await listComments({
+    entityType: "TICKET",
+    entityId: ticketId,
+    includeInternal: staff,
+  });
 
   // Los borradores son privados: solo su creador puede verlos
   if (ticket.isDraft && ticket.createdById !== userId) notFound();
@@ -122,9 +122,9 @@ export default async function TicketPage({
         <BackButton fallback="/tickets" />
       </div>
       <TicketDetail
-        ticket={ticket}
+        ticket={{ ...ticket, comments }}
         session={session}
-        totalComments={ticket.comments.length}
+        totalComments={comments.length}
         linkedVaultEntries={linkedVaultEntries}
         availableVaultEntries={availableVaultEntries}
         collaborators={collaborators}

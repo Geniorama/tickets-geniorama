@@ -18,17 +18,30 @@ import type { Role } from "@/generated/prisma";
  */
 
 /**
- * Filtro Prisma: la tarea involucra deliberadamente a este usuario.
+ * Tareas del lote en cuyos comentarios se menciona a este usuario.
+ *
  * Las menciones se guardan en línea como `@[Nombre](userId)`, así que basta con
- * buscar el sufijo `](userId)` dentro del cuerpo del comentario.
+ * buscar el sufijo `](userId)` en el cuerpo. Los comentarios viven en la tabla
+ * compartida y ya no son una relación de Task, así que esto es una consulta
+ * aparte en vez de un filtro anidado.
  */
-function involvesUser(userId: string) {
-  return {
-    OR: [
-      { reviewers: { some: { id: userId } } },
-      { comments: { some: { body: { contains: `](${userId})` } } } },
-    ],
-  };
+async function mentionedTaskIds(
+  taskIds: string[],
+  userId: string,
+): Promise<Set<string>> {
+  if (taskIds.length === 0) return new Set();
+
+  const rows = await prisma.comment.findMany({
+    where: {
+      entityType: "TASK",
+      entityId: { in: taskIds },
+      body: { contains: `](${userId})` },
+    },
+    select: { entityId: true },
+    distinct: ["entityId"],
+  });
+
+  return new Set(rows.map((r) => r.entityId));
 }
 
 /** IDs de las empresas del cliente. */
@@ -48,25 +61,19 @@ export async function canClientAccessTask(
   taskId: string,
   userId: string,
 ): Promise<boolean> {
-  const companyIds = await getCompanyIds(userId);
-  if (companyIds.length === 0) return false;
-
-  const match = await prisma.task.findFirst({
-    where: {
-      id: taskId,
-      isDraft: false,
-      project: { companyId: { in: companyIds } },
-      ...involvesUser(userId),
-    },
-    select: { id: true },
-  });
-
-  return match !== null;
+  const accessible = await getClientAccessibleTaskIds([taskId], userId);
+  return accessible.has(taskId);
 }
 
 /**
  * Versión por lotes para el listado de tareas del proyecto: devuelve el
  * subconjunto de `taskIds` cuyo detalle puede abrir el cliente.
+ *
+ * Se resuelve en dos pasos: primero las tareas del lote que están dentro del
+ * alcance del cliente (no borrador, proyecto de una de sus empresas) y si es
+ * revisor de alguna; después, cuáles de esas lo mencionan. El alcance se aplica
+ * antes que la mención, de modo que una mención en el proyecto de otro cliente
+ * nunca concede acceso.
  */
 export async function getClientAccessibleTaskIds(
   taskIds: string[],
@@ -77,17 +84,30 @@ export async function getClientAccessibleTaskIds(
   const companyIds = await getCompanyIds(userId);
   if (companyIds.length === 0) return new Set();
 
-  const tasks = await prisma.task.findMany({
+  const inScope = await prisma.task.findMany({
     where: {
       id: { in: taskIds },
       isDraft: false,
       project: { companyId: { in: companyIds } },
-      ...involvesUser(userId),
     },
-    select: { id: true },
+    select: {
+      id: true,
+      reviewers: { where: { id: userId }, select: { id: true } },
+    },
   });
 
-  return new Set(tasks.map((t) => t.id));
+  if (inScope.length === 0) return new Set();
+
+  const mentioned = await mentionedTaskIds(
+    inScope.map((t) => t.id),
+    userId,
+  );
+
+  return new Set(
+    inScope
+      .filter((t) => t.reviewers.length > 0 || mentioned.has(t.id))
+      .map((t) => t.id),
+  );
 }
 
 /**

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { TaskDetail } from "@/components/projects/task-detail";
 import { BackButton } from "@/components/ui/back-button";
 import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
+import { listComments } from "@/lib/comments";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -35,14 +36,6 @@ export default async function GlobalTaskPage({
       assignedTo: { select: { id: true, name: true } },
       reviewers: { select: { id: true, name: true } },
       createdBy: { select: { id: true, name: true } },
-      comments: {
-        include: {
-          author: { select: { name: true } },
-          reactions: { select: { type: true, userId: true } },
-          attachments: { select: { type: true, url: true, name: true }, orderBy: { createdAt: "asc" } },
-        },
-        orderBy: { createdAt: "asc" },
-      },
       checklists: {
         orderBy: [{ position: "asc" }, { createdAt: "asc" }],
         include: { items: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] } },
@@ -70,6 +63,13 @@ export default async function GlobalTaskPage({
   // Tarea global (sin proyecto): no hay empresa que valide el acceso del cliente
   if (client) redirect("/dashboard");
 
+  // Los comentarios viven en la tabla compartida, fuera de la relación.
+  const comments = await listComments({
+    entityType: "TASK",
+    entityId: taskId,
+    includeInternal: true,
+  });
+
   const moveableProjects = admin
     ? await prisma.project.findMany({
         where: { isActive: true },
@@ -84,7 +84,7 @@ export default async function GlobalTaskPage({
         <BackButton fallback="/tareas" />
       </div>
       <TaskDetail
-        task={task}
+        task={{ ...task, comments }}
         session={session}
         projects={moveableProjects}
         checklistSlot={

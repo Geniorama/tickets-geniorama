@@ -14,6 +14,7 @@ import { sendTicketAssignedEmail, sendTicketClosedEmail, sendTicketStatusChanged
 import { ticketPrefix } from "@/lib/ticket-code";
 import { parseChecklistGroups } from "@/lib/checklist";
 import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/reviewers";
+import { deleteCommentsFor } from "@/lib/comments";
 
 const APP_URL = process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -635,7 +636,12 @@ export async function configureTicket(ticketId: string, formData: FormData) {
 export async function deleteTicket(ticketId: string) {
   await requireRole(["ADMINISTRADOR"]);
 
-  await prisma.ticket.delete({ where: { id: ticketId } });
+  // Los comentarios son polimórficos: no hay clave foránea que los borre en
+  // cascada, así que se eliminan explícitamente junto con el ticket.
+  await prisma.$transaction(async (tx) => {
+    await deleteCommentsFor("TICKET", ticketId, tx);
+    await tx.ticket.delete({ where: { id: ticketId } });
+  });
 
   revalidatePath("/tickets");
   redirect("/tickets");

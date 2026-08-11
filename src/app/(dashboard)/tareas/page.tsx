@@ -12,6 +12,7 @@ import { FilterTags, type FilterTag } from "@/components/ui/filter-tags";
 import Link from "next/link";
 import { Plus, Repeat } from "lucide-react";
 import { getPageSize } from "@/lib/pagination";
+import { withCommentCounts } from "@/lib/comments";
 import { PlannerLauncher } from "@/components/assistant/planner-tool";
 
 const TASK_STATUS_LABELS: Record<string, string> = {
@@ -139,7 +140,6 @@ export default async function TareasPage({
         assignedTo: { select: { name: true } },
         createdBy:  { select: { name: true } },
         project:    { select: { id: true, name: true } },
-        _count:     { select: { comments: true } },
       },
       orderBy,
       take: pageSize,
@@ -159,6 +159,9 @@ export default async function TareasPage({
         })
       : Promise.resolve([]),
   ]);
+
+  // El conteo de comentarios ya no viene por relación: la tabla es compartida.
+  const tasksWithCounts = await withCommentCounts("TASK", tasks);
 
   const filterTags: FilterTag[] = [];
   statusValues?.forEach((v) =>
@@ -247,7 +250,7 @@ export default async function TareasPage({
       </p>
 
       <TaskList
-        tasks={tasks}
+        tasks={tasksWithCounts}
         sortBy={sortBy}
         sortDir={sortDir}
         basePath="/tareas"

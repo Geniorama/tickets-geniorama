@@ -8,6 +8,7 @@ import { BackButton } from "@/components/ui/back-button";
 import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
 import { ProjectVaultPanel } from "@/components/vault/project-vault-panel";
 import { ProjectAttachmentsPanel } from "@/components/projects/project-attachments-panel";
+import { listComments } from "@/lib/comments";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const { taskId } = await params;
@@ -34,14 +35,6 @@ export default async function TaskPage({
       assignedTo: { select: { id: true, name: true } },
       reviewers: { select: { id: true, name: true } },
       createdBy: { select: { id: true, name: true } },
-      comments: {
-        include: {
-          author: { select: { name: true } },
-          reactions: { select: { type: true, userId: true } },
-          attachments: { select: { type: true, url: true, name: true }, orderBy: { createdAt: "asc" } },
-        },
-        orderBy: { createdAt: "asc" },
-      },
       checklists: {
         orderBy: [{ position: "asc" }, { createdAt: "asc" }],
         include: { items: { orderBy: [{ position: "asc" }, { createdAt: "asc" }] } },
@@ -88,6 +81,14 @@ export default async function TaskPage({
     if (!hasAccess) redirect(`/proyectos/${projectId}`);
   }
 
+  // Los comentarios viven en la tabla compartida; se cargan una vez superado el
+  // control de acceso de arriba.
+  const comments = await listComments({
+    entityType: "TASK",
+    entityId: taskId,
+    includeInternal: true,
+  });
+
   // Configuración general del proyecto (accesos + adjuntos), visible también aquí.
   // La Bóveda es visible solo para el creador y los usuarios con los que se comparte.
   // Los clientes no ven esta sección: su acceso es a la tarea, no al proyecto.
@@ -127,7 +128,7 @@ export default async function TaskPage({
         />
       </div>
       <TaskDetail
-        task={task}
+        task={{ ...task, comments }}
         session={session}
         projects={moveableProjects}
         canOpenProject={!client || !task.project?.isPrivate}

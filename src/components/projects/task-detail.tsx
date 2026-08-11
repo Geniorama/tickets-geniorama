@@ -3,7 +3,9 @@
 import { useState, useTransition, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Pencil, User2, UserCheck, Calendar, Clock, FolderOpen, Check, Trash2, MoveRight, MoreVertical, Eye } from "lucide-react";
-import type { Task, TaskComment, TaskAttachment, TaskTimeEntry, TaskStatus, Priority, User } from "@/generated/prisma";
+// `CommentRecord` es el comentario compartido del núcleo (tabla `comments`),
+// con alias para no chocar con el tipo global `Comment` del DOM.
+import type { Task, Comment as CommentRecord, TaskAttachment, TaskTimeEntry, TaskStatus, Priority, User } from "@/generated/prisma";
 import type { Session } from "next-auth";
 import { TaskStatusBadge, TaskPriorityBadge } from "./project-status-badge";
 import { TaskCommentSection } from "./task-comment-form";
@@ -27,7 +29,7 @@ type TaskWithDetails = Task & {
   assignedTo: Pick<User, "id" | "name"> | null;
   reviewers: Pick<User, "id" | "name">[];
   createdBy: Pick<User, "id" | "name">;
-  comments: (TaskComment & { author: Pick<User, "name">; reactions: ReactionEntry[]; attachments: CommentAttachment[] })[];
+  comments: (CommentRecord & { author: Pick<User, "name">; reactions: ReactionEntry[]; attachments: CommentAttachment[] })[];
   checklists: { id: string; title: string; items: { id: string; title: string; isChecked: boolean }[] }[];
   attachments: TaskAttachment[];
   timeEntries: (TaskTimeEntry & { user: Pick<User, "name"> })[];

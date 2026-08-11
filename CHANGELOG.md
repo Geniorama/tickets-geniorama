@@ -9,6 +9,31 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.43.0] — 2026-08-10
+
+### Fase 0 del núcleo compartido: comentarios polimórficos
+
+Primer paso para convertir la app en una plataforma de módulos. Sin cambios visibles para el usuario: el hilo de comentarios, los adjuntos, las reacciones y las menciones funcionan igual. Lo que cambia es que dejan de estar duplicados por entidad.
+
+- **Un solo modelo de comentario.** `TicketComment` + `TaskComment` (y sus adjuntos y reacciones — seis modelos) se unifican en `Comment`, `CommentAttachment` y `CommentReaction`, identificados por `entityType` + `entityId`. Nuevo enum `EntityType` (`TICKET`, `TASK`, `PROJECT`): agregar comentarios a una app futura es añadir un valor, no seis modelos.
+- **Nuevo `src/lib/comments.ts`** con la implementación compartida: `listComments`, `countCommentsByEntity`, `withCommentCounts`, `deleteCommentsFor`, `findEditableComment` y la extracción de menciones, que antes estaba copiada en dos archivos de acciones.
+- **`uploadCommentFile` se movió a `src/lib/s3.ts`.** `task-comment.actions.ts` tenía su propio cliente S3 y su propia subida a R2, duplicando lo que ya hacía `lib/s3.ts`. Las rutas en R2 no cambian, así que los archivos existentes siguen resolviendo.
+- **Los `_count.comments` de tarea** ya no vienen por relación (la tabla es compartida): se calculan con `withCommentCounts` en el listado de tareas, el detalle de proyecto y el detalle de usuario. Los componentes reciben la misma forma `_count: { comments }` que antes.
+- **`src/lib/task-access.ts` reescrito.** El acceso del cliente a una tarea depende de que lo mencionen en un comentario, y se resolvía con un filtro anidado `comments: { some: ... }` sobre la relación de `Task`, que ya no existe. Ahora el alcance (no borrador + proyecto de su empresa) se evalúa primero y la mención después, contra la tabla compartida. `canClientAccessTask` pasa a delegar en la versión por lotes, así que hay una sola implementación de la regla.
+
+#### ⚠️ Borrado en cascada: ahora es responsabilidad del código
+
+Al no haber clave foránea sobre `entityId`, **la base de datos ya no borra los comentarios de un ticket o tarea eliminados**. Se añadió `deleteCommentsFor()` dentro de una transacción en `deleteTicket`, `deleteTask` y `deleteProject` (este último recoge los ids de las tareas *antes* de que caigan en cascada, o quedarían inidentificables). Cualquier camino nuevo que borre una entidad comentable debe llamarlo.
+
+#### Migración `20260810120000_add_shared_comment_kernel` (con datos)
+
+- Crea las tres tablas y **copia los comentarios, adjuntos y reacciones existentes conservando los ids originales**, de modo que las relaciones se mantienen.
+- **Las tablas viejas no se eliminan.** `ticket_comments`, `task_comments` y las cuatro asociadas quedan intactas, sin uso, hasta verificar la lectura nueva en producción. El `DROP` va en una migración posterior.
+- ⚠️ Sigue vigente el aviso de 1.42.1: `migrate deploy` aplica **todas** las migraciones pendientes y la carpeta está desfasada. Verificar con `select migration_name from _prisma_migrations;` y marcar las faltantes con `prisma migrate resolve --applied <folder>` **antes** de desplegar, o el job se cortará.
+- Verificada en una base desechable: los conteos de las seis tablas coinciden con los de las tres nuevas, `is_internal` y los adjuntos inline heredados se preservan, no quedan huérfanos, y `prisma migrate diff` no detecta diferencias entre el SQL escrito a mano y el esquema.
+
+---
+
 ## [1.42.1] — 2026-08-06
 
 ### El deploy aplica las migraciones de base de datos

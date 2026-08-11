@@ -1,5 +1,14 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import type { EntityType } from "@/generated/prisma";
+
+// Carpeta en R2 por tipo de entidad. Las rutas coinciden con las que ya se
+// venían usando, para no invalidar los archivos existentes.
+const COMMENT_FOLDERS: Record<EntityType, string> = {
+  TICKET:  "tickets",
+  TASK:    "tasks",
+  PROJECT: "projects",
+};
 
 const r2 = new S3Client({
   region: "auto",
@@ -108,6 +117,23 @@ export async function uploadFile(
 ): Promise<{ storagePath: string; fileUrl: string }> {
   const ext = file.name.split(".").pop();
   const storagePath = `tickets/${ticketId}/${crypto.randomUUID()}.${ext}`;
+
+  await putObject(storagePath, file);
+  const fileUrl = await getFileUrl(storagePath);
+
+  return { storagePath, fileUrl };
+}
+
+// Adjuntos de comentarios de cualquier entidad. Sustituye a la copia del cliente
+// R2 que vivía dentro de task-comment.actions.ts.
+export async function uploadCommentFile(
+  file: File,
+  entityType: EntityType,
+  entityId: string
+): Promise<{ storagePath: string; fileUrl: string }> {
+  const ext = file.name.split(".").pop();
+  const folder = COMMENT_FOLDERS[entityType];
+  const storagePath = `${folder}/${entityId}/comments/${crypto.randomUUID()}.${ext}`;
 
   await putObject(storagePath, file);
   const fileUrl = await getFileUrl(storagePath);

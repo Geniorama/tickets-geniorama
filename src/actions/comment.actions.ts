@@ -7,14 +7,12 @@ import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { validateFile, uploadFile } from "@/lib/s3";
 import { notifyMany } from "@/lib/notify";
 import { sendMentionEmail } from "@/lib/email";
-
-function extractMentionIds(body: string): string[] {
-  const regex = /@\[[^\]]+\]\(([^)]+)\)/g;
-  const ids: string[] = [];
-  let m;
-  while ((m = regex.exec(body)) !== null) ids.push(m[1]);
-  return [...new Set(ids)];
-}
+import {
+  extractMentionIds,
+  listComments,
+  findEditableComment,
+  type NewAttachment,
+} from "@/lib/comments";
 
 const addCommentSchema = z.object({
   body: z.string().min(1, "El comentario no puede estar vacío"),
@@ -37,7 +35,7 @@ export async function addComment(ticketId: string, formData: FormData) {
   }
 
   // Adjuntos múltiples (enlaces y archivos) — solo staff puede adjuntar en tickets
-  const attachmentsData: { type: string; url: string; name: string | null; storagePath: string | null }[] = [];
+  const attachmentsData: NewAttachment[] = [];
 
   if (isStaff(session.user.role)) {
     const linksRaw = formData.get("links")?.toString();
@@ -66,9 +64,10 @@ export async function addComment(ticketId: string, formData: FormData) {
     }
   }
 
-  await prisma.ticketComment.create({
+  await prisma.comment.create({
     data: {
-      ticketId,
+      entityType: "TICKET",
+      entityId:   ticketId,
       authorId:   session.user.id,
       body:       parsed.data.body,
       isInternal: parsed.data.isInternal,
@@ -140,43 +139,26 @@ export async function getTicketComments(
   take = 50,
 ) {
   const session = await getRequiredSession();
-  const staff = isStaff(session.user.role);
 
-  const comments = await prisma.ticketComment.findMany({
-    where: {
-      ticketId,
-      ...(staff ? {} : { isInternal: false }),
-      createdAt: { lt: new Date(cursor) },
-    },
+  return listComments({
+    entityType: "TICKET",
+    entityId: ticketId,
+    includeInternal: isStaff(session.user.role),
+    before: new Date(cursor),
     take,
-    include: {
-      author: { select: { name: true, role: true } },
-      reactions: { select: { type: true, userId: true } },
-      attachments: { select: { type: true, url: true, name: true }, orderBy: { createdAt: "asc" } },
-    },
-    orderBy: { createdAt: "desc" },
   });
-
-  return comments.reverse();
 }
 
 export async function editComment(commentId: string, ticketId: string, body: string) {
   const session = await getRequiredSession();
 
-  const comment = await prisma.ticketComment.findUnique({
-    where: { id: commentId },
-    select: { authorId: true },
-  });
-
-  if (!comment) return { error: "Comentario no encontrado" };
-
-  const isAdmin = session.user.role === "ADMINISTRADOR";
-  if (!isAdmin && comment.authorId !== session.user.id) return { error: "Sin permisos" };
+  const found = await findEditableComment(commentId, session.user);
+  if ("error" in found) return { error: found.error };
 
   const parsed = z.string().min(1, "El comentario no puede estar vacío").safeParse(body);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  await prisma.ticketComment.update({ where: { id: commentId }, data: { body: parsed.data } });
+  await prisma.comment.update({ where: { id: commentId }, data: { body: parsed.data } });
   revalidatePath(`/tickets/${ticketId}`);
   return { success: true };
 }
@@ -184,19 +166,10 @@ export async function editComment(commentId: string, ticketId: string, body: str
 export async function deleteComment(commentId: string, ticketId: string) {
   const session = await getRequiredSession();
 
-  const comment = await prisma.ticketComment.findUnique({
-    where: { id: commentId },
-    select: { authorId: true },
-  });
+  const found = await findEditableComment(commentId, session.user);
+  if ("error" in found) return { error: found.error };
 
-  if (!comment) return { error: "Comentario no encontrado" };
-
-  const isAdmin = session.user.role === "ADMINISTRADOR";
-  if (!isAdmin && comment.authorId !== session.user.id) {
-    return { error: "Sin permisos" };
-  }
-
-  await prisma.ticketComment.delete({ where: { id: commentId } });
+  await prisma.comment.delete({ where: { id: commentId } });
 
   revalidatePath(`/tickets/${ticketId}`);
   return { success: true };

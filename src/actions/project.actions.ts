@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, requireRole } from "@/lib/auth-helpers";
+import { deleteCommentsFor } from "@/lib/comments";
 
 const projectSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -106,7 +107,19 @@ export async function updateProject(projectId: string, formData: FormData) {
 
 export async function deleteProject(projectId: string) {
   await requireRole(["ADMINISTRADOR"]);
-  await prisma.project.delete({ where: { id: projectId } });
+
+  // Borrar el proyecto arrastra sus tareas en cascada, pero los comentarios son
+  // polimórficos y no tienen clave foránea: hay que recogerlos antes de que las
+  // tareas desaparezcan y quedarnos sin forma de identificarlos.
+  const taskIds = await prisma.task
+    .findMany({ where: { projectId }, select: { id: true } })
+    .then((rows) => rows.map((t) => t.id));
+
+  await prisma.$transaction(async (tx) => {
+    await deleteCommentsFor("TASK", taskIds, tx);
+    await deleteCommentsFor("PROJECT", projectId, tx);
+    await tx.project.delete({ where: { id: projectId } });
+  });
   revalidatePath("/proyectos");
   redirect("/proyectos");
 }

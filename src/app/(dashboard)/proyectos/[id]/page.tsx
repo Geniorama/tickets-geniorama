@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { ProjectDetail } from "@/components/projects/project-detail";
 import { BackButton } from "@/components/ui/back-button";
 import { CollaboratorSchedulingCard } from "@/components/collaborator/collaborator-scheduling-card";
+import { withCommentCounts } from "@/lib/comments";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -49,7 +50,6 @@ export default async function ProjectPage({
           assignedTo: { select: { name: true } },
           createdBy: { select: { name: true } },
           project: { select: { id: true, name: true } },
-          _count: { select: { comments: true } },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -121,13 +121,16 @@ export default async function ProjectPage({
     ? [...(await getClientAccessibleTaskIds(project.tasks.map((t) => t.id), userId))]
     : [];
 
+  // El conteo de comentarios ya no viene por relación: la tabla es compartida.
+  const tasks = await withCommentCounts("TASK", project.tasks);
+
   return (
     <div style={{ padding: "1.5rem" }}>
       <div style={{ marginBottom: "1rem" }}>
         <BackButton fallback="/proyectos" />
       </div>
       <ProjectDetail
-        project={project}
+        project={{ ...project, tasks }}
         view={view as "lista" | "kanban" | "calendario"}
         isAdmin={admin}
         isStaff={staff}

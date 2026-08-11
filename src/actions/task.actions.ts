@@ -14,6 +14,7 @@ import { sendGChatNotification } from "@/lib/gchat";
 import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/reviewers";
 import { combineEstimatedTime } from "@/lib/estimated-time";
 import { parseChecklistGroups } from "@/lib/checklist";
+import { deleteCommentsFor } from "@/lib/comments";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -617,7 +618,11 @@ export async function deleteTask(taskId: string, projectId: string | null) {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
-  await prisma.task.delete({ where: { id: taskId } });
+  // Comentarios polimórficos: sin cascada en la base de datos, se borran aquí.
+  await prisma.$transaction(async (tx) => {
+    await deleteCommentsFor("TASK", taskId, tx);
+    await tx.task.delete({ where: { id: taskId } });
+  });
   if (projectId) {
     revalidatePath(`/proyectos/${projectId}`);
     redirect(`/proyectos/${projectId}`);

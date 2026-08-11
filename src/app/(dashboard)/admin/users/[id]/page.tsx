@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { TaskList } from "@/components/projects/task-list";
 import { formatDate } from "@/lib/format-date";
+import { withCommentCounts } from "@/lib/comments";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -78,7 +79,6 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           assignedTo: { select: { name: true } },
           createdBy:  { select: { name: true } },
           project:    { select: { id: true, name: true } },
-          _count:     { select: { comments: true } },
         },
         orderBy: [{ status: "asc" }, { dueDate: "asc" }],
       },
@@ -87,10 +87,13 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
 
   if (!user) notFound();
 
-  const total     = user.assignedTasks.length;
-  const completed = user.assignedTasks.filter((t) => t.status === "COMPLETADO").length;
-  const active    = user.assignedTasks.filter((t) => t.status !== "COMPLETADO");
-  const overdue   = user.assignedTasks.filter(
+  // El conteo de comentarios ya no viene por relación: la tabla es compartida.
+  const assignedTasks = await withCommentCounts("TASK", user.assignedTasks);
+
+  const total     = assignedTasks.length;
+  const completed = assignedTasks.filter((t) => t.status === "COMPLETADO").length;
+  const active    = assignedTasks.filter((t) => t.status !== "COMPLETADO");
+  const overdue   = assignedTasks.filter(
     (t) => t.dueDate && t.dueDate < now && t.status !== "COMPLETADO"
   ).length;
   const rate = pct(completed, total);
@@ -98,18 +101,18 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
   // Status breakdown
   const byStatus = STATUS_META.map((s) => ({
     ...s,
-    count: user.assignedTasks.filter((t) => t.status === s.key).length,
+    count: assignedTasks.filter((t) => t.status === s.key).length,
   }));
 
   // Priority breakdown
   const byPriority = PRIORITY_META.map((p) => ({
     ...p,
-    count: user.assignedTasks.filter((t) => t.priority === p.key).length,
+    count: assignedTasks.filter((t) => t.priority === p.key).length,
   }));
 
   // Projects involved
   const projectMap = new Map<string, { id: string; name: string; count: number }>();
-  for (const t of user.assignedTasks) {
+  for (const t of assignedTasks) {
     if (!t.project) continue;
     const entry = projectMap.get(t.project.id) ?? { id: t.project.id, name: t.project.name, count: 0 };
     entry.count++;
@@ -300,7 +303,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
               ({completed})
             </span>
           </h2>
-          <TaskList tasks={user.assignedTasks.filter((t) => t.status === "COMPLETADO")} />
+          <TaskList tasks={assignedTasks.filter((t) => t.status === "COMPLETADO")} />
         </section>
       )}
     </div>

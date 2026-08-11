@@ -5,7 +5,9 @@ import Link from "next/link";
 import { formatDateTimeLong, formatDateTime, formatDate } from "@/lib/format-date";
 import { Pencil, Trash2, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Globe, ChevronDown, MoreVertical, Eye } from "lucide-react";
 import type { Session } from "next-auth";
-import type { Ticket, TicketComment, TicketAttachment, TimeEntry, User, TicketStatus, Priority } from "@/generated/prisma";
+// `CommentRecord` es el comentario compartido del núcleo (tabla `comments`),
+// con alias para no chocar con el tipo global `Comment` del DOM.
+import type { Ticket, Comment as CommentRecord, TicketAttachment, TimeEntry, User, TicketStatus, Priority } from "@/generated/prisma";
 import { TicketTimer } from "./ticket-timer";
 import { TicketAiAssistant } from "./ticket-ai-assistant";
 import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
@@ -41,7 +43,7 @@ type TicketWithDetails = Ticket & {
   attachments: TicketAttachment[];
   checklists: { id: string; title: string; items: { id: string; title: string; isChecked: boolean }[] }[];
   timeEntries: (TimeEntry & { user: Pick<User, "name"> })[];
-  comments: (TicketComment & {
+  comments: (CommentRecord & {
     author: Pick<User, "name" | "role">;
     reactions: ReactionEntry[];
     attachments: CommentAttachment[];
@@ -423,7 +425,7 @@ function TicketCommentItem({
   currentUserId,
   isAdmin,
 }: {
-  comment: TicketComment & { author: Pick<User, "name" | "role">; reactions: ReactionEntry[]; attachments: CommentAttachment[] };
+  comment: CommentRecord & { author: Pick<User, "name" | "role">; reactions: ReactionEntry[]; attachments: CommentAttachment[] };
   ticketId: string;
   currentUserId: string;
   isAdmin: boolean;

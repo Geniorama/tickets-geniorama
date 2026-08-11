@@ -4,63 +4,16 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
-import { validateFile } from "@/lib/s3";
+import { validateFile, uploadCommentFile } from "@/lib/s3";
 import { notifyMany } from "@/lib/notify";
 import { sendMentionEmail } from "@/lib/email";
 import { canInteractWithTask } from "@/lib/task-access";
-
-function extractMentionIds(body: string): string[] {
-  const regex = /@\[[^\]]+\]\(([^)]+)\)/g;
-  const ids: string[] = [];
-  let m;
-  while ((m = regex.exec(body)) !== null) ids.push(m[1]);
-  return [...new Set(ids)];
-}
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-
-const r2 = new S3Client({
-  region: "auto",
-  endpoint: `https://${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY!,
-  },
-});
-
-const BUCKET = process.env.CLOUDFLARE_R2_BUCKET!;
-
-async function uploadCommentFile(
-  file: File,
-  taskId: string
-): Promise<{ storagePath: string; fileUrl: string }> {
-  const ext = file.name.split(".").pop();
-  const storagePath = `tasks/${taskId}/comments/${crypto.randomUUID()}.${ext}`;
-
-  const arrayBuffer = await file.arrayBuffer();
-  await r2.send(
-    new PutObjectCommand({
-      Bucket: BUCKET,
-      Key: storagePath,
-      Body: Buffer.from(arrayBuffer),
-      ContentType: file.type,
-    })
-  );
-
-  const publicUrl = process.env.CLOUDFLARE_R2_PUBLIC_URL?.replace(/\/$/, "");
-  let fileUrl: string;
-  if (publicUrl) {
-    fileUrl = `${publicUrl}/${storagePath}`;
-  } else {
-    fileUrl = await getSignedUrl(
-      r2,
-      new GetObjectCommand({ Bucket: BUCKET, Key: storagePath }),
-      { expiresIn: 60 * 60 * 24 * 7 }
-    );
-  }
-
-  return { storagePath, fileUrl };
-}
+import {
+  extractMentionIds,
+  listComments,
+  findEditableComment,
+  type NewAttachment,
+} from "@/lib/comments";
 
 const commentSchema = z.object({
   body: z.string().min(1, "El comentario no puede estar vacío"),
@@ -81,7 +34,7 @@ export async function addTaskComment(
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
   // Adjuntos múltiples (enlaces y archivos)
-  const attachmentsData: { type: string; url: string; name: string | null; storagePath: string | null }[] = [];
+  const attachmentsData: NewAttachment[] = [];
 
   const linksRaw = formData.get("links")?.toString();
   if (linksRaw) {
@@ -101,18 +54,19 @@ export async function addTaskComment(
     const validationError = validateFile(file);
     if (validationError) return { error: `"${file.name}": ${validationError}` };
     try {
-      const { storagePath, fileUrl } = await uploadCommentFile(file, taskId);
+      const { storagePath, fileUrl } = await uploadCommentFile(file, "TASK", taskId);
       attachmentsData.push({ type: "file", url: fileUrl, name: file.name, storagePath });
     } catch (err) {
       return { error: err instanceof Error ? err.message : "Error al subir archivo" };
     }
   }
 
-  await prisma.taskComment.create({
+  await prisma.comment.create({
     data: {
-      taskId,
-      authorId: session.user.id,
-      body: parsed.data.body,
+      entityType: "TASK",
+      entityId:   taskId,
+      authorId:   session.user.id,
+      body:       parsed.data.body,
       ...(attachmentsData.length ? { attachments: { create: attachmentsData } } : {}),
     },
   });
@@ -179,7 +133,7 @@ export async function addTaskComment(
     );
   }
 
-  revalidatePath(projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`);
+  revalidatePath(taskPath);
   return { success: true };
 }
 
@@ -193,21 +147,13 @@ export async function getTaskComments(
   const allowed = await canInteractWithTask(taskId, session.user.id, session.user.role);
   if (!allowed) return [];
 
-  const comments = await prisma.taskComment.findMany({
-    where: {
-      taskId,
-      createdAt: { lt: new Date(cursor) },
-    },
+  return listComments({
+    entityType: "TASK",
+    entityId: taskId,
+    includeInternal: true, // las tareas no distinguen notas internas
+    before: new Date(cursor),
     take,
-    include: {
-      author: { select: { name: true } },
-      reactions: { select: { type: true, userId: true } },
-      attachments: { select: { type: true, url: true, name: true }, orderBy: { createdAt: "asc" } },
-    },
-    orderBy: { createdAt: "desc" },
   });
-
-  return comments.reverse();
 }
 
 export async function editTaskComment(
@@ -218,20 +164,13 @@ export async function editTaskComment(
 ) {
   const session = await getRequiredSession();
 
-  const comment = await prisma.taskComment.findUnique({
-    where: { id: commentId },
-    select: { authorId: true },
-  });
-
-  if (!comment) return { error: "Comentario no encontrado" };
-
-  const isAdmin = session.user.role === "ADMINISTRADOR";
-  if (!isAdmin && comment.authorId !== session.user.id) return { error: "Sin permisos" };
+  const found = await findEditableComment(commentId, session.user);
+  if ("error" in found) return { error: found.error };
 
   const parsed = z.string().min(1, "El comentario no puede estar vacío").safeParse(body);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  await prisma.taskComment.update({ where: { id: commentId }, data: { body: parsed.data } });
+  await prisma.comment.update({ where: { id: commentId }, data: { body: parsed.data } });
   revalidatePath(projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`);
   return { success: true };
 }
@@ -243,18 +182,10 @@ export async function deleteTaskComment(
 ) {
   const session = await getRequiredSession();
 
-  const comment = await prisma.taskComment.findUnique({
-    where: { id: commentId },
-    select: { authorId: true },
-  });
+  const found = await findEditableComment(commentId, session.user);
+  if ("error" in found) return { error: found.error };
 
-  if (!comment) return { error: "Comentario no encontrado" };
-
-  const isAdmin = session.user.role === "ADMINISTRADOR";
-  if (!isAdmin && comment.authorId !== session.user.id)
-    return { error: "Sin permisos" };
-
-  await prisma.taskComment.delete({ where: { id: commentId } });
+  await prisma.comment.delete({ where: { id: commentId } });
   revalidatePath(projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`);
   return { success: true };
 }
