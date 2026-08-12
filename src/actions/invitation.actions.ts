@@ -1,7 +1,7 @@
 "use server";
 
 import crypto from "crypto";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { sendInvitationEmail } from "@/lib/email";
 
@@ -23,7 +23,7 @@ export async function generateInvitationToken(userId: string): Promise<string> {
 }
 
 export async function resendInvitation(userId: string) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("ADMIN");
 
   const user = await prisma.user.findUnique({
     where: { id: userId },

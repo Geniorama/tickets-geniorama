@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -44,7 +44,7 @@ function parsePlanFormData(formData: FormData) {
 }
 
 export async function createPlan(formData: FormData) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("ADMIN");
 
   const type = formData.get("type") as string;
   const raw = parsePlanFormData(formData);
@@ -73,7 +73,7 @@ export async function createPlan(formData: FormData) {
 }
 
 export async function updatePlan(planId: string, formData: FormData) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("ADMIN");
 
   const type = formData.get("type") as string;
   const raw = parsePlanFormData(formData);
@@ -108,7 +108,7 @@ export async function updatePlan(planId: string, formData: FormData) {
 }
 
 export async function togglePlanActive(planId: string, isActive: boolean) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("ADMIN");
 
   await prisma.plan.update({
     where: { id: planId },
@@ -120,7 +120,7 @@ export async function togglePlanActive(planId: string, isActive: boolean) {
 }
 
 export async function deletePlan(planId: string) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("ADMIN");
 
   // Nullify planId on tickets linked to this plan before deleting
   await prisma.ticket.updateMany({

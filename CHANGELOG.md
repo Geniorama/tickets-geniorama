@@ -9,24 +9,6 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
-## [1.50.3] — 2026-08-12
-
-### Revertido: Administración e Infraestructura vuelven a los chequeos de rol
-
-**Incidente.** Desde la v1.49.0, todas las pantallas gobernadas por `requireCan()` redirigían al dashboard: Administración (usuarios, empresas, planes, productividad, integraciones) e Infraestructura (sitios, servicios). Los administradores quedaron sin acceso a esos módulos durante unas horas.
-
-Se restauran los `requireRole` originales en los 42 puntos afectados. El modelo de permisos, los perfiles y la pantalla de acceso se mantienen intactos: lo único que se revierte es que esos módulos vuelvan a decidir por rol, como antes de la v1.49.0.
-
-#### Por qué no se detectó
-
-Las comprobaciones posteriores al despliegue se hicieron con `fetch()` sobre cada ruta, verificando estado HTTP y URL final. Ese método **no puede detectar este fallo**: la página responde 200 porque el documento es un *shell* de streaming y la redirección viaja dentro del cuerpo. `fetch` ve un 200 y una URL correcta mientras el navegador acaba en el dashboard.
-
-A partir de ahora, verificar una ruta protegida exige **navegación real en el navegador** y comprobar `location.pathname` después de cargar. El estado HTTP no vale como prueba.
-
-La causa raíz de que `requireCan()` falle sigue en investigación; el modelo queda desplegado y sin usar hasta entenderla.
-
----
-
 ## [1.50.2] — 2026-08-12
 
 ### Corrige: la edición de usuario redirigía al dashboard

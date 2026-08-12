@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { ServiceForm } from "@/components/services/service-form";
 
@@ -9,7 +9,7 @@ export default async function NewServicioPage({
 }: {
   searchParams: Promise<Record<string, string>>;
 }) {
-  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
+  await requireCan("INFRAESTRUCTURA", "crear");
   const params = await searchParams;
 
   const companies = await prisma.company.findMany({

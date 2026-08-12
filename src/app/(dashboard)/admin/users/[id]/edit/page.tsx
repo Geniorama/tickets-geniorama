@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { isStaff, requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
+import { isStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { UserEditForm } from "@/components/admin/user-edit-form";
 import { SchedulingLinksManager } from "@/components/collaborator/scheduling-links-manager";
@@ -19,7 +20,7 @@ export default async function EditUserPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("ADMIN");
   const { id } = await params;
 
   const [userRaw, companies, profiles] = await Promise.all([

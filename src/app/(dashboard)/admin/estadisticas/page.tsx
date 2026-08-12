@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
@@ -27,7 +27,7 @@ function Bar({ value, max, color }: { value: number; max: number; color: string 
 }
 
 export default async function EstadisticasPage() {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("ADMIN");
 
   const now           = new Date();
   const bogotaDateStr = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(now);
