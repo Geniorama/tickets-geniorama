@@ -9,6 +9,16 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.54.1] — 2026-08-12
+
+### `.env.example` vuelve a versionarse
+
+La regla `.env*` del `.gitignore` también tapaba la plantilla, así que `.env.example` nunca había estado en el repo: cada variable nueva quedaba documentada solo en la máquina de quien la añadía. Se añade la excepción `!.env.example`; los `.env` y `.env.local` reales siguen ignorados.
+
+De paso, la plantilla documenta los dos tokens de integración que faltaban: `INTEGRATION_BRIEF_TOKEN` (briefs de n8n) e `INTEGRATION_HOSTING_TOKEN`, que existía en el código desde antes sin figurar en ningún sitio.
+
+---
+
 ## [1.54.0] — 2026-08-12
 
 ### Los briefs de n8n entran como tareas y se asignan solos
