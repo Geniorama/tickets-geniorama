@@ -31,11 +31,11 @@ export default async function NewTaskGlobalPage({
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
-    prisma.taskTemplate.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.template.findMany({ where: { entityType: "TASK" }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
 
   const template = templateId
-    ? await prisma.taskTemplate.findUnique({ where: { id: templateId } })
+    ? await prisma.template.findFirst({ where: { id: templateId, entityType: "TASK" } })
     : null;
   const prefill = template
     ? {

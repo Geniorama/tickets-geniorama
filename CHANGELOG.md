@@ -9,6 +9,27 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.47.0] — 2026-08-11
+
+### Fase 0, paso 5 y último: plantillas y vínculos de bóveda
+
+Cierra el núcleo compartido. Dos conceptos pequeños que se hacen juntos.
+
+- **Plantillas.** `TicketTemplate` y `TaskTemplate` se unifican en `Template`. Aquí `entityType` no señala a qué entidad pertenece la plantilla sino **qué crea**, así que no lleva `entityId`. `estimatedHours` solo lo usan las de tarea y queda nulo en las de ticket. Nuevo `src/lib/templates.ts`.
+- **Vínculos de bóveda.** `TicketVaultEntry` y `ProjectVaultEntry` se unifican en `VaultLink`. La relación con `VaultEntry` sigue siendo clave foránea real, así que borrar una entrada de la bóveda sigue arrastrando sus vínculos. Nuevo `src/lib/vault-links.ts` con los filtros `linkedTo()` / `notLinkedTo()`, que sustituyen a los seis `where: { tickets: { some } }` repartidos por las páginas.
+- Las mutaciones de plantilla van acotadas por tipo: un id de plantilla de tarea no aplica sobre una de ticket.
+- `deleteVaultLinksFor()` se añade a `deleteTicket` y `deleteProject`.
+
+Con esto, los **nueve conceptos duplicados** que motivaron la Fase 0 quedan unificados: de 19 modelos a 9.
+
+#### Migración `20260811200000_add_shared_template_and_vault_link_kernel` (con datos)
+
+- Copia las 11 plantillas y los 9 vínculos conservando ids.
+- Las tablas viejas no se eliminan.
+- Verificada en base desechable, incluida la cascada desde `vault_entries`; `prisma migrate diff` no detecta diferencias.
+
+---
+
 ## [1.46.0] — 2026-08-11
 
 ### Fase 0, paso 4: registros de tiempo polimórficos

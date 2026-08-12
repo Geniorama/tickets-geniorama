@@ -20,8 +20,7 @@ export default async function NewRecurringTaskPage() {
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
-    prisma.taskTemplate.findMany({
-      orderBy: { name: "asc" },
+    prisma.template.findMany({ where: { entityType: "TASK" }, orderBy: { name: "asc" },
       select: {
         id: true,
         name: true,

@@ -14,7 +14,8 @@ const PRIORITY_LABEL: Record<string, string> = {
 export default async function TicketTemplatesPage() {
   await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
 
-  const templates = await prisma.ticketTemplate.findMany({
+  const templates = await prisma.template.findMany({
+      where: { entityType: "TICKET" },
     include: { createdBy: { select: { name: true } } },
     orderBy: { name: "asc" },
   });

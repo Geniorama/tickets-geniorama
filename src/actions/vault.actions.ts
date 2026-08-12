@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { linkVaultEntry, unlinkVaultEntry } from "@/lib/vault-links";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { encrypt } from "@/lib/vault-crypto";
 import { notify } from "@/lib/notify";
@@ -150,11 +151,7 @@ export async function linkVaultToProject(projectId: string, vaultEntryId: string
   });
   if (!entry) return { error: "Sin acceso a esta entrada de Bóveda" };
 
-  await prisma.projectVaultEntry.upsert({
-    where: { projectId_vaultEntryId: { projectId, vaultEntryId } },
-    create: { projectId, vaultEntryId },
-    update: {},
-  });
+  await linkVaultEntry({ entityType: "PROJECT", entityId: projectId }, vaultEntryId);
 
   revalidatePath(`/proyectos/${projectId}`);
   return { success: true };
@@ -169,7 +166,7 @@ export async function unlinkVaultFromProject(projectId: string, vaultEntryId: st
   });
   if (!entry) return { error: "Sin acceso a esta entrada de Bóveda" };
 
-  await prisma.projectVaultEntry.deleteMany({ where: { projectId, vaultEntryId } });
+  await unlinkVaultEntry({ entityType: "PROJECT", entityId: projectId }, vaultEntryId);
 
   revalidatePath(`/proyectos/${projectId}`);
   return { success: true };
@@ -183,11 +180,7 @@ export async function linkVaultToTicket(ticketId: string, vaultEntryId: string) 
   });
   if (!entry) return { error: "Sin acceso a esta entrada de Bóveda" };
 
-  await prisma.ticketVaultEntry.upsert({
-    where: { ticketId_vaultEntryId: { ticketId, vaultEntryId } },
-    create: { ticketId, vaultEntryId },
-    update: {},
-  });
+  await linkVaultEntry({ entityType: "TICKET", entityId: ticketId }, vaultEntryId);
 
   revalidatePath(`/tickets/${ticketId}`);
   return { success: true };
@@ -201,7 +194,7 @@ export async function unlinkVaultFromTicket(ticketId: string, vaultEntryId: stri
   });
   if (!entry) return { error: "Sin acceso a esta entrada de Bóveda" };
 
-  await prisma.ticketVaultEntry.deleteMany({ where: { ticketId, vaultEntryId } });
+  await unlinkVaultEntry({ entityType: "TICKET", entityId: ticketId }, vaultEntryId);
 
   revalidatePath(`/tickets/${ticketId}`);
   return { success: true };

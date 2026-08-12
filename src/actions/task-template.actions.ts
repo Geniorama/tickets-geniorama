@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { createTemplate, deleteTemplate, findTemplate, updateTemplate } from "@/lib/templates";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { combineEstimatedTime } from "@/lib/estimated-time";
 import { normalizeChecklistGroups, parseChecklistGroups } from "@/lib/checklist";
@@ -38,8 +39,7 @@ export async function createTaskTemplate(formData: FormData): Promise<{ error?: 
   const parsed = parseForm(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  await prisma.taskTemplate.create({
-    data: {
+  await createTemplate("TASK", {
       name:           parsed.data.name,
       title:          parsed.data.title,
       description:    parsed.data.description,
@@ -48,7 +48,6 @@ export async function createTaskTemplate(formData: FormData): Promise<{ error?: 
       estimatedHours: combineEstimatedTime(parsed.data.estimatedHours, parsed.data.estimatedMinutes),
       checklist:      parseChecklistGroups(formData.get("checklist")),
       createdById:    session.user.id,
-    },
   });
 
   revalidatePath("/tareas/plantillas");
@@ -62,9 +61,7 @@ export async function updateTaskTemplate(id: string, formData: FormData): Promis
   const parsed = parseForm(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  await prisma.taskTemplate.update({
-    where: { id },
-    data: {
+  await updateTemplate("TASK", id, {
       name:           parsed.data.name,
       title:          parsed.data.title,
       description:    parsed.data.description,
@@ -72,7 +69,6 @@ export async function updateTaskTemplate(id: string, formData: FormData): Promis
       category:       parsed.data.category ?? null,
       estimatedHours: combineEstimatedTime(parsed.data.estimatedHours, parsed.data.estimatedMinutes),
       checklist:      parseChecklistGroups(formData.get("checklist")),
-    },
   });
 
   revalidatePath("/tareas/plantillas");
@@ -83,7 +79,7 @@ export async function deleteTaskTemplate(id: string): Promise<{ error?: string }
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
-  await prisma.taskTemplate.delete({ where: { id } });
+  await deleteTemplate("TASK", id);
   revalidatePath("/tareas/plantillas");
   return {};
 }
@@ -93,7 +89,7 @@ export async function createTaskFromTemplate(templateId: string): Promise<{ erro
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
-  const tpl = await prisma.taskTemplate.findUnique({ where: { id: templateId } });
+  const tpl = await findTemplate("TASK", templateId);
   if (!tpl) return { error: "Plantilla no encontrada" };
 
   const task = await prisma.task.create({

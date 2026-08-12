@@ -3,6 +3,7 @@ import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
 import { canClientAccessTask } from "@/lib/task-access";
 import { prisma } from "@/lib/prisma";
+import { linkedTo, notLinkedTo } from "@/lib/vault-links";
 import { TaskDetail } from "@/components/projects/task-detail";
 import { BackButton } from "@/components/ui/back-button";
 import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
@@ -91,12 +92,12 @@ export default async function TaskPage({
     : await Promise.all([
         listAttachments("PROJECT", projectId),
         prisma.vaultEntry.findMany({
-          where: { projects: { some: { projectId } }, ...vaultVisibility },
+          where: { ...linkedTo({ entityType: "PROJECT", entityId: projectId }), ...vaultVisibility },
           select: { id: true, title: true, username: true, url: true },
           orderBy: { title: "asc" },
         }),
         prisma.vaultEntry.findMany({
-          where: { projects: { none: { projectId } }, ...vaultVisibility },
+          where: { ...notLinkedTo({ entityType: "PROJECT", entityId: projectId }), ...vaultVisibility },
           select: { id: true, title: true, username: true, url: true },
           orderBy: { title: "asc" },
         }),

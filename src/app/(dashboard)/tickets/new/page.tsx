@@ -84,13 +84,13 @@ export default async function NewTicketPage({
       : Promise.resolve([]),
     // Plantillas de ticket (solo staff)
     staff
-      ? prisma.ticketTemplate.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } })
+      ? prisma.template.findMany({ where: { entityType: "TICKET" }, orderBy: { name: "asc" }, select: { id: true, name: true } })
       : Promise.resolve([]),
   ]);
 
   // Plantilla seleccionada para prellenar el formulario
   const template = staff && templateId
-    ? await prisma.ticketTemplate.findUnique({ where: { id: templateId } })
+    ? await prisma.template.findFirst({ where: { id: templateId, entityType: "TICKET" } })
     : null;
   const prefill = template
     ? {

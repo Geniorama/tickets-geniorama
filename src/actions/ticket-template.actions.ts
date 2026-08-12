@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { createTemplate, deleteTemplate, updateTemplate } from "@/lib/templates";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { parseChecklistGroups } from "@/lib/checklist";
 
@@ -32,8 +32,7 @@ export async function createTicketTemplate(formData: FormData): Promise<{ error?
   const parsed = parseForm(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  await prisma.ticketTemplate.create({
-    data: {
+  await createTemplate("TICKET", {
       name:        parsed.data.name,
       title:       parsed.data.title,
       description: parsed.data.description,
@@ -41,7 +40,6 @@ export async function createTicketTemplate(formData: FormData): Promise<{ error?
       category:    parsed.data.category ?? null,
       checklist:   parseChecklistGroups(formData.get("checklist")),
       createdById: session.user.id,
-    },
   });
 
   revalidatePath("/tickets/plantillas");
@@ -55,16 +53,13 @@ export async function updateTicketTemplate(id: string, formData: FormData): Prom
   const parsed = parseForm(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  await prisma.ticketTemplate.update({
-    where: { id },
-    data: {
+  await updateTemplate("TICKET", id, {
       name:        parsed.data.name,
       title:       parsed.data.title,
       description: parsed.data.description,
       priority:    parsed.data.priority,
       category:    parsed.data.category ?? null,
       checklist:   parseChecklistGroups(formData.get("checklist")),
-    },
   });
 
   revalidatePath("/tickets/plantillas");
@@ -75,7 +70,7 @@ export async function deleteTicketTemplate(id: string): Promise<{ error?: string
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
-  await prisma.ticketTemplate.delete({ where: { id } });
+  await deleteTemplate("TICKET", id);
   revalidatePath("/tickets/plantillas");
   return {};
 }

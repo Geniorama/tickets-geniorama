@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
+import { linkedTo, notLinkedTo } from "@/lib/vault-links";
 import { TicketDetail } from "@/components/tickets/ticket-detail";
 import { BackButton } from "@/components/ui/back-button";
 import { TicketChecklistPanel } from "@/components/ui/checklist-panel";
@@ -85,13 +86,13 @@ export default async function TicketPage({
 
   const [linkedVaultEntries, availableVaultEntries, collaborators] = await Promise.all([
     prisma.vaultEntry.findMany({
-      where: { tickets: { some: { ticketId } }, ...vaultAccessFilter },
+      where: { ...linkedTo({ entityType: "TICKET", entityId: ticketId }), ...vaultAccessFilter },
       select: { id: true, title: true, username: true, url: true },
       orderBy: { title: "asc" },
     }),
     staff
       ? prisma.vaultEntry.findMany({
-          where: { tickets: { none: { ticketId } }, ...vaultAccessFilter },
+          where: { ...notLinkedTo({ entityType: "TICKET", entityId: ticketId }), ...vaultAccessFilter },
           select: { id: true, title: true, username: true, url: true },
           orderBy: { title: "asc" },
         })

@@ -3,6 +3,7 @@ import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
 import { getClientAccessibleTaskIds } from "@/lib/task-access";
 import { prisma } from "@/lib/prisma";
+import { linkedTo, notLinkedTo } from "@/lib/vault-links";
 import { ProjectDetail } from "@/components/projects/project-detail";
 import { BackButton } from "@/components/ui/back-button";
 import { CollaboratorSchedulingCard } from "@/components/collaborator/collaborator-scheduling-card";
@@ -69,7 +70,7 @@ export default async function ProjectPage({
 
   const linkedVaultEntries = await prisma.vaultEntry.findMany({
     where: {
-      projects: { some: { projectId } },
+      ...linkedTo({ entityType: "PROJECT", entityId: projectId }),
       ...vaultVisibility,
     },
     select: { id: true, title: true, username: true, url: true },
@@ -80,7 +81,7 @@ export default async function ProjectPage({
   const availableVaultEntries = (staff || admin)
     ? await prisma.vaultEntry.findMany({
         where: {
-          projects: { none: { projectId } },
+          ...notLinkedTo({ entityType: "PROJECT", entityId: projectId }),
           ...vaultVisibility,
         },
         select: { id: true, title: true, username: true, url: true },

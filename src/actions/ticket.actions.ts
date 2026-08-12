@@ -17,6 +17,7 @@ import { deleteCommentsFor } from "@/lib/comments";
 import { addFileAttachments, deleteAttachmentsFor } from "@/lib/attachments";
 import { createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
 import { deleteTimeEntriesFor, stopRunningForEntity } from "@/lib/time-entries";
+import { deleteVaultLinksFor } from "@/lib/vault-links";
 
 const APP_URL = process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -616,6 +617,7 @@ export async function deleteTicket(ticketId: string) {
     await deleteAttachmentsFor("TICKET", ticketId, tx);
     await deleteChecklistsFor("TICKET", ticketId, tx);
     await deleteTimeEntriesFor("TICKET", ticketId, tx);
+    await deleteVaultLinksFor("TICKET", ticketId, tx);
     await tx.ticket.delete({ where: { id: ticketId } });
   });
 

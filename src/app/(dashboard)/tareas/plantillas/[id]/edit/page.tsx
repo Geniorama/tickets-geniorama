@@ -7,7 +7,7 @@ import { normalizeChecklistGroups } from "@/lib/checklist";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const tpl = await prisma.taskTemplate.findUnique({ where: { id }, select: { name: true } });
+  const tpl = await prisma.template.findFirst({ where: { id, entityType: "TASK" }, select: { name: true } });
   return { title: tpl ? `Editar: ${tpl.name}` : "Editar plantilla" };
 }
 
@@ -19,7 +19,7 @@ export default async function EditTaskTemplatePage({
   await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
   const { id } = await params;
 
-  const template = await prisma.taskTemplate.findUnique({ where: { id } });
+  const template = await prisma.template.findFirst({ where: { id, entityType: "TASK" } });
   if (!template) notFound();
 
   const data = {

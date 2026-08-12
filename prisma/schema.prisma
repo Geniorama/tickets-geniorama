@@ -177,6 +177,7 @@ model User {
   createdChecklists         Checklist[]             @relation("ChecklistCreatedBy")
   createdChecklistItems     ChecklistItem[]         @relation("ChecklistItemCreatedBy")
   timeEntries               TimeEntry[]             @relation("TimeEntryUser")
+  createdTemplates          Template[]              @relation("TemplateCreatedBy")
   notifications             Notification[]
   webhooks                  UserWebhook[]
   ticketChecklists          TicketChecklist[]
@@ -848,6 +849,50 @@ model TimeEntry {
   @@map("time_entries")
 }
 
+// Plantillas polimórficas: reemplazan a TicketTemplate y TaskTemplate.
+// A diferencia del resto del núcleo, `entityType` no apunta a una entidad
+// concreta sino que indica **qué crea** la plantilla. Por eso no hay entityId.
+model Template {
+  id             String     @id @default(cuid())
+  entityType     EntityType @map("entity_type")
+
+  name           String
+  title          String
+  description    String     @db.Text
+  priority       Priority   @default(MEDIA)
+  category       String?
+  /// Solo lo usan las plantillas de tarea; en las de ticket queda nulo.
+  estimatedHours Float?     @map("estimated_hours")
+  /// Checklists en borrador: `[{ title, items: string[] }]` (ver src/lib/checklist.ts)
+  checklist      Json       @default("[]")
+
+  createdById    String     @map("created_by_id")
+  createdBy      User       @relation("TemplateCreatedBy", fields: [createdById], references: [id])
+
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  @@index([entityType, name])
+  @@map("templates")
+}
+
+// Vínculos de bóveda polimórficos: reemplazan a TicketVaultEntry y
+// ProjectVaultEntry. La relación con VaultEntry sigue siendo clave foránea
+// real, así que borrar una entrada de bóveda arrastra sus vínculos.
+model VaultLink {
+  entityType   EntityType @map("entity_type")
+  entityId     String     @map("entity_id")
+  vaultEntryId String     @map("vault_entry_id")
+
+  addedAt      DateTime   @default(now()) @map("added_at")
+
+  vaultEntry   VaultEntry @relation(fields: [vaultEntryId], references: [id], onDelete: Cascade)
+
+  @@id([entityType, entityId, vaultEntryId])
+  @@index([vaultEntryId])
+  @@map("vault_links")
+}
+
 model CommentReaction {
   commentId String       @map("comment_id")
   userId    String       @map("user_id")
@@ -887,6 +932,7 @@ model VaultEntry {
   sharedWith  VaultShare[]
   projects    ProjectVaultEntry[]
   tickets     TicketVaultEntry[]
+  links       VaultLink[]
 
   @@map("vault_entries")
 }

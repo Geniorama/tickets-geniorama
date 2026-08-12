@@ -14,7 +14,8 @@ const PRIORITY_LABEL: Record<string, string> = {
 export default async function TaskTemplatesPage() {
   await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
 
-  const templates = await prisma.taskTemplate.findMany({
+  const templates = await prisma.template.findMany({
+      where: { entityType: "TASK" },
     include: { createdBy: { select: { name: true } } },
     orderBy: { name: "asc" },
   });
