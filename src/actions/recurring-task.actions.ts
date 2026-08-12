@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireCan } from "@/lib/access/can";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-helpers";
 import {
   computeNextRunAt,
   serializeDaysOfWeek,
@@ -74,7 +74,7 @@ function toDateLocal(dateStr: string): Date {
 }
 
 export async function createRecurringTemplate(formData: FormData) {
-  const session = await requireRole(["ADMINISTRADOR"]);
+  const session = await requireCan("PROYECTOS", "gestionar");
   const raw = parseFormData(formData);
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
@@ -114,7 +114,7 @@ export async function createRecurringTemplate(formData: FormData) {
 }
 
 export async function updateRecurringTemplate(id: string, formData: FormData) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("PROYECTOS", "gestionar");
   const raw = parseFormData(formData);
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
@@ -170,7 +170,7 @@ export async function updateRecurringTemplate(id: string, formData: FormData) {
 }
 
 export async function toggleRecurringActive(id: string) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("PROYECTOS", "gestionar");
   const existing = await prisma.recurringTaskTemplate.findUnique({ where: { id }, select: { isActive: true } });
   if (!existing) return { error: "Plantilla no encontrada" };
   await prisma.recurringTaskTemplate.update({
@@ -182,14 +182,14 @@ export async function toggleRecurringActive(id: string) {
 }
 
 export async function deleteRecurringTemplate(id: string) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("PROYECTOS", "gestionar");
   await prisma.recurringTaskTemplate.delete({ where: { id } });
   revalidatePath("/admin/tareas-recurrentes");
   redirect("/admin/tareas-recurrentes");
 }
 
 export async function runRecurringNow(id: string) {
-  const session = await requireRole(["ADMINISTRADOR"]);
+  const session = await requireCan("PROYECTOS", "gestionar");
   const tpl = await prisma.recurringTaskTemplate.findUnique({ where: { id } });
   if (!tpl) return { error: "Plantilla no encontrada" };
   if (!tpl.isActive) return { error: "La plantilla está pausada" };

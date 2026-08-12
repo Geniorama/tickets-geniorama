@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { can } from "@/lib/access/can";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getRequiredSession, isStaff, isAdmin } from "@/lib/auth-helpers";
+import { getRequiredSession, isAdmin } from "@/lib/auth-helpers";
 import type { TaskStatus } from "@/generated/prisma";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -120,7 +121,7 @@ const taskSchema = z.object({
 
 export async function createTask(projectIdArg: string | null, formData: FormData) {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await can(session.user, "PROYECTOS", "crear"))) return { error: "Sin permisos" };
 
   const projectId = projectIdArg ?? (formData.get("projectId") as string | null) ?? "";
   if (!projectId) return { error: "Debes seleccionar un proyecto" };
@@ -271,7 +272,7 @@ export async function createTask(projectIdArg: string | null, formData: FormData
  */
 export async function publishTask(taskId: string, projectId: string | null) {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await can(session.user, "PROYECTOS", "editar"))) return { error: "Sin permisos" };
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
@@ -336,7 +337,7 @@ export async function publishTask(taskId: string, projectId: string | null) {
 
 export async function updateTask(taskId: string, projectId: string | null, formData: FormData) {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await can(session.user, "PROYECTOS", "editar"))) return { error: "Sin permisos" };
   const taskUrl = projectId ? `/proyectos/${projectId}/tareas/${taskId}` : `/tareas/${taskId}`;
 
   const parsed = taskSchema.safeParse({
@@ -501,7 +502,7 @@ export async function updateTask(taskId: string, projectId: string | null, formD
 
 export async function updateTaskStatus(taskId: string, projectId: string | null, status: string) {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await can(session.user, "PROYECTOS", "editar"))) return { error: "Sin permisos" };
 
   const [oldTask, projectForStatus] = await Promise.all([
     prisma.task.findUnique({
@@ -592,7 +593,7 @@ export async function updateTaskStatus(taskId: string, projectId: string | null,
 
 export async function deleteTask(taskId: string, projectId: string | null) {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await can(session.user, "PROYECTOS", "editar"))) return { error: "Sin permisos" };
 
   // Comentarios y adjuntos polimórficos: sin cascada en la base, se borran aquí.
   await prisma.$transaction(async (tx) => {
@@ -637,7 +638,7 @@ export async function moveTask(taskId: string, fromProjectId: string, toProjectI
 
 export async function duplicateTask(taskId: string, projectId: string | null) {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await can(session.user, "PROYECTOS", "crear"))) return { error: "Sin permisos" };
 
   const original = await prisma.task.findUnique({
     where: { id: taskId },

@@ -1,10 +1,11 @@
 "use server";
 
 import { Type } from "@google/genai";
+import { can } from "@/lib/access/can";
 import { runStructuredJson, providerConfigError, isValidProvider, type AiProvider } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
+import { getRequiredSession } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
 import { notify } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
@@ -82,7 +83,7 @@ export type ApplyPlanInput = {
 
 export async function getPlannerOptions(): Promise<PlannerOptions | { error: string }> {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await can(session.user, "PROYECTOS", "crear"))) return { error: "Sin permisos" };
   const admin = isAdmin(session.user.role);
   const userId = session.user.id;
 
@@ -201,7 +202,7 @@ export async function generatePlan(input: {
   provider?: AiProvider;
 }): Promise<GeneratedPlan | { error: string }> {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await can(session.user, "PROYECTOS", "crear"))) return { error: "Sin permisos" };
   const admin = isAdmin(session.user.role);
 
   if (input.mode === "new" && !admin) {
@@ -367,7 +368,7 @@ export async function applyPlan(
   input: ApplyPlanInput
 ): Promise<{ success: true; projectId: string; createdCount: number; message: string } | { error: string }> {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await can(session.user, "PROYECTOS", "crear"))) return { error: "Sin permisos" };
   const admin = isAdmin(session.user.role);
   const userId = session.user.id;
 

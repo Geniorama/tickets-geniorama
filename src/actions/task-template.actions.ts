@@ -1,11 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { can } from "@/lib/access/can";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { createTemplate, deleteTemplate, findTemplate, updateTemplate } from "@/lib/templates";
-import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
+import { getRequiredSession } from "@/lib/auth-helpers";
 import { combineEstimatedTime } from "@/lib/estimated-time";
 import { normalizeChecklistGroups, parseChecklistGroups } from "@/lib/checklist";
 import { createChecklistGroups } from "@/lib/checklists";
@@ -34,7 +35,7 @@ function parseForm(formData: FormData) {
 
 export async function createTaskTemplate(formData: FormData): Promise<{ error?: string }> {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await can(session.user, "PROYECTOS", "crear"))) return { error: "Sin permisos" };
 
   const parsed = parseForm(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -56,7 +57,7 @@ export async function createTaskTemplate(formData: FormData): Promise<{ error?: 
 
 export async function updateTaskTemplate(id: string, formData: FormData): Promise<{ error?: string }> {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await can(session.user, "PROYECTOS", "editar"))) return { error: "Sin permisos" };
 
   const parsed = parseForm(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -77,7 +78,7 @@ export async function updateTaskTemplate(id: string, formData: FormData): Promis
 
 export async function deleteTaskTemplate(id: string): Promise<{ error?: string }> {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await can(session.user, "PROYECTOS", "editar"))) return { error: "Sin permisos" };
 
   await deleteTemplate("TASK", id);
   revalidatePath("/tareas/plantillas");
@@ -87,7 +88,7 @@ export async function deleteTaskTemplate(id: string): Promise<{ error?: string }
 /** Crea una tarea global directamente a partir de una plantilla (acción rápida). */
 export async function createTaskFromTemplate(templateId: string): Promise<{ error?: string }> {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await can(session.user, "PROYECTOS", "crear"))) return { error: "Sin permisos" };
 
   const tpl = await findTemplate("TASK", templateId);
   if (!tpl) return { error: "Plantilla no encontrada" };

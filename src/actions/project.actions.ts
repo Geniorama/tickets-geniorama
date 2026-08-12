@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireCan } from "@/lib/access/can";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getRequiredSession, requireRole } from "@/lib/auth-helpers";
+import { getRequiredSession } from "@/lib/auth-helpers";
 import { deleteCommentsFor } from "@/lib/comments";
 import { deleteAttachmentsFor } from "@/lib/attachments";
 import { deleteChecklistsFor } from "@/lib/checklists";
@@ -27,7 +28,7 @@ const projectSchema = z.object({
 
 export async function createProject(formData: FormData) {
   const session = await getRequiredSession();
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("PROYECTOS", "gestionar");
 
   const parsed = projectSchema.safeParse({
     name: formData.get("name"),
@@ -65,7 +66,7 @@ export async function createProject(formData: FormData) {
 }
 
 export async function updateProject(projectId: string, formData: FormData) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("PROYECTOS", "gestionar");
 
   const parsed = projectSchema.safeParse({
     name: formData.get("name"),
@@ -110,7 +111,7 @@ export async function updateProject(projectId: string, formData: FormData) {
 }
 
 export async function deleteProject(projectId: string) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("PROYECTOS", "gestionar");
 
   // Borrar el proyecto arrastra sus tareas en cascada, pero los comentarios son
   // polimórficos y no tienen clave foránea: hay que recogerlos antes de que las
