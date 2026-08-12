@@ -12,14 +12,16 @@
  * `allowedRoles` y `getAccessLevel()` devuelve SIN_ACCESO si el rol no encaja,
  * aunque exista una concesión explícita en base de datos.
  *
- * Estado: la capa está disponible pero los chequeos de rol existentes todavía
- * no se han migrado a ella. Se irán trasladando módulo por módulo.
+ * Estado: el módulo de Administración ya se rige por esta capa (v1.49.0). El
+ * resto sigue con chequeos de rol y se irá trasladando módulo por módulo.
  */
 
 import { cache } from "react";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { AccessLevel, AppKey, Role } from "@/generated/prisma";
 import { APP_BY_KEY, LEVEL_ORDER } from "@/lib/access/apps";
+import { getRequiredSession } from "@/lib/auth-helpers";
 
 export type Actor = { id: string; role: Role };
 
@@ -101,6 +103,22 @@ export async function can(
 ): Promise<boolean> {
   const level = await getAccessLevel(actor, app);
   return LEVEL_ORDER[level] >= LEVEL_ORDER[REQUIRED_LEVEL[capability]];
+}
+
+/**
+ * Guardia para páginas y Server Actions: exige un nivel dentro de un módulo o
+ * devuelve al dashboard, igual que hacía `requireRole`.
+ *
+ * Sustituye a los chequeos de rol conforme se van migrando los módulos. La
+ * diferencia práctica es que el acceso deja de deducirse del rol y pasa a ser
+ * algo que el administrador concede y puede retirar.
+ */
+export async function requireCan(app: AppKey, capability: Capability = "gestionar") {
+  const session = await getRequiredSession();
+  if (!(await can(session.user, app, capability))) {
+    redirect("/dashboard");
+  }
+  return session;
 }
 
 /** Los módulos que este usuario puede abrir. Alimenta el lanzador. */

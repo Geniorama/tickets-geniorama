@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-helpers";
 import type { AccessLevel, AppKey } from "@/generated/prisma";
 import { APP_BY_KEY, LEVEL_ORDER } from "@/lib/access/apps";
 
@@ -19,13 +19,33 @@ export async function updateUserAccess(
   profileId: string | null,
   levels: Partial<Record<AppKey, AccessLevel>>,
 ) {
-  await requireRole(["ADMINISTRADOR"]);
+  const session = await requireCan("ADMIN");
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { role: true },
   });
   if (!user) return { error: "Usuario no encontrado" };
+
+  // Ahora que la administración se rige por este nivel, quitárselo a uno mismo
+  // significa perder el acceso a esta misma pantalla y no poder devolvérselo.
+  if (userId === session.user.id && levels.ADMIN !== "GESTOR") {
+    return {
+      error:
+        "No puedes quitarte tu propio acceso a Administración: quedarías sin forma de recuperarlo. Pídeselo a otro administrador.",
+    };
+  }
+
+  // Y el último administrador con acceso tampoco puede perderlo, o el sistema
+  // se queda sin nadie capaz de conceder permisos.
+  if (levels.ADMIN !== "GESTOR") {
+    const otros = await prisma.appAccess.count({
+      where: { app: "ADMIN", level: "GESTOR", userId: { not: userId }, user: { isActive: true } },
+    });
+    if (otros === 0) {
+      return { error: "Es el único administrador activo: no puedes dejar el sistema sin administración." };
+    }
+  }
 
   if (profileId) {
     const exists = await prisma.accessProfile.findUnique({
@@ -59,7 +79,7 @@ export async function updateUserAccess(
 
 /** Perfiles disponibles para el selector. */
 export async function listAccessProfiles() {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("ADMIN");
   return prisma.accessProfile.findMany({
     orderBy: [{ isSystem: "desc" }, { name: "asc" }],
     select: { id: true, name: true, description: true, grants: true, isSystem: true },

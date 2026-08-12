@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { getPlanUsedHours } from "@/lib/plans.server";
 import { getEffectiveExpiresAt } from "@/lib/plans";
@@ -15,7 +15,7 @@ export default async function PlansPage({
 }: {
   searchParams: Promise<Record<string, string>>;
 }) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("ADMIN");
   const params = await searchParams;
   const q = params.q?.trim() || undefined;
   const sortBy  = params.sortBy  ?? "createdAt";

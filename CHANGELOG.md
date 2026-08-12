@@ -9,6 +9,33 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.49.0] — 2026-08-12
+
+### El módulo de Administración pasa a regirse por permisos
+
+Primer módulo migrado a la capa `can()`. **29 chequeos** de `requireRole(["ADMINISTRADOR"])` pasan a `requireCan("ADMIN")` en usuarios, empresas, planes, productividad, integraciones de equipo y ajustes.
+
+Los chequeos de tareas recurrentes, tickets, proyectos, sitios y servicios **quedan intactos**: pertenecen a otros módulos y se migrarán cuando les toque.
+
+#### Qué cambia en la práctica
+
+Nada, para quien tiene su acceso: los tres administradores conservan nivel Gestor en Administración, así que entran igual.
+
+Lo que se gana es poder **retirarlo**. Hasta ahora, ser `ADMINISTRADOR` implicaba administrar; a partir de aquí son dos cosas distintas. Se puede tener el rol —con su frontera de datos completa— sin gestionar usuarios, empresas ni planes. Es el primer caso real en que el nivel manda sobre el rol.
+
+#### Dos salvaguardas contra quedarse fuera
+
+Ahora que Administración depende del nivel, retirarlo mal deja el sistema sin quien conceda permisos. `updateUserAccess` rechaza:
+
+- **Quitarse el acceso a uno mismo.** Se perdería la pantalla desde la que devolvérselo.
+- **Dejar el sistema sin ningún administrador activo con nivel Gestor.**
+
+#### Añadido
+
+- `requireCan(app, capability)` en `src/lib/access/can.ts`: guardia para páginas y acciones, con la misma semántica de redirección que tenía `requireRole`.
+
+---
+
 ## [1.48.0] — 2026-08-12
 
 ### Fase 1: permisos por módulo

@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -58,7 +58,7 @@ function SegmentBar({ segments }: { segments: { value: number; color: string; la
 }
 
 export default async function UserDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("ADMIN");
   const { id } = await params;
   const now = new Date();
 

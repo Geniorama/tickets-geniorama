@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { PlanEditForm } from "@/components/admin/plan-edit-form";
 import { notFound } from "next/navigation";
@@ -14,7 +14,7 @@ export default async function EditPlanPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("ADMIN");
 
   const { id } = await params;
 

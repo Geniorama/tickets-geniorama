@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { revalidatePath } from "next/cache";
 
 export type SettingsMap = Record<string, string>;
@@ -14,7 +14,7 @@ export async function getSettings(keys: string[]): Promise<SettingsMap> {
 }
 
 export async function saveSetting(key: string, value: string): Promise<{ error?: string }> {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("ADMIN");
   try {
     await prisma.appSetting.upsert({
       where: { key },
@@ -29,7 +29,7 @@ export async function saveSetting(key: string, value: string): Promise<{ error?:
 }
 
 export async function deleteSetting(key: string): Promise<{ error?: string }> {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("ADMIN");
   try {
     await prisma.appSetting.deleteMany({ where: { key } });
     revalidatePath("/admin/integraciones");
