@@ -9,6 +9,38 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.50.0] — 2026-08-12
+
+### Infraestructura pasa a regirse por permisos
+
+Segundo módulo migrado. **13 chequeos** de `requireRole(["ADMINISTRADOR", "COLABORADOR"])` pasan a `requireCan("INFRAESTRUCTURA", …)` en sitios y servicios.
+
+#### El nivel importa aquí, y no era obvio
+
+A diferencia de Administración —que era solo para administradores—, este módulo lo usan **también los colaboradores**, que tras el backfill tienen nivel Miembro, no Gestor. Usar `"gestionar"` como en el módulo anterior los habría dejado fuera de sitios y servicios.
+
+Por eso el mapeo es deliberado:
+
+| Qué | Capacidad | Nivel mínimo |
+|---|---|---|
+| Listados de sitios y servicios | `ver` | Lectura |
+| Crear | `crear` | Miembro |
+| Editar, borrar, duplicar | `editar` | Miembro |
+
+Nadie gana ni pierde acceso: administradores (Gestor) y colaboradores (Miembro) siguen entrando a todo, y los clientes siguen fuera por rol.
+
+#### Lo que ahora es posible
+
+Un colaborador con nivel **Lectura** ve el inventario de sitios y servicios pero no puede modificarlo — un estado que antes no existía, porque el acceso era todo o nada.
+
+#### Nota sobre el borrado
+
+Borrar un sitio o un servicio sigue exigiendo Miembro, igual que hoy. Elevarlo a Gestor sería razonable, pero es un cambio de comportamiento y no algo que deba colarse en una migración de permisos.
+
+Sin cambios de esquema.
+
+---
+
 ## [1.49.0] — 2026-08-12
 
 ### El módulo de Administración pasa a regirse por permisos

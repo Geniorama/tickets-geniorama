@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Plus, Globe } from "lucide-react";
@@ -15,7 +15,7 @@ export default async function SitiosPage({
 }: {
   searchParams: Promise<Record<string, string>>;
 }) {
-  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
+  await requireCan("INFRAESTRUCTURA", "ver");
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const pageSize = getPageSize(params.pageSize);

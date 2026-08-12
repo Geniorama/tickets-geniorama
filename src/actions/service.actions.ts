@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireCan } from "@/lib/access/can";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireRole, getRequiredSession } from "@/lib/auth-helpers";
+import { getRequiredSession } from "@/lib/auth-helpers";
 
 const serviceSchema = z.object({
   name:        z.string().min(1, "El nombre es requerido"),
@@ -20,7 +21,7 @@ const serviceSchema = z.object({
 
 export async function createService(formData: FormData) {
   const session = await getRequiredSession();
-  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
+  await requireCan("INFRAESTRUCTURA", "crear");
 
   const parsed = serviceSchema.safeParse({
     name:        formData.get("name"),
@@ -57,7 +58,7 @@ export async function createService(formData: FormData) {
 }
 
 export async function updateService(serviceId: string, formData: FormData) {
-  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
+  await requireCan("INFRAESTRUCTURA", "editar");
 
   const parsed = serviceSchema.safeParse({
     name:        formData.get("name"),
@@ -94,7 +95,7 @@ export async function updateService(serviceId: string, formData: FormData) {
 }
 
 export async function deleteService(serviceId: string) {
-  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
+  await requireCan("INFRAESTRUCTURA", "editar");
   await prisma.service.delete({ where: { id: serviceId } });
   revalidatePath("/admin/servicios");
   revalidatePath("/mis-servicios");
@@ -103,7 +104,7 @@ export async function deleteService(serviceId: string) {
 
 export async function duplicateService(serviceId: string) {
   const session = await getRequiredSession();
-  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
+  await requireCan("INFRAESTRUCTURA", "editar");
 
   const original = await prisma.service.findUnique({ where: { id: serviceId } });
   if (!original) return { error: "Servicio no encontrado" };

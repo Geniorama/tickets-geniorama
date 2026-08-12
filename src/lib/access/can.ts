@@ -12,8 +12,8 @@
  * `allowedRoles` y `getAccessLevel()` devuelve SIN_ACCESO si el rol no encaja,
  * aunque exista una concesión explícita en base de datos.
  *
- * Estado: el módulo de Administración ya se rige por esta capa (v1.49.0). El
- * resto sigue con chequeos de rol y se irá trasladando módulo por módulo.
+ * Estado: Administración (v1.49.0) e Infraestructura (v1.50.0) ya se rigen por
+ * esta capa. Proyectos y Tickets siguen con chequeos de rol.
  */
 
 import { cache } from "react";
