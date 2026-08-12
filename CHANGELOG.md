@@ -9,6 +9,41 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.48.0] — 2026-08-12
+
+### Fase 1: permisos por módulo
+
+Primer paso del modelo de accesos. **No cambia el comportamiento de nadie**: el backfill reproduce exactamente el acceso que cada usuario tiene hoy y los chequeos de rol existentes siguen mandando. La capa queda disponible para migrarlos módulo por módulo.
+
+#### Dos ejes separados
+
+Hasta ahora el rol decidía todo. A partir de aquí:
+
+- El **rol** (`ADMINISTRADOR` / `COLABORADOR` / `CLIENTE`) delimita **qué registros** ve alguien. Es la frontera de datos y no cambia.
+- El **nivel por app** (`SIN_ACCESO` / `LECTURA` / `MIEMBRO` / `GESTOR`) delimita **qué puede hacer** con lo que ya ve.
+
+Regla dura: un nivel nunca amplía la frontera del rol. Cada módulo declara qué roles lo admiten, así que conceder «Administración» a un cliente no le da acceso — se ignora. Verificado con prueba.
+
+#### Qué se añade
+
+- **`AppKey`**: `TICKETS`, `PROYECTOS`, `INFRAESTRUCTURA`, `PORTAL`, `ADMIN` y `CRM`. Este último se declara para poder preparar perfiles; el registro de `src/lib/access/apps.ts` marca cuáles están construidos y la interfaz lo señala como pendiente.
+- **`AppAccess`** (nivel explícito por usuario y módulo) y **`AccessProfile`** (perfil reutilizable). Lo explícito pisa al perfil.
+- **`src/lib/access/can.ts`**: `getGrants`, `getAccessLevel`, `can(actor, app, capability)` y `getAccessibleApps` — esta última alimentará el lanzador de la Fase 2. Los permisos **no viven en el JWT** a propósito: quitar un acceso surte efecto de inmediato, no al siguiente inicio de sesión. Se resuelven una vez por request con `cache()` de React.
+- **Pantalla de acceso** en la edición de usuario: se elige un perfil y se ajustan módulos sueltos. Solo se ofrecen los módulos que el rol admite.
+
+#### Perfiles del sistema
+
+Siete, todos disponibles desde el primer día: **Dirección**, **Equipo**, **Cliente**, **Project manager**, **Soporte**, **Diseño y desarrollo** y **Comercial**.
+
+El backfill asigna solo los tres primeros —los que equivalen al acceso actual de cada rol—. Los otros cuatro reparten niveles distintos, así que asignarlos es una decisión consciente del administrador y no un efecto colateral de la migración.
+
+#### Migración `20260812100000_add_app_access_and_profiles` (con datos)
+
+- Crea los perfiles y concede a los 40 usuarios los niveles equivalentes a su acceso de hoy.
+- Verificada en base desechable: cero discrepancias entre el perfil asignado y los niveles explícitos, en los tres roles.
+
+---
+
 ## [1.47.0] — 2026-08-11
 
 ### Fase 0, paso 5 y último: plantillas y vínculos de bóveda

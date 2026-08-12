@@ -4,6 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { UserEditForm } from "@/components/admin/user-edit-form";
 import { SchedulingLinksManager } from "@/components/collaborator/scheduling-links-manager";
 import type { SchedulingLinkData } from "@/lib/scheduling";
+import { UserAccessPanel } from "@/components/admin/user-access-panel";
+import { listAccessProfiles } from "@/actions/access.actions";
+import type { AccessLevel, AppKey } from "@/generated/prisma";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -19,13 +22,15 @@ export default async function EditUserPage({
   await requireRole(["ADMINISTRADOR"]);
   const { id } = await params;
 
-  const [userRaw, companies] = await Promise.all([
+  const [userRaw, companies, profiles] = await Promise.all([
     prisma.user.findUnique({
       where: { id },
       select: {
         id: true, name: true, email: true, role: true, isActive: true,
         cargo: true, area: true, bio: true, isProjectManager: true, isSupportAgent: true,
         companies: { select: { id: true } },
+        profileId: true,
+        appAccess: { select: { app: true, level: true } },
         schedulingLinks: {
           select: { id: true, title: true, description: true, url: true, category: true },
           orderBy: [{ category: "asc" }, { position: "asc" }],
@@ -37,21 +42,35 @@ export default async function EditUserPage({
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
+    listAccessProfiles(),
   ]);
 
   if (!userRaw) notFound();
 
-  const { schedulingLinks, ...userScalar } = userRaw;
+  const { schedulingLinks, appAccess, profileId, ...userScalar } = userRaw;
+
+  const currentLevels: Partial<Record<AppKey, AccessLevel>> = {};
+  for (const a of appAccess) currentLevels[a.app] = a.level;
   const user = {
     ...userScalar,
     companyIds: userRaw.companies.map((c) => c.id),
   };
 
   return (
-    <div className="max-w-lg">
+    <div className="max-w-3xl">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Editar usuario</h1>
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <UserEditForm user={user} companies={companies} />
+      </div>
+
+      <div className="mt-6">
+        <UserAccessPanel
+          userId={userRaw.id}
+          role={userRaw.role}
+          profiles={profiles}
+          currentProfileId={profileId}
+          currentLevels={currentLevels}
+        />
       </div>
 
       {isStaff(userRaw.role) && (

@@ -82,6 +82,31 @@ enum ReactionType {
   REVISANDO
 }
 
+// ─── Permisos por app (Fase 1) ───────────────────────────────────────────────
+
+// Los módulos a los que se concede acceso. `ADMIN` agrupa la administración
+// (usuarios, empresas, planes, estadísticas). Los que aún no existen se
+// declaran igual para poder preparar perfiles; el registro de
+// src/lib/access/apps.ts marca cuáles están construidos.
+enum AppKey {
+  TICKETS
+  PROYECTOS
+  INFRAESTRUCTURA
+  PORTAL
+  ADMIN
+  CRM
+}
+
+// Nivel dentro de un módulo. Es independiente del rol: el rol delimita QUÉ
+// registros ve alguien (su frontera de datos) y el nivel, QUÉ puede hacer con
+// los que ya ve. Un nivel nunca amplía la frontera del rol.
+enum AccessLevel {
+  SIN_ACCESO
+  LECTURA
+  MIEMBRO
+  GESTOR
+}
+
 enum SchedulingLinkCategory {
   PROYECTOS
   SOPORTE
@@ -178,6 +203,11 @@ model User {
   createdChecklistItems     ChecklistItem[]         @relation("ChecklistItemCreatedBy")
   timeEntries               TimeEntry[]             @relation("TimeEntryUser")
   createdTemplates          Template[]              @relation("TemplateCreatedBy")
+
+  // Permisos por app
+  profileId                 String?                 @map("profile_id")
+  profile                   AccessProfile?          @relation(fields: [profileId], references: [id])
+  appAccess                 AppAccess[]
   notifications             Notification[]
   webhooks                  UserWebhook[]
   ticketChecklists          TicketChecklist[]
@@ -891,6 +921,42 @@ model VaultLink {
   @@id([entityType, entityId, vaultEntryId])
   @@index([vaultEntryId])
   @@map("vault_links")
+}
+
+// Acceso explícito de un usuario a un módulo. Pisa lo que diga su perfil.
+model AppAccess {
+  userId String      @map("user_id")
+  app    AppKey
+  level  AccessLevel @default(SIN_ACCESO)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, app])
+  @@map("app_access")
+}
+
+// Perfil reutilizable: "Dirección", "Soporte", "Comercial"… El administrador
+// asigna un perfil y se expande a los niveles de cada módulo, en vez de
+// configurar app por app.
+model AccessProfile {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  /// Niveles por módulo: `{ "TICKETS": "GESTOR", "CRM": "LECTURA" }`.
+  /// Los módulos ausentes equivalen a SIN_ACCESO.
+  grants      Json     @default("{}")
+  /// Los perfiles del sistema no se pueden borrar desde la interfaz.
+  isSystem    Boolean  @default(false) @map("is_system")
+
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users       User[]
+
+  @@map("access_profiles")
 }
 
 model CommentReaction {
