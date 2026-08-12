@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireCan } from "@/lib/access/can";
+import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { CompanyEditForm } from "@/components/admin/company-edit-form";
 
@@ -14,7 +14,7 @@ export default async function EditCompanyPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireCan("ADMIN");
+  await requireRole(["ADMINISTRADOR"]);
   const { id } = await params;
 
   const [company, agencies] = await Promise.all([

@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
  * fallaba, redirigiendo al dashboard.
  *
  * No lleva comprobación propia de permisos: la página que lo usa ya exige
- * `requireCan("ADMIN")` antes de llamarlo.
+ * el chequeo de administrador antes de llamarlo.
  */
 export function listAccessProfiles() {
   return prisma.accessProfile.findMany({

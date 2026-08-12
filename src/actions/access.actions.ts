@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireCan } from "@/lib/access/can";
+import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import type { AccessLevel, AppKey } from "@/generated/prisma";
 import { APP_BY_KEY, LEVEL_ORDER } from "@/lib/access/apps";
@@ -19,7 +19,7 @@ export async function updateUserAccess(
   profileId: string | null,
   levels: Partial<Record<AppKey, AccessLevel>>,
 ) {
-  const session = await requireCan("ADMIN");
+  const session = await requireRole(["ADMINISTRADOR"]);
 
   const user = await prisma.user.findUnique({
     where: { id: userId },

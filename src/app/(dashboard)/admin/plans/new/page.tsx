@@ -1,11 +1,11 @@
-import { requireCan } from "@/lib/access/can";
+import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { PlanForm } from "@/components/admin/plan-form";
 
 export const metadata = { title: "Nuevo plan" };
 
 export default async function NewPlanPage() {
-  await requireCan("ADMIN");
+  await requireRole(["ADMINISTRADOR"]);
 
   const companies = await prisma.company.findMany({
     where: { isActive: true },

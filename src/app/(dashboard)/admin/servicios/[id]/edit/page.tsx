@@ -1,4 +1,4 @@
-import { requireCan } from "@/lib/access/can";
+import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { ServiceForm } from "@/components/services/service-form";
@@ -16,7 +16,7 @@ export default async function EditServicioPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireCan("INFRAESTRUCTURA", "editar");
+  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
   const { id } = await params;
 
   const [service, companies] = await Promise.all([

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireCan } from "@/lib/access/can";
+import { requireRole } from "@/lib/auth-helpers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
@@ -15,7 +15,7 @@ const companySchema = z.object({
 });
 
 export async function createCompany(formData: FormData) {
-  await requireCan("ADMIN");
+  await requireRole(["ADMINISTRADOR"]);
 
   const parsed = companySchema.safeParse({
     name: formData.get("name"),
@@ -76,7 +76,7 @@ export async function createCompany(formData: FormData) {
 }
 
 export async function updateCompany(companyId: string, formData: FormData) {
-  await requireCan("ADMIN");
+  await requireRole(["ADMINISTRADOR"]);
 
   const parsed = companySchema.safeParse({
     name: formData.get("name"),
@@ -169,7 +169,7 @@ export async function updateCompany(companyId: string, formData: FormData) {
 }
 
 export async function toggleCompanyActive(companyId: string, isActive: boolean) {
-  await requireCan("ADMIN");
+  await requireRole(["ADMINISTRADOR"]);
 
   await prisma.company.update({ where: { id: companyId }, data: { isActive } });
 
@@ -178,7 +178,7 @@ export async function toggleCompanyActive(companyId: string, isActive: boolean) 
 }
 
 export async function deleteCompany(companyId: string) {
-  await requireCan("ADMIN");
+  await requireRole(["ADMINISTRADOR"]);
 
   const company = await prisma.company.findUnique({
     where: { id: companyId },

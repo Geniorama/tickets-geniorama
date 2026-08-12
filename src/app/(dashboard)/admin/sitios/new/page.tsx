@@ -1,4 +1,4 @@
-import { requireCan } from "@/lib/access/can";
+import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { SiteForm } from "@/components/sites/site-form";
 import { BackButton } from "@/components/ui/back-button";
@@ -6,7 +6,7 @@ import { BackButton } from "@/components/ui/back-button";
 export const metadata = { title: "Nuevo sitio" };
 
 export default async function NewSitioPage() {
-  await requireCan("INFRAESTRUCTURA", "crear");
+  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
 
   const companies = await prisma.company.findMany({
     where: { isActive: true },

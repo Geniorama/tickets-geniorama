@@ -1,4 +1,4 @@
-import { requireCan } from "@/lib/access/can";
+import { requireRole } from "@/lib/auth-helpers";
 import { getSettings } from "@/actions/settings.actions";
 import { GChatIntegrations } from "@/components/admin/gchat-integrations";
 import { MessageSquare } from "lucide-react";
@@ -13,7 +13,7 @@ const KEYS = [
 ];
 
 export default async function IntegracionesPage() {
-  await requireCan("ADMIN");
+  await requireRole(["ADMINISTRADOR"]);
   const settings = await getSettings(KEYS);
 
   return (

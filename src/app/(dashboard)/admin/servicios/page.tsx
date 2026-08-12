@@ -1,4 +1,4 @@
-import { requireCan } from "@/lib/access/can";
+import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Plus } from "lucide-react";
@@ -15,7 +15,7 @@ export default async function ServiciosPage({
 }: {
   searchParams: Promise<Record<string, string>>;
 }) {
-  await requireCan("INFRAESTRUCTURA", "ver");
+  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
   const params = await searchParams;
   const companyFilter = params.companyId;
   const typeFilter    = params.type;

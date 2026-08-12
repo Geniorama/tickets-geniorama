@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireCan } from "@/lib/access/can";
+import { requireRole } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { SiteForm } from "@/components/sites/site-form";
 import { BackButton } from "@/components/ui/back-button";
@@ -15,7 +15,7 @@ export default async function EditSitioPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireCan("INFRAESTRUCTURA", "editar");
+  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
   const { id } = await params;
 
   const [site, companies] = await Promise.all([

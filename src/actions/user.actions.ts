@@ -1,13 +1,12 @@
 "use server";
 
 import { revalidatePath, unstable_cache } from "next/cache";
-import { requireCan } from "@/lib/access/can";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
-import { getRequiredSession } from "@/lib/auth-helpers";
+import { getRequiredSession, requireRole } from "@/lib/auth-helpers";
 import { generateInvitationToken } from "@/actions/invitation.actions";
 import { sendInvitationEmail } from "@/lib/email";
 
@@ -27,7 +26,7 @@ const createUserSchema = z.object({
 });
 
 export async function createUser(formData: FormData) {
-  await requireCan("ADMIN");
+  await requireRole(["ADMINISTRADOR"]);
 
   const companyIds = (formData.getAll("companyIds") as string[]).filter(Boolean);
 
@@ -96,7 +95,7 @@ export async function createUser(formData: FormData) {
 }
 
 export async function updateUser(userId: string, formData: FormData) {
-  await requireCan("ADMIN");
+  await requireRole(["ADMINISTRADOR"]);
 
   const companyIds = (formData.getAll("companyIds") as string[]).filter(Boolean);
 
@@ -169,7 +168,7 @@ export async function updateUser(userId: string, formData: FormData) {
 }
 
 export async function toggleUserActive(userId: string, isActive: boolean) {
-  await requireCan("ADMIN");
+  await requireRole(["ADMINISTRADOR"]);
 
   await prisma.user.update({
     where: { id: userId },
@@ -181,7 +180,7 @@ export async function toggleUserActive(userId: string, isActive: boolean) {
 }
 
 export async function deleteUser(userId: string) {
-  const session = await requireCan("ADMIN");
+  const session = await requireRole(["ADMINISTRADOR"]);
 
   if (session.user.id === userId) {
     return { error: "No puedes eliminar tu propio usuario." };
