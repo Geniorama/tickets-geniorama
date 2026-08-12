@@ -9,6 +9,23 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.54.0] — 2026-08-12
+
+### Los briefs de n8n entran como tareas y se asignan solos
+
+Cuando un cliente diligencia un brief en n8n, el workflow ya puede volcarlo directamente en un proyecto de la app: llega como tarea, con el brief completo en la descripción, y **con responsable puesto**.
+
+- **Nuevo endpoint `POST /api/integrations/brief`**, autenticado con `Authorization: Bearer <INTEGRATION_BRIEF_TOKEN>` (comparación en tiempo constante, igual que la integración de hosting). n8n manda el `projectId`; el proyecto no está fijado en el código.
+- **Reglas de enrutamiento** en la nueva tabla `brief_routings`: cada `briefType` apunta a un responsable, con prioridad, categoría y horas estimadas por defecto. El responsable **no viaja en el payload** a propósito — así se reasigna un tipo de brief desde la app sin tocar el workflow de n8n.
+- **Pantalla en `/admin/integraciones`** para crear, editar, desactivar y borrar esas reglas, con las instrucciones de conexión y un payload de ejemplo listo para copiar.
+- **Idempotente**: si n8n manda `externalRef` (su id de ejecución) un reintento devuelve la tarea ya creada en vez de duplicarla. Nueva columna `tasks.external_ref` con índice único.
+- La tarea se numera dentro del proyecto como cualquier otra, notifica al responsable y sale al canal de tareas de Google Chat (salvo en proyectos privados). Los adjuntos que mande el cliente se guardan como enlaces.
+- Si el `briefType` no tiene regla activa, la respuesta es **422 con la lista de tipos válidos**, para que n8n pueda avisar en vez de perder el brief en silencio. Si el responsable configurado está inactivo, la tarea se crea igual pero sin asignar y la respuesta lo advierte.
+
+Migración aditiva `20260812140000_add_brief_routing`: no toca ninguna columna existente.
+
+---
+
 ## [1.50.2] — 2026-08-12
 
 ### Corrige: la edición de usuario redirigía al dashboard

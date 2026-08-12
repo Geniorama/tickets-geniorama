@@ -219,6 +219,7 @@ model User {
   assignedRecurringTemplates RecurringTaskTemplate[] @relation("RecurringAssignedTo")
   createdTaskTemplates       TaskTemplate[]          @relation("TaskTemplateCreatedBy")
   createdTicketTemplates     TicketTemplate[]        @relation("TicketTemplateCreatedBy")
+  briefRoutings              BriefRouting[]          @relation("BriefRoutingAssignedTo")
 
   @@map("users")
 }
@@ -517,6 +518,11 @@ model Task {
 
   number         Int        @default(0)
 
+  /// Identificador del sistema externo que originó la tarea (p. ej. el id de
+  /// ejecución de n8n). Es único para que un reintento del webhook no cree un
+  /// duplicado: la integración busca por aquí antes de insertar.
+  externalRef    String?    @unique @map("external_ref")
+
   startDate      DateTime?  @map("start_date")
   startTime      String?    @map("start_time")
   dueDate        DateTime?  @map("due_date")
@@ -604,6 +610,34 @@ model TaskTemplate {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   @@map("task_templates")
+}
+
+// Enrutamiento de briefs entrantes (n8n → /api/integrations/brief).
+//
+// El cliente diligencia un brief en n8n y este llega al webhook con un
+// `briefType`. Esta tabla dice a quién se le asigna la tarea resultante y con
+// qué valores por defecto. El proyecto NO vive aquí: n8n siempre manda el
+// `projectId` en el payload, así que un mismo tipo de brief puede caer en
+// proyectos distintos sin tocar la configuración.
+model BriefRouting {
+  id             String   @id @default(cuid())
+  /// Valor que manda n8n en `briefType`. Se normaliza a minúsculas al guardar
+  /// y al buscar, para que "Web" y "web" sean lo mismo.
+  briefType      String   @unique @map("brief_type")
+  /// Nombre legible para la pantalla de administración ("Brief de sitio web").
+  label          String
+  assignedToId   String   @map("assigned_to_id")
+  priority       Priority @default(MEDIA)
+  category       String?
+  estimatedHours Float?   @map("estimated_hours")
+  isActive       Boolean  @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  assignedTo User @relation("BriefRoutingAssignedTo", fields: [assignedToId], references: [id])
+
+  @@map("brief_routings")
 }
 
 // Plantillas reutilizables de ticket. Sirven para prellenar el formulario de

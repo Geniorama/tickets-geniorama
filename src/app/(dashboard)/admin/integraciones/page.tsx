@@ -1,6 +1,8 @@
 import { requireCan } from "@/lib/access/can";
 import { getSettings } from "@/actions/settings.actions";
+import { listBriefRoutings, listAssignableStaff } from "@/lib/brief-routing";
 import { GChatIntegrations } from "@/components/admin/gchat-integrations";
+import { BriefRoutings } from "@/components/admin/brief-routings";
 import { MessageSquare } from "lucide-react";
 
 export const metadata = { title: "Integraciones" };
@@ -14,7 +16,14 @@ const KEYS = [
 
 export default async function IntegracionesPage() {
   await requireCan("ADMIN");
-  const settings = await getSettings(KEYS);
+
+  const [settings, routings, staff] = await Promise.all([
+    getSettings(KEYS),
+    listBriefRoutings(),
+    listAssignableStaff(),
+  ]);
+
+  const baseUrl = process.env.AUTH_URL ?? "http://localhost:3000";
 
   return (
     <div style={{ maxWidth: "48rem" }}>
@@ -26,11 +35,31 @@ export default async function IntegracionesPage() {
           </h1>
         </div>
         <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--app-text-muted)" }}>
-          Conecta cada tipo de notificación a un canal de Google Chat distinto mediante webhooks.
+          Conecta cada tipo de notificación a un canal de Google Chat distinto mediante webhooks, y decide
+          quién recibe los briefs que llegan desde n8n.
         </p>
       </div>
 
-      <GChatIntegrations settings={settings} />
+      <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+        <BriefRoutings
+          routings={routings.map((r) => ({
+            id: r.id,
+            briefType: r.briefType,
+            label: r.label,
+            assignedToId: r.assignedToId,
+            priority: r.priority,
+            category: r.category,
+            estimatedHours: r.estimatedHours,
+            isActive: r.isActive,
+            assignedTo: r.assignedTo,
+          }))}
+          staff={staff}
+          webhookUrl={`${baseUrl}/api/integrations/brief`}
+          tokenConfigured={Boolean(process.env.INTEGRATION_BRIEF_TOKEN?.trim())}
+        />
+
+        <GChatIntegrations settings={settings} />
+      </div>
     </div>
   );
 }
