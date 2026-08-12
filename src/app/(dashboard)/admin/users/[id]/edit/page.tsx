@@ -6,7 +6,7 @@ import { UserEditForm } from "@/components/admin/user-edit-form";
 import { SchedulingLinksManager } from "@/components/collaborator/scheduling-links-manager";
 import type { SchedulingLinkData } from "@/lib/scheduling";
 import { UserAccessPanel } from "@/components/admin/user-access-panel";
-import { listAccessProfiles } from "@/actions/access.actions";
+import { listAccessProfiles } from "@/lib/access/profiles";
 import type { AccessLevel, AppKey } from "@/generated/prisma";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {

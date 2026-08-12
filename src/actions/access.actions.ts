@@ -77,11 +77,3 @@ export async function updateUserAccess(
   return { success: true };
 }
 
-/** Perfiles disponibles para el selector. */
-export async function listAccessProfiles() {
-  await requireCan("ADMIN");
-  return prisma.accessProfile.findMany({
-    orderBy: [{ isSystem: "desc" }, { name: "asc" }],
-    select: { id: true, name: true, description: true, grants: true, isSystem: true },
-  });
-}

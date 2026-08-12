@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.50.2] — 2026-08-12
+
+### Corrige: la edición de usuario redirigía al dashboard
+
+Desde la v1.49.0, abrir `/admin/users/[id]/edit` devolvía al dashboard, así que la pantalla de acceso era inalcanzable.
+
+La causa: `listAccessProfiles` estaba declarada como Server Action (`"use server"`) y la página la invocaba **durante el render**. Su guardia `requireCan("ADMIN")` fallaba en ese contexto y disparaba la redirección. Como la respuesta llegaba con estado 200 —el documento es un *shell* de streaming y la redirección viaja dentro—, ni el código HTTP ni la consola delataban el problema.
+
+Pasa a ser un helper de servidor normal (`src/lib/access/profiles.ts`). Los Server Actions quedan para mutaciones invocadas desde el cliente, que es su cometido; usarlos como cargadores de datos al renderizar era el error.
+
+---
+
 ## [1.50.1] — 2026-08-12
 
 ### La pantalla de acceso dice qué módulos ya obedecen al nivel
