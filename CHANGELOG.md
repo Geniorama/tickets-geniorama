@@ -9,6 +9,20 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.50.1] — 2026-08-12
+
+### La pantalla de acceso dice qué módulos ya obedecen al nivel
+
+Asignar un perfil parecía no surtir efecto. Y en parte era cierto: solo Administración e Infraestructura se rigen por los niveles; Tickets, Proyectos y el Portal todavía deciden por el rol, así que ahí el nivel se guarda pero no manda. La pantalla no lo decía en ningún sitio.
+
+- Cada módulo indica ahora **«El nivel aún no rige»** mientras siga gobernado por el rol, y **«Módulo aún no construido»** en el caso del CRM.
+- Se aclara que los perfiles de acceso **no son lo mismo que las «designaciones»** del formulario de usuario, que solo deciden quién aparece en la página «Agendar» de los clientes. La coincidencia de nombre inducía a buscar el efecto en el sitio equivocado.
+- La **ficha del usuario** muestra el perfil asignado y el nivel de cada módulo sin tener que entrar a editar.
+
+Nuevo campo `enforced` en el registro de módulos: se irá poniendo en `true` conforme cada módulo migre a `can()`.
+
+---
+
 ## [1.50.0] — 2026-08-12
 
 ### Infraestructura pasa a regirse por permisos

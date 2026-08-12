@@ -20,6 +20,12 @@ export type AppDefinition = {
    */
   built: boolean;
   /**
+   * false mientras el módulo siga rigiéndose por chequeos de rol. El nivel se
+   * guarda pero todavía no decide nada, así que la interfaz debe decirlo: sin
+   * este aviso, cambiar un nivel parece no surtir efecto.
+   */
+  enforced: boolean;
+  /**
    * Roles que pueden llegar a tener este módulo. Un cliente no debe recibir
    * acceso a la administración ni al CRM por mucho que se le conceda un nivel.
    */
@@ -33,6 +39,7 @@ export const APPS: readonly AppDefinition[] = [
     description: "Soporte y solicitudes de los clientes.",
     href: "/tickets",
     built: true,
+    enforced: false,
     allowedRoles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"],
   },
   {
@@ -41,6 +48,7 @@ export const APPS: readonly AppDefinition[] = [
     description: "Proyectos, tareas y planificación.",
     href: "/proyectos",
     built: true,
+    enforced: false,
     allowedRoles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"],
   },
   {
@@ -49,6 +57,7 @@ export const APPS: readonly AppDefinition[] = [
     description: "Sitios, servicios, dominios y vencimientos.",
     href: "/admin/sitios",
     built: true,
+    enforced: true,
     allowedRoles: ["ADMINISTRADOR", "COLABORADOR"],
   },
   {
@@ -57,6 +66,7 @@ export const APPS: readonly AppDefinition[] = [
     description: "Empresas, planes y servicios contratados.",
     href: "/mis-empresas",
     built: true,
+    enforced: false,
     allowedRoles: ["CLIENTE"],
   },
   {
@@ -65,6 +75,7 @@ export const APPS: readonly AppDefinition[] = [
     description: "Usuarios, empresas, planes y productividad.",
     href: "/admin/users",
     built: true,
+    enforced: true,
     allowedRoles: ["ADMINISTRADOR"],
   },
   {
@@ -73,6 +84,7 @@ export const APPS: readonly AppDefinition[] = [
     description: "Contactos, embudo y oportunidades de venta.",
     href: "/crm",
     built: false,
+    enforced: false,
     allowedRoles: ["ADMINISTRADOR", "COLABORADOR"],
   },
 ] as const;

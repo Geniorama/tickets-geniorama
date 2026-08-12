@@ -6,6 +6,7 @@ import { ArrowLeft, Pencil } from "lucide-react";
 import { TaskList } from "@/components/projects/task-list";
 import { formatDate } from "@/lib/format-date";
 import { withCommentCounts } from "@/lib/comments";
+import { APPS, ACCESS_LEVEL_LABELS } from "@/lib/access/apps";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -74,6 +75,8 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
       isActive: true,
       createdAt: true,
       companies: { select: { id: true, name: true } },
+      profile: { select: { name: true } },
+      appAccess: { select: { app: true, level: true } },
       assignedTasks: {
         include: {
           assignedTo: { select: { name: true } },
@@ -86,6 +89,8 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
   });
 
   if (!user) notFound();
+
+  const accessByApp = new Map(user.appAccess.map((a) => [a.app, a.level]));
 
   // El conteo de comentarios ya no viene por relación: la tabla es compartida.
   const assignedTasks = await withCommentCounts("TASK", user.assignedTasks);
@@ -173,6 +178,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
             {(user.cargo || user.area) && (
               <> · {[user.cargo, user.area].filter(Boolean).join(" — ")}</>
             )}
+            {user.profile && <> · Perfil: {user.profile.name}</>}
             {user.companies.length > 0 && <> · {user.companies.map((c) => c.name).join(", ")}</>}
             {" · "}Usuario desde {formatDate(user.createdAt)}
           </p>
@@ -196,6 +202,44 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />
           Editar
         </Link>
+      </div>
+
+      {/* Acceso a módulos — visible sin entrar a editar */}
+      <div
+        style={{
+          backgroundColor: "var(--app-card-bg)",
+          border: "1px solid var(--app-border)",
+          borderRadius: "0.75rem",
+          padding: "1rem 1.25rem",
+          marginBottom: "1.5rem",
+        }}
+      >
+        <div style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-body-text)", marginBottom: "0.625rem" }}>
+          Acceso a módulos
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+          {APPS.filter((a) => a.allowedRoles.includes(user.role)).map((a) => {
+            const nivel = accessByApp.get(a.key) ?? "SIN_ACCESO";
+            const sinAcceso = nivel === "SIN_ACCESO";
+            return (
+              <span
+                key={a.key}
+                title={a.enforced ? undefined : "El nivel se guarda, pero este módulo aún decide por el rol."}
+                style={{
+                  fontSize: "0.75rem",
+                  padding: "0.25rem 0.6rem",
+                  borderRadius: "9999px",
+                  border: "1px solid var(--app-border)",
+                  color: sinAcceso ? "var(--app-text-muted)" : "var(--app-body-text)",
+                  opacity: sinAcceso ? 0.65 : 1,
+                }}
+              >
+                {a.name}: <strong>{ACCESS_LEVEL_LABELS[nivel]}</strong>
+                {!a.enforced && <span style={{ opacity: 0.6 }}> · aún no rige</span>}
+              </span>
+            );
+          })}
+        </div>
       </div>
 
       {/* KPI cards */}

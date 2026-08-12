@@ -88,9 +88,19 @@ export function UserAccessPanel({
       <h2 style={{ fontSize: "0.9375rem", fontWeight: 600, color: "var(--app-body-text)" }}>
         Acceso a módulos
       </h2>
-      <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", margin: "0.25rem 0 1.25rem" }}>
+      <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", margin: "0.25rem 0 0.75rem" }}>
         El perfil reparte los niveles de una vez. Puedes ajustar módulos sueltos
         después: lo que definas aquí manda sobre el perfil.
+      </p>
+      <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", margin: "0 0 1.25rem", lineHeight: 1.5 }}>
+        Los módulos marcados como <strong>«El nivel aún no rige»</strong> guardan
+        lo que definas, pero de momento siguen decidiendo el acceso por el rol
+        del usuario. Se irán activando módulo por módulo.
+      </p>
+      <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", margin: "0 0 1.25rem", lineHeight: 1.5 }}>
+        Esto es distinto de las <strong>designaciones</strong> del formulario de
+        arriba, que solo deciden quién aparece en la página «Agendar» de los
+        clientes.
       </p>
 
       <label style={{ ...labelStyle, display: "block", marginBottom: "0.375rem" }}>Perfil</label>
@@ -135,9 +145,9 @@ export function UserAccessPanel({
             }}
           >
             <div style={{ minWidth: "200px" }}>
-              <div style={{ ...labelStyle, display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <div style={{ ...labelStyle, display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                 {app.name}
-                {!app.built && (
+                {!app.built ? (
                   <span
                     style={{
                       fontSize: "0.6875rem",
@@ -148,9 +158,25 @@ export function UserAccessPanel({
                       color: "#b45309",
                     }}
                   >
-                    Aún no disponible
+                    Módulo aún no construido
                   </span>
-                )}
+                ) : !app.enforced ? (
+                  // Sin este aviso, cambiar el nivel de un módulo todavía
+                  // regido por rol parece no surtir efecto.
+                  <span
+                    title="El nivel se guarda, pero este módulo todavía decide el acceso por el rol del usuario."
+                    style={{
+                      fontSize: "0.6875rem",
+                      fontWeight: 600,
+                      padding: "0.1rem 0.4rem",
+                      borderRadius: "9999px",
+                      backgroundColor: "rgba(100,116,139,0.15)",
+                      color: "var(--app-text-muted)",
+                    }}
+                  >
+                    El nivel aún no rige
+                  </span>
+                ) : null}
               </div>
               <div style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
                 {app.description}
