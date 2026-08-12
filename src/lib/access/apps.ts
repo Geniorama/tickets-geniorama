@@ -48,7 +48,7 @@ export const APPS: readonly AppDefinition[] = [
     description: "Proyectos, tareas y planificación.",
     href: "/proyectos",
     built: true,
-    enforced: false,
+    enforced: true,
     allowedRoles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"],
   },
   {

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { TaskTemplateForm } from "@/components/tasks/task-template-form";
 import { BackButton } from "@/components/ui/back-button";
@@ -16,7 +16,7 @@ export default async function EditTaskTemplatePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
+  await requireCan("PROYECTOS", "editar");
   const { id } = await params;
 
   const template = await prisma.template.findFirst({ where: { id, entityType: "TASK" } });

@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/ui/back-button";
 import { RecurringTaskForm } from "@/components/admin/recurring-task-form";
@@ -19,7 +19,7 @@ export default async function EditRecurringTaskPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ created?: string }>;
 }) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("PROYECTOS", "gestionar");
   const { id } = await params;
   const { created } = await searchParams;
 

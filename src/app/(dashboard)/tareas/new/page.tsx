@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { TaskForm } from "@/components/projects/task-form";
 import { TemplatePicker } from "@/components/tasks/template-picker";
@@ -12,7 +12,7 @@ export default async function NewTaskGlobalPage({
 }: {
   searchParams: Promise<{ template?: string }>;
 }) {
-  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
+  await requireCan("PROYECTOS", "crear");
   const { template: templateId } = await searchParams;
 
   const [projects, staffUsers, reviewerCandidates, templates] = await Promise.all([

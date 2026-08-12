@@ -1,11 +1,11 @@
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { ProjectForm } from "@/components/projects/project-form";
 
 export const metadata = { title: "Nuevo proyecto" };
 
 export default async function NewProjectPage() {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("PROYECTOS", "gestionar");
 
   const [companies, staffUsers, allUsers] = await Promise.all([
     prisma.company.findMany({

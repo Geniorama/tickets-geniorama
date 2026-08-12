@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { Plus, Repeat, PauseCircle, PlayCircle } from "lucide-react";
 import { formatDate } from "@/lib/format-date";
@@ -15,7 +15,7 @@ const PRIORITY_LABEL: Record<string, string> = {
 };
 
 export default async function RecurringTasksPage() {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("PROYECTOS", "gestionar");
 
   const templates = await prisma.recurringTaskTemplate.findMany({
     include: {

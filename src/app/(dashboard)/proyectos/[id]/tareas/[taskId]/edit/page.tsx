@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { listAttachments } from "@/lib/attachments";
 import { TaskForm } from "@/components/projects/task-form";
@@ -16,7 +16,7 @@ export default async function EditTaskPage({
 }: {
   params: Promise<{ id: string; taskId: string }>;
 }) {
-  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
+  await requireCan("PROYECTOS", "editar");
   const { id: projectId, taskId } = await params;
 
   const [task, staffUsers, reviewerCandidates] = await Promise.all([

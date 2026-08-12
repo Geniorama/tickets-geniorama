@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { BackButton } from "@/components/ui/back-button";
 import { RecurringTaskForm } from "@/components/admin/recurring-task-form";
@@ -7,7 +7,7 @@ import { normalizeChecklistGroups } from "@/lib/checklist";
 export const metadata = { title: "Nueva tarea recurrente" };
 
 export default async function NewRecurringTaskPage() {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("PROYECTOS", "gestionar");
 
   const [projects, staffUsers, taskTemplates] = await Promise.all([
     prisma.project.findMany({

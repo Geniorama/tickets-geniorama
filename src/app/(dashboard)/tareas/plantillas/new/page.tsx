@@ -1,11 +1,11 @@
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { TaskTemplateForm } from "@/components/tasks/task-template-form";
 import { BackButton } from "@/components/ui/back-button";
 
 export const metadata = { title: "Nueva plantilla de tarea" };
 
 export default async function NewTaskTemplatePage() {
-  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
+  await requireCan("PROYECTOS", "crear");
 
   return (
     <div style={{ padding: "1.5rem" }}>

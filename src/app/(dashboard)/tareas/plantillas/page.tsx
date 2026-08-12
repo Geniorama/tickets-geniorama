@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { Plus, LayoutTemplate } from "lucide-react";
 import { TaskTemplateActions } from "@/components/tasks/task-template-actions";
@@ -12,7 +12,7 @@ const PRIORITY_LABEL: Record<string, string> = {
 };
 
 export default async function TaskTemplatesPage() {
-  await requireRole(["ADMINISTRADOR", "COLABORADOR"]);
+  await requireCan("PROYECTOS", "editar");
 
   const templates = await prisma.template.findMany({
       where: { entityType: "TASK" },
