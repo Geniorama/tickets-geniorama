@@ -172,29 +172,17 @@ model User {
   assignedTickets  Ticket[]             @relation("AssignedTo")
   reviewingTickets Ticket[]             @relation("TicketReviewers")
   clientTickets    Ticket[]             @relation("TicketClient")
-  comments         TicketComment[]
-  attachments      TicketAttachment[]
   resetTokens      PasswordResetToken[]
-  legacyTimeEntries TicketTimeEntryLegacy[]
-
   managedProjects  Project[]            @relation("ProjectManager")
   createdProjects  Project[]            @relation("ProjectCreatedBy")
   assignedTasks    Task[]               @relation("TaskAssignedTo")
   reviewingTasks   Task[]               @relation("TaskReviewers")
   createdTasks     Task[]               @relation("TaskCreatedBy")
-  taskComments     TaskComment[]
-  taskAttachments  TaskAttachment[]
   createdServices  Service[]            @relation("ServiceCreatedBy")
-  taskTimeEntries  TaskTimeEntry[]
-
   createdVaultEntries VaultEntry[]      @relation("VaultCreatedBy")
   vaultShares         VaultShare[]      @relation("VaultSharedWith")
-  projectAttachments  ProjectAttachment[]
   projectMemberships        ProjectMember[]
   projectFavorites          ProjectFavorite[]
-  ticketCommentReactions    TicketCommentReaction[]
-  taskCommentReactions      TaskCommentReaction[]
-
   // Núcleo compartido
   authoredComments          Comment[]               @relation("CommentAuthor")
   commentReactions          CommentReaction[]       @relation("CommentReactionUser")
@@ -210,15 +198,8 @@ model User {
   appAccess                 AppAccess[]
   notifications             Notification[]
   webhooks                  UserWebhook[]
-  ticketChecklists          TicketChecklist[]
-  taskChecklists            TaskChecklist[]
-  ticketChecklistItems      TicketChecklistItem[]
-  taskChecklistItems        TaskChecklistItem[]
-
   createdRecurringTemplates  RecurringTaskTemplate[] @relation("RecurringCreatedBy")
   assignedRecurringTemplates RecurringTaskTemplate[] @relation("RecurringAssignedTo")
-  createdTaskTemplates       TaskTemplate[]          @relation("TaskTemplateCreatedBy")
-  createdTicketTemplates     TicketTemplate[]        @relation("TicketTemplateCreatedBy")
   briefRoutings              BriefRouting[]          @relation("BriefRoutingAssignedTo")
 
   @@map("users")
@@ -252,12 +233,6 @@ model Ticket {
   client       User?              @relation("TicketClient", fields: [clientId], references: [id])
   plan         Plan?              @relation(fields: [planId], references: [id])
   site         Site?              @relation(fields: [siteId], references: [id])
-  comments        TicketComment[]
-  attachments     TicketAttachment[]
-  legacyTimeEntries TicketTimeEntryLegacy[]
-  vaultEntries    TicketVaultEntry[]
-  checklists      TicketChecklist[]
-
   @@map("tickets")
 }
 
@@ -280,110 +255,6 @@ model Plan {
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
   @@map("plans")
-}
-
-model TicketComment {
-  id         String   @id @default(cuid())
-  body       String
-  isInternal Boolean  @default(false) @map("is_internal")
-
-  // Adjunto opcional (link externo o archivo)
-  attachmentType        String? @map("attachment_type")         // "link" | "file"
-  attachmentUrl         String? @map("attachment_url")
-  attachmentName        String? @map("attachment_name")
-  attachmentStoragePath String? @map("attachment_storage_path") // solo archivos Supabase
-
-  ticketId   String   @map("ticket_id")
-  authorId   String   @map("author_id")
-
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
-
-  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  author     User     @relation(fields: [authorId], references: [id])
-  reactions  TicketCommentReaction[]
-  attachments TicketCommentAttachment[]
-
-  @@map("ticket_comments")
-}
-
-model TicketCommentAttachment {
-  id          String   @id @default(cuid())
-  type        String   // "link" | "file"
-  url         String
-  name        String?
-  storagePath String?  @map("storage_path") // null para enlaces
-
-  commentId   String   @map("comment_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  comment     TicketComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-
-  @@index([commentId])
-  @@map("ticket_comment_attachments")
-}
-
-model TicketCommentReaction {
-  commentId String       @map("comment_id")
-  userId    String       @map("user_id")
-  type      ReactionType
-
-  comment   TicketComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@id([commentId, userId])
-  @@map("ticket_comment_reactions")
-}
-
-model TicketAttachment {
-  id           String   @id @default(cuid())
-  fileUrl      String   @map("file_url")
-  fileName     String   @map("file_name")
-  storagePath  String   @map("storage_path")
-
-  ticketId     String   @map("ticket_id")
-  uploadedById String   @map("uploaded_by_id")
-
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  ticket       Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
-
-  @@map("ticket_attachments")
-}
-
-// Legacy: reemplazado por el modelo compartido `TimeEntry`. Se conserva sin uso
-// hasta verificar en producción. Su tabla pasó de `time_entries` a
-// `ticket_time_entries` para liberar el nombre al modelo compartido, quedando
-// además simétrica con su hermana `task_time_entries`.
-model TicketTimeEntryLegacy {
-  id         String    @id @default(cuid())
-  startedAt  DateTime  @map("started_at")
-  stoppedAt  DateTime? @map("stopped_at")
-
-  ticketId   String    @map("ticket_id")
-  userId     String    @map("user_id")
-
-  ticket     Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  user       User      @relation(fields: [userId], references: [id])
-
-  @@map("ticket_time_entries")
-}
-
-model TaskTimeEntry {
-  id        String    @id @default(cuid())
-  startedAt DateTime  @map("started_at")
-  stoppedAt DateTime? @map("stopped_at")
-
-  taskId    String    @map("task_id")
-  userId    String    @map("user_id")
-
-  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id])
-
-  @@map("task_time_entries")
 }
 
 // Links de agendamiento de llamadas de un colaborador (Google Calendar, Calendly, etc.).
@@ -440,8 +311,6 @@ model Project {
   manager      User?               @relation("ProjectManager", fields: [managerId], references: [id])
   createdBy    User                @relation("ProjectCreatedBy", fields: [createdById], references: [id])
   tasks        Task[]
-  vaultEntries ProjectVaultEntry[]
-  attachments  ProjectAttachment[]
   members      ProjectMember[]
   favorites    ProjectFavorite[]
   recurringTemplates RecurringTaskTemplate[]
@@ -472,39 +341,6 @@ model ProjectMember {
 
   @@id([projectId, userId])
   @@map("project_members")
-}
-
-model ProjectAttachment {
-  id           String   @id @default(cuid())
-  type         String   @default("file")     // "file" | "link"
-  fileUrl      String   @map("file_url")     // URL para files o la URL del enlace
-  fileName     String   @map("file_name")    // Nombre a mostrar
-  storagePath  String?  @map("storage_path") // Solo para archivos en R2
-
-  position     Int      @default(0)
-
-  projectId    String   @map("project_id")
-  uploadedById String   @map("uploaded_by_id")
-
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
-
-  @@map("project_attachments")
-}
-
-model ProjectVaultEntry {
-  projectId    String     @map("project_id")
-  vaultEntryId String     @map("vault_entry_id")
-
-  project      Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  vaultEntry   VaultEntry @relation(fields: [vaultEntryId], references: [id], onDelete: Cascade)
-
-  addedAt      DateTime   @default(now()) @map("added_at")
-
-  @@id([projectId, vaultEntryId])
-  @@map("project_vault_entries")
 }
 
 model Task {
@@ -542,11 +378,6 @@ model Task {
   reviewers  User[]        @relation("TaskReviewers")
   createdBy  User          @relation("TaskCreatedBy", fields: [createdById], references: [id])
   recurringTemplate RecurringTaskTemplate? @relation(fields: [recurringTemplateId], references: [id], onDelete: SetNull)
-  comments       TaskComment[]
-  attachments    TaskAttachment[]
-  timeEntries    TaskTimeEntry[]
-  checklists     TaskChecklist[]
-
   @@map("tasks")
 }
 
@@ -589,29 +420,6 @@ model RecurringTaskTemplate {
   @@map("recurring_task_templates")
 }
 
-// Plantillas reutilizables de tarea: el staff las crea para prellenar el
-// formulario de "Nueva tarea" o generar una tarea directamente. Son globales
-// (compartidas por todo el staff). No tienen calendario (eso es RecurringTaskTemplate).
-model TaskTemplate {
-  id             String   @id @default(cuid())
-  name           String
-  title          String
-  description    String   @db.Text
-  priority       Priority @default(MEDIA)
-  category       String?
-  estimatedHours Float?   @map("estimated_hours")
-  /// Checklists en borrador: `[{ title, items: string[] }]` (ver src/lib/checklist.ts)
-  checklist      Json     @default("[]")
-
-  createdById    String   @map("created_by_id")
-  createdBy      User     @relation("TaskTemplateCreatedBy", fields: [createdById], references: [id])
-
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-
-  @@map("task_templates")
-}
-
 // Enrutamiento de briefs entrantes (n8n → /api/integrations/brief).
 //
 // El cliente diligencia un brief en n8n y este llega al webhook con un
@@ -649,97 +457,6 @@ model BriefRouting {
   @@map("brief_routings")
 }
 
-// Plantillas reutilizables de ticket. Sirven para prellenar el formulario de
-// "Nuevo ticket". Son globales (compartidas por todo el staff) y no incluyen
-// cliente/plan/sitio (esos dependen del ticket concreto que se crea).
-model TicketTemplate {
-  id             String   @id @default(cuid())
-  name           String
-  title          String
-  description    String   @db.Text
-  priority       Priority @default(MEDIA)
-  category       String?
-  /// Checklists en borrador: `[{ title, items: string[] }]` (ver src/lib/checklist.ts)
-  checklist      Json     @default("[]")
-
-  createdById    String   @map("created_by_id")
-  createdBy      User     @relation("TicketTemplateCreatedBy", fields: [createdById], references: [id])
-
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
-
-  @@map("ticket_templates")
-}
-
-model TaskComment {
-  id                    String   @id @default(cuid())
-  body                  String
-  attachmentType        String?  @map("attachment_type")
-  attachmentUrl         String?  @map("attachment_url")
-  attachmentName        String?  @map("attachment_name")
-  attachmentStoragePath String?  @map("attachment_storage_path")
-
-  taskId   String @map("task_id")
-  authorId String @map("author_id")
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  task      Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  author    User @relation(fields: [authorId], references: [id])
-  reactions TaskCommentReaction[]
-  attachments TaskCommentAttachment[]
-
-  @@map("task_comments")
-}
-
-model TaskCommentAttachment {
-  id          String   @id @default(cuid())
-  type        String   // "link" | "file"
-  url         String
-  name        String?
-  storagePath String?  @map("storage_path") // null para enlaces
-
-  commentId   String   @map("comment_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  comment     TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-
-  @@index([commentId])
-  @@map("task_comment_attachments")
-}
-
-model TaskCommentReaction {
-  commentId String       @map("comment_id")
-  userId    String       @map("user_id")
-  type      ReactionType
-
-  comment   TaskComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@id([commentId, userId])
-  @@map("task_comment_reactions")
-}
-
-model TaskAttachment {
-  id           String   @id @default(cuid())
-  fileUrl      String   @map("file_url")
-  fileName     String   @map("file_name")
-  storagePath  String   @map("storage_path")
-
-  taskId       String @map("task_id")
-  uploadedById String @map("uploaded_by_id")
-
-  createdAt DateTime @default(now()) @map("created_at")
-
-  task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  uploadedBy User @relation(fields: [uploadedById], references: [id])
-
-  @@map("task_attachments")
-}
-
 model Service {
   id          String          @id @default(cuid())
   name        String
@@ -767,9 +484,7 @@ model Service {
 // ─── Núcleo compartido ───────────────────────────────────────────────────────
 //
 // Comentarios polimórficos: una sola tabla para tickets, tareas y lo que venga
-// (negocios del CRM, facturas, documentos). Reemplazan a TicketComment y
-// TaskComment, que se conservan sin uso hasta verificar la migración en
-// producción y se eliminan en una migración posterior.
+// (negocios del CRM, facturas, documentos).
 //
 // Prisma no puede garantizar integridad referencial sobre `entityId`: no hay
 // clave foránea ni borrado en cascada desde el ticket o la tarea. Ese contrato
@@ -821,8 +536,7 @@ model CommentAttachment {
   @@map("comment_attachments")
 }
 
-// Adjuntos polimórficos: reemplazan a TicketAttachment, TaskAttachment y
-// ProjectAttachment, que se conservan sin uso hasta verificar en producción.
+// Adjuntos polimórficos para cualquier entidad.
 //
 // Unifica además tres convenciones distintas para distinguir un enlace de un
 // archivo: los tickets no tenían enlaces, los proyectos usaban la columna
@@ -852,8 +566,7 @@ model Attachment {
   @@map("attachments")
 }
 
-// Checklists polimórficos: reemplazan a TicketChecklist y TaskChecklist (y sus
-// ítems), que se conservan sin uso hasta verificar en producción.
+// Checklists polimórficos para cualquier entidad.
 //
 // Solo la relación con la entidad es polimórfica. Los ítems mantienen clave
 // foránea real hacia el checklist, así que siguen cayendo en cascada; lo que
@@ -898,8 +611,8 @@ model ChecklistItem {
   @@map("checklist_items")
 }
 
-// Registros de tiempo polimórficos: reemplazan al par TimeEntry (tickets) y
-// TaskTimeEntry (tareas), conservados sin uso hasta verificar en producción.
+// Registros de tiempo polimórficos: una sola implementación del cronómetro
+// para tickets, tareas y lo que venga.
 //
 // Es el modelo que alimentará la facturación: el consumo de horas de un plan
 // se calcula sumando las entradas cerradas de los tickets de ese plan
@@ -922,7 +635,7 @@ model TimeEntry {
   @@map("time_entries")
 }
 
-// Plantillas polimórficas: reemplazan a TicketTemplate y TaskTemplate.
+// Plantillas polimórficas.
 // A diferencia del resto del núcleo, `entityType` no apunta a una entidad
 // concreta sino que indica **qué crea** la plantilla. Por eso no hay entityId.
 model Template {
@@ -949,8 +662,7 @@ model Template {
   @@map("templates")
 }
 
-// Vínculos de bóveda polimórficos: reemplazan a TicketVaultEntry y
-// ProjectVaultEntry. La relación con VaultEntry sigue siendo clave foránea
+// Vínculos de bóveda polimórficos. La relación con VaultEntry es clave foránea
 // real, así que borrar una entrada de bóveda arrastra sus vínculos.
 model VaultLink {
   entityType   EntityType @map("entity_type")
@@ -1039,24 +751,9 @@ model VaultEntry {
   service     Service?   @relation(fields: [serviceId], references: [id])
   createdBy   User       @relation("VaultCreatedBy", fields: [createdById], references: [id])
   sharedWith  VaultShare[]
-  projects    ProjectVaultEntry[]
-  tickets     TicketVaultEntry[]
   links       VaultLink[]
 
   @@map("vault_entries")
-}
-
-model TicketVaultEntry {
-  ticketId     String     @map("ticket_id")
-  vaultEntryId String     @map("vault_entry_id")
-
-  ticket       Ticket     @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  vaultEntry   VaultEntry @relation(fields: [vaultEntryId], references: [id], onDelete: Cascade)
-
-  addedAt      DateTime   @default(now()) @map("added_at")
-
-  @@id([ticketId, vaultEntryId])
-  @@map("ticket_vault_entries")
 }
 
 model VaultShare {
@@ -1149,78 +846,3 @@ model UserWebhook {
 // Un ticket/tarea puede tener varios checklists, cada uno con su título. Los
 // ítems cuelgan del checklist, no del ticket/tarea.
 
-model TicketChecklist {
-  id          String   @id @default(cuid())
-  title       String
-  position    Int      @default(0)
-
-  ticketId    String   @map("ticket_id")
-  createdById String   @map("created_by_id")
-
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  ticket      Ticket                @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  createdBy   User                  @relation(fields: [createdById], references: [id])
-  items       TicketChecklistItem[]
-
-  @@index([ticketId])
-  @@map("ticket_checklists")
-}
-
-model TicketChecklistItem {
-  id          String   @id @default(cuid())
-  title       String
-  isChecked   Boolean  @default(false) @map("is_checked")
-  position    Int      @default(0)
-
-  checklistId String   @map("checklist_id")
-  createdById String   @map("created_by_id")
-
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  checklist   TicketChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
-  createdBy   User            @relation(fields: [createdById], references: [id])
-
-  @@index([checklistId])
-  @@map("ticket_checklist_items")
-}
-
-model TaskChecklist {
-  id          String   @id @default(cuid())
-  title       String
-  position    Int      @default(0)
-
-  taskId      String   @map("task_id")
-  createdById String   @map("created_by_id")
-
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  task        Task                @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  createdBy   User                @relation(fields: [createdById], references: [id])
-  items       TaskChecklistItem[]
-
-  @@index([taskId])
-  @@map("task_checklists")
-}
-
-model TaskChecklistItem {
-  id          String   @id @default(cuid())
-  title       String
-  isChecked   Boolean  @default(false) @map("is_checked")
-  position    Int      @default(0)
-
-  checklistId String   @map("checklist_id")
-  createdById String   @map("created_by_id")
-
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  checklist   TaskChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
-  createdBy   User          @relation(fields: [createdById], references: [id])
-
-  @@index([checklistId])
-  @@map("task_checklist_items")
-}

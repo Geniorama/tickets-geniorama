@@ -9,6 +9,31 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.58.0] — 2026-08-12
+
+### Limpieza: se eliminan las 19 tablas del esquema antiguo
+
+Cierra la Fase 0. Se eliminan las tablas que quedaron sin uso tras unificar el núcleo compartido (v1.43.0 – v1.47.0), y sus modelos desaparecen del esquema de Prisma.
+
+`ticket_comments` · `task_comments` · `ticket_comment_attachments` · `task_comment_attachments` · `ticket_comment_reactions` · `task_comment_reactions` · `ticket_attachments` · `task_attachments` · `project_attachments` · `ticket_checklists` · `task_checklists` · `ticket_checklist_items` · `task_checklist_items` · `ticket_time_entries` · `task_time_entries` · `ticket_templates` · `task_templates` · `ticket_vault_entries` · `project_vault_entries`
+
+#### ⚠️ Irreversible
+
+Es la primera migración de la serie que destruye datos. Antes de aplicarla se verificó en producción:
+
+- **Ningún registro se pierde**: 19 comprobaciones cruzadas, cero filas en una tabla vieja que no estuviera ya en la nueva.
+- **Las tablas nuevas están vivas**: todas tienen más filas que el backfill original — comentarios 810 (eran 799), adjuntos 365 (355), tiempo 690 (682), checklists 44 (43).
+- **Las viejas están congeladas**: cero escrituras desde su respectiva migración.
+- **Sin referencias en el código**: ninguna mención viva a los modelos eliminados.
+
+#### Matiz sobre plantillas y vínculos de bóveda
+
+`templates` y `vault_links` siguen con las mismas filas que el backfill (11 y 9): desde su migración nadie ha creado una plantilla ni vinculado una entrada de bóveda. Su camino de **lectura** está verificado en producción; el de **escritura** solo en pruebas locales. Es la única parte de esta limpieza que se apoya en verificación indirecta.
+
+El esquema baja de 49 a 30 modelos.
+
+---
+
 ## [1.57.0] — 2026-08-12
 
 ### Tickets: se migra lo que el modelo puede gobernar, y se documenta lo que no
