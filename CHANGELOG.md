@@ -9,6 +9,33 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.56.0] — 2026-08-13
+
+### El body de n8n se reduce a tres campos y un enlace
+
+Llenar el payload en n8n era tedioso: había que mapear el cliente, cada respuesta del brief y los adjuntos. Ahora la tarea **no copia el brief, lo enlaza**.
+
+El body queda así:
+
+```json
+{
+  "projectId": "...",
+  "briefType": "sitio-web",
+  "briefUrl": "https://docs.google.com/forms/.../respuesta",
+  "externalRef": "{{ $execution.id }}"
+}
+```
+
+- **`briefUrl` es obligatorio.** Sin él la tarea nacería vacía y el responsable no tendría nada que abrir. Aparece encabezando la descripción y además como **adjunto** de la tarea, que es donde se buscan las fuentes.
+- **`title` es opcional.** Si no viene, la tarea se titula con el nombre de la regla y su consecutivo dentro del proyecto — *Brief de sitio web #12* —, que es único sin depender de que n8n mande nada.
+- El responsable, la prioridad, la categoría y el plazo siguen saliendo de la regla, no del payload.
+
+Los campos de enriquecimiento (`client`, `fields`, `summary`, `links`, `priority`, `category`, `dueDate`) **se siguen aceptando** y funcionan igual que antes, pero dejan de documentarse en la pantalla: quedan por si algún día conviene volcar el brief entero en la descripción.
+
+**Cambio de contrato:** una llamada sin `briefUrl` ahora responde 400. El endpoint no había llegado a usarse en producción, así que no rompe nada en marcha.
+
+---
+
 ## [1.55.0] — 2026-08-13
 
 ### Las reglas de brief definen el plazo de entrega

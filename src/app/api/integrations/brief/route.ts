@@ -22,18 +22,38 @@ export const dynamic = "force-dynamic";
 
 // ─── Payload ─────────────────────────────────────────────────────────────────
 
+/**
+ * El body que manda n8n es deliberadamente corto: los dos campos que deciden
+ * dónde cae la tarea y quién la atiende, más el enlace al brief diligenciado.
+ * El contenido del brief no se copia — vive en su origen y la tarea apunta ahí.
+ *
+ * Los campos de abajo del bloque «enriquecimiento» siguen aceptándose por si
+ * algún día conviene volcar el brief entero en la descripción, pero no hacen
+ * falta y no están documentados en la pantalla de administración.
+ */
 const payloadSchema = z.object({
+  // ── Obligatorios ──
   /** Proyecto destino. n8n siempre lo manda. */
   projectId: z.string().min(1, "projectId es requerido"),
   /** Tipo de brief diligenciado; decide el responsable. */
   briefType: z.string().min(1, "briefType es requerido"),
   /**
+   * Enlace al brief que diligenció el cliente (formulario, Drive, Notion...).
+   * Es obligatorio a propósito: sin él y sin los campos de enriquecimiento, la
+   * tarea nacería vacía y el responsable no tendría nada que abrir.
+   */
+  briefUrl: z.string().url("briefUrl debe ser una URL válida"),
+
+  // ── Opcionales ──
+  /**
    * Id de la ejecución en n8n. Si viene, el endpoint es idempotente: un
    * reintento devuelve la tarea ya creada en vez de duplicarla.
    */
   externalRef: z.string().min(1).max(191).optional(),
-
+  /** Si no viene, el título sale del nombre de la regla más el consecutivo. */
   title: z.string().min(1).max(200).optional(),
+
+  // ── Enriquecimiento (aceptado, no documentado) ──
   summary: z.string().optional(),
 
   client: z
@@ -93,7 +113,9 @@ function renderValue(value: unknown): string {
 
 /** Arma la descripción de la tarea a partir del brief completo. */
 function renderDescription(data: Payload): string {
-  const blocks: string[] = [];
+  // El enlace va primero: en el flujo normal es lo único que lleva la tarea, y
+  // es lo que el responsable necesita abrir para empezar.
+  const blocks: string[] = [`**Brief diligenciado:** ${data.briefUrl}`];
 
   if (data.summary?.trim()) blocks.push(data.summary.trim());
 
@@ -120,8 +142,7 @@ function renderDescription(data: Payload): string {
   ].filter(Boolean);
   if (meta.length > 0) blocks.push(`**Origen**\n${meta.join("\n")}`);
 
-  // La descripción es obligatoria en el modelo: nunca devolver cadena vacía.
-  return blocks.join("\n\n") || `Brief "${data.briefType}" recibido desde n8n.`;
+  return blocks.join("\n\n");
 }
 
 function parseDate(value?: string): Date | null {
@@ -220,8 +241,6 @@ export async function POST(req: Request) {
   // proyecto (su manager, o quien lo creó).
   const createdById = project.managerId ?? project.createdById;
 
-  const title = data.title?.trim() || `${routing.label} — ${data.client?.company || data.client?.name || "Nuevo brief"}`;
-
   // Fecha límite: manda lo que diga n8n; si no manda nada, se calcula con el
   // plazo en días hábiles de la regla. La hora límite es siempre la de la regla
   // — es el compromiso de entrega del equipo, no algo que decida el cliente.
@@ -238,9 +257,16 @@ export async function POST(req: Request) {
       select: { number: true },
     });
 
+    const number = (last?.number ?? 0) + 1;
+
+    // Sin `title` explícito, el consecutivo del proyecto es lo que distingue
+    // una tarea de otra del mismo tipo de brief. Por eso el título se arma
+    // aquí dentro y no antes: el número no existe hasta este punto.
+    const title = data.title?.trim() || `${routing.label} #${number}`;
+
     return tx.task.create({
       data: {
-        number:         (last?.number ?? 0) + 1,
+        number,
         title:          title.slice(0, 200),
         description:    renderDescription(data),
         status:         "PENDIENTE",
@@ -260,14 +286,14 @@ export async function POST(req: Request) {
     });
   });
 
-  if (data.links?.length) {
-    await addLinkAttachments({
-      entityType: "TASK",
-      entityId: task.id,
-      links: data.links,
-      uploadedById: createdById,
-    });
-  }
+  // El brief va como adjunto además de en la descripción: así aparece en el
+  // panel de adjuntos de la tarea, que es donde el responsable busca fuentes.
+  await addLinkAttachments({
+    entityType: "TASK",
+    entityId: task.id,
+    links: [{ url: data.briefUrl, label: `Brief diligenciado — ${routing.label}` }, ...(data.links ?? [])],
+    uploadedById: createdById,
+  });
 
   const link = `/proyectos/${project.id}/tareas/${task.id}`;
 

@@ -466,23 +466,8 @@ function N8nInstructions({
     {
       projectId: "cl-id-del-proyecto",
       briefType: briefTypes[0] ?? "sitio-web",
+      briefUrl: "https://docs.google.com/forms/.../respuesta",
       externalRef: "{{ $execution.id }}",
-      title: "Brief de sitio web — Acme S.A.S.",
-      summary: "Resumen corto opcional del brief.",
-      client: {
-        name: "Ana Pérez",
-        email: "ana@acme.com",
-        phone: "+57 300 000 0000",
-        company: "Acme S.A.S.",
-      },
-      fields: {
-        "Presupuesto": "$ 12.000.000",
-        "Fecha deseada de lanzamiento": "2026-10-01",
-        "Referencias": ["https://ejemplo.com", "https://otro.com"],
-      },
-      links: [{ url: "https://drive.google.com/...", label: "Logos y manual de marca" }],
-      dueDate: "2026-09-15",
-      submittedAt: "{{ $now }}",
     },
     null,
     2,
@@ -548,7 +533,7 @@ function N8nInstructions({
 
           <div>
             <p style={{ margin: "0 0 0.375rem", fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-body-text)" }}>
-              3. Cuerpo del request (JSON). Solo <code>projectId</code> y <code>briefType</code> son obligatorios:
+              3. Cuerpo del request (JSON). Obligatorios: <code>projectId</code>, <code>briefType</code> y <code>briefUrl</code>:
             </p>
             <CodeBlock code={samplePayload} />
           </div>
@@ -566,10 +551,11 @@ function N8nInstructions({
           >
             <strong>Ten en cuenta:</strong>
             <ul style={{ margin: "0.375rem 0 0", paddingLeft: "1.125rem" }}>
-              <li>El responsable no se manda desde n8n: sale del <code>briefType</code> según las reglas de arriba.</li>
+              <li><code>briefUrl</code> es el enlace al brief que diligenció el cliente. La tarea no copia su contenido: lo enlaza en la descripción y como adjunto.</li>
+              <li>El responsable, la prioridad y el plazo no se mandan desde n8n: salen del <code>briefType</code> según las reglas de arriba.</li>
               <li>Manda <code>externalRef</code> con el id de ejecución: si n8n reintenta, no se duplica la tarea.</li>
               <li>Si el <code>briefType</code> no tiene regla activa, la respuesta es 422 y lista los tipos válidos.</li>
-              <li>Todo lo que pongas en <code>fields</code> se vuelca en la descripción de la tarea.</li>
+              <li>Opcional: <code>title</code>. Sin él, la tarea se titula con el nombre de la regla y su consecutivo (ej. <em>Brief de sitio web #12</em>).</li>
             </ul>
           </div>
         </div>
