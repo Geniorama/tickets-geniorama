@@ -9,6 +9,26 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.55.0] — 2026-08-13
+
+### Las reglas de brief definen el plazo de entrega
+
+Hasta ahora una tarea creada desde un brief solo tenía fecha límite si n8n la mandaba en el payload. La regla ya podía decir *quién* y *con qué prioridad*, pero no *para cuándo*.
+
+Cada regla gana dos campos: **plazo en días hábiles** y **hora límite**. Un brief que entra el viernes con plazo de 3 días vence el miércoles a las 18:00 — sábados y domingos no cuentan.
+
+- El plazo se calcula sobre el calendario de **Bogotá**, no el del servidor: un brief que entra a las 23:00 hora local ya es el día siguiente en UTC y habría contado un día hábil de menos.
+- La fecha se guarda como la medianoche de Bogotá en UTC y la hora aparte en `Task.endTime`, que es como el resto de la app almacena fecha y hora (misma convención que el cron de vencidas).
+- Si n8n manda `dueDate`, esa gana; el plazo de la regla es el respaldo. La **hora** límite siempre sale de la regla: es el compromiso de entrega del equipo, no algo que decida el cliente.
+- La respuesta del webhook devuelve `dueDate` y `dueTime` ya resueltos, para que n8n pueda confirmárselos al cliente. El aviso de Google Chat incluye el vencimiento.
+- Ambos campos son opcionales: una regla sin plazo se comporta como hasta ahora.
+
+**Limitación conocida:** el cálculo salta fines de semana pero **no festivos de Colombia**. Un brief junto a un puente vencerá un día hábil antes de lo que diría el calendario laboral real.
+
+Migración aditiva `20260813000000_add_brief_routing_due`: dos columnas nullable, las reglas existentes se quedan sin plazo.
+
+---
+
 ## [1.54.1] — 2026-08-12
 
 ### `.env.example` vuelve a versionarse

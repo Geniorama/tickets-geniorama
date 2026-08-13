@@ -5,7 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { can } from "@/lib/access/can";
 import { getRequiredSession } from "@/lib/auth-helpers";
-import { normalizeBriefType } from "@/lib/brief-routing";
+import { normalizeBriefType, DUE_TIME_PATTERN } from "@/lib/brief-routing";
 
 /**
  * Reglas de enrutamiento de briefs: qué responsable recibe la tarea según el
@@ -19,6 +19,8 @@ const routingSchema = z.object({
   priority:       z.enum(["BAJA", "MEDIA", "ALTA", "CRITICA"]).default("MEDIA"),
   category:       z.string().max(80).optional(),
   estimatedHours: z.coerce.number().positive().max(999).optional(),
+  dueDays:        z.coerce.number().int().min(0).max(365).optional(),
+  dueTime:        z.string().regex(DUE_TIME_PATTERN, "La hora límite debe tener formato HH:MM").optional(),
   isActive:       z.boolean().default(true),
 });
 
@@ -50,6 +52,8 @@ export async function createBriefRouting(input: BriefRoutingInput): Promise<{ er
       priority:       parsed.data.priority,
       category:       parsed.data.category?.trim() || null,
       estimatedHours: parsed.data.estimatedHours ?? null,
+      dueDays:        parsed.data.dueDays ?? null,
+      dueTime:        parsed.data.dueTime?.trim() || null,
       isActive:       parsed.data.isActive,
     },
   });
@@ -82,6 +86,8 @@ export async function updateBriefRouting(
       priority:       parsed.data.priority,
       category:       parsed.data.category?.trim() || null,
       estimatedHours: parsed.data.estimatedHours ?? null,
+      dueDays:        parsed.data.dueDays ?? null,
+      dueTime:        parsed.data.dueTime?.trim() || null,
       isActive:       parsed.data.isActive,
     },
   });

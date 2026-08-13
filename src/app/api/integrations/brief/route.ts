@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { addLinkAttachments } from "@/lib/attachments";
 import { notify } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
-import { normalizeBriefType } from "@/lib/brief-routing";
+import { normalizeBriefType, resolveBriefDueDate } from "@/lib/brief-routing";
 
 /**
  * Recibe los briefs que el cliente diligencia en n8n y los convierte en una
@@ -221,7 +221,15 @@ export async function POST(req: Request) {
   const createdById = project.managerId ?? project.createdById;
 
   const title = data.title?.trim() || `${routing.label} — ${data.client?.company || data.client?.name || "Nuevo brief"}`;
-  const dueDate = parseDate(data.dueDate);
+
+  // Fecha límite: manda lo que diga n8n; si no manda nada, se calcula con el
+  // plazo en días hábiles de la regla. La hora límite es siempre la de la regla
+  // — es el compromiso de entrega del equipo, no algo que decida el cliente.
+  const explicitDueDate = parseDate(data.dueDate);
+  const dueDate =
+    explicitDueDate ??
+    (routing.dueDays !== null ? resolveBriefDueDate(routing.dueDays) : null);
+  const endTime = dueDate ? routing.dueTime : null;
 
   const task = await prisma.$transaction(async (tx) => {
     const last = await tx.task.findFirst({
@@ -243,6 +251,7 @@ export async function POST(req: Request) {
         assignedToId,
         createdById,
         dueDate,
+        endTime,
         externalRef:    data.externalRef ?? null,
         // El responsable del brief revisa su propia entrega; si no hay
         // responsable utilizable, revisa quien figure como creador.
@@ -266,6 +275,12 @@ export async function POST(req: Request) {
   if (!project.isPrivate) {
     const parts = [`"${task.title}" en ${project.name}`, `Brief: ${routing.label}`];
     if (assigneeIsUsable) parts.push(`Asignado a: ${routing.assignedTo.name}`);
+    if (task.dueDate) {
+      const fmt = task.dueDate.toLocaleDateString("es-CO", {
+        day: "2-digit", month: "long", year: "numeric", timeZone: "UTC",
+      });
+      parts.push(`Vence: ${fmt}${task.endTime ? ` a las ${task.endTime}` : ""}`);
+    }
     await sendGChatNotification("task_new", "Nueva tarea desde brief", parts.join(" · "), link);
   }
 
@@ -288,6 +303,9 @@ export async function POST(req: Request) {
     assignedToId,
     assignedToName: assigneeIsUsable ? routing.assignedTo.name : null,
     briefType,
+    // Fecha límite resuelta, para que n8n pueda confirmársela al cliente.
+    dueDate: task.dueDate ? task.dueDate.toISOString().slice(0, 10) : null,
+    dueTime: task.endTime,
     url: link,
     // Señal para que n8n pueda alertar en su canal si un brief cae sin dueño.
     warning: assigneeIsUsable

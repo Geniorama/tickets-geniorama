@@ -630,6 +630,15 @@ model BriefRouting {
   priority       Priority @default(MEDIA)
   category       String?
   estimatedHours Float?   @map("estimated_hours")
+
+  /// Plazo de entrega en **días hábiles** desde que entra el brief. Null = sin
+  /// plazo automático (la tarea nace sin fecha límite, salvo que n8n mande una).
+  dueDays        Int?     @map("due_days")
+  /// Hora límite del día de entrega, "HH:MM". Se guarda en `Task.endTime`, que
+  /// es como el resto de la app almacena la hora: aparte de la fecha, para no
+  /// arrastrar la zona horaria dentro del DateTime.
+  dueTime        String?  @map("due_time")
+
   isActive       Boolean  @default(true) @map("is_active")
 
   createdAt DateTime @default(now()) @map("created_at")

@@ -22,6 +22,8 @@ export type RoutingRow = {
   priority: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
   category: string | null;
   estimatedHours: number | null;
+  dueDays: number | null;
+  dueTime: string | null;
   isActive: boolean;
   assignedTo: { id: string; name: string; email: string; isActive: boolean };
 };
@@ -83,6 +85,8 @@ function RoutingForm({
   const [priority, setPriority] = useState<RoutingRow["priority"]>(initial?.priority ?? "MEDIA");
   const [category, setCategory] = useState(initial?.category ?? "");
   const [hours, setHours] = useState(initial?.estimatedHours?.toString() ?? "");
+  const [dueDays, setDueDays] = useState(initial?.dueDays?.toString() ?? "");
+  const [dueTime, setDueTime] = useState(initial?.dueTime ?? "");
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -99,11 +103,16 @@ function RoutingForm({
         priority,
         category: category.trim() || undefined,
         estimatedHours: hours.trim() ? Number(hours) : undefined,
+        dueDays: dueDays.trim() ? Number(dueDays) : undefined,
+        dueTime: dueTime.trim() || undefined,
         isActive,
       });
       if (res.error) { setError(res.error); return; }
       setSaved(true);
-      if (!initial) { setBriefType(""); setLabel(""); setCategory(""); setHours(""); }
+      if (!initial) {
+        setBriefType(""); setLabel(""); setCategory(""); setHours("");
+        setDueDays(""); setDueTime("");
+      }
       onCancel?.();
     });
   }
@@ -172,7 +181,31 @@ function RoutingForm({
             style={inputStyle}
           />
         </Field>
+        <Field label="Plazo (días hábiles)">
+          <input
+            type="number"
+            min="0"
+            step="1"
+            value={dueDays}
+            onChange={(e) => setDueDays(e.target.value)}
+            placeholder="Sin plazo"
+            style={inputStyle}
+          />
+        </Field>
+        <Field label="Hora límite">
+          <input
+            type="time"
+            value={dueTime}
+            onChange={(e) => setDueTime(e.target.value)}
+            style={inputStyle}
+          />
+        </Field>
       </div>
+
+      <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--app-text-muted)", lineHeight: 1.5 }}>
+        El plazo cuenta <strong>días hábiles</strong> desde que entra el brief, saltando sábados y domingos
+        (no contempla festivos). Sin plazo, la tarea nace sin fecha límite salvo que n8n mande una.
+      </p>
 
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
         <label style={{ display: "flex", alignItems: "center", gap: "0.375rem", fontSize: "0.8125rem", color: "var(--app-body-text)", cursor: "pointer" }}>
@@ -296,6 +329,9 @@ function RoutingCard({ routing, staff }: { routing: RoutingRow; staff: StaffOpti
               {" · "}{routing.priority}
               {routing.category ? ` · ${routing.category}` : ""}
               {routing.estimatedHours ? ` · ${routing.estimatedHours} h` : ""}
+              {routing.dueDays !== null
+                ? ` · vence en ${routing.dueDays} ${routing.dueDays === 1 ? "día hábil" : "días hábiles"}${routing.dueTime ? ` a las ${routing.dueTime}` : ""}`
+                : " · sin plazo"}
               {!routing.isActive && " · inactiva"}
             </p>
           </div>

@@ -50,6 +50,8 @@ export default async function IntegracionesPage() {
             priority: r.priority,
             category: r.category,
             estimatedHours: r.estimatedHours,
+            dueDays: r.dueDays,
+            dueTime: r.dueTime,
             isActive: r.isActive,
             assignedTo: r.assignedTo,
           }))}
