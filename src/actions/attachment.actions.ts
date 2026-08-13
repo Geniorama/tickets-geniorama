@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getRequiredSession, requireRole, isStaff } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
+import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { addFileAttachments, deleteAttachment as removeAttachment } from "@/lib/attachments";
 
 export async function addAttachment(ticketId: string, formData: FormData) {
@@ -31,7 +32,7 @@ export async function addAttachment(ticketId: string, formData: FormData) {
 }
 
 export async function deleteAttachment(attachmentId: string, ticketId: string) {
-  const session = await requireRole(["ADMINISTRADOR"]);
+  const session = await requireCan("TICKETS", "gestionar");
 
   const { error } = await removeAttachment(
     attachmentId,

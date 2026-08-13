@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { requireRole } from "@/lib/auth-helpers";
+import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { TicketEditForm } from "@/components/tickets/ticket-edit-form";
 import { BackButton } from "@/components/ui/back-button";
@@ -15,7 +15,7 @@ export default async function EditTicketPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("TICKETS", "gestionar");
   const { id } = await params;
 
   const [ticket, collaborators, clients, plans, sites, reviewerCandidates] = await Promise.all([

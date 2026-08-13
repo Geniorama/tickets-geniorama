@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { requireCan } from "@/lib/access/can";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getRequiredSession, requireRole, isStaff } from "@/lib/auth-helpers";
+import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
 import { getClientActivePlan } from "@/lib/plans.server";
 import { notify, notifyMany } from "@/lib/notify";
@@ -359,7 +360,7 @@ export async function updateTicketStatus(ticketId: string, status: string) {
 }
 
 export async function assignTicket(ticketId: string, userId: string | null) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("TICKETS", "gestionar");
 
   if (userId) {
     const assignee = await prisma.user.findUnique({
@@ -400,7 +401,7 @@ export async function assignTicket(ticketId: string, userId: string | null) {
 }
 
 export async function updateTicket(ticketId: string, formData: FormData) {
-  const session = await requireRole(["ADMINISTRADOR"]);
+  const session = await requireCan("TICKETS", "gestionar");
 
   const schema = z.object({
     title: z.string().min(1, "El título es requerido").max(200),
@@ -608,7 +609,7 @@ export async function configureTicket(ticketId: string, formData: FormData) {
 }
 
 export async function deleteTicket(ticketId: string) {
-  await requireRole(["ADMINISTRADOR"]);
+  await requireCan("TICKETS", "gestionar");
 
   // Comentarios y adjuntos son polimórficos: no hay clave foránea que los borre
   // en cascada, así que se eliminan explícitamente junto con el ticket.

@@ -1,5 +1,5 @@
-import { requireRole } from "@/lib/auth-helpers";
 import { TicketTemplateForm } from "@/components/tickets/ticket-template-form";
+import { requireRole } from "@/lib/auth-helpers";
 import { BackButton } from "@/components/ui/back-button";
 
 export const metadata = { title: "Nueva plantilla de ticket" };

@@ -9,6 +9,33 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.57.0] — 2026-08-12
+
+### Tickets: se migra lo que el modelo puede gobernar, y se documenta lo que no
+
+Cuarto y último módulo, migrado **parcialmente y a propósito**.
+
+Pasan a `requireCan("TICKETS", "gestionar")` los **5 puntos exclusivos de administrador**: editar ticket, asignar, borrar, actualizar desde el formulario y eliminar adjuntos.
+
+#### Por qué las plantillas se quedan como estaban
+
+Los **clientes tienen nivel Miembro** en Tickets, y lo necesitan: es lo que les permite abrir tickets. Eso los hace **indistinguibles de los colaboradores** con las capacidades `crear` y `editar`, y deja las plantillas de ticket sin una capacidad que las gobierne:
+
+- con `editar`, entrarían los **30 clientes**;
+- con `gestionar`, saldrían los **7 colaboradores** que hoy las usan.
+
+Ninguna de las dos es aceptable, así que las tres páginas de plantillas siguen con `requireRole`. Es una limitación del modelo, no un descuido: el eje de niveles no distingue «equipo» de «cliente» cuando ambos comparten nivel dentro de un módulo.
+
+Se resolverá cuando exista una capacidad intermedia —algo como `configurar`, entre Miembro y Gestor— para las pantallas internas de un módulo abierto a clientes. Es un cambio que afecta a toda la capa y no corresponde a esta entrega.
+
+#### Sin migrar, por la misma razón
+
+Las comprobaciones `isStaff` de `ticket.actions`, `comment.actions`, `time.actions` y `ticket-template.actions` separan equipo de cliente, que es justo lo que el nivel no puede hacer aquí. Se quedan.
+
+Nadie gana ni pierde acceso.
+
+---
+
 ## [1.56.0] — 2026-08-13
 
 ### El body de n8n se reduce a tres campos y un enlace
