@@ -6,6 +6,7 @@ import { OverdueAlertLoader } from "@/components/layout/overdue-alert-loader";
 import { TimerProvider } from "@/providers/timer-provider";
 import type { ActiveTimer } from "@/providers/timer-provider";
 import { findRunningTimerForUser } from "@/lib/time-entries";
+import { getAccessibleApps, getGrants } from "@/lib/access/can";
 
 // Evitar que Next.js cachee el layout protegido en el cliente.
 // Sin esto, después del logout el router cache puede servir el dashboard
@@ -21,7 +22,7 @@ export default async function DashboardLayout({
   const userId = session.user.id;
 
   // Queries ligeras: count + findFirst — no bloquean significativamente
-  const [unreadCount, runningTimer, me] = await Promise.all([
+  const [unreadCount, runningTimer, me, apps, levels] = await Promise.all([
     prisma.notification.count({
       where: { userId, isRead: false },
     }),
@@ -32,6 +33,8 @@ export default async function DashboardLayout({
       where: { id: userId },
       select: { avatarUrl: true },
     }),
+    getAccessibleApps(session.user),
+    getGrants(userId),
   ]);
 
   const initialTimers: ActiveTimer[] = runningTimer
@@ -50,6 +53,8 @@ export default async function DashboardLayout({
     <TimerProvider initialTimers={initialTimers}>
       <DashboardShell
         role={session.user.role}
+        apps={apps}
+        levels={levels}
         user={session.user}
         avatarUrl={me?.avatarUrl ?? null}
         unreadCount={unreadCount}

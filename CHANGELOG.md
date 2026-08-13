@@ -9,6 +9,37 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.59.0] — 2026-08-12
+
+### Fase 2: selector de módulos y menú contextual
+
+El menú lateral deja de ser una lista plana de 18 ítems. Ahora hay un **selector de módulos** arriba, las **secciones del módulo activo** en medio y las **herramientas transversales** abajo. El menú ya no crece al añadir una app: crece el selector.
+
+#### Qué cambia al usar la app
+
+- **Selector de módulos.** Se abre centrado en pantalla, con tarjetas grandes que incluyen icono, nombre y descripción — dentro del menú, en 240px de ancho, resultaban ilegibles. Muestra solo lo concedido: lo que no aparece es porque no se tiene acceso, nunca en gris ni con candado. El CRM sí aparece, señalado como «Próximamente», porque está declarado pero sin construir.
+- **El inicio es la casa.** En `/dashboard` no hay módulo activo: es el punto neutro desde el que se elige a dónde ir. Volver ahí no deja el menú «pegado» al último sitio visitado.
+- **Menú contextual.** Estando en Proyectos se ven sus secciones (proyectos, tareas, plantillas, recurrentes, reportes) y no las de Tickets. De 18 ítems planos se pasa a 5–6 por módulo.
+- **Herramientas siempre visibles.** Inicio, Panel, Asistente, Bóveda, Agendar, Integraciones y Novedades no pertenecen a ningún módulo. Entrar a la Bóveda desde Proyectos **no** cambia el módulo activo: se puede volver sin pasar por el selector.
+
+#### Nota técnica: por qué el selector va en un portal
+
+El `<aside>` aplica un `transform` para deslizarse en móvil, y eso crea un contexto de apilamiento propio: cualquier panel dentro queda confinado, por alto que sea su `z-index`. El selector se renderiza con `createPortal` a `document.body`, fuera de ese contexto, así que se superpone correctamente a todo el contenido.
+
+#### El menú respeta los niveles, no solo el rol
+
+Cada sección declara el nivel que necesita. Sin eso, alguien con nivel Lectura en Proyectos vería «Plantillas» y al pulsarlo acabaría en el dashboard. Ahora esos enlaces sencillamente no se ofrecen.
+
+#### Consecuencia conocida: el tour pierde pasos
+
+El tour guiado apunta a rutas del menú (`/tickets`, `/tareas`, `/mis-empresas`…) que ya no están visibles a la vez. No se rompe —filtra los pasos cuyo elemento no existe— pero muestra menos. Adaptarlo para que use el lanzador es trabajo aparte; el lanzador ya expone `data-tour-id="app-launcher"` para ello.
+
+#### Fuera de alcance
+
+El buscador global ⌘K y el inicio unificado del plan original quedan para más adelante: son funciones nuevas, no reorganización de lo que ya existe.
+
+---
+
 ## [1.58.0] — 2026-08-12
 
 ### Limpieza: se eliminan las 19 tablas del esquema antiguo

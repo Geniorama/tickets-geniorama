@@ -5,84 +5,46 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import type { Role } from "@/generated/prisma";
+import type { AccessLevel, AppKey, Role } from "@/generated/prisma";
+import { LEVEL_ORDER } from "@/lib/access/apps";
 import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard, Ticket, Building2, Users, BookOpen, CreditCard,
-  BarChart3, FolderKanban, ListTodo, TrendingUp, ChevronDown, Server as ServerIcon, Globe, KeyRound, Plug, Sparkles,
-  ChevronsLeft, ChevronsRight, Repeat, Webhook, LayoutList, LayoutTemplate, Bot, CalendarClock,
-} from "lucide-react";
+import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import { AppLauncher } from "./app-launcher";
+import { APP_SECTIONS, ALWAYS_VISIBLE, appForPath, type NavCapability, type NavSection } from "./nav-config";
 
-type NavChild = {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  roles: readonly string[];
+/** Mismo umbral que `can()` en el servidor. */
+const REQUIRED_LEVEL: Record<NavCapability, AccessLevel> = {
+  ver: "LECTURA", crear: "MIEMBRO", editar: "MIEMBRO", gestionar: "GESTOR",
 };
-
-type NavItem = {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  roles: readonly string[];
-  children?: NavChild[];
-};
-
-const navItems: NavItem[] = [
-  { href: "/dashboard",          label: "Dashboard",     icon: LayoutDashboard, roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"] },
-  { href: "/panel",              label: "Panel",         icon: LayoutList,      roles: ["ADMINISTRADOR", "COLABORADOR"] },
-  { href: "/asistente",          label: "Asistente IA",  icon: Bot,             roles: ["ADMINISTRADOR", "COLABORADOR"] },
-  {
-    href: "/tickets",            label: "Tickets",        icon: Ticket,          roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"],
-    children: [
-      { href: "/tickets/plantillas", label: "Plantillas",  icon: LayoutTemplate, roles: ["ADMINISTRADOR", "COLABORADOR"] },
-      { href: "/reportes",       label: "Reportes",       icon: BarChart3,       roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"] },
-    ],
-  },
-  {
-    href: "/proyectos",          label: "Proyectos",      icon: FolderKanban,    roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"],
-    children: [
-      { href: "/proyectos/reportes", label: "Reportes",   icon: BarChart3,       roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"] },
-    ],
-  },
-  {
-    href: "/tareas",             label: "Tareas",         icon: ListTodo,        roles: ["ADMINISTRADOR", "COLABORADOR"],
-    children: [
-      { href: "/tareas/plantillas",        label: "Plantillas",  icon: LayoutTemplate, roles: ["ADMINISTRADOR", "COLABORADOR"] },
-      { href: "/admin/tareas-recurrentes", label: "Recurrentes", icon: Repeat,         roles: ["ADMINISTRADOR"] },
-    ],
-  },
-  { href: "/boveda",             label: "Bóveda",         icon: KeyRound,        roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"] },
-  { href: "/agendar",            label: "Agendar",        icon: CalendarClock,   roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"] },
-  { href: "/mis-empresas",       label: "Mis empresas",   icon: Building2,       roles: ["CLIENTE"] },
-  { href: "/mis-planes",         label: "Mis planes",     icon: CreditCard,      roles: ["CLIENTE"] },
-  { href: "/mis-servicios",      label: "Mis servicios",  icon: ServerIcon,      roles: ["CLIENTE"] },
-  { href: "/admin/companies",    label: "Empresas",       icon: Building2,       roles: ["ADMINISTRADOR"] },
-  { href: "/admin/sitios",       label: "Sitios y apps",  icon: Globe,           roles: ["ADMINISTRADOR", "COLABORADOR"] },
-  { href: "/admin/servicios",    label: "Servicios",      icon: ServerIcon,      roles: ["ADMINISTRADOR", "COLABORADOR"] },
-  { href: "/admin/users",        label: "Usuarios",       icon: Users,           roles: ["ADMINISTRADOR"] },
-  { href: "/admin/estadisticas", label: "Productividad",  icon: TrendingUp,      roles: ["ADMINISTRADOR"] },
-  { href: "/admin/plans",        label: "Planes",         icon: BookOpen,        roles: ["ADMINISTRADOR"] },
-  {
-    href: "/integraciones",       label: "Integraciones", icon: Webhook,         roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"],
-    children: [
-      { href: "/admin/integraciones", label: "Equipo",     icon: Plug,           roles: ["ADMINISTRADOR"] },
-    ],
-  },
-  { href: "/novedades",           label: "Novedades",     icon: Sparkles,        roles: ["ADMINISTRADOR", "COLABORADOR", "CLIENTE"] },
-];
 
 const LOGO_DARK  = "https://i.imgur.com/pTemb33.png";
 const LOGO_LIGHT = "https://i.imgur.com/BFg780c.png";
 
+/**
+ * Menú lateral contextual.
+ *
+ * En vez de una lista plana con todo, muestra el lanzador de módulos arriba,
+ * las secciones del módulo activo en medio y las herramientas transversales
+ * abajo. Así el menú no crece cuando se añade una app: crece el lanzador.
+ *
+ * El módulo activo se deduce de la ruta. Las rutas transversales (Bóveda,
+ * Agendar…) no lo cambian: entrar a la Bóveda desde Proyectos te deja en
+ * Proyectos, para poder volver sin pasar por el lanzador.
+ */
 export function Sidebar({
   role,
+  apps,
+  levels,
   isOpen = false,
   onClose,
   collapsed = false,
   onToggleCollapsed,
 }: {
   role: Role;
+  /** Módulos concedidos, resueltos en servidor por `getAccessibleApps`. */
+  apps: AppKey[];
+  /** Nivel efectivo por módulo, para no ofrecer enlaces que redirigirían. */
+  levels: Partial<Record<AppKey, AccessLevel>>;
   isOpen?: boolean;
   onClose?: () => void;
   collapsed?: boolean;
@@ -90,52 +52,95 @@ export function Sidebar({
 }) {
   const pathname  = usePathname();
   const { theme } = useTheme();
-  const [mounted, setMounted]         = useState(false);
-  const [openMenus, setOpenMenus]     = useState<Record<string, boolean>>({});
+  const [mounted, setMounted] = useState(false);
+  // Se recuerda el último módulo visitado para que las páginas transversales
+  // no dejen el menú vacío.
+  const [lastApp, setLastApp] = useState<AppKey | null>(null);
 
   useEffect(() => setMounted(true), []);
 
-  // Auto-open parent if a child is active
+  const appFromPath = appForPath(pathname);
+  // El inicio es la casa: punto neutro desde el que se elige módulo. Volver
+  // ahí no deja el menú «pegado» al último sitio donde estuviste.
+  const enInicio = pathname === "/dashboard";
+
   useEffect(() => {
-    const auto: Record<string, boolean> = {};
-    for (const item of navItems) {
-      if (item.children?.some((c) => pathname === c.href || pathname.startsWith(c.href + "/"))) {
-        auto[item.href] = true;
-      }
-    }
-    setOpenMenus((prev) => ({ ...prev, ...auto }));
-  }, [pathname]);
+    if (appFromPath && apps.includes(appFromPath)) setLastApp(appFromPath);
+    else if (pathname === "/dashboard") setLastApp(null);
+  }, [appFromPath, apps, pathname]);
+
+  // Las demás rutas transversales (Bóveda, Agendar…) sí conservan el módulo
+  // activo, para poder volver sin pasar por el lanzador.
+  const activeApp: AppKey | null = enInicio
+    ? null
+    : (appFromPath && apps.includes(appFromPath) ? appFromPath : null) ?? lastApp;
 
   const logoSrc = mounted && theme === "light" ? LOGO_LIGHT : LOGO_DARK;
 
-  function toggle(href: string) {
-    setOpenMenus((prev) => ({ ...prev, [href]: !prev[href] }));
-  }
+  const visible = (s: NavSection) => !s.roles || s.roles.includes(role);
 
-  const visible = (item: NavItem | NavChild) =>
-    (item.roles as readonly string[]).includes(role);
+  /** Además del rol, el nivel dentro del módulo activo. */
+  const permitido = (s: NavSection) => {
+    if (!visible(s)) return false;
+    if (!s.requires || !activeApp) return true;
+    const nivel = levels[activeApp] ?? "SIN_ACCESO";
+    return LEVEL_ORDER[nivel] >= LEVEL_ORDER[REQUIRED_LEVEL[s.requires]];
+  };
+
+  const sections = (activeApp ? APP_SECTIONS[activeApp] ?? [] : []).filter(permitido);
+  const tools = ALWAYS_VISIBLE.filter(visible);
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+
+  function renderLink(item: NavSection) {
+    const Icon = item.icon;
+    const active = isActive(item.href);
+    return (
+      <li key={item.href}>
+        <Link
+          href={item.href}
+          data-tour-id={item.href}
+          title={collapsed ? item.label : undefined}
+          className={cn(
+            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+            collapsed && "lg:justify-center lg:px-2 lg:gap-0",
+          )}
+          style={active ? { backgroundColor: "#fd1384", color: "#ffffff" } : { color: "var(--app-nav-text)" }}
+          onClick={onClose}
+          onMouseEnter={(e) => {
+            if (!active) {
+              e.currentTarget.style.backgroundColor = "var(--app-nav-hover-bg)";
+              e.currentTarget.style.color = "var(--app-body-text)";
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!active) {
+              e.currentTarget.style.backgroundColor = "transparent";
+              e.currentTarget.style.color = "var(--app-nav-text)";
+            }
+          }}
+        >
+          <Icon className="w-4 h-4 shrink-0" style={{ color: active ? "#ffffff" : "var(--app-icon-color)" }} />
+          <span className={cn(collapsed && "lg:hidden")}>{item.label}</span>
+        </Link>
+      </li>
+    );
+  }
 
   return (
     <aside
       className={cn(
         "w-60 flex flex-col shrink-0 transition-all duration-300 ease-in-out",
-        // Mobile: overlay fijo, se desliza desde la izquierda
         "fixed inset-y-0 left-0 z-40",
-        // Desktop: vuelve al flujo normal del documento
         "lg:static lg:inset-auto lg:z-auto lg:translate-x-0",
-        // Visibilidad en móvil controlada por isOpen
         !isOpen && "-translate-x-full lg:translate-x-0",
-        // Colapso solo en desktop
         collapsed && "lg:w-16",
       )}
       style={{ backgroundColor: "var(--app-sidebar-bg)" }}
     >
       {/* Logo */}
       <div
-        className={cn(
-          "h-14 flex items-center justify-between",
-          collapsed ? "px-3 lg:px-2 lg:justify-center" : "px-5",
-        )}
+        className={cn("h-14 flex items-center justify-between", collapsed ? "px-3 lg:px-2 lg:justify-center" : "px-5")}
         style={{ borderBottom: "1px solid var(--app-border)" }}
       >
         <Image
@@ -155,7 +160,6 @@ export function Sidebar({
             G
           </span>
         )}
-        {/* Botón cerrar — solo en móvil */}
         <button
           className="lg:hidden p-1 rounded-lg"
           onClick={onClose}
@@ -166,132 +170,40 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* Nav */}
-      <nav className={cn("flex-1", collapsed ? "p-3 lg:p-2" : "p-3")}>
-        <ul className="space-y-1">
-          {navItems.filter(visible).map((item) => {
-            const Icon         = item.icon;
-            const visibleKids  = item.children?.filter(visible) ?? [];
-            const hasChildren  = visibleKids.length > 0;
-            const parentActive = pathname === item.href || pathname.startsWith(item.href + "/");
-            const childActive  = visibleKids.some((c) => pathname === c.href || pathname.startsWith(c.href + "/"));
-            const isOpen       = openMenus[item.href] ?? false;
+      {/* Lanzador de módulos */}
+      <div className={cn("px-3 pt-3", collapsed && "lg:px-2")} data-tour-id="app-launcher">
+        <AppLauncher apps={apps} activeApp={activeApp} collapsed={collapsed} />
+      </div>
 
-            // Parent is "highlighted" only when on its own route (not a child's)
-            const selfActive = parentActive && !childActive;
+      {/* Secciones del módulo activo */}
+      <nav className={cn("flex-1 overflow-y-auto", collapsed ? "p-3 lg:p-2" : "p-3")}>
+        {sections.length > 0 && (
+          <ul className="space-y-1">{sections.map(renderLink)}</ul>
+        )}
 
-            return (
-              <li key={item.href}>
-                {/* Parent row */}
-                <div className="flex items-stretch">
-                  <Link
-                    href={item.href}
-                    data-tour-id={item.href}
-                    title={collapsed ? item.label : undefined}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all flex-1",
-                      collapsed && "lg:justify-center lg:px-2 lg:gap-0",
-                    )}
-                    style={selfActive ? { backgroundColor: "#fd1384", color: "#ffffff" } : { color: "var(--app-nav-text)" }}
-                    onClick={onClose}
-                    onMouseEnter={(e) => {
-                      if (!selfActive) {
-                        e.currentTarget.style.backgroundColor = "var(--app-nav-hover-bg)";
-                        e.currentTarget.style.color = "var(--app-body-text)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!selfActive) {
-                        e.currentTarget.style.backgroundColor = "transparent";
-                        e.currentTarget.style.color = "var(--app-nav-text)";
-                      }
-                    }}
-                  >
-                    <Icon
-                      className="w-4 h-4 shrink-0"
-                      style={{ color: selfActive ? "#ffffff" : "var(--app-icon-color)" }}
-                    />
-                    <span className={cn(collapsed && "lg:hidden")}>{item.label}</span>
-                  </Link>
-
-                  {/* Chevron toggle */}
-                  {hasChildren && (
-                    <button
-                      onClick={() => toggle(item.href)}
-                      aria-label="Expandir"
-                      className={cn(
-                        "flex items-center rounded-lg",
-                        collapsed && "lg:hidden",
-                      )}
-                      style={{
-                        background: "none",
-                        border: "none",
-                        cursor: "pointer",
-                        padding: "0 0.5rem",
-                        color: "var(--app-icon-color)",
-                        transition: "color 0.15s",
-                      }}
-                    >
-                      <ChevronDown
-                        className="w-3.5 h-3.5"
-                        style={{
-                          transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
-                          transition: "transform 0.2s",
-                        }}
-                      />
-                    </button>
+        {/* Separador y rótulo solo cuando hay secciones encima que separar. */}
+        {tools.length > 0 && (
+          <>
+            {sections.length > 0 && (
+              <>
+                <div
+                  className={cn("mx-3 my-3", collapsed && "lg:mx-1")}
+                  style={{ borderTop: "1px solid var(--app-border)" }}
+                />
+                <p
+                  className={cn(
+                    "px-3 pb-1.5 text-[0.6875rem] font-bold uppercase tracking-wider",
+                    collapsed && "lg:hidden",
                   )}
-                </div>
-
-                {/* Children — ocultos cuando el sidebar está colapsado en desktop */}
-                {hasChildren && isOpen && (
-                  <ul
-                    className={cn(
-                      "flex flex-col gap-0.5 mt-0.5 ml-4 pl-3",
-                      collapsed && "lg:hidden",
-                    )}
-                    style={{
-                      borderLeft: "1px solid var(--app-border)",
-                    }}
-                  >
-                    {visibleKids.map((child) => {
-                      const ChildIcon   = child.icon;
-                      const childActive = pathname === child.href || pathname.startsWith(child.href + "/");
-                      return (
-                        <li key={child.href}>
-                          <Link
-                            href={child.href}
-                            className={cn("flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all")}
-                            style={childActive ? { backgroundColor: "#fd1384", color: "#ffffff" } : { color: "var(--app-nav-text)" }}
-                            onClick={onClose}
-                            onMouseEnter={(e) => {
-                              if (!childActive) {
-                                e.currentTarget.style.backgroundColor = "var(--app-nav-hover-bg)";
-                                e.currentTarget.style.color = "var(--app-body-text)";
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (!childActive) {
-                                e.currentTarget.style.backgroundColor = "transparent";
-                                e.currentTarget.style.color = "var(--app-nav-text)";
-                              }
-                            }}
-                          >
-                            <ChildIcon
-                              className="w-3.5 h-3.5 shrink-0"
-                              style={{ color: childActive ? "#ffffff" : "var(--app-icon-color)" }}
-                            />
-                            {child.label}
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                  style={{ color: "var(--app-footer-text)" }}
+                >
+                  Herramientas
+                </p>
+              </>
+            )}
+            <ul className="space-y-1">{tools.map(renderLink)}</ul>
+          </>
+        )}
       </nav>
 
       {/* Toggle colapso (solo desktop) */}
@@ -302,7 +214,10 @@ export function Sidebar({
           aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
           title={collapsed ? "Expandir menú" : "Colapsar menú"}
           className="hidden lg:flex items-center gap-2 px-3 py-2 mx-3 mb-2 rounded-lg text-xs font-medium transition-colors"
-          style={{ color: "var(--app-nav-text)", backgroundColor: "transparent", border: "none", cursor: "pointer", justifyContent: collapsed ? "center" : "flex-start" }}
+          style={{
+            color: "var(--app-nav-text)", backgroundColor: "transparent", border: "none",
+            cursor: "pointer", justifyContent: collapsed ? "center" : "flex-start",
+          }}
           onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--app-nav-hover-bg)"; e.currentTarget.style.color = "var(--app-body-text)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; e.currentTarget.style.color = "var(--app-nav-text)"; }}
         >
@@ -318,14 +233,8 @@ export function Sidebar({
       )}
 
       {/* Footer */}
-      <div
-        className={cn("p-4", collapsed && "lg:px-2 lg:py-3")}
-        style={{ borderTop: "1px solid var(--app-border)" }}
-      >
-        <p
-          className={cn("text-xs text-center", collapsed && "lg:hidden")}
-          style={{ color: "var(--app-footer-text)" }}
-        >
+      <div className={cn("p-4", collapsed && "lg:px-2 lg:py-3")} style={{ borderTop: "1px solid var(--app-border)" }}>
+        <p className={cn("text-xs text-center", collapsed && "lg:hidden")} style={{ color: "var(--app-footer-text)" }}>
           Sistema de Tickets
         </p>
         <p className="text-xs text-center mt-0.5" style={{ color: "var(--app-footer-text)", opacity: 0.5 }}>
