@@ -5,7 +5,7 @@ import { GChatIntegrations } from "@/components/admin/gchat-integrations";
 import { BriefRoutings } from "@/components/admin/brief-routings";
 import { MessageSquare } from "lucide-react";
 
-export const metadata = { title: "Integraciones" };
+export const metadata = { title: "Integraciones del equipo" };
 
 const KEYS = [
   "gchat_webhook_tickets",
@@ -31,7 +31,7 @@ export default async function IntegracionesPage() {
         <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.375rem" }}>
           <MessageSquare style={{ width: "1.25rem", height: "1.25rem", color: "#6366f1" }} />
           <h1 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, color: "var(--app-body-text)" }}>
-            Integraciones
+            Integraciones del equipo
           </h1>
         </div>
         <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--app-text-muted)" }}>

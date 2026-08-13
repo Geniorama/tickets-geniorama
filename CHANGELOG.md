@@ -9,6 +9,23 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.59.1] — 2026-08-12
+
+### Corrige: las dos «Integraciones» eran indistinguibles
+
+Tras la v1.59.0 no se encontraba la configuración de n8n. Hay dos pantallas distintas que se llamaban igual:
+
+- `/integraciones` — los webhooks personales de cada usuario.
+- `/admin/integraciones` — Google Chat y el enrutamiento de briefs de n8n.
+
+En el menú anterior estaban anidadas (una colgaba de la otra como «Equipo»), así que se distinguían por la jerarquía. Al reorganizar en menú contextual quedaron en sitios separados con el mismo nombre, y la de Herramientas —la personal— es la que se ve siempre.
+
+Ahora se llaman **«Mis integraciones»** y **«Integraciones del equipo»**, tanto en el menú como en el encabezado de cada página, que también decían «Integraciones» a secas.
+
+La de n8n vive en el módulo **Administración**, donde corresponde por ser configuración de administrador.
+
+---
+
 ## [1.59.0] — 2026-08-12
 
 ### Fase 2: selector de módulos y menú contextual

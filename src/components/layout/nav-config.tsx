@@ -74,7 +74,7 @@ export const APP_SECTIONS: Record<AppKey, NavSection[]> = {
     { href: "/admin/companies",     label: "Empresas",      icon: Building2, requires: "gestionar" },
     { href: "/admin/plans",         label: "Planes",        icon: BookOpen, requires: "gestionar" },
     { href: "/admin/estadisticas",  label: "Productividad", icon: TrendingUp, requires: "gestionar" },
-    { href: "/admin/integraciones", label: "Integraciones", icon: Plug, requires: "gestionar" },
+    { href: "/admin/integraciones", label: "Integraciones del equipo", icon: Plug, requires: "gestionar" },
   ],
   // Sin secciones mientras el módulo no exista: el lanzador lo muestra
   // deshabilitado.
@@ -91,7 +91,7 @@ export const ALWAYS_VISIBLE: NavSection[] = [
   { href: "/asistente",    label: "Asistente IA", icon: Bot,           roles: STAFF },
   { href: "/boveda",       label: "Bóveda",       icon: KeyRound },
   { href: "/agendar",      label: "Agendar",      icon: CalendarClock },
-  { href: "/integraciones",label: "Integraciones",icon: Webhook },
+  { href: "/integraciones",label: "Mis integraciones", icon: Webhook },
   { href: "/novedades",    label: "Novedades",    icon: Sparkles },
 ];
 
