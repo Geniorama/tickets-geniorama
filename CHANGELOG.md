@@ -9,6 +9,16 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.60.1] — 2026-08-14
+
+### Los formularios de plantilla no decían qué campos son obligatorios
+
+Al crear o editar una plantilla —de tarea o de ticket— no había forma de saber qué hacía falta rellenar hasta que el formulario devolvía el error al guardar.
+
+Ahora **nombre, título, descripción y prioridad** llevan el asterisco rojo de obligatorio, y **categoría, tiempo estimado y checklist** dicen «(opcional)». Es la misma convención que ya usaban los formularios de sitios y de tareas.
+
+---
+
 ## [1.60.0] — 2026-08-14
 
 ### Las plantillas se pueden generar con IA

@@ -90,7 +90,7 @@ export function TicketTemplateForm({ template }: { template?: TicketTemplateData
       {/* Se remonta al aplicar un borrador de IA: los campos son no controlados. */}
       <div key={draftKey} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         <div>
-          <label style={labelStyle}>Nombre de la plantilla</label>
+          <label style={labelStyle}>Nombre de la plantilla <span style={{ color: "#b91c1c" }}>*</span></label>
           <input
             name="name"
             required
@@ -101,7 +101,7 @@ export function TicketTemplateForm({ template }: { template?: TicketTemplateData
         </div>
 
         <div>
-          <label style={labelStyle}>Título del ticket</label>
+          <label style={labelStyle}>Título del ticket <span style={{ color: "#b91c1c" }}>*</span></label>
           <input
             name="title"
             required
@@ -112,7 +112,7 @@ export function TicketTemplateForm({ template }: { template?: TicketTemplateData
         </div>
 
         <div>
-          <label style={labelStyle}>Descripción</label>
+          <label style={labelStyle}>Descripción <span style={{ color: "#b91c1c" }}>*</span></label>
           <MarkdownEditor
             name="description"
             defaultValue={values.description}
@@ -122,7 +122,7 @@ export function TicketTemplateForm({ template }: { template?: TicketTemplateData
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
           <div>
-            <label style={labelStyle}>Prioridad</label>
+            <label style={labelStyle}>Prioridad <span style={{ color: "#b91c1c" }}>*</span></label>
             <select name="priority" defaultValue={values.priority} style={inputStyle}>
               <option value="BAJA">Baja</option>
               <option value="MEDIA">Media</option>
@@ -131,7 +131,7 @@ export function TicketTemplateForm({ template }: { template?: TicketTemplateData
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Categoría</label>
+            <label style={labelStyle}>Categoría <span style={{ fontWeight: 400, color: "var(--app-text-muted)" }}>(opcional)</span></label>
             <select name="category" defaultValue={values.category} style={inputStyle}>
               <option value="">Sin categoría</option>
               {values.category && !TICKET_CATEGORIES.includes(values.category) && (
