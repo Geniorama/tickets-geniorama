@@ -9,6 +9,30 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.60.0] — 2026-08-14
+
+### Las plantillas se pueden generar con IA
+
+Crear una plantilla obligaba a escribir a mano el título, la descripción, la categoría, el tiempo estimado y cada ítem del checklist. Ahora, encima del formulario —tanto en plantillas de **tarea** como de **ticket**— hay un panel **«Generar plantilla con IA»**: se describe el trabajo en una o dos frases y la IA rellena todos los campos.
+
+#### Qué hace
+
+- **Un solo campo de entrada.** «Publicación mensual de Instagram para un cliente de retail: briefing, diseño, copys, aprobación y programación» basta para obtener nombre, título, descripción en Markdown, prioridad, categoría, estimación de tiempo (en tareas) y un checklist por fases.
+- **Nada se guarda solo.** El resultado prellena el formulario como un borrador: se revisa, se ajusta lo que haga falta y se guarda con el botón de siempre. La IA propone, no decide.
+- **Pensado para plantillas, no para casos sueltos.** El prompt le pide explícitamente que no invente clientes ni fechas: cuando hace falta un dato variable usa marcadores como `[Cliente]` o `[Mes]`.
+- **Categorías reales.** Solo puede elegir entre las categorías del selector; si devuelve cualquier otra cosa, se descarta y queda «Sin categoría». Lo mismo con la prioridad.
+- **Gemini u OpenAI.** El mismo selector de modelo que ya usa el planificador, con los mismos permisos que exige crear la plantilla a mano.
+
+Al **editar** una plantilla existente el panel arranca plegado y avisa de que generar reemplaza lo que ya hay en el formulario.
+
+#### Por dentro
+
+- `src/actions/template-ai.actions.ts` — acción `generateTemplateDraft`, que reusa `runStructuredJson` (salida JSON con esquema) y no toca base de datos.
+- `src/components/ui/ai-template-generator.tsx` — el panel, compartido por los dos formularios.
+- `src/lib/ticket-categories.ts` — las categorías de ticket dejan de estar escritas dentro del formulario para poder ofrecérselas también a la IA.
+
+---
+
 ## [1.59.1] — 2026-08-12
 
 ### Corrige: las dos «Integraciones» eran indistinguibles
