@@ -47,6 +47,7 @@ export function TaskDetail({
   totalComments = task.comments.length,
   projects = [],
   checklistSlot,
+  checklistItemCount = 0,
   canOpenProject = true,
 }: {
   task: TaskWithDetails;
@@ -54,6 +55,8 @@ export function TaskDetail({
   totalComments?: number;
   projects?: { id: string; name: string }[];
   checklistSlot?: React.ReactNode;
+  /** Ítems de checklist de la tarea; habilita la opción de copiarlos al duplicar. */
+  checklistItemCount?: number;
   /** false cuando el usuario llega a la tarea pero no puede abrir el proyecto
       (cliente mencionado en una tarea de un proyecto privado). */
   canOpenProject?: boolean;
@@ -251,6 +254,7 @@ export function TaskDetail({
                           <DuplicateTaskButton
                             taskId={task.id}
                             projectId={task.project?.id ?? null}
+                            checklistItemCount={checklistItemCount}
                             menuItemStyle
                           />
                         )}

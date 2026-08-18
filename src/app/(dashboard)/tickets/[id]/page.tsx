@@ -131,6 +131,7 @@ export default async function TicketPage({
             canDelete={admin}
           />
         }
+        checklistItemCount={checklists.reduce((n, c) => n + c.items.length, 0)}
       />
       {supportSchedulingAvailable && (
         <div className="mt-6">

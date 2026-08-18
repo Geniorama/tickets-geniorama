@@ -21,7 +21,7 @@ import {
   deleteAttachment,
   deleteAttachmentsFor,
 } from "@/lib/attachments";
-import { createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
+import { copyChecklists, createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
 import { deleteTimeEntriesFor, startTimer, stopRunningForEntity } from "@/lib/time-entries";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
@@ -636,7 +636,11 @@ export async function moveTask(taskId: string, fromProjectId: string, toProjectI
 
 // ─── duplicateTask ─────────────────────────────────────────────────────────────
 
-export async function duplicateTask(taskId: string, projectId: string | null) {
+export async function duplicateTask(
+  taskId: string,
+  projectId: string | null,
+  includeChecklists = false,
+) {
   const session = await getRequiredSession();
   if (!(await can(session.user, "PROYECTOS", "crear"))) return { error: "Sin permisos" };
 
@@ -651,7 +655,7 @@ export async function duplicateTask(taskId: string, projectId: string | null) {
 
   const copy = await prisma.$transaction(async (tx) => {
     const count = await tx.task.count({ where: { projectId: original.projectId } });
-    return tx.task.create({
+    const created = await tx.task.create({
       data: {
         number:         count + 1,
         title:          `Copia de ${original.title}`,
@@ -665,6 +669,17 @@ export async function duplicateTask(taskId: string, projectId: string | null) {
         estimatedHours: original.estimatedHours,
       },
     });
+
+    if (includeChecklists) {
+      await copyChecklists(
+        { entityType: "TASK", entityId: taskId },
+        { entityType: "TASK", entityId: created.id },
+        session.user.id,
+        tx,
+      );
+    }
+
+    return created;
   });
 
   if (projectId) revalidatePath(`/proyectos/${projectId}`);

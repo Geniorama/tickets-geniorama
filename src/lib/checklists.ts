@@ -228,6 +228,50 @@ export async function createChecklistGroups(
 }
 
 /**
+ * Copia los checklists de una entidad a otra, conservando títulos, orden y
+ * ítems. Los ítems llegan sin marcar: la copia arranca de cero igual que su
+ * estado. Lo usan `duplicateTicket` y `duplicateTask`.
+ */
+export async function copyChecklists(
+  from: Entity,
+  to: Entity,
+  userId: string,
+  client: Prisma.TransactionClient | typeof prisma = prisma,
+) {
+  const source = await client.checklist.findMany({
+    where: from,
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+    select: {
+      title: true,
+      items: {
+        orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+        select: { title: true },
+      },
+    },
+  });
+
+  for (const [index, checklist] of source.entries()) {
+    await client.checklist.create({
+      data: {
+        ...to,
+        title: checklist.title,
+        position: index,
+        createdById: userId,
+        items: {
+          create: checklist.items.map((item, position) => ({
+            title: item.title,
+            position,
+            createdById: userId,
+          })),
+        },
+      },
+    });
+  }
+
+  return source.length;
+}
+
+/**
  * Reemplazo del borrado en cascada. Los ítems caen solos al irse el checklist.
  */
 export function deleteChecklistsFor(

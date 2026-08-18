@@ -131,6 +131,7 @@ export default async function TaskPage({
             readOnly={client}
           />
         }
+        checklistItemCount={checklists.reduce((n, c) => n + c.items.length, 0)}
       />
 
       {/* Configuración general del proyecto — interna, oculta para clientes */}

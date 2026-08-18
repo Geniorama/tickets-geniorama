@@ -4,22 +4,26 @@ import { useState, useTransition } from "react";
 import { Copy, Loader2 } from "lucide-react";
 import { duplicateTask } from "@/actions/task.actions";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DuplicateChecklistsOption } from "@/components/ui/duplicate-checklists-option";
 
 export function DuplicateTaskButton({
   taskId,
   projectId,
+  checklistItemCount = 0,
   menuItemStyle = false,
 }: {
   taskId: string;
   projectId: string | null;
+  checklistItemCount?: number;
   menuItemStyle?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [withChecklists, setWithChecklists] = useState(true);
   const [isPending, startTransition] = useTransition();
 
   function handleConfirm() {
     startTransition(async () => {
-      await duplicateTask(taskId, projectId);
+      await duplicateTask(taskId, projectId, checklistItemCount > 0 && withChecklists);
       setOpen(false);
     });
   }
@@ -87,7 +91,14 @@ export function DuplicateTaskButton({
         isPending={isPending}
         onConfirm={handleConfirm}
         onCancel={() => setOpen(false)}
-      />
+      >
+        <DuplicateChecklistsOption
+          itemCount={checklistItemCount}
+          checked={withChecklists}
+          disabled={isPending}
+          onChange={setWithChecklists}
+        />
+      </ConfirmDialog>
     </>
   );
 }

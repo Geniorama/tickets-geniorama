@@ -4,20 +4,24 @@ import { useState, useTransition } from "react";
 import { Copy, Loader2 } from "lucide-react";
 import { duplicateTicket } from "@/actions/ticket.actions";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { DuplicateChecklistsOption } from "@/components/ui/duplicate-checklists-option";
 
 export function DuplicateTicketButton({
   ticketId,
+  checklistItemCount = 0,
   className,
 }: {
   ticketId: string;
+  checklistItemCount?: number;
   className?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const [withChecklists, setWithChecklists] = useState(true);
   const [isPending, startTransition] = useTransition();
 
   function handleConfirm() {
     startTransition(async () => {
-      await duplicateTicket(ticketId);
+      await duplicateTicket(ticketId, checklistItemCount > 0 && withChecklists);
       setOpen(false);
     });
   }
@@ -74,7 +78,14 @@ export function DuplicateTicketButton({
         isPending={isPending}
         onConfirm={handleConfirm}
         onCancel={() => setOpen(false)}
-      />
+      >
+        <DuplicateChecklistsOption
+          itemCount={checklistItemCount}
+          checked={withChecklists}
+          disabled={isPending}
+          onChange={setWithChecklists}
+        />
+      </ConfirmDialog>
     </>
   );
 }

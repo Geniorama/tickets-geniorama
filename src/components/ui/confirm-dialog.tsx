@@ -12,6 +12,8 @@ interface ConfirmDialogProps {
   isPending?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  /** Contenido opcional entre el mensaje y los botones (opciones, avisos…). */
+  children?: React.ReactNode;
 }
 
 export function ConfirmDialog({
@@ -24,6 +26,7 @@ export function ConfirmDialog({
   isPending = false,
   onConfirm,
   onCancel,
+  children,
 }: ConfirmDialogProps) {
   useEffect(() => {
     if (!open) return;
@@ -75,6 +78,7 @@ export function ConfirmDialog({
         <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", margin: 0, lineHeight: 1.6 }}>
           {message}
         </p>
+        {children}
         <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.625rem", marginTop: "0.5rem" }}>
           <button
             onClick={onCancel}

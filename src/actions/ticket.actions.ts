@@ -16,7 +16,7 @@ import { parseChecklistGroups } from "@/lib/checklist";
 import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/reviewers";
 import { deleteCommentsFor } from "@/lib/comments";
 import { addFileAttachments, deleteAttachmentsFor } from "@/lib/attachments";
-import { createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
+import { copyChecklists, createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
 import { deleteTimeEntriesFor, stopRunningForEntity } from "@/lib/time-entries";
 import { deleteVaultLinksFor } from "@/lib/vault-links";
 
@@ -626,7 +626,7 @@ export async function deleteTicket(ticketId: string) {
   redirect("/tickets");
 }
 
-export async function duplicateTicket(ticketId: string) {
+export async function duplicateTicket(ticketId: string, includeChecklists = false) {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
@@ -654,7 +654,7 @@ export async function duplicateTicket(ticketId: string) {
       orderBy: { number: "desc" },
       select: { number: true },
     });
-    return tx.ticket.create({
+    const created = await tx.ticket.create({
       data: {
         title: `Copia de ${original.title}`,
         description: original.description,
@@ -670,6 +670,17 @@ export async function duplicateTicket(ticketId: string) {
         number: (last?.number ?? 0) + 1,
       },
     });
+
+    if (includeChecklists) {
+      await copyChecklists(
+        { entityType: "TICKET", entityId: ticketId },
+        { entityType: "TICKET", entityId: created.id },
+        session.user.id,
+        tx,
+      );
+    }
+
+    return created;
   });
 
   revalidatePath("/tickets");

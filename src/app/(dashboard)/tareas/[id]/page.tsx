@@ -88,6 +88,7 @@ export default async function GlobalTaskPage({
             canDelete={admin}
           />
         }
+        checklistItemCount={checklists.reduce((n, c) => n + c.items.length, 0)}
       />
     </div>
   );

@@ -72,6 +72,7 @@ export function TicketDetail({
   availableVaultEntries = [],
   collaborators = [],
   checklistSlot,
+  checklistItemCount = 0,
 }: {
   ticket: TicketWithDetails;
   session: Session;
@@ -80,6 +81,8 @@ export function TicketDetail({
   availableVaultEntries?: VaultEntry[];
   collaborators?: { id: string; name: string }[];
   checklistSlot?: React.ReactNode;
+  /** Ítems de checklist del ticket; habilita la opción de copiarlos al duplicar. */
+  checklistItemCount?: number;
 }) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -200,6 +203,7 @@ export function TicketDetail({
                         </Link>
                         <DuplicateTicketButton
                           ticketId={ticket.id}
+                          checklistItemCount={checklistItemCount}
                           className="flex w-full items-center gap-2 px-3 py-2 text-sm disabled:opacity-50"
                         />
                         <button

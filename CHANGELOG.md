@@ -9,6 +9,27 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.61.0] — 2026-08-18
+
+### Duplicar una tarea o un ticket ahora puede llevarse el checklist
+
+Duplicar copiaba el título, la descripción, la prioridad, la categoría y el responsable, pero dejaba fuera los checklists. En trabajos que se repiten —una publicación mensual, un mantenimiento— eso obligaba a reescribir a mano cada ítem en la copia.
+
+Ahora el diálogo de **Duplicar** —tanto en tareas como en tickets— incluye la casilla **«Copiar los checklists»**, con el total de ítems que se llevaría. Viene marcada por defecto.
+
+- **Se conserva la estructura.** Los checklists llegan a la copia con sus títulos y en el mismo orden, y los ítems dentro de cada uno también.
+- **Los ítems llegan sin marcar.** La copia arranca de cero, igual que su estado (Pendiente en tareas, Por asignar en tickets).
+- **Solo aparece si hay algo que copiar.** Si la tarea o el ticket no tiene checklists, el diálogo se ve como siempre.
+
+#### Por dentro
+
+- `src/lib/checklists.ts` — nueva función `copyChecklists(from, to, userId, client)`, que clona checklists e ítems entre dos entidades dentro de la misma transacción.
+- `duplicateTask` y `duplicateTicket` aceptan el parámetro `includeChecklists` y hacen la copia dentro de la transacción que crea la tarea o el ticket.
+- `ConfirmDialog` acepta `children`, para colocar opciones entre el mensaje y los botones.
+- `src/components/ui/duplicate-checklists-option.tsx` — la casilla compartida por ambos diálogos.
+
+---
+
 ## [1.60.1] — 2026-08-14
 
 ### Los formularios de plantilla no decían qué campos son obligatorios
