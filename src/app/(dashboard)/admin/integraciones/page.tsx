@@ -3,6 +3,9 @@ import { getSettings } from "@/actions/settings.actions";
 import { listBriefRoutings, listAssignableStaff } from "@/lib/brief-routing";
 import { GChatIntegrations } from "@/components/admin/gchat-integrations";
 import { BriefRoutings } from "@/components/admin/brief-routings";
+import { WhatsappAgent } from "@/components/admin/whatsapp-agent";
+import { prisma } from "@/lib/prisma";
+import { isValidProvider, providerConfigError } from "@/lib/ai";
 import { MessageSquare } from "lucide-react";
 
 export const metadata = { title: "Integraciones del equipo" };
@@ -17,11 +20,15 @@ const KEYS = [
 export default async function IntegracionesPage() {
   await requireCan("ADMIN");
 
-  const [settings, routings, staff] = await Promise.all([
+  const [settings, routings, staff, linkedUsers] = await Promise.all([
     getSettings(KEYS),
     listBriefRoutings(),
     listAssignableStaff(),
+    prisma.user.count({ where: { whatsappPhone: { not: null }, isActive: true } }),
   ]);
+
+  const rawProvider = process.env.WHATSAPP_AI_PROVIDER;
+  const aiProvider = isValidProvider(rawProvider) ? rawProvider : "gemini";
 
   const baseUrl = process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -36,7 +43,7 @@ export default async function IntegracionesPage() {
         </div>
         <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--app-text-muted)" }}>
           Conecta cada tipo de notificación a un canal de Google Chat distinto mediante webhooks, y decide
-          quién recibe los briefs que llegan desde n8n.
+          quién recibe los briefs que llegan desde n8n. Aquí también vive el agente de WhatsApp.
         </p>
       </div>
 
@@ -58,6 +65,14 @@ export default async function IntegracionesPage() {
           staff={staff}
           webhookUrl={`${baseUrl}/api/integrations/brief`}
           tokenConfigured={Boolean(process.env.INTEGRATION_BRIEF_TOKEN?.trim())}
+        />
+
+        <WhatsappAgent
+          webhookUrl={`${baseUrl}/api/integrations/whatsapp`}
+          tokenConfigured={Boolean(process.env.INTEGRATION_WHATSAPP_TOKEN?.trim())}
+          aiProvider={aiProvider}
+          aiConfigured={providerConfigError(aiProvider) === null}
+          linkedUsers={linkedUsers}
         />
 
         <GChatIntegrations settings={settings} />

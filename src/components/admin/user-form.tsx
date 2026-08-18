@@ -83,6 +83,16 @@ export function UserForm({ companies }: { companies: Company[] }) {
       </div>
 
       <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          WhatsApp <span className="text-gray-400 font-normal">(opcional)</span>
+        </label>
+        <input name="whatsappPhone" className={inputClass} placeholder="+57 300 123 4567" />
+        <p className="mt-1 text-xs text-gray-500">
+          Si lo registras, el asistente de WhatsApp reconoce a esta persona sin pedirle un código.
+        </p>
+      </div>
+
+      <div>
         <div className="flex items-center justify-between mb-1">
           <label className="block text-sm font-medium text-gray-700">Contraseña temporal</label>
           <button

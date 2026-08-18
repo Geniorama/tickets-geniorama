@@ -10,6 +10,7 @@ interface User {
   role: string; isActive: boolean; companyIds: string[];
   cargo: string | null; area: string | null;
   bio: string | null; isProjectManager: boolean; isSupportAgent: boolean;
+  whatsappPhone: string | null;
 }
 
 export function UserEditForm({ user, companies }: { user: User; companies: Company[] }) {
@@ -42,6 +43,23 @@ export function UserEditForm({ user, companies }: { user: User; companies: Compa
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
         <input name="email" type="email" required defaultValue={user.email} className={inputClass} />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          WhatsApp <span className="text-gray-400 font-normal">(opcional)</span>
+        </label>
+        <input
+          name="whatsappPhone"
+          defaultValue={user.whatsappPhone ? `+${user.whatsappPhone}` : ""}
+          className={inputClass}
+          placeholder="+57 300 123 4567"
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          Número con el que el usuario le escribe al asistente de WhatsApp. Si lo registras aquí,
+          el bot lo reconoce sin pedirle un código de verificación. Un número solo puede
+          pertenecer a un usuario.
+        </p>
       </div>
 
       <div>

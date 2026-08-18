@@ -161,6 +161,10 @@ model User {
   avatarStoragePath String? @map("avatar_storage_path")
   isProjectManager Boolean  @default(false) @map("is_project_manager")
   isSupportAgent   Boolean  @default(false) @map("is_support_agent")
+  /// Número de WhatsApp verificado, en E.164 sin «+» (ej. 573001234567).
+  /// Es la única forma de saber quién escribe al bot: si está vacío, el bot
+  /// no revela nada y pide vincular la cuenta.
+  whatsappPhone    String?  @unique @map("whatsapp_phone")
   isActive     Boolean  @default(true) @map("is_active")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
@@ -201,6 +205,7 @@ model User {
   createdRecurringTemplates  RecurringTaskTemplate[] @relation("RecurringCreatedBy")
   assignedRecurringTemplates RecurringTaskTemplate[] @relation("RecurringAssignedTo")
   briefRoutings              BriefRouting[]          @relation("BriefRoutingAssignedTo")
+  whatsappConversations      WhatsappConversation[]  @relation("WhatsappConversationUser")
 
   @@map("users")
 }
@@ -846,3 +851,47 @@ model UserWebhook {
 // Un ticket/tarea puede tener varios checklists, cada uno con su título. Los
 // ítems cuelgan del checklist, no del ticket/tarea.
 
+
+/// Estado de una conversación de WhatsApp, indexada por el número que escribe.
+///
+/// Guarda tres cosas que el canal no puede sostener por sí mismo:
+///   · La memoria del hilo (`messages`), porque cada mensaje de WhatsApp llega
+///     suelto y el agente necesita los turnos anteriores para entender.
+///   · La acción propuesta y aún no confirmada (`pending`): crear un ticket es
+///     irreversible, así que se resume y se espera el "sí" del usuario.
+///   · El estado de vinculación (`verify*`), que decide si el número tiene
+///     derecho a ver algo. Un número sin `userId` no obtiene ningún dato.
+model WhatsappConversation {
+  id       String  @id @default(cuid())
+  /// E.164 sin «+». Es la identidad del hilo, exista o no un usuario detrás.
+  phone    String  @unique
+  userId   String? @map("user_id")
+  user     User?   @relation("WhatsappConversationUser", fields: [userId], references: [id])
+
+  /// Últimos turnos del hilo: [{ role: "user" | "assistant", text: string }].
+  messages Json    @default("[]")
+  /// Acción propuesta pendiente de confirmación, o null.
+  pending  Json?
+
+  // ── Vinculación ──
+  /// Hash bcrypt del código de 6 dígitos enviado por email.
+  verifyCodeHash  String?   @map("verify_code_hash")
+  /// Usuario al que se vincularía el número si el código es correcto.
+  verifyUserId    String?   @map("verify_user_id")
+  verifyExpiresAt DateTime? @map("verify_expires_at")
+  verifyAttempts  Int       @default(0) @map("verify_attempts")
+  /// Freno tras demasiados códigos fallidos.
+  blockedUntil    DateTime? @map("blocked_until")
+
+  // ── Idempotencia ──
+  /// Id del último mensaje procesado; si n8n reintenta, se devuelve `lastReply`
+  /// en vez de volver a correr el agente (y volver a crear cosas).
+  lastMessageId String? @map("last_message_id")
+  lastReply     String? @map("last_reply") @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("whatsapp_conversations")
+}

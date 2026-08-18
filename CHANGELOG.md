@@ -9,6 +9,45 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.62.0] — 2026-08-18
+
+### Los clientes ya pueden abrir y seguir sus tickets por WhatsApp
+
+Hasta ahora, abrir un ticket exigía entrar a la plataforma. Para muchos clientes el primer impulso es escribir por WhatsApp, así que esas solicitudes llegaban al chat de un colaborador y alguien tenía que transcribirlas a mano — o se perdían.
+
+Ahora hay un **agente de WhatsApp**. El cliente escribe al número del equipo y el asistente conversa con él en español, con el contexto real de su cuenta:
+
+- **Abre tickets.** Recoge qué necesita, dónde y desde cuándo; le muestra un resumen y **solo lo crea cuando el cliente confirma**. El ticket entra como *Por asignar*, con su código, su plan y las mismas notificaciones que si lo hubiera abierto desde la plataforma.
+- **Consulta el estado de sus tickets.** Cuáles tiene abiertos, en qué estado están, quién los lleva, la fecha límite y los últimos comentarios públicos del equipo.
+- **Consulta su plan.** Tipo de plan, horas consumidas y disponibles, cuándo vence y cuántos días faltan.
+- **Comenta en sus tickets.** «En el ACM-12, agrega que ya probamos desde otro navegador» deja el comentario en el hilo y le llega la notificación al responsable.
+
+#### Nadie ve nada sin estar vinculado
+
+Un número desconocido no obtiene ni un dato. El bot le pide el correo con el que entra a la plataforma y le manda un **código de 6 dígitos a ese correo**: así, quien intente atar la cuenta de otro a su propio teléfono se topa con que el código le llega al titular. El código caduca en 10 minutos y tras 5 intentos fallidos el número queda bloqueado media hora.
+
+Como alternativa, un administrador puede registrar el número directamente en la ficha del usuario (**Usuarios → Editar → WhatsApp**) y el bot lo reconoce sin pedir código.
+
+#### Lo que el agente no hace
+
+No cierra tickets, ni cambia estados, prioridades o fechas: eso sigue siendo del equipo. Si el cliente lo pide, el agente le ofrece dejarlo como comentario. Y un cliente sin plan activo puede consultar, pero no abrir tickets — el mismo freno que aplica la plataforma.
+
+#### Cómo se conecta
+
+n8n hace de cartero: recibe el mensaje de WhatsApp, lo reenvía a la app y devuelve al cliente el texto que responde el agente. Toda la conversación —memoria, identidad, propuestas pendientes— vive en la app, así que cambiar de proveedor de WhatsApp no obliga a rehacer el agente. Las instrucciones del workflow, con el payload de ejemplo y el estado de la configuración, están en **Administración → Integraciones del equipo**.
+
+#### Por dentro
+
+- `prisma/migrations/20260818120000_add_whatsapp_agent` — columna `users.whatsapp_phone` (única) y tabla `whatsapp_conversations`, que guarda la memoria del hilo, la propuesta pendiente y el estado de vinculación.
+- `src/app/api/integrations/whatsapp/route.ts` — endpoint autenticado con `INTEGRATION_WHATSAPP_TOKEN` (comparación en tiempo constante) e idempotente por `messageId`: un reintento de n8n devuelve la misma respuesta en vez de volver a crear el ticket.
+- `src/lib/whatsapp/identity.ts` — resolución de identidad y verificación por código. Deterministic a propósito: no pasa por el modelo, y responde igual exista o no el correo para no revelar qué direcciones tienen cuenta.
+- `src/lib/whatsapp/context.ts` — contexto precalculado (plan + tickets visibles) que además hace de lista blanca: una llamada del modelo a un ticket que no esté ahí se descarta.
+- `src/lib/whatsapp/agent.ts` — orquestación y herramientas (`crear_ticket`, `comentar_ticket`, `confirmar_accion`). Los mensajes de confirmación los redacta el código, no el modelo.
+- `src/lib/whatsapp/write.ts` — escrituras sin sesión, conservando prefijo por empresa, consecutivo transaccional y avisos al equipo.
+- `src/lib/ai.ts` se reutiliza tal cual: el proveedor se elige con `WHATSAPP_AI_PROVIDER` (`gemini` por defecto u `openai`).
+
+---
+
 ## [1.61.0] — 2026-08-18
 
 ### Duplicar una tarea o un ticket ahora puede llevarse el checklist
