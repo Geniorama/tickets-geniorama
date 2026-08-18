@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   MessageCircle, ChevronDown, ChevronUp, Copy, Check, AlertTriangle, CheckCircle2,
+  BookOpen, ArrowRight,
 } from "lucide-react";
 
 const ACCENT = "#25d366"; // verde de WhatsApp
@@ -146,6 +148,34 @@ export function WhatsappAgent({
         />
       </div>
 
+      {/* La guía paso a paso vive en su propia página: aquí solo el atajo, para
+          no enterrar el estado de la configuración bajo un muro de texto. */}
+      <Link
+        href="/admin/integraciones/whatsapp"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.75rem",
+          padding: "0.875rem 1.125rem",
+          marginBottom: "0.75rem",
+          borderRadius: "0.75rem",
+          border: `1px solid ${ACCENT}55`,
+          backgroundColor: `${ACCENT}14`,
+          textDecoration: "none",
+        }}
+      >
+        <BookOpen style={{ width: "1.125rem", height: "1.125rem", color: ACCENT, flexShrink: 0 }} />
+        <span style={{ flex: 1 }}>
+          <span style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--app-body-text)" }}>
+            Cómo conectar n8n con Meta Cloud API
+          </span>
+          <span style={{ display: "block", fontSize: "0.8125rem", color: "var(--app-text-muted)", lineHeight: 1.45 }}>
+            Guía paso a paso, workflow listo para importar y qué mirar cuando algo falla.
+          </span>
+        </span>
+        <ArrowRight style={{ width: "1rem", height: "1rem", color: "var(--app-text-muted)", flexShrink: 0 }} />
+      </Link>
+
       <div
         style={{
           backgroundColor: "var(--app-card-bg)",
@@ -171,7 +201,7 @@ export function WhatsappAgent({
           }}
         >
           <span style={{ fontWeight: 600, fontSize: "0.9375rem", color: "var(--app-body-text)" }}>
-            ¿Cómo conectar el workflow de n8n?
+            Contrato del endpoint
           </span>
           {open
             ? <ChevronUp style={{ width: "1rem", height: "1rem", color: "var(--app-text-muted)", flexShrink: 0 }} />
@@ -182,8 +212,7 @@ export function WhatsappAgent({
           <div style={{ padding: "1rem 1.25rem 1.25rem", borderTop: "1px solid var(--app-border)", display: "flex", flexDirection: "column", gap: "1rem" }}>
             <div>
               <p style={labelStyle}>
-                1. Dispara el workflow con el webhook de WhatsApp (Meta Cloud API o tu BSP) y añade un nodo{" "}
-                <em>HTTP Request</em> con método POST a esta URL:
+                1. El nodo <em>HTTP Request</em> de n8n hace POST a esta URL:
               </p>
               <CodeBlock code={webhookUrl} />
             </div>

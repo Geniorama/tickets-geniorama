@@ -78,6 +78,38 @@ const components: Components = {
   hr: () => (
     <hr style={{ borderColor: "var(--app-border)", marginTop: "0.75rem", marginBottom: "0.75rem" }} />
   ),
+  // Tablas de GFM. El wrapper con overflow evita que una tabla ancha empuje el
+  // ancho de la página entera en móvil.
+  table: ({ children }) => (
+    <div style={{ overflowX: "auto", marginBottom: "0.75rem" }}>
+      <table style={{ borderCollapse: "collapse", width: "100%", fontSize: "0.8125rem" }}>
+        {children}
+      </table>
+    </div>
+  ),
+  th: ({ children }) => (
+    <th style={{
+      border: "1px solid var(--app-border)",
+      padding: "0.4rem 0.6rem",
+      textAlign: "left",
+      fontWeight: 600,
+      backgroundColor: "var(--app-card-bg)",
+      color: "var(--app-body-text)",
+      verticalAlign: "top",
+    }}>
+      {children}
+    </th>
+  ),
+  td: ({ children }) => (
+    <td style={{
+      border: "1px solid var(--app-border)",
+      padding: "0.4rem 0.6rem",
+      color: "var(--app-body-text)",
+      verticalAlign: "top",
+    }}>
+      {children}
+    </td>
+  ),
   a: ({ href, children }) => (
     <a
       href={href}

@@ -9,6 +9,51 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.63.0] — 2026-08-18
+
+### La guía para conectar el agente de WhatsApp ya vive dentro de la plataforma
+
+El agente de WhatsApp llegó en la v1.62.0, pero conectarlo seguía siendo un
+trabajo de arqueología: había que saber qué manda Meta, qué espera la app y
+cómo se ata todo en n8n. Ese conocimiento no estaba en ningún sitio consultable.
+
+Ahora **Administración → Integraciones del equipo** tiene un acceso directo a
+**«Cómo conectar n8n con Meta Cloud API»**, una página con la guía completa:
+
+- **El workflow, listo para llevárselo.** Un botón lo copia al portapapeles —n8n
+  crea los nodos si lo pegas sobre el lienzo con Ctrl+V— y otro lo descarga como
+  archivo para *Import from File*.
+- **Dos versiones.** La recomendada usa los **nodos nativos de WhatsApp de n8n**:
+  son 5 nodos y el *WhatsApp Trigger* se encarga solo del registro y la
+  verificación del webhook con Meta, así que no hay que pegar ninguna callback
+  URL ni inventar un *verify token*. La alternativa, montada con Webhook + HTTP
+  Request, queda para quien no tenga el *App Secret* de la app de Meta, que es
+  lo que pide la credencial OAuth del trigger.
+- **Los pasos que se olvidan.** Dónde sacar el token permanente (el que muestra
+  *API Setup* caduca en 24 horas), por qué hay que suscribir el campo `messages`
+  —el fallo más común: el webhook queda verificado pero no llega nada— y por qué
+  el flujo necesita descartar los acuses de estado, o el bot se respondería a sí
+  mismo en bucle.
+- **Una tabla de síntomas.** Qué mirar cuando la app responde 401, cuando el
+  cliente no recibe nada o cuando el bot contesta que tuvo un problema.
+
+#### Por dentro
+
+- `docs/n8n-whatsapp-meta-cloud.md` y `docs/n8n/*.workflow.json` — la guía y los
+  dos workflows. La página los **lee de ahí**, no los duplica: lo que ve el
+  equipo en la plataforma y lo que lee quien toca el código son el mismo
+  archivo. `next.config.ts` mete `docs/**` en el bundle standalone para que
+  también existan en producción.
+- `src/app/(dashboard)/admin/integraciones/whatsapp/page.tsx` — la página, tras
+  `requireCan("ADMIN")`.
+- `src/components/ui/markdown-renderer.tsx` — se le añadieron estilos de tabla
+  (GFM), que hasta ahora salían sin bordes.
+- El desplegable de la tarjeta de WhatsApp pasa a llamarse **«Contrato del
+  endpoint»**: sigue siendo la referencia rápida de URL, cabecera y payload,
+  ahora que el paso a paso tiene su propio sitio.
+
+---
+
 ## [1.62.0] — 2026-08-18
 
 ### Los clientes ya pueden abrir y seguir sus tickets por WhatsApp

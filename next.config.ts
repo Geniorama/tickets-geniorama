@@ -14,8 +14,12 @@ const nextConfig: NextConfig = {
   // El cliente de Prisma vive en una ruta custom (`src/generated/prisma`).
   // El output tracing de Next no siempre arrastra el query engine desde ahí,
   // así que lo forzamos para que el binario llegue al bundle standalone.
+  //
+  // `docs/` va por el mismo motivo: la guía de n8n se sirve desde
+  // /admin/integraciones/whatsapp leyendo el .md en disco, así que el archivo
+  // tiene que viajar en el bundle o la página revienta en producción.
   outputFileTracingIncludes: {
-    "*": ["./src/generated/prisma/**/*"],
+    "*": ["./src/generated/prisma/**/*", "./docs/**/*"],
   },
   env: {
     NEXT_PUBLIC_APP_VERSION: version,
