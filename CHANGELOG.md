@@ -9,6 +9,49 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.64.0] — 2026-08-18
+
+### Las instrucciones del agente de WhatsApp se editan desde el panel
+
+Cambiar el tono del bot, añadirle una regla del negocio o afinar cómo recoge un
+ticket exigía tocar código y desplegar. Ahora **Administración → Integraciones
+del equipo → Agente de WhatsApp** trae el desplegable **«Instrucciones del
+agente»** con el prompt completo, editable.
+
+- **Se aplica en la siguiente respuesta.** Guardar surte efecto en el próximo
+  mensaje que conteste el agente: no hay que reiniciar ni volver a desplegar.
+- **Se puede volver atrás.** El botón **Restaurar el original** devuelve el
+  texto de fábrica, y una etiqueta indica siempre si lo que rige son las
+  instrucciones *personalizadas* o el *texto original*.
+- **Con un aviso que no se puede plegar.** Los bloques QUÉ SABES y REGLAS DURAS
+  no son estilo: describen cómo se comporta el código. Borrar «nunca afirmes que
+  creaste algo si no llamaste a la función» abre la puerta a que el agente le
+  diga a un cliente que le abrió un ticket que no existe.
+
+#### Lo que sigue viviendo en el código
+
+No se edita desde el panel lo que depende de cada conversación o sostiene una
+garantía: el aviso de **cliente sin plan activo** —que prohíbe abrir tickets—,
+el de **propuesta pendiente de confirmar**, las descripciones de las tres
+herramientas y los **mensajes de confirmación**, que redacta el código
+precisamente para que no puedan salir alucinados.
+
+#### Por dentro
+
+- `src/lib/whatsapp/prompt.ts` — nuevo módulo con `DEFAULT_AGENT_PROMPT` (el
+  texto de fábrica, idéntico al que había), la clave `whatsapp_agent_prompt` y
+  el tope de 8.000 caracteres. Sin dependencias de servidor, para que el editor
+  —que es cliente— pueda importar el texto por defecto.
+- `src/lib/whatsapp/agent.ts` — `systemInstruction()` recibe el prompt en vez de
+  tenerlo dentro; `loadAgentPrompt()` lee la fila en cada mensaje y cae al texto
+  de fábrica si está vacía o si la consulta falla.
+- `src/actions/whatsapp-agent.actions.ts` — guardar y restaurar tras
+  `requireCan("ADMIN")`, con la validación en el servidor: un prompt vacío
+  dejaría al modelo sin ninguna instrucción frente a un cliente.
+- Se reutiliza `app_settings`, así que **no hay migración**.
+
+---
+
 ## [1.63.0] — 2026-08-18
 
 ### La guía para conectar el agente de WhatsApp ya vive dentro de la plataforma

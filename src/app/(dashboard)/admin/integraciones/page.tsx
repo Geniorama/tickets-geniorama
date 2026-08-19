@@ -6,6 +6,7 @@ import { BriefRoutings } from "@/components/admin/brief-routings";
 import { WhatsappAgent } from "@/components/admin/whatsapp-agent";
 import { prisma } from "@/lib/prisma";
 import { isValidProvider, providerConfigError } from "@/lib/ai";
+import { AGENT_PROMPT_KEY } from "@/lib/whatsapp/prompt";
 import { MessageSquare } from "lucide-react";
 
 export const metadata = { title: "Integraciones del equipo" };
@@ -20,11 +21,14 @@ const KEYS = [
 export default async function IntegracionesPage() {
   await requireCan("ADMIN");
 
-  const [settings, routings, staff, linkedUsers] = await Promise.all([
+  // El prompt del agente se pide aparte y no dentro de KEYS: así el mapa que
+  // recibe GChatIntegrations sigue siendo solo sus webhooks.
+  const [settings, routings, staff, linkedUsers, agentSettings] = await Promise.all([
     getSettings(KEYS),
     listBriefRoutings(),
     listAssignableStaff(),
     prisma.user.count({ where: { whatsappPhone: { not: null }, isActive: true } }),
+    getSettings([AGENT_PROMPT_KEY]),
   ]);
 
   const rawProvider = process.env.WHATSAPP_AI_PROVIDER;
@@ -73,6 +77,7 @@ export default async function IntegracionesPage() {
           aiProvider={aiProvider}
           aiConfigured={providerConfigError(aiProvider) === null}
           linkedUsers={linkedUsers}
+          savedPrompt={agentSettings[AGENT_PROMPT_KEY] ?? null}
         />
 
         <GChatIntegrations settings={settings} />

@@ -6,6 +6,7 @@ import {
   MessageCircle, ChevronDown, ChevronUp, Copy, Check, AlertTriangle, CheckCircle2,
   BookOpen, ArrowRight,
 } from "lucide-react";
+import { WhatsappPromptEditor } from "@/components/admin/whatsapp-prompt-editor";
 
 const ACCENT = "#25d366"; // verde de WhatsApp
 
@@ -89,12 +90,15 @@ export function WhatsappAgent({
   aiProvider,
   aiConfigured,
   linkedUsers,
+  savedPrompt,
 }: {
   webhookUrl: string;
   tokenConfigured: boolean;
   aiProvider: string;
   aiConfigured: boolean;
   linkedUsers: number;
+  /** Instrucciones editadas desde el panel, o null si rige el texto de fábrica. */
+  savedPrompt: string | null;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -175,6 +179,8 @@ export function WhatsappAgent({
         </span>
         <ArrowRight style={{ width: "1rem", height: "1rem", color: "var(--app-text-muted)", flexShrink: 0 }} />
       </Link>
+
+      <WhatsappPromptEditor saved={savedPrompt} />
 
       <div
         style={{

@@ -254,7 +254,37 @@ de n8n no crea el ticket dos veces.
 
 ---
 
-## 8. Notas de operación
+## 8. Cambiar lo que dice el agente
+
+En **Administración → Integraciones del equipo → Agente de WhatsApp**, el
+desplegable **«Instrucciones del agente»** contiene el prompt completo que el
+modelo lee antes de cada mensaje. Se edita, se guarda y **se aplica en la
+siguiente respuesta**: no hay que reiniciar ni desplegar nada.
+
+Se guarda en `app_settings` bajo la clave `whatsapp_agent_prompt`. El botón
+**Restaurar el original** borra esa fila y el agente vuelve al texto de fábrica,
+que vive en `src/lib/whatsapp/prompt.ts`.
+
+> **Los bloques QUÉ SABES y REGLAS DURAS no son estilo.** Describen cómo se
+> comporta el código. Si se borra «nunca afirmes que creaste algo si no llamaste
+> a la función correspondiente», el modelo puede decirle a un cliente que le
+> abrió un ticket que nunca se creó.
+
+Lo que **no** se edita desde el panel, porque depende de cada conversación o
+sostiene una garantía del código:
+
+- El aviso de **«este cliente no tiene plan activo»**, que se añade solo cuando
+  toca y prohíbe llamar a `crear_ticket`.
+- El aviso de **propuesta pendiente**, que interpola el título y la prioridad
+  del ticket que está esperando un «sí».
+- Las **descripciones de las tres herramientas** (`crear_ticket`,
+  `comentar_ticket`, `confirmar_accion`), en `src/lib/whatsapp/agent.ts`.
+- Los **mensajes de confirmación** («Listo, tu ticket quedó abierto ✅…»), que
+  los redacta el código para que no puedan salir alucinados.
+
+---
+
+## 9. Notas de operación
 
 - **Ventana de 24 horas.** Meta solo permite mensajes de texto libres dentro de
   las 24 h siguientes al último mensaje del cliente. El agente siempre responde

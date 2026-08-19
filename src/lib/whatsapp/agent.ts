@@ -27,6 +27,8 @@ import {
   type ToolCall,
 } from "@/lib/ai";
 import { buildWhatsappContext, type TicketCtx } from "@/lib/whatsapp/context";
+import { AGENT_PROMPT_KEY, DEFAULT_AGENT_PROMPT } from "@/lib/whatsapp/prompt";
+import { prisma } from "@/lib/prisma";
 import { addCommentFromWhatsapp, announceWhatsappTicket, createTicketFromWhatsapp } from "@/lib/whatsapp/write";
 import type { PendingAction, Conversation } from "@/lib/whatsapp/conversation";
 import type { Priority } from "@/generated/prisma";
@@ -164,31 +166,32 @@ function openaiTools(hasPending: boolean): OpenAI.Chat.Completions.ChatCompletio
 
 // ─── Instrucción de sistema ──────────────────────────────────────────────────
 
-function systemInstruction(pending: PendingAction | null, hasActivePlan: boolean): string {
-  const base = `Eres el asistente de soporte de Geniorama y hablas con un cliente por WhatsApp.
+/**
+ * El prompt vigente: el editado desde el panel si existe, o el de fábrica.
+ *
+ * Se resuelve en cada mensaje a propósito. Guardar en el panel tiene efecto en
+ * la siguiente respuesta, sin reiniciar nada, y una fila vacía o una caída de
+ * la consulta caen de vuelta al texto por defecto en vez de dejar al agente
+ * sin instrucciones.
+ */
+async function loadAgentPrompt(): Promise<string> {
+  try {
+    const row = await prisma.appSetting.findUnique({ where: { key: AGENT_PROMPT_KEY } });
+    const custom = row?.value.trim();
+    return custom ? custom : DEFAULT_AGENT_PROMPT;
+  } catch (err) {
+    console.error("[whatsapp] No se pudo leer el prompt guardado, se usa el de fábrica:", err);
+    return DEFAULT_AGENT_PROMPT;
+  }
+}
 
-FORMATO — es WhatsApp, no una web:
-- Responde SIEMPRE en español, con tono cercano y profesional, tuteando.
-- Mensajes CORTOS: 2 o 3 frases, o una lista de viñetas breve. Nada de párrafos largos.
-- WhatsApp no entiende Markdown: para resaltar usa *un asterisco a cada lado*, nunca ** ni ##.
-- Un emoji ocasional está bien; no más de uno por mensaje.
-
-QUÉ SABES:
-- Recibes un contexto con los planes del cliente y sus tickets (abiertos y cerrados recientes), con estado, responsable, fechas y últimos comentarios.
-- Responde sobre planes y tickets leyendo ese contexto. Si algo no está ahí, dilo con franqueza en vez de suponerlo.
-- Nunca inventes números de ticket, horas, fechas ni nombres de responsables.
-- Nunca reveles IDs internos ni información de otras empresas. Al referirte a un ticket usa su código (por ejemplo ACM-12).
-
-QUÉ PUEDES HACER:
-- *Crear un ticket*: primero recoge lo esencial (qué falla o qué necesita, dónde, desde cuándo). Cuando lo tengas, llama a crear_ticket. Si el mensaje ya trae todo, no des rodeos: llámala de una.
-- *Comentar un ticket suyo*: llama a comentar_ticket con el ID exacto del contexto.
-- No puedes cerrar tickets, cambiar estados, prioridades ni fechas: eso lo hace el equipo. Si lo piden, ofréceles dejar un comentario en el ticket.
-
-REGLAS DURAS:
-- Usa exactamente los ID del contexto. Si no encuentras el ticket, pide que te lo identifique por código; no adivines.
-- Nunca afirmes que creaste, comentaste o cambiaste algo si no llamaste a la función correspondiente. La confirmación la escribe el sistema, no tú.
-- Si te piden algo fuera de soporte (precios, contratos, otros temas), remite amablemente a su agente.`;
-
+/**
+ * Las dos notas condicionales no son editables desde el panel: interpolan
+ * datos del turno y sostienen dos garantías del código —no abrir tickets sin
+ * plan, no crear nada sin un «sí» explícito— que no pueden depender de lo que
+ * alguien escriba en un textarea.
+ */
+function systemInstruction(base: string, pending: PendingAction | null, hasActivePlan: boolean): string {
   const planNote = hasActivePlan
     ? ""
     : `\n\nATENCIÓN: este cliente NO tiene plan activo. Puedes responderle sus dudas y consultar tickets, pero si pide abrir uno nuevo, explícale que primero necesita renovar el plan con su agente. No llames a crear_ticket.`;
@@ -225,7 +228,7 @@ export async function runWhatsappAgent(
     };
   }
 
-  const ctx = await buildWhatsappContext(userId);
+  const [ctx, basePrompt] = await Promise.all([buildWhatsappContext(userId), loadAgentPrompt()]);
   const hasPending = conv.pending !== null;
 
   const messages: ChatMsg[] = [
@@ -239,7 +242,7 @@ export async function runWhatsappAgent(
   try {
     result = await runAssistantChat({
       provider,
-      system: systemInstruction(conv.pending, ctx.hasActivePlan),
+      system: systemInstruction(basePrompt, conv.pending, ctx.hasActivePlan),
       messages,
       geminiTools: geminiTools(hasPending),
       openaiTools: openaiTools(hasPending),
