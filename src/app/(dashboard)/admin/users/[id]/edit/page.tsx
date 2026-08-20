@@ -29,7 +29,6 @@ export default async function EditUserPage({
       select: {
         id: true, name: true, email: true, role: true, isActive: true,
         cargo: true, area: true, bio: true, isProjectManager: true, isSupportAgent: true,
-        whatsappPhone: true,
         companies: { select: { id: true } },
         profileId: true,
         appAccess: { select: { app: true, level: true } },

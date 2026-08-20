@@ -14,6 +14,7 @@ import {
   findEditableComment,
   type NewAttachment,
 } from "@/lib/comments";
+import { emitCommentHook } from "@/lib/hooks/dispatch";
 
 const commentSchema = z.object({
   body: z.string().min(1, "El comentario no puede estar vacío"),
@@ -61,7 +62,7 @@ export async function addTaskComment(
     }
   }
 
-  await prisma.comment.create({
+  const comment = await prisma.comment.create({
     data: {
       entityType: "TASK",
       entityId:   taskId,
@@ -70,6 +71,8 @@ export async function addTaskComment(
       ...(attachmentsData.length ? { attachments: { create: attachmentsData } } : {}),
     },
   });
+
+  emitCommentHook(comment.id, { actor: session.user });
 
   // Obtener tarea con info del proyecto para determinar privacidad
   const task = await prisma.task.findUnique({

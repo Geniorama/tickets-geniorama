@@ -9,7 +9,7 @@ import { TaskList } from "./task-list";
 import { TaskKanban } from "./task-kanban";
 import { TaskCalendar } from "./task-calendar";
 import { formatDate } from "@/lib/format-date";
-import { Plus, Pencil, List, LayoutGrid, CalendarDays, User2, Building2, Calendar, Lock } from "lucide-react";
+import { Plus, Pencil, List, LayoutGrid, CalendarDays, User2, Building2, Calendar, Lock, Webhook } from "lucide-react";
 import { deleteProject } from "@/actions/project.actions";
 import { ProjectVaultPanel } from "@/components/vault/project-vault-panel";
 import { ProjectAttachmentsPanel } from "@/components/projects/project-attachments-panel";
@@ -157,6 +157,25 @@ export function ProjectDetail({
                 >
                   <Pencil style={{ width: "0.875rem", height: "0.875rem" }} />
                   Editar
+                </Link>
+                <Link
+                  href={`/proyectos/${project.id}/integraciones`}
+                  title="Enviar los eventos de este proyecto a un servicio externo"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "0.25rem",
+                    fontSize: "0.8125rem",
+                    color: "#6366f1",
+                    border: "1px solid rgba(99,102,241,0.3)",
+                    borderRadius: "0.375rem",
+                    padding: "0.25rem 0.625rem",
+                    textDecoration: "none",
+                    fontWeight: 500,
+                  }}
+                >
+                  <Webhook style={{ width: "0.875rem", height: "0.875rem" }} />
+                  Hooks
                 </Link>
                 <button
                   onClick={handleDeleteProject}

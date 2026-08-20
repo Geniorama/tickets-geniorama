@@ -11,6 +11,8 @@ import { deleteAttachmentsFor } from "@/lib/attachments";
 import { deleteChecklistsFor } from "@/lib/checklists";
 import { deleteVaultLinksFor } from "@/lib/vault-links";
 import { deleteTimeEntriesFor } from "@/lib/time-entries";
+import { emitDeletedHook, emitProjectHook } from "@/lib/hooks/dispatch";
+import { projectPayload } from "@/lib/hooks/payload";
 
 const projectSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -61,12 +63,17 @@ export async function createProject(formData: FormData) {
     },
   });
 
+  emitProjectHook("project.created", project.id, {
+    actor: session.user,
+    isPrivate: project.isPrivate,
+  });
+
   revalidatePath("/proyectos");
   redirect(`/proyectos/${project.id}`);
 }
 
 export async function updateProject(projectId: string, formData: FormData) {
-  await requireCan("PROYECTOS", "gestionar");
+  const session = await requireCan("PROYECTOS", "gestionar");
 
   const parsed = projectSchema.safeParse({
     name: formData.get("name"),
@@ -81,6 +88,11 @@ export async function updateProject(projectId: string, formData: FormData) {
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const before = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { status: true },
+  });
 
   await prisma.$transaction(async (tx) => {
     await tx.project.update({
@@ -105,13 +117,29 @@ export async function updateProject(projectId: string, formData: FormData) {
     }
   });
 
+  if (before && before.status !== parsed.data.status) {
+    emitProjectHook("project.status_changed", projectId, {
+      actor: session.user,
+      isPrivate: parsed.data.isPrivate,
+      changes: { status: { from: before.status, to: parsed.data.status } },
+    });
+  }
+  emitProjectHook("project.updated", projectId, {
+    actor: session.user,
+    isPrivate: parsed.data.isPrivate,
+  });
+
   revalidatePath("/proyectos");
   revalidatePath(`/proyectos/${projectId}`);
   redirect(`/proyectos/${projectId}`);
 }
 
 export async function deleteProject(projectId: string) {
-  await requireCan("PROYECTOS", "gestionar");
+  const session = await requireCan("PROYECTOS", "gestionar");
+
+  // El retrato se toma antes de borrar; después el proyecto ya no existe y sus
+  // hooks se van con él (cascada), así que este es el último aviso que sale.
+  const snapshot = await projectPayload(projectId);
 
   // Borrar el proyecto arrastra sus tareas en cascada, pero los comentarios son
   // polimórficos y no tienen clave foránea: hay que recogerlos antes de que las
@@ -130,6 +158,14 @@ export async function deleteProject(projectId: string) {
     await deleteVaultLinksFor("PROJECT", projectId, tx);
     await tx.project.delete({ where: { id: projectId } });
   });
+
+  // Sin `projectId`: los hooks del proyecto se fueron con él en cascada, así que
+  // el aviso solo puede salir por los de organización — y por eso un proyecto
+  // privado no lo manda: su nombre no debe aparecer en un canal general.
+  if (snapshot && !snapshot.isPrivate) {
+    emitDeletedHook("project.deleted", snapshot, { actor: session.user });
+  }
+
   revalidatePath("/proyectos");
   redirect("/proyectos");
 }

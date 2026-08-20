@@ -6,6 +6,7 @@ import { addLinkAttachments } from "@/lib/attachments";
 import { notify } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { normalizeBriefType, resolveBriefDueDate } from "@/lib/brief-routing";
+import { emitTaskHook } from "@/lib/hooks/dispatch";
 
 /**
  * Recibe los briefs que el cliente diligencia en n8n y los convierte en una
@@ -296,6 +297,13 @@ export async function POST(req: Request) {
   });
 
   const link = `/proyectos/${project.id}/tareas/${task.id}`;
+
+  // El brief entra por un endpoint propio pero produce una tarea normal, así que
+  // cuenta lo mismo que contaría si la hubiese creado alguien desde la interfaz.
+  emitTaskHook("task.created", task.id, {
+    projectId: project.id,
+    projectIsPrivate: project.isPrivate,
+  });
 
   // Los proyectos privados no salen al canal de equipo.
   if (!project.isPrivate) {

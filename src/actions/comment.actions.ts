@@ -13,6 +13,7 @@ import {
   findEditableComment,
   type NewAttachment,
 } from "@/lib/comments";
+import { emitCommentHook } from "@/lib/hooks/dispatch";
 
 const addCommentSchema = z.object({
   body: z.string().min(1, "El comentario no puede estar vacío"),
@@ -64,7 +65,7 @@ export async function addComment(ticketId: string, formData: FormData) {
     }
   }
 
-  await prisma.comment.create({
+  const comment = await prisma.comment.create({
     data: {
       entityType: "TICKET",
       entityId:   ticketId,
@@ -74,6 +75,10 @@ export async function addComment(ticketId: string, formData: FormData) {
       ...(attachmentsData.length ? { attachments: { create: attachmentsData } } : {}),
     },
   });
+
+  // Las notas internas las descarta el propio despachador; aquí se avisa igual
+  // para no tener dos criterios distintos sobre qué es interno.
+  emitCommentHook(comment.id, { actor: session.user });
 
   // Notificar a usuarios mencionados
   const mentionedIds = extractMentionIds(parsed.data.body).filter(

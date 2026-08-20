@@ -124,120 +124,121 @@ enum EntityType {
 // ─── Models ──────────────────────────────────────────────────────────────────
 
 model Company {
-  id               String      @id @default(cuid())
-  name             String
-  type             CompanyType @default(EMPRESA) @map("type")
-  taxId            String?     @map("tax_id")
-  logoUrl          String?     @map("logo_url")
-  logoStoragePath  String?     @map("logo_storage_path")
-  isActive         Boolean     @default(true) @map("is_active")
-  createdAt        DateTime    @default(now()) @map("created_at")
-  updatedAt        DateTime    @updatedAt @map("updated_at")
+  id              String      @id @default(cuid())
+  name            String
+  type            CompanyType @default(EMPRESA) @map("type")
+  taxId           String?     @map("tax_id")
+  logoUrl         String?     @map("logo_url")
+  logoStoragePath String?     @map("logo_storage_path")
+  isActive        Boolean     @default(true) @map("is_active")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
 
-  parentId         String?     @map("parent_id")
-  parent           Company?    @relation("AgencySubCompanies", fields: [parentId], references: [id])
-  subCompanies     Company[]   @relation("AgencySubCompanies")
+  parentId     String?   @map("parent_id")
+  parent       Company?  @relation("AgencySubCompanies", fields: [parentId], references: [id])
+  subCompanies Company[] @relation("AgencySubCompanies")
 
-  users            User[]
-  plans            Plan[]
-  projects         Project[]
-  services         Service[]
-  sites            Site[]
-  vaultEntries     VaultEntry[]
+  users        User[]
+  plans        Plan[]
+  projects     Project[]
+  services     Service[]
+  sites        Site[]
+  vaultEntries VaultEntry[]
 
   @@map("companies")
 }
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String   @map("password_hash")
-  role         Role     @default(CLIENTE)
-  cargo        String?
-  area         String?
-  bio              String?  @db.Text
-  avatarUrl         String? @map("avatar_url")
-  avatarStoragePath String? @map("avatar_storage_path")
-  isProjectManager Boolean  @default(false) @map("is_project_manager")
-  isSupportAgent   Boolean  @default(false) @map("is_support_agent")
-  /// Número de WhatsApp verificado, en E.164 sin «+» (ej. 573001234567).
-  /// Es la única forma de saber quién escribe al bot: si está vacío, el bot
-  /// no revela nada y pide vincular la cuenta.
-  whatsappPhone    String?  @unique @map("whatsapp_phone")
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id                String   @id @default(cuid())
+  name              String
+  email             String   @unique
+  passwordHash      String   @map("password_hash")
+  role              Role     @default(CLIENTE)
+  cargo             String?
+  area              String?
+  bio               String?  @db.Text
+  avatarUrl         String?  @map("avatar_url")
+  avatarStoragePath String?  @map("avatar_storage_path")
+  isProjectManager  Boolean  @default(false) @map("is_project_manager")
+  isSupportAgent    Boolean  @default(false) @map("is_support_agent")
+  isActive          Boolean  @default(true) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
-  companies    Company[]
+  companies       Company[]
   schedulingLinks SchedulingLink[]
 
-  createdTickets   Ticket[]             @relation("CreatedBy")
-  assignedTickets  Ticket[]             @relation("AssignedTo")
-  reviewingTickets Ticket[]             @relation("TicketReviewers")
-  clientTickets    Ticket[]             @relation("TicketClient")
-  resetTokens      PasswordResetToken[]
-  managedProjects  Project[]            @relation("ProjectManager")
-  createdProjects  Project[]            @relation("ProjectCreatedBy")
-  assignedTasks    Task[]               @relation("TaskAssignedTo")
-  reviewingTasks   Task[]               @relation("TaskReviewers")
-  createdTasks     Task[]               @relation("TaskCreatedBy")
-  createdServices  Service[]            @relation("ServiceCreatedBy")
-  createdVaultEntries VaultEntry[]      @relation("VaultCreatedBy")
-  vaultShares         VaultShare[]      @relation("VaultSharedWith")
-  projectMemberships        ProjectMember[]
-  projectFavorites          ProjectFavorite[]
+  createdTickets        Ticket[]             @relation("CreatedBy")
+  assignedTickets       Ticket[]             @relation("AssignedTo")
+  reviewingTickets      Ticket[]             @relation("TicketReviewers")
+  clientTickets         Ticket[]             @relation("TicketClient")
+  resetTokens           PasswordResetToken[]
+  managedProjects       Project[]            @relation("ProjectManager")
+  createdProjects       Project[]            @relation("ProjectCreatedBy")
+  assignedTasks         Task[]               @relation("TaskAssignedTo")
+  reviewingTasks        Task[]               @relation("TaskReviewers")
+  createdTasks          Task[]               @relation("TaskCreatedBy")
+  createdServices       Service[]            @relation("ServiceCreatedBy")
+  createdVaultEntries   VaultEntry[]         @relation("VaultCreatedBy")
+  vaultShares           VaultShare[]         @relation("VaultSharedWith")
+  projectMemberships    ProjectMember[]
+  projectFavorites      ProjectFavorite[]
   // Núcleo compartido
-  authoredComments          Comment[]               @relation("CommentAuthor")
-  commentReactions          CommentReaction[]       @relation("CommentReactionUser")
-  uploadedAttachments       Attachment[]            @relation("AttachmentUploadedBy")
-  createdChecklists         Checklist[]             @relation("ChecklistCreatedBy")
-  createdChecklistItems     ChecklistItem[]         @relation("ChecklistItemCreatedBy")
-  timeEntries               TimeEntry[]             @relation("TimeEntryUser")
-  createdTemplates          Template[]              @relation("TemplateCreatedBy")
+  authoredComments      Comment[]            @relation("CommentAuthor")
+  commentReactions      CommentReaction[]    @relation("CommentReactionUser")
+  uploadedAttachments   Attachment[]         @relation("AttachmentUploadedBy")
+  createdChecklists     Checklist[]          @relation("ChecklistCreatedBy")
+  createdChecklistItems ChecklistItem[]      @relation("ChecklistItemCreatedBy")
+  timeEntries           TimeEntry[]          @relation("TimeEntryUser")
+  createdTemplates      Template[]           @relation("TemplateCreatedBy")
 
   // Permisos por app
-  profileId                 String?                 @map("profile_id")
-  profile                   AccessProfile?          @relation(fields: [profileId], references: [id])
-  appAccess                 AppAccess[]
-  notifications             Notification[]
-  webhooks                  UserWebhook[]
+  profileId                  String?                 @map("profile_id")
+  profile                    AccessProfile?          @relation(fields: [profileId], references: [id])
+  appAccess                  AppAccess[]
+  notifications              Notification[]
+  webhooks                   UserWebhook[]
   createdRecurringTemplates  RecurringTaskTemplate[] @relation("RecurringCreatedBy")
   assignedRecurringTemplates RecurringTaskTemplate[] @relation("RecurringAssignedTo")
   briefRoutings              BriefRouting[]          @relation("BriefRoutingAssignedTo")
-  whatsappConversations      WhatsappConversation[]  @relation("WhatsappConversationUser")
+
+  // Integraciones externas
+  createdHooks   Hook[]   @relation("HookCreatedBy")
+  apiKeys        ApiKey[] @relation("ApiKeyUser")
+  createdApiKeys ApiKey[] @relation("ApiKeyCreatedBy")
 
   @@map("users")
 }
 
 model Ticket {
-  id           String       @id @default(cuid())
-  title        String
-  description  String
-  status       TicketStatus @default(ABIERTO)
-  priority     Priority     @default(MEDIA)
-  category     String?
-  isDraft      Boolean      @default(false) @map("is_draft")
+  id          String       @id @default(cuid())
+  title       String
+  description String
+  status      TicketStatus @default(ABIERTO)
+  priority    Priority     @default(MEDIA)
+  category    String?
+  isDraft     Boolean      @default(false) @map("is_draft")
 
-  createdById  String   @map("created_by_id")
-  assignedToId String?  @map("assigned_to_id")
-  clientId     String?  @map("client_id")
-  planId       String?  @map("plan_id")
-  siteId       String?  @map("site_id")
+  createdById  String  @map("created_by_id")
+  assignedToId String? @map("assigned_to_id")
+  clientId     String? @map("client_id")
+  planId       String? @map("plan_id")
+  siteId       String? @map("site_id")
 
-  prefix       String?
-  number       Int      @default(0)
+  prefix String?
+  number Int     @default(0)
 
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  dueDate      DateTime? @map("due_date")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  dueDate   DateTime? @map("due_date")
 
-  createdBy    User               @relation("CreatedBy", fields: [createdById], references: [id])
-  assignedTo   User?              @relation("AssignedTo", fields: [assignedToId], references: [id])
-  reviewers    User[]             @relation("TicketReviewers")
-  client       User?              @relation("TicketClient", fields: [clientId], references: [id])
-  plan         Plan?              @relation(fields: [planId], references: [id])
-  site         Site?              @relation(fields: [siteId], references: [id])
+  createdBy  User   @relation("CreatedBy", fields: [createdById], references: [id])
+  assignedTo User?  @relation("AssignedTo", fields: [assignedToId], references: [id])
+  reviewers  User[] @relation("TicketReviewers")
+  client     User?  @relation("TicketClient", fields: [clientId], references: [id])
+  plan       Plan?  @relation(fields: [planId], references: [id])
+  site       Site?  @relation(fields: [siteId], references: [id])
+
   @@map("tickets")
 }
 
@@ -251,13 +252,13 @@ model Plan {
   expiresAt    DateTime? @map("expires_at")
   isActive     Boolean   @default(true) @map("is_active")
 
-  companyId    String    @map("company_id")
-  company      Company   @relation(fields: [companyId], references: [id])
+  companyId String  @map("company_id")
+  company   Company @relation(fields: [companyId], references: [id])
 
-  tickets      Ticket[]
+  tickets Ticket[]
 
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("plans")
 }
@@ -273,11 +274,11 @@ model SchedulingLink {
   category    SchedulingLinkCategory
   position    Int                    @default(0)
 
-  userId      String   @map("user_id")
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
   @@map("scheduling_links")
@@ -289,8 +290,8 @@ model PasswordResetToken {
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
 
-  userId    String   @map("user_id")
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("password_reset_tokens")
 }
@@ -305,20 +306,21 @@ model Project {
   startDate   DateTime?     @map("start_date")
   dueDate     DateTime?     @map("due_date")
 
-  companyId   String?       @map("company_id")
-  managerId   String?       @map("manager_id")
-  createdById String        @map("created_by_id")
+  companyId   String? @map("company_id")
+  managerId   String? @map("manager_id")
+  createdById String  @map("created_by_id")
 
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  company      Company?            @relation(fields: [companyId], references: [id])
-  manager      User?               @relation("ProjectManager", fields: [managerId], references: [id])
-  createdBy    User                @relation("ProjectCreatedBy", fields: [createdById], references: [id])
-  tasks        Task[]
-  members      ProjectMember[]
-  favorites    ProjectFavorite[]
+  company            Company?                @relation(fields: [companyId], references: [id])
+  manager            User?                   @relation("ProjectManager", fields: [managerId], references: [id])
+  createdBy          User                    @relation("ProjectCreatedBy", fields: [createdById], references: [id])
+  tasks              Task[]
+  members            ProjectMember[]
+  favorites          ProjectFavorite[]
   recurringTemplates RecurringTaskTemplate[]
+  hooks              Hook[]
 
   @@map("projects")
 }
@@ -349,76 +351,77 @@ model ProjectMember {
 }
 
 model Task {
-  id             String     @id @default(cuid())
-  title          String
-  description    String
-  status         TaskStatus @default(PENDIENTE)
-  priority       Priority   @default(MEDIA)
-  category       String?
-  isDraft        Boolean    @default(false) @map("is_draft")
+  id          String     @id @default(cuid())
+  title       String
+  description String
+  status      TaskStatus @default(PENDIENTE)
+  priority    Priority   @default(MEDIA)
+  category    String?
+  isDraft     Boolean    @default(false) @map("is_draft")
 
-  number         Int        @default(0)
+  number Int @default(0)
 
   /// Identificador del sistema externo que originó la tarea (p. ej. el id de
   /// ejecución de n8n). Es único para que un reintento del webhook no cree un
   /// duplicado: la integración busca por aquí antes de insertar.
-  externalRef    String?    @unique @map("external_ref")
+  externalRef String? @unique @map("external_ref")
 
-  startDate      DateTime?  @map("start_date")
-  startTime      String?    @map("start_time")
-  dueDate        DateTime?  @map("due_date")
-  endTime        String?    @map("end_time")
-  estimatedHours Float?     @map("estimated_hours")
+  startDate      DateTime? @map("start_date")
+  startTime      String?   @map("start_time")
+  dueDate        DateTime? @map("due_date")
+  endTime        String?   @map("end_time")
+  estimatedHours Float?    @map("estimated_hours")
 
-  projectId           String?  @map("project_id")
-  assignedToId        String?  @map("assigned_to_id")
-  createdById         String   @map("created_by_id")
-  recurringTemplateId String?  @map("recurring_template_id")
+  projectId           String? @map("project_id")
+  assignedToId        String? @map("assigned_to_id")
+  createdById         String  @map("created_by_id")
+  recurringTemplateId String? @map("recurring_template_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  project    Project?      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignedTo User?         @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
-  reviewers  User[]        @relation("TaskReviewers")
-  createdBy  User          @relation("TaskCreatedBy", fields: [createdById], references: [id])
+  project           Project?               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo        User?                  @relation("TaskAssignedTo", fields: [assignedToId], references: [id])
+  reviewers         User[]                 @relation("TaskReviewers")
+  createdBy         User                   @relation("TaskCreatedBy", fields: [createdById], references: [id])
   recurringTemplate RecurringTaskTemplate? @relation(fields: [recurringTemplateId], references: [id], onDelete: SetNull)
+
   @@map("tasks")
 }
 
 model RecurringTaskTemplate {
-  id                String   @id @default(cuid())
-  title             String
-  description       String   @db.Text
-  priority          Priority @default(MEDIA)
-  category          String?
-  estimatedHours    Float?   @map("estimated_hours")
+  id             String   @id @default(cuid())
+  title          String
+  description    String   @db.Text
+  priority       Priority @default(MEDIA)
+  category       String?
+  estimatedHours Float?   @map("estimated_hours")
   /// Checklists en borrador: `[{ title, items: string[] }]` (ver src/lib/checklist.ts)
-  checklist         Json     @default("[]")
+  checklist      Json     @default("[]")
 
-  projectId         String?  @map("project_id")
-  assignedToId      String?  @map("assigned_to_id")
-  createdById       String   @map("created_by_id")
+  projectId    String? @map("project_id")
+  assignedToId String? @map("assigned_to_id")
+  createdById  String  @map("created_by_id")
 
-  frequency         RecurrenceFrequency
-  interval          Int      @default(1)
-  daysOfWeek        String?  @map("days_of_week")
-  dayOfMonth        Int?     @map("day_of_month")
+  frequency  RecurrenceFrequency
+  interval   Int                 @default(1)
+  daysOfWeek String?             @map("days_of_week")
+  dayOfMonth Int?                @map("day_of_month")
 
-  startDate         DateTime @map("start_date")
-  endDate           DateTime? @map("end_date")
-  nextRunAt         DateTime @map("next_run_at")
-  lastRunAt         DateTime? @map("last_run_at")
-  isActive          Boolean  @default(true) @map("is_active")
+  startDate DateTime  @map("start_date")
+  endDate   DateTime? @map("end_date")
+  nextRunAt DateTime  @map("next_run_at")
+  lastRunAt DateTime? @map("last_run_at")
+  isActive  Boolean   @default(true) @map("is_active")
 
-  dueDateOffsetDays Int      @default(0) @map("due_date_offset_days")
+  dueDateOffsetDays Int @default(0) @map("due_date_offset_days")
 
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  project        Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  assignedTo     User?     @relation("RecurringAssignedTo", fields: [assignedToId], references: [id])
-  createdBy      User      @relation("RecurringCreatedBy", fields: [createdById], references: [id])
+  project        Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  assignedTo     User?    @relation("RecurringAssignedTo", fields: [assignedToId], references: [id])
+  createdBy      User     @relation("RecurringCreatedBy", fields: [createdById], references: [id])
   generatedTasks Task[]
 
   @@index([isActive, nextRunAt])
@@ -446,13 +449,13 @@ model BriefRouting {
 
   /// Plazo de entrega en **días hábiles** desde que entra el brief. Null = sin
   /// plazo automático (la tarea nace sin fecha límite, salvo que n8n mande una).
-  dueDays        Int?     @map("due_days")
+  dueDays Int?    @map("due_days")
   /// Hora límite del día de entrega, "HH:MM". Se guarda en `Task.endTime`, que
   /// es como el resto de la app almacena la hora: aparte de la fecha, para no
   /// arrastrar la zona horaria dentro del DateTime.
-  dueTime        String?  @map("due_time")
+  dueTime String? @map("due_time")
 
-  isActive       Boolean  @default(true) @map("is_active")
+  isActive Boolean @default(true) @map("is_active")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -473,14 +476,14 @@ model Service {
   notes       String?
   isActive    Boolean         @default(true) @map("is_active")
 
-  companyId   String          @map("company_id")
-  createdById String          @map("created_by_id")
+  companyId   String @map("company_id")
+  createdById String @map("created_by_id")
 
-  createdAt   DateTime        @default(now()) @map("created_at")
-  updatedAt   DateTime        @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  company      Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  createdBy    User            @relation("ServiceCreatedBy", fields: [createdById], references: [id])
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdBy    User         @relation("ServiceCreatedBy", fields: [createdById], references: [id])
   vaultEntries VaultEntry[]
 
   @@map("services")
@@ -502,7 +505,7 @@ model Comment {
   entityId   String     @map("entity_id")
 
   body       String
-  isInternal Boolean    @default(false) @map("is_internal")
+  isInternal Boolean @default(false) @map("is_internal")
 
   // Adjunto inline heredado del esquema viejo. Se conserva para no perder
   // comentarios históricos; los adjuntos nuevos van en CommentAttachment.
@@ -511,10 +514,10 @@ model Comment {
   attachmentName        String? @map("attachment_name")
   attachmentStoragePath String? @map("attachment_storage_path")
 
-  authorId   String   @map("author_id")
+  authorId String @map("author_id")
 
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   author      User                @relation("CommentAuthor", fields: [authorId], references: [id])
   attachments CommentAttachment[]
@@ -526,16 +529,16 @@ model Comment {
 }
 
 model CommentAttachment {
-  id          String   @id @default(cuid())
-  type        String   // "link" | "file"
+  id          String  @id @default(cuid())
+  type        String // "link" | "file"
   url         String
   name        String?
-  storagePath String?  @map("storage_path") // null para enlaces
+  storagePath String? @map("storage_path") // null para enlaces
 
-  commentId   String   @map("comment_id")
-  createdAt   DateTime @default(now()) @map("created_at")
+  commentId String   @map("comment_id")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  comment     Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
   @@index([commentId])
   @@map("comment_attachments")
@@ -551,20 +554,20 @@ model CommentAttachment {
 // Igual que con los comentarios, no hay clave foránea sobre `entityId`: usa
 // `deleteAttachmentsFor()` en todo camino que borre una entidad con adjuntos.
 model Attachment {
-  id           String     @id @default(cuid())
-  entityType   EntityType @map("entity_type")
-  entityId     String     @map("entity_id")
+  id         String     @id @default(cuid())
+  entityType EntityType @map("entity_type")
+  entityId   String     @map("entity_id")
 
-  type         String     @default("file")   // "file" | "link"
-  fileUrl      String     @map("file_url")
-  fileName     String     @map("file_name")
-  storagePath  String?    @map("storage_path") // null en enlaces
-  position     Int        @default(0)
+  type        String  @default("file") // "file" | "link"
+  fileUrl     String  @map("file_url")
+  fileName    String  @map("file_name")
+  storagePath String? @map("storage_path") // null en enlaces
+  position    Int     @default(0)
 
-  uploadedById String     @map("uploaded_by_id")
-  createdAt    DateTime   @default(now()) @map("created_at")
+  uploadedById String   @map("uploaded_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
 
-  uploadedBy   User       @relation("AttachmentUploadedBy", fields: [uploadedById], references: [id])
+  uploadedBy User @relation("AttachmentUploadedBy", fields: [uploadedById], references: [id])
 
   @@index([entityType, entityId, position, createdAt])
   @@index([uploadedById])
@@ -578,39 +581,39 @@ model Attachment {
 // hay que borrar a mano es el checklist cuando se elimina su ticket o tarea
 // (`deleteChecklistsFor()`).
 model Checklist {
-  id          String     @id @default(cuid())
-  entityType  EntityType @map("entity_type")
-  entityId    String     @map("entity_id")
+  id         String     @id @default(cuid())
+  entityType EntityType @map("entity_type")
+  entityId   String     @map("entity_id")
 
-  title       String
-  position    Int        @default(0)
+  title    String
+  position Int    @default(0)
 
-  createdById String     @map("created_by_id")
+  createdById String @map("created_by_id")
 
-  createdAt   DateTime   @default(now()) @map("created_at")
-  updatedAt   DateTime   @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  createdBy   User            @relation("ChecklistCreatedBy", fields: [createdById], references: [id])
-  items       ChecklistItem[]
+  createdBy User            @relation("ChecklistCreatedBy", fields: [createdById], references: [id])
+  items     ChecklistItem[]
 
   @@index([entityType, entityId, position])
   @@map("checklists")
 }
 
 model ChecklistItem {
-  id          String   @id @default(cuid())
-  title       String
-  isChecked   Boolean  @default(false) @map("is_checked")
-  position    Int      @default(0)
+  id        String  @id @default(cuid())
+  title     String
+  isChecked Boolean @default(false) @map("is_checked")
+  position  Int     @default(0)
 
-  checklistId String   @map("checklist_id")
-  createdById String   @map("created_by_id")
+  checklistId String @map("checklist_id")
+  createdById String @map("created_by_id")
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
-  createdBy   User      @relation("ChecklistItemCreatedBy", fields: [createdById], references: [id])
+  checklist Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("ChecklistItemCreatedBy", fields: [createdById], references: [id])
 
   @@index([checklistId, position])
   @@map("checklist_items")
@@ -628,11 +631,11 @@ model TimeEntry {
   entityType EntityType @map("entity_type")
   entityId   String     @map("entity_id")
 
-  startedAt  DateTime   @map("started_at")
-  stoppedAt  DateTime?  @map("stopped_at")
+  startedAt DateTime  @map("started_at")
+  stoppedAt DateTime? @map("stopped_at")
 
-  userId     String     @map("user_id")
-  user       User       @relation("TimeEntryUser", fields: [userId], references: [id])
+  userId String @map("user_id")
+  user   User   @relation("TimeEntryUser", fields: [userId], references: [id])
 
   @@index([entityType, entityId, startedAt])
   // El contador flotante busca la entrada abierta del usuario en cada carga.
@@ -644,24 +647,24 @@ model TimeEntry {
 // A diferencia del resto del núcleo, `entityType` no apunta a una entidad
 // concreta sino que indica **qué crea** la plantilla. Por eso no hay entityId.
 model Template {
-  id             String     @id @default(cuid())
-  entityType     EntityType @map("entity_type")
+  id         String     @id @default(cuid())
+  entityType EntityType @map("entity_type")
 
   name           String
   title          String
-  description    String     @db.Text
-  priority       Priority   @default(MEDIA)
+  description    String   @db.Text
+  priority       Priority @default(MEDIA)
   category       String?
   /// Solo lo usan las plantillas de tarea; en las de ticket queda nulo.
-  estimatedHours Float?     @map("estimated_hours")
+  estimatedHours Float?   @map("estimated_hours")
   /// Checklists en borrador: `[{ title, items: string[] }]` (ver src/lib/checklist.ts)
-  checklist      Json       @default("[]")
+  checklist      Json     @default("[]")
 
-  createdById    String     @map("created_by_id")
-  createdBy      User       @relation("TemplateCreatedBy", fields: [createdById], references: [id])
+  createdById String @map("created_by_id")
+  createdBy   User   @relation("TemplateCreatedBy", fields: [createdById], references: [id])
 
-  createdAt      DateTime   @default(now()) @map("created_at")
-  updatedAt      DateTime   @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([entityType, name])
   @@map("templates")
@@ -674,9 +677,9 @@ model VaultLink {
   entityId     String     @map("entity_id")
   vaultEntryId String     @map("vault_entry_id")
 
-  addedAt      DateTime   @default(now()) @map("added_at")
+  addedAt DateTime @default(now()) @map("added_at")
 
-  vaultEntry   VaultEntry @relation(fields: [vaultEntryId], references: [id], onDelete: Cascade)
+  vaultEntry VaultEntry @relation(fields: [vaultEntryId], references: [id], onDelete: Cascade)
 
   @@id([entityType, entityId, vaultEntryId])
   @@index([vaultEntryId])
@@ -692,7 +695,7 @@ model AppAccess {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, app])
   @@map("app_access")
@@ -702,19 +705,19 @@ model AppAccess {
 // asigna un perfil y se expande a los niveles de cada módulo, en vez de
 // configurar app por app.
 model AccessProfile {
-  id          String   @id @default(cuid())
-  name        String   @unique
+  id          String  @id @default(cuid())
+  name        String  @unique
   description String?
   /// Niveles por módulo: `{ "TICKETS": "GESTOR", "CRM": "LECTURA" }`.
   /// Los módulos ausentes equivalen a SIN_ACCESO.
-  grants      Json     @default("{}")
+  grants      Json    @default("{}")
   /// Los perfiles del sistema no se pueden borrar desde la interfaz.
-  isSystem    Boolean  @default(false) @map("is_system")
+  isSystem    Boolean @default(false) @map("is_system")
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  users       User[]
+  users User[]
 
   @@map("access_profiles")
 }
@@ -724,10 +727,10 @@ model CommentReaction {
   userId    String       @map("user_id")
   type      ReactionType
 
-  createdAt DateTime     @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  comment   Comment      @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User         @relation("CommentReactionUser", fields: [userId], references: [id], onDelete: Cascade)
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User    @relation("CommentReactionUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([commentId, userId])
   @@map("comment_reactions")
@@ -736,57 +739,57 @@ model CommentReaction {
 // ─── Bóveda ──────────────────────────────────────────────────────────────────
 
 model VaultEntry {
-  id          String   @id @default(cuid())
-  title       String
-  username    String?
-  password    String   // AES-256-GCM cifrado: "<iv_hex>:<tag_hex>:<cipher_hex>"
-  url         String?
-  notes       String?  @db.Text
+  id       String  @id @default(cuid())
+  title    String
+  username String?
+  password String // AES-256-GCM cifrado: "<iv_hex>:<tag_hex>:<cipher_hex>"
+  url      String?
+  notes    String? @db.Text
 
-  companyId   String?  @map("company_id")
-  siteId      String?  @map("site_id")
-  serviceId   String?  @map("service_id")
-  createdById String   @map("created_by_id")
+  companyId   String? @map("company_id")
+  siteId      String? @map("site_id")
+  serviceId   String? @map("service_id")
+  createdById String  @map("created_by_id")
 
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  company     Company?   @relation(fields: [companyId], references: [id])
-  site        Site?      @relation(fields: [siteId], references: [id])
-  service     Service?   @relation(fields: [serviceId], references: [id])
-  createdBy   User       @relation("VaultCreatedBy", fields: [createdById], references: [id])
-  sharedWith  VaultShare[]
-  links       VaultLink[]
+  company    Company?     @relation(fields: [companyId], references: [id])
+  site       Site?        @relation(fields: [siteId], references: [id])
+  service    Service?     @relation(fields: [serviceId], references: [id])
+  createdBy  User         @relation("VaultCreatedBy", fields: [createdById], references: [id])
+  sharedWith VaultShare[]
+  links      VaultLink[]
 
   @@map("vault_entries")
 }
 
 model VaultShare {
-  id           String     @id @default(cuid())
-  vaultEntryId String     @map("vault_entry_id")
-  userId       String     @map("user_id")
+  id           String @id @default(cuid())
+  vaultEntryId String @map("vault_entry_id")
+  userId       String @map("user_id")
 
-  vaultEntry   VaultEntry @relation(fields: [vaultEntryId], references: [id], onDelete: Cascade)
-  user         User       @relation("VaultSharedWith", fields: [userId], references: [id], onDelete: Cascade)
+  vaultEntry VaultEntry @relation(fields: [vaultEntryId], references: [id], onDelete: Cascade)
+  user       User       @relation("VaultSharedWith", fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt    DateTime   @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@unique([vaultEntryId, userId])
   @@map("vault_shares")
 }
 
 model Site {
-  id            String   @id @default(cuid())
+  id            String  @id @default(cuid())
   name          String
   domain        String
-  documentation String?  @db.Text
-  architecture  String?  @db.Text
-  isActive      Boolean  @default(true) @map("is_active")
+  documentation String? @db.Text
+  architecture  String? @db.Text
+  isActive      Boolean @default(true) @map("is_active")
 
-  companyId     String   @map("company_id")
+  companyId String @map("company_id")
 
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
   tickets      Ticket[]
@@ -796,18 +799,18 @@ model Site {
 }
 
 model Notification {
-  id        String    @id @default(cuid())
-  type      String
-  title     String
-  message   String
-  link      String?
-  isRead    Boolean   @default(false) @map("is_read")
-  readAt    DateTime? @map("read_at")
+  id      String    @id @default(cuid())
+  type    String
+  title   String
+  message String
+  link    String?
+  isRead  Boolean   @default(false) @map("is_read")
+  readAt  DateTime? @map("read_at")
 
-  userId    String    @map("user_id")
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime  @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("notifications")
@@ -825,22 +828,22 @@ model AppSetting {
 // apps externas (Zapier, Make, n8n, Slack, etc.). `events` guarda las categorías
 // suscritas: "tickets" | "tasks" | "comments" | "mentions".
 model UserWebhook {
-  id          String   @id @default(cuid())
-  label       String?
-  url         String
-  secret      String?
-  events      String[] @default([])
-  isActive    Boolean  @default(true) @map("is_active")
+  id       String   @id @default(cuid())
+  label    String?
+  url      String
+  secret   String?
+  events   String[] @default([])
+  isActive Boolean  @default(true) @map("is_active")
 
-  lastStatus  Int?      @map("last_status")
-  lastError   String?   @map("last_error")
-  lastSentAt  DateTime? @map("last_sent_at")
+  lastStatus Int?      @map("last_status")
+  lastError  String?   @map("last_error")
+  lastSentAt DateTime? @map("last_sent_at")
 
-  userId      String    @map("user_id")
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([userId])
   @@map("user_webhooks")
@@ -851,47 +854,113 @@ model UserWebhook {
 // Un ticket/tarea puede tener varios checklists, cada uno con su título. Los
 // ítems cuelgan del checklist, no del ticket/tarea.
 
+// ─── Integraciones externas ───────────────────────────────────────────────────
 
-/// Estado de una conversación de WhatsApp, indexada por el número que escribe.
+/// Alcance de un hook: toda la organización, o un solo proyecto.
 ///
-/// Guarda tres cosas que el canal no puede sostener por sí mismo:
-///   · La memoria del hilo (`messages`), porque cada mensaje de WhatsApp llega
-///     suelto y el agente necesita los turnos anteriores para entender.
-///   · La acción propuesta y aún no confirmada (`pending`): crear un ticket es
-///     irreversible, así que se resume y se espera el "sí" del usuario.
-///   · El estado de vinculación (`verify*`), que decide si el número tiene
-///     derecho a ver algo. Un número sin `userId` no obtiene ningún dato.
-model WhatsappConversation {
-  id       String  @id @default(cuid())
-  /// E.164 sin «+». Es la identidad del hilo, exista o no un usuario detrás.
-  phone    String  @unique
-  userId   String? @map("user_id")
-  user     User?   @relation("WhatsappConversationUser", fields: [userId], references: [id])
+/// `ORG` recibe todo lo que ocurre en la plataforma; `PROJECT` solo los eventos
+/// de su proyecto (sus tareas y sus comentarios). Los tickets no cuelgan de un
+/// proyecto, así que únicamente llegan a los hooks `ORG`.
+enum HookScope {
+  ORG
+  PROJECT
+}
 
-  /// Últimos turnos del hilo: [{ role: "user" | "assistant", text: string }].
-  messages Json    @default("[]")
-  /// Acción propuesta pendiente de confirmación, o null.
-  pending  Json?
+/// Un destino externo suscrito a los eventos de la plataforma.
+///
+/// Sustituye a la integración de WhatsApp que vivía dentro de la app: en vez de
+/// construir cada canal aquí dentro, la plataforma cuenta lo que pasa y quien
+/// quiera (n8n, Make, Zapier, un servicio propio) decide qué hacer con ello.
+///
+/// `events` guarda los eventos suscritos con la forma `recurso.accion`
+/// («ticket.created», «task.status_changed»…). El catálogo vive en
+/// src/lib/hooks/events.ts, no en la base: añadir un evento no es una migración.
+model Hook {
+  id        String    @id @default(cuid())
+  label     String
+  url       String
+  /// Secreto de firma. Se genera al crear el hook y nunca cambia solo: quien
+  /// recibe verifica con él la cabecera `X-Geniorama-Signature`.
+  secret    String
+  events    String[]  @default([])
+  scope     HookScope @default(ORG)
+  /// Obligatorio cuando `scope = PROJECT`; null en los hooks de organización.
+  projectId String?   @map("project_id")
+  isActive  Boolean   @default(true) @map("is_active")
 
-  // ── Vinculación ──
-  /// Hash bcrypt del código de 6 dígitos enviado por email.
-  verifyCodeHash  String?   @map("verify_code_hash")
-  /// Usuario al que se vincularía el número si el código es correcto.
-  verifyUserId    String?   @map("verify_user_id")
-  verifyExpiresAt DateTime? @map("verify_expires_at")
-  verifyAttempts  Int       @default(0) @map("verify_attempts")
-  /// Freno tras demasiados códigos fallidos.
-  blockedUntil    DateTime? @map("blocked_until")
+  // Último resultado, para que la pantalla diga si el destino está vivo sin
+  // tener que abrir el historial de entregas.
+  lastStatus Int?      @map("last_status")
+  lastError  String?   @map("last_error")
+  lastSentAt DateTime? @map("last_sent_at")
 
-  // ── Idempotencia ──
-  /// Id del último mensaje procesado; si n8n reintenta, se devuelve `lastReply`
-  /// en vez de volver a correr el agente (y volver a crear cosas).
-  lastMessageId String? @map("last_message_id")
-  lastReply     String? @map("last_reply") @db.Text
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  project    Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy  User           @relation("HookCreatedBy", fields: [createdById], references: [id])
+  deliveries HookDelivery[]
+
+  @@index([isActive, scope])
+  @@index([projectId])
+  @@map("hooks")
+}
+
+/// Registro de cada intento de entrega.
+///
+/// Sin esto, depurar una integración es adivinar: el equipo necesita ver qué
+/// se mandó y qué contestó el otro lado. Se conservan 14 días (ver
+/// src/lib/hooks/dispatch.ts), suficiente para diagnosticar y poco para pesar.
+model HookDelivery {
+  id         String  @id @default(cuid())
+  hookId     String  @map("hook_id")
+  event      String
+  payload    Json
+  /// Código HTTP de la respuesta, o null si ni siquiera hubo conexión.
+  status     Int?
+  error      String?
+  durationMs Int?    @map("duration_ms")
+  /// Número de intentos gastados (1 = entró a la primera).
+  attempts   Int     @default(1)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  hook Hook @relation(fields: [hookId], references: [id], onDelete: Cascade)
+
+  @@index([hookId, createdAt(sort: Desc)])
+  @@map("hook_deliveries")
+}
+
+/// Llave para entrar a la API pública (`/api/v1/...`).
+///
+/// El token completo solo se ve una vez, al crearlo: en la base queda su hash
+/// SHA-256. `prefix` es la parte visible («gnr_a1b2c3d4»), que permite
+/// identificar y revocar una llave sin conocerla.
+///
+/// Toda llave escribe **en nombre de un usuario** (`userId`): así lo que entra
+/// por la API tiene autor y respeta la misma frontera de datos que la
+/// plataforma, en vez de ser un superusuario anónimo.
+model ApiKey {
+  id         String    @id @default(cuid())
+  label      String
+  prefix     String    @unique
+  tokenHash  String    @unique @map("token_hash")
+  /// "read" | "write" | "act_as" (ver src/lib/api/keys.ts).
+  scopes     String[]  @default([])
+  isActive   Boolean   @default(true) @map("is_active")
+  expiresAt  DateTime? @map("expires_at")
+  lastUsedAt DateTime? @map("last_used_at")
+
+  userId      String @map("user_id")
+  createdById String @map("created_by_id")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  user      User @relation("ApiKeyUser", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User @relation("ApiKeyCreatedBy", fields: [createdById], references: [id])
+
   @@index([userId])
-  @@map("whatsapp_conversations")
+  @@map("api_keys")
 }

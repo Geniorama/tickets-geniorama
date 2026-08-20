@@ -23,6 +23,8 @@ import {
 } from "@/lib/attachments";
 import { copyChecklists, createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
 import { deleteTimeEntriesFor, startTimer, stopRunningForEntity } from "@/lib/time-entries";
+import { emitDeletedHook, emitTaskHook } from "@/lib/hooks/dispatch";
+import { taskPayload } from "@/lib/hooks/payload";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -262,6 +264,16 @@ export async function createTask(projectIdArg: string | null, formData: FormData
     }
   }
 
+  // Los borradores no salen de la plataforma hasta publicarse, igual que no
+  // notifican a nadie.
+  if (!isDraft) {
+    emitTaskHook("task.created", task.id, {
+      actor: session.user,
+      projectId,
+      projectIsPrivate: projectIsPrivate,
+    });
+  }
+
   revalidatePath(`/proyectos/${projectId}`);
   redirect(`/proyectos/${projectId}/tareas/${task.id}`);
 }
@@ -327,6 +339,12 @@ export async function publishTask(taskId: string, projectId: string | null) {
       true // asignación individual: no va al webhook de equipo (GChat)
     );
   }
+
+  emitTaskHook("task.created", taskId, {
+    actor: session.user,
+    projectId: pid,
+    projectIsPrivate,
+  });
 
   if (pid) revalidatePath(`/proyectos/${pid}`);
   revalidatePath(taskUrl);
@@ -493,6 +511,26 @@ export async function updateTask(taskId: string, projectId: string | null, formD
     } catch { /* JSON inválido */ }
   }
 
+  const hookScope = { projectId, projectIsPrivate };
+  if (parsed.data.status !== oldTask?.status) {
+    emitTaskHook("task.status_changed", taskId, {
+      actor: session.user,
+      ...hookScope,
+      changes: { status: { from: oldTask?.status ?? null, to: parsed.data.status } },
+    });
+    if (parsed.data.status === "COMPLETADO") {
+      emitTaskHook("task.completed", taskId, { actor: session.user, ...hookScope });
+    }
+  }
+  if (newAssigneeId !== (oldTask?.assignedToId ?? null)) {
+    emitTaskHook("task.assigned", taskId, {
+      actor: session.user,
+      ...hookScope,
+      changes: { assignedToId: { from: oldTask?.assignedToId ?? null, to: newAssigneeId } },
+    });
+  }
+  emitTaskHook("task.updated", taskId, { actor: session.user, ...hookScope });
+
   if (projectId) revalidatePath(`/proyectos/${projectId}`);
   revalidatePath(taskUrl);
   redirect(taskUrl);
@@ -584,6 +622,18 @@ export async function updateTaskStatus(taskId: string, projectId: string | null,
     );
   }
 
+  if (oldTask && oldTask.status !== status) {
+    const hookScope = { projectId, projectIsPrivate };
+    emitTaskHook("task.status_changed", taskId, {
+      actor: session.user,
+      ...hookScope,
+      changes: { status: { from: oldTask.status, to: status } },
+    });
+    if (status === "COMPLETADO") {
+      emitTaskHook("task.completed", taskId, { actor: session.user, ...hookScope });
+    }
+  }
+
   if (projectId) revalidatePath(`/proyectos/${projectId}`);
   revalidatePath(taskUrl);
   return { success: true };
@@ -595,6 +645,12 @@ export async function deleteTask(taskId: string, projectId: string | null) {
   const session = await getRequiredSession();
   if (!(await can(session.user, "PROYECTOS", "editar"))) return { error: "Sin permisos" };
 
+  // El retrato se toma antes de borrar: después no queda tarea que consultar.
+  const snapshot = await taskPayload(taskId);
+  const project = projectId
+    ? await prisma.project.findUnique({ where: { id: projectId }, select: { isPrivate: true } })
+    : null;
+
   // Comentarios y adjuntos polimórficos: sin cascada en la base, se borran aquí.
   await prisma.$transaction(async (tx) => {
     await deleteCommentsFor("TASK", taskId, tx);
@@ -603,6 +659,14 @@ export async function deleteTask(taskId: string, projectId: string | null) {
     await deleteTimeEntriesFor("TASK", taskId, tx);
     await tx.task.delete({ where: { id: taskId } });
   });
+
+  if (snapshot) {
+    emitDeletedHook("task.deleted", snapshot, {
+      actor: session.user,
+      projectId,
+      projectIsPrivate: project?.isPrivate ?? false,
+    });
+  }
   if (projectId) {
     revalidatePath(`/proyectos/${projectId}`);
     redirect(`/proyectos/${projectId}`);

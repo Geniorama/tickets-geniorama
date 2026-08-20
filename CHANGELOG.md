@@ -9,6 +9,46 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.66.0] — 2026-08-20
+
+### Las integraciones se hacen por fuera: hooks y API
+
+Hasta ahora, conectar la plataforma con un canal significaba construir ese canal **dentro** del producto. Es lo que era el agente de WhatsApp: su prompt, la memoria de cada conversación, la vinculación teléfono→usuario y su forma de crear tickets vivían en este repositorio. Funcionaba, pero cada canal nuevo —Slack, Telegram, un CRM— pedía otro agente aquí dentro, y cambiar el tono de una respuesta obligaba a desplegar la aplicación entera.
+
+A partir de esta versión la plataforma hace dos cosas y las hace bien: **cuenta lo que pasa** y **deja escribir**. Lo que se haga con eso se decide fuera.
+
+#### Hooks salientes
+
+Un hook es un destino externo suscrito a eventos con nombre —`ticket.created`, `task.status_changed`, `comment.created`— que llegan como un POST firmado con HMAC SHA-256.
+
+- **Dos alcances.** Los de **organización** (Administración → Integraciones del equipo) reciben todo; los de **proyecto** (ficha del proyecto → Hooks), solo lo suyo.
+- **Los proyectos privados no se filtran.** Sus eventos llegan únicamente a los hooks de su propio proyecto, nunca a los de organización — el mismo criterio que ya aplicaba el canal de equipo en Google Chat.
+- **Se puede depurar.** Cada tarjeta guarda las últimas entregas con su código HTTP, su error y su duración. Antes, una integración que fallaba en silencio no dejaba dónde mirar.
+- Un `5xx` se reintenta una vez; un `4xx` no, porque es una decisión del destino y no un problema pasajero.
+
+Los borradores no disparan nada y las notas internas tampoco: si un cliente no lo ve en el hilo, no sale de la plataforma.
+
+#### API de entrada
+
+`/api/v1` con llaves que se administran desde el panel. Permite listar y crear tickets, tareas y comentarios, y consultar proyectos y usuarios.
+
+- **Una llave escribe en nombre de un usuario**, no como un superusuario anónimo. Ve exactamente lo que esa persona vería en la plataforma, y lo que crea queda con su autor.
+- **`onBehalfOf`** atribuye lo creado a otra persona —por su id o su correo— para bots que atienden a varios clientes. Exige el permiso `act_as`.
+- **`externalRef` hace idempotente la creación de tareas**: si el workflow reintenta, devuelve la que ya creó en vez de duplicarla.
+- El token se muestra **una sola vez**; en la base solo queda su hash.
+
+Se conserva el contrato de negocio de la interfaz: un cliente sin plan activo no abre tickets, un cliente no asigna ni cierra, y los avisos que salen son los mismos que si el ticket se hubiera abierto desde el navegador.
+
+#### Se retira el agente de WhatsApp
+
+Desaparecen el endpoint, el agente, el editor de instrucciones, la vinculación por código y el campo de teléfono del usuario. **Es un cambio con pérdida de datos**: la migración borra las conversaciones guardadas, los números vinculados y el prompt personalizado.
+
+Lo que hacía el bot se rehace fuera con lo de arriba, y la guía (Administración → Integraciones del equipo → *Ver la guía de hooks y API*) explica cómo, paso por paso. A cambio, cambiar de proveedor de WhatsApp, de modelo o de tono deja de ser un despliegue, y el mismo montaje sirve para Telegram o Slack sin escribir una línea aquí.
+
+Los webhooks personales de **Mis integraciones** no cambian: siguen mandando *tus* notificaciones a *tus* apps.
+
+---
+
 ## [1.65.0] — 2026-08-19
 
 ### El inicio muestra tus módulos

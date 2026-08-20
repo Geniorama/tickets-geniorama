@@ -19,6 +19,8 @@ import { addFileAttachments, deleteAttachmentsFor } from "@/lib/attachments";
 import { copyChecklists, createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
 import { deleteTimeEntriesFor, stopRunningForEntity } from "@/lib/time-entries";
 import { deleteVaultLinksFor } from "@/lib/vault-links";
+import { emitDeletedHook, emitTicketHook } from "@/lib/hooks/dispatch";
+import { ticketPayload } from "@/lib/hooks/payload";
 
 const APP_URL = process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -208,6 +210,12 @@ export async function createTicket(formData: FormData) {
     }
   }
 
+  // Los hooks son el canal externo: se avisa de lo que existe de verdad, así
+  // que un borrador no sale de aquí hasta que alguien lo publica.
+  if (!isDraft) {
+    emitTicketHook("ticket.created", ticket.id, { actor: session.user });
+  }
+
   revalidatePath("/tickets");
   redirect(`/tickets/${ticket.id}`);
 }
@@ -274,6 +282,8 @@ export async function publishTicket(ticketId: string) {
     `${session.user.name} creó: ${gchatParts.join(" · ")}`,
     `/tickets/${ticketId}`
   );
+
+  emitTicketHook("ticket.created", ticketId, { actor: session.user });
 
   revalidatePath(`/tickets/${ticketId}`);
   revalidatePath("/tickets");
@@ -354,13 +364,20 @@ export async function updateTicketStatus(ticketId: string, status: string) {
     }
   }
 
+  if (ticket && ticket.status !== status) {
+    emitTicketHook("ticket.status_changed", ticketId, {
+      actor: session.user,
+      changes: { status: { from: ticket.status, to: status } },
+    });
+  }
+
   revalidatePath(`/tickets/${ticketId}`);
   revalidatePath("/tickets");
   return { success: true };
 }
 
 export async function assignTicket(ticketId: string, userId: string | null) {
-  await requireCan("TICKETS", "gestionar");
+  const session = await requireCan("TICKETS", "gestionar");
 
   if (userId) {
     const assignee = await prisma.user.findUnique({
@@ -372,7 +389,7 @@ export async function assignTicket(ticketId: string, userId: string | null) {
 
   const ticket = await prisma.ticket.findUnique({
     where: { id: ticketId },
-    select: { title: true, client: { select: { name: true, email: true } } },
+    select: { title: true, assignedToId: true, client: { select: { name: true, email: true } } },
   });
 
   await prisma.ticket.update({
@@ -394,6 +411,13 @@ export async function assignTicket(ticketId: string, userId: string | null) {
       const url = `${APP_URL}/tickets/${ticketId}`;
       void sendTicketAssignedEmail(ticket.client, ticket.title, url).catch(console.error);
     }
+  }
+
+  if ((ticket?.assignedToId ?? null) !== userId) {
+    emitTicketHook("ticket.assigned", ticketId, {
+      actor: session.user,
+      changes: { assignedToId: { from: ticket?.assignedToId ?? null, to: userId } },
+    });
   }
 
   revalidatePath(`/tickets/${ticketId}`);
@@ -508,6 +532,22 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     }
   }
 
+  if (parsed.data.status !== oldTicket?.status) {
+    emitTicketHook("ticket.status_changed", ticketId, {
+      actor: session.user,
+      changes: { status: { from: oldTicket?.status ?? null, to: parsed.data.status } },
+    });
+  }
+  if ((parsed.data.assignedToId ?? null) !== (oldTicket?.assignedToId ?? null)) {
+    emitTicketHook("ticket.assigned", ticketId, {
+      actor: session.user,
+      changes: {
+        assignedToId: { from: oldTicket?.assignedToId ?? null, to: parsed.data.assignedToId ?? null },
+      },
+    });
+  }
+  emitTicketHook("ticket.updated", ticketId, { actor: session.user });
+
   revalidatePath(`/tickets/${ticketId}`);
   revalidatePath(`/tickets/${ticketId}/edit`);
   revalidatePath("/tickets");
@@ -603,13 +643,31 @@ export async function configureTicket(ticketId: string, formData: FormData) {
     );
   }
 
+  if (status !== ticket?.status) {
+    emitTicketHook("ticket.status_changed", ticketId, {
+      actor: session.user,
+      changes: { status: { from: ticket?.status ?? null, to: status } },
+    });
+  }
+  if (assignedToId !== (ticket?.assignedToId ?? null)) {
+    emitTicketHook("ticket.assigned", ticketId, {
+      actor: session.user,
+      changes: { assignedToId: { from: ticket?.assignedToId ?? null, to: assignedToId } },
+    });
+  }
+  emitTicketHook("ticket.updated", ticketId, { actor: session.user });
+
   revalidatePath(`/tickets/${ticketId}`);
   revalidatePath("/tickets");
   return { success: true };
 }
 
 export async function deleteTicket(ticketId: string) {
-  await requireCan("TICKETS", "gestionar");
+  const session = await requireCan("TICKETS", "gestionar");
+
+  // El retrato se toma antes de borrar: después no hay ticket que consultar y
+  // el hook llegaría con un id y nada más.
+  const snapshot = await ticketPayload(ticketId);
 
   // Comentarios y adjuntos son polimórficos: no hay clave foránea que los borre
   // en cascada, así que se eliminan explícitamente junto con el ticket.
@@ -621,6 +679,8 @@ export async function deleteTicket(ticketId: string) {
     await deleteVaultLinksFor("TICKET", ticketId, tx);
     await tx.ticket.delete({ where: { id: ticketId } });
   });
+
+  if (snapshot) emitDeletedHook("ticket.deleted", snapshot, { actor: session.user });
 
   revalidatePath("/tickets");
   redirect("/tickets");
@@ -682,6 +742,8 @@ export async function duplicateTicket(ticketId: string, includeChecklists = fals
 
     return created;
   });
+
+  emitTicketHook("ticket.created", copy.id, { actor: session.user });
 
   revalidatePath("/tickets");
   redirect(`/tickets/${copy.id}`);

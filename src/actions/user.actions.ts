@@ -10,7 +10,6 @@ import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { generateInvitationToken } from "@/actions/invitation.actions";
 import { sendInvitationEmail } from "@/lib/email";
-import { normalizePhone } from "@/lib/whatsapp/phone";
 
 const BASE_URL = process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -25,7 +24,6 @@ const createUserSchema = z.object({
   bio: z.string().max(2000).optional(),
   isProjectManager: z.boolean().optional(),
   isSupportAgent: z.boolean().optional(),
-  whatsappPhone: z.string().optional(),
 });
 
 export async function createUser(formData: FormData) {
@@ -44,7 +42,6 @@ export async function createUser(formData: FormData) {
     bio: formData.get("bio") || undefined,
     isProjectManager: formData.get("isProjectManager") === "true",
     isSupportAgent: formData.get("isSupportAgent") === "true",
-    whatsappPhone: formData.get("whatsappPhone") || undefined,
   });
 
   if (!parsed.success) {
@@ -60,22 +57,6 @@ export async function createUser(formData: FormData) {
   });
   if (existing) return { error: "Ya existe un usuario con ese email" };
 
-  // Ver la nota en `updateUser`: el número va normalizado a E.164 sin «+».
-  const rawPhone = parsed.data.whatsappPhone?.trim();
-  let whatsappPhone: string | null = null;
-  if (rawPhone) {
-    whatsappPhone = normalizePhone(rawPhone);
-    if (!whatsappPhone) return { error: `"${rawPhone}" no parece un número de WhatsApp válido` };
-
-    const phoneTaken = await prisma.user.findFirst({
-      where: { whatsappPhone },
-      select: { name: true },
-    });
-    if (phoneTaken) {
-      return { error: `Ese número de WhatsApp ya está asignado a ${phoneTaken.name}` };
-    }
-  }
-
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
 
   // Cargo y área solo aplican a staff (admin/colaborador)
@@ -87,7 +68,6 @@ export async function createUser(formData: FormData) {
       email: parsed.data.email,
       passwordHash,
       role: parsed.data.role,
-      whatsappPhone,
       cargo: isStaffRole ? (parsed.data.cargo ?? null) : null,
       area: isStaffRole ? (parsed.data.area ?? null) : null,
       bio: isStaffRole ? (parsed.data.bio ?? null) : null,
@@ -132,7 +112,6 @@ export async function updateUser(userId: string, formData: FormData) {
     bio: z.string().max(2000).optional(),
     isProjectManager: z.boolean().optional(),
     isSupportAgent: z.boolean().optional(),
-    whatsappPhone: z.string().optional(),
   });
 
   const parsed = schema.safeParse({
@@ -147,7 +126,6 @@ export async function updateUser(userId: string, formData: FormData) {
     bio: formData.get("bio") || undefined,
     isProjectManager: formData.get("isProjectManager") === "true",
     isSupportAgent: formData.get("isSupportAgent") === "true",
-    whatsappPhone: formData.get("whatsappPhone") || undefined,
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -161,28 +139,9 @@ export async function updateUser(userId: string, formData: FormData) {
   });
   if (duplicate) return { error: "Ya existe un usuario con ese email" };
 
-  // El número se guarda normalizado (E.164 sin «+») porque el bot de WhatsApp
-  // lo busca por igualdad exacta contra el índice único: «300 123 4567» y
-  // «+57 300 123 4567» tienen que acabar siendo la misma fila.
-  const rawPhone = parsed.data.whatsappPhone?.trim();
-  let whatsappPhone: string | null = null;
-  if (rawPhone) {
-    whatsappPhone = normalizePhone(rawPhone);
-    if (!whatsappPhone) return { error: `"${rawPhone}" no parece un número de WhatsApp válido` };
-
-    const phoneTaken = await prisma.user.findFirst({
-      where: { whatsappPhone, NOT: { id: userId } },
-      select: { name: true },
-    });
-    if (phoneTaken) {
-      return { error: `Ese número de WhatsApp ya está asignado a ${phoneTaken.name}` };
-    }
-  }
-
   const isStaffRole = parsed.data.role !== "CLIENTE";
 
   const updateData: Parameters<typeof prisma.user.update>[0]["data"] = {
-    whatsappPhone,
     name: parsed.data.name,
     email: parsed.data.email,
     role: parsed.data.role,

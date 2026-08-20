@@ -15,8 +15,8 @@ const nextConfig: NextConfig = {
   // El output tracing de Next no siempre arrastra el query engine desde ahí,
   // así que lo forzamos para que el binario llegue al bundle standalone.
   //
-  // `docs/` va por el mismo motivo: la guía de n8n se sirve desde
-  // /admin/integraciones/whatsapp leyendo el .md en disco, así que el archivo
+  // `docs/` va por el mismo motivo: la guía de hooks y API se sirve desde
+  // /admin/integraciones/api leyendo el .md en disco, así que el archivo
   // tiene que viajar en el bundle o la página revienta en producción.
   outputFileTracingIncludes: {
     "*": ["./src/generated/prisma/**/*", "./docs/**/*"],

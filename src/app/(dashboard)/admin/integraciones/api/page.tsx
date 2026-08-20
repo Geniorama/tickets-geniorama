@@ -4,10 +4,9 @@ import Link from "next/link";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { requireCan } from "@/lib/access/can";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
-import { WhatsappWorkflowCopy } from "@/components/admin/whatsapp-workflow-copy";
 
 /**
- * Guía de conexión del agente de WhatsApp con n8n.
+ * Guía de hooks y API.
  *
  * El contenido no se duplica aquí: se lee del mismo `docs/` que versiona el
  * repositorio, para que la guía que ve el equipo en la plataforma y la que lee
@@ -15,7 +14,7 @@ import { WhatsappWorkflowCopy } from "@/components/admin/whatsapp-workflow-copy"
  * mete `docs/**` en el bundle standalone para que exista también en producción.
  */
 
-export const metadata = { title: "Agente de WhatsApp — conectar n8n" };
+export const metadata = { title: "Hooks y API — guía de integración" };
 
 const DOCS_DIR = path.join(process.cwd(), "docs");
 
@@ -23,20 +22,16 @@ async function readDoc(relativePath: string): Promise<string | null> {
   try {
     return await fs.readFile(path.join(DOCS_DIR, relativePath), "utf8");
   } catch {
-    // Falta el archivo (bundle incompleto): la página sigue siendo útil con lo
-    // que sí cargó, en vez de devolver un 500.
+    // Falta el archivo (bundle incompleto): la página lo dice en vez de
+    // devolver un 500.
     return null;
   }
 }
 
-export default async function WhatsappGuidePage() {
+export default async function ApiGuidePage() {
   await requireCan("ADMIN");
 
-  const [guide, workflow, workflowHttp] = await Promise.all([
-    readDoc("n8n-whatsapp-meta-cloud.md"),
-    readDoc(path.join("n8n", "whatsapp-meta-cloud.workflow.json")),
-    readDoc(path.join("n8n", "whatsapp-meta-cloud-http.workflow.json")),
-  ]);
+  const guide = await readDoc("hooks-y-api.md");
 
   return (
     <div style={{ maxWidth: "48rem" }}>
@@ -55,8 +50,6 @@ export default async function WhatsappGuidePage() {
         <ArrowLeft style={{ width: "0.875rem", height: "0.875rem" }} />
         Integraciones del equipo
       </Link>
-
-      <WhatsappWorkflowCopy workflow={workflow} workflowHttp={workflowHttp} />
 
       {guide ? (
         <MarkdownRenderer content={guide} />
@@ -78,7 +71,7 @@ export default async function WhatsappGuidePage() {
         >
           <AlertTriangle style={{ width: "1rem", height: "1rem", flexShrink: 0, marginTop: "0.1rem" }} />
           <span>
-            No encontré la guía en el servidor (<code>docs/n8n-whatsapp-meta-cloud.md</code>). Está en el
+            No encontré la guía en el servidor (<code>docs/hooks-y-api.md</code>). Está en el
             repositorio; si falta aquí, el bundle se desplegó sin la carpeta <code>docs/</code>.
           </span>
         </p>
