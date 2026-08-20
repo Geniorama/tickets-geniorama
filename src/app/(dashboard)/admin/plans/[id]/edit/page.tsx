@@ -1,4 +1,5 @@
 import { requireCan } from "@/lib/access/can";
+import { operationalCompanyWhere } from "@/lib/crm/accounts";
 import { prisma } from "@/lib/prisma";
 import { PlanEditForm } from "@/components/admin/plan-edit-form";
 import { notFound } from "next/navigation";
@@ -21,7 +22,7 @@ export default async function EditPlanPage({
   const [plan, companies] = await Promise.all([
     prisma.plan.findUnique({ where: { id } }),
     prisma.company.findMany({
-      where: { isActive: true },
+      where: operationalCompanyWhere,
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),

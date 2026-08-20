@@ -1,4 +1,5 @@
 import { requireCan } from "@/lib/access/can";
+import { operationalCompanyWhere } from "@/lib/crm/accounts";
 import { prisma } from "@/lib/prisma";
 import { ProjectForm } from "@/components/projects/project-form";
 
@@ -9,7 +10,7 @@ export default async function NewProjectPage() {
 
   const [companies, staffUsers, allUsers] = await Promise.all([
     prisma.company.findMany({
-      where: { isActive: true },
+      where: operationalCompanyWhere,
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),

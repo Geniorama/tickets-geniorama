@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { operationalCompanyWhere } from "@/lib/crm/accounts";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/vault-crypto";
@@ -21,7 +22,7 @@ export default async function EditVaultEntryPage({ params }: { params: Promise<{
   if (entry.createdById !== session.user.id) notFound();
 
   const [companies, sites, services] = await Promise.all([
-    prisma.company.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.company.findMany({ where: operationalCompanyWhere, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.site.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true, domain: true, companyId: true } }),
     prisma.service.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true, type: true, companyId: true } }),
   ]);

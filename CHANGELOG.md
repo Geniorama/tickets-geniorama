@@ -9,6 +9,40 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.69.0] — 2026-08-20
+
+### Fase 3: nace el CRM — cuentas y contactos
+
+Primer paso del módulo. Se pueden registrar prospectos, seguir su etapa comercial y guardar sus contactos.
+
+#### Un prospecto es una `Company`, no una entidad aparte
+
+La decisión de diseño que sostiene todo lo demás: en vez de un modelo «Lead» separado, `Company` gana una **etapa** — Lead, Prospecto, Cliente o Inactivo.
+
+Así, cuando un prospecto se gana **no hay conversión ni duplicado**: la misma empresa pasa a Cliente y conserva su historial, sus contactos y —desde ese momento— sus proyectos, tickets y planes. Un año después, quien atienda un ticket puede ver por qué se vendió lo que se vendió.
+
+La ficha de cada cuenta muestra esa relación: cuántos proyectos, tickets, planes y sitios tiene ya.
+
+#### Los leads no se cuelan donde no deben
+
+Reutilizar `Company` tiene un riesgo: un lead no es cliente todavía, así que no debe aparecer al elegir «la empresa» de un proyecto, un plan o un sitio. Se añade un filtro único (`operationalCompanyWhere`) aplicado en **15 pantallas**: selectores de proyecto, plan, sitio, servicio, usuario y bóveda, más los desplegables de filtro de listados.
+
+**Nada cambia hoy**: el backfill deja en Cliente todas las empresas existentes, así que los selectores siguen mostrando exactamente lo mismo. El filtro solo actúa sobre los leads que se creen de ahora en adelante.
+
+#### Contactos
+
+Personas de contacto por cuenta, con correo, teléfono y cargo, y una marca de contacto principal. No son usuarios del sistema: son la agenda comercial. El modelo ya prevé enlazarlos con un `User` si más adelante se les invita al portal.
+
+#### El módulo deja de estar «Próximamente»
+
+`CRM` pasa a construido en el registro de módulos y aparece activo en el selector, gobernado por la capa de permisos desde el primer día. Solo lo ven administradores y colaboradores con nivel concedido; el perfil **Comercial** ya lo traía en Gestor desde la v1.48.0.
+
+#### Pendiente para el siguiente paso
+
+El embudo de oportunidades (`Pipeline`, `Deal`) y la bitácora de actividad. Van en su propia migración para poder verificarlos por separado.
+
+---
+
 ## [1.68.1] — 2026-08-20
 
 ### Corrige: la referencia de la API se veía mal en tema oscuro

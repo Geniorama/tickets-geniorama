@@ -1,4 +1,5 @@
 import { getRequiredSession } from "@/lib/auth-helpers";
+import { operationalCompanyWhere } from "@/lib/crm/accounts";
 import { prisma } from "@/lib/prisma";
 import { elapsedMsByEntity } from "@/lib/time-entries";
 import { getPlanUsedHours } from "@/lib/plans.server";
@@ -153,7 +154,7 @@ export default async function ReportesPage({
 
     // Options for filter dropdowns
     const companies = await prisma.company.findMany({
-      where: { isActive: true },
+      where: operationalCompanyWhere,
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     });

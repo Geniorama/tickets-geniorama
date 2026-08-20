@@ -1,4 +1,5 @@
 import { requireCan } from "@/lib/access/can";
+import { operationalCompanyWhere } from "@/lib/crm/accounts";
 import { prisma } from "@/lib/prisma";
 import { UserForm } from "@/components/admin/user-form";
 
@@ -8,7 +9,7 @@ export default async function NewUserPage() {
   await requireCan("ADMIN");
 
   const companies = await prisma.company.findMany({
-    where: { isActive: true },
+    where: operationalCompanyWhere,
     orderBy: { name: "asc" },
     select: { id: true, name: true },
   });

@@ -1,4 +1,5 @@
 import { getRequiredSession } from "@/lib/auth-helpers";
+import { operationalCompanyWhere } from "@/lib/crm/accounts";
 import { prisma } from "@/lib/prisma";
 import { VaultForm } from "@/components/vault/vault-form";
 import { BackButton } from "@/components/ui/back-button";
@@ -9,7 +10,7 @@ export default async function NewVaultEntryPage() {
   await getRequiredSession();
 
   const [companies, sites, services] = await Promise.all([
-    prisma.company.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.company.findMany({ where: operationalCompanyWhere, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.site.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true, domain: true, companyId: true } }),
     prisma.service.findMany({ where: { isActive: true }, orderBy: { name: "asc" }, select: { id: true, name: true, type: true, companyId: true } }),
   ]);

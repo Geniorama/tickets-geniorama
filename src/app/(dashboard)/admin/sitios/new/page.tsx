@@ -1,4 +1,5 @@
 import { requireCan } from "@/lib/access/can";
+import { operationalCompanyWhere } from "@/lib/crm/accounts";
 import { prisma } from "@/lib/prisma";
 import { SiteForm } from "@/components/sites/site-form";
 import { BackButton } from "@/components/ui/back-button";
@@ -9,7 +10,7 @@ export default async function NewSitioPage() {
   await requireCan("INFRAESTRUCTURA", "crear");
 
   const companies = await prisma.company.findMany({
-    where: { isActive: true },
+    where: operationalCompanyWhere,
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });

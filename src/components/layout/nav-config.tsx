@@ -76,9 +76,9 @@ export const APP_SECTIONS: Record<AppKey, NavSection[]> = {
     { href: "/admin/estadisticas",  label: "Productividad", icon: TrendingUp, requires: "gestionar" },
     { href: "/admin/integraciones", label: "Integraciones del equipo", icon: Plug, requires: "gestionar" },
   ],
-  // Sin secciones mientras el módulo no exista: el lanzador lo muestra
-  // deshabilitado.
-  CRM: [],
+  CRM: [
+    { href: "/crm", label: "Cuentas", icon: Handshake, isRoot: true, requires: "ver" },
+  ],
 };
 
 /**
@@ -102,6 +102,7 @@ const EXTRA_PREFIXES: Partial<Record<AppKey, string[]>> = {
   INFRAESTRUCTURA: ["/admin/sitios", "/admin/servicios"],
   PORTAL:    ["/mis-empresas", "/mis-planes", "/mis-servicios"],
   ADMIN:     ["/admin/users", "/admin/companies", "/admin/plans", "/admin/estadisticas", "/admin/integraciones"],
+  CRM:       ["/crm"],
 };
 
 /**

@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { operationalCompanyWhere } from "@/lib/crm/accounts";
 import { requireCan } from "@/lib/access/can";
 import { isStaff } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
@@ -39,7 +40,7 @@ export default async function EditUserPage({
       },
     }),
     prisma.company.findMany({
-      where: { isActive: true },
+      where: operationalCompanyWhere,
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),

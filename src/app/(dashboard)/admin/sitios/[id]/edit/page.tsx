@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { operationalCompanyWhere } from "@/lib/crm/accounts";
 import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { SiteForm } from "@/components/sites/site-form";
@@ -21,7 +22,7 @@ export default async function EditSitioPage({
   const [site, companies] = await Promise.all([
     prisma.site.findUnique({ where: { id } }),
     prisma.company.findMany({
-      where: { isActive: true },
+      where: operationalCompanyWhere,
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),

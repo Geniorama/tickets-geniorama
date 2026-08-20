@@ -81,10 +81,10 @@ export const APPS: readonly AppDefinition[] = [
   {
     key: "CRM",
     name: "CRM",
-    description: "Contactos, embudo y oportunidades de venta.",
+    description: "Cuentas, contactos y seguimiento comercial.",
     href: "/crm",
-    built: false,
-    enforced: false,
+    built: true,
+    enforced: true,
     allowedRoles: ["ADMINISTRADOR", "COLABORADOR"],
   },
 ] as const;
