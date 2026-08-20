@@ -9,6 +9,20 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.68.1] — 2026-08-20
+
+### Corrige: la referencia de la API se veía mal en tema oscuro
+
+Tres cosas, y la de fondo explica las otras dos.
+
+**Los ajustes de tema no se aplicaban nunca.** Estaban colgados de `prefers-color-scheme`, la preferencia del **sistema operativo**, cuando el tema de la aplicación lo decide `next-themes` con una clase en `<html>` — y el oscuro es el predeterminado. Quien tuviera el sistema en claro y la app en oscuro, que es lo habitual, veía Swagger UI sin ningún ajuste. Ahora dependen del tema real de la app.
+
+**El candado no se veía.** Su icono usa `fill="currentColor"` y el botón resolvía a negro: negro sobre azul oscuro. Ahora sigue el color del texto, y el candado cerrado se queda verde para que se distinga de un vistazo del abierto.
+
+**El icono de copiar salía duplicado.** No era un icono sino dos capas: una imagen de fondo con el glifo y, encima, un `<svg>` con `fill="#ffffff"` fijo. Sobre fondo claro se leen como una sola pieza, pero en oscuro quedaban desalineadas. Ahora es una sola capa que sigue al color del texto, y se comprobó que se ve en los dos temas — quitar solo el fondo lo habría dejado invisible en el claro.
+
+---
+
 ## [1.68.0] — 2026-08-20
 
 ### Documentación de la API al estilo Swagger

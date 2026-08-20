@@ -139,13 +139,19 @@ export function ApiReference({ specUrl }: { specUrl: string }) {
 }
 
 /*
- * Swagger UI trae su propia hoja de estilos, pensada para ocupar una página
- * entera y con colores fijos. Estos retoques son los mínimos para que encaje
- * dentro del panel y no cante en el tema oscuro; el resto de su interfaz se deja
- * tal cual, que es justamente lo que la hace reconocible para quien ya la ha
- * usado.
+ * Ajustes sobre la hoja de estilos de Swagger UI.
+ *
+ * Van colgados de `html:not(.light)` y no de `prefers-color-scheme` porque el
+ * tema de la aplicación lo decide `next-themes` con una clase en `<html>`, y el
+ * oscuro es el predeterminado: atarlo a la preferencia del sistema significaba
+ * que estos ajustes no se aplicaban a quien tuviera el sistema en claro y la
+ * app en oscuro, que es el caso habitual.
+ *
+ * Se toca lo mínimo. El resto de la interfaz se deja tal cual, que es
+ * justamente lo que la hace reconocible para quien ya ha usado Swagger.
  */
 const OVERRIDES = `
+/* ── Encaje dentro del panel ─────────────────────────────────────────────── */
 .swagger-host .swagger-ui { font-family: inherit; }
 .swagger-host .swagger-ui .topbar { display: none; }
 .swagger-host .swagger-ui .info,
@@ -157,43 +163,102 @@ const OVERRIDES = `
 }
 .swagger-host .swagger-ui .info .title small.version-stamp { background-color: #6366f1; }
 
-@media (prefers-color-scheme: dark) {
-  .swagger-host .swagger-ui,
-  .swagger-host .swagger-ui .info .title,
-  .swagger-host .swagger-ui .info li,
-  .swagger-host .swagger-ui .info p,
-  .swagger-host .swagger-ui .info table,
-  .swagger-host .swagger-ui label,
-  .swagger-host .swagger-ui .opblock-tag,
-  .swagger-host .swagger-ui .opblock .opblock-summary-operation-id,
-  .swagger-host .swagger-ui .opblock .opblock-summary-path,
-  .swagger-host .swagger-ui .opblock .opblock-summary-description,
-  .swagger-host .swagger-ui .opblock-description-wrapper p,
-  .swagger-host .swagger-ui .opblock-external-docs-wrapper p,
-  .swagger-host .swagger-ui .parameter__name,
-  .swagger-host .swagger-ui .parameter__type,
-  .swagger-host .swagger-ui .parameter__in,
-  .swagger-host .swagger-ui table thead tr th,
-  .swagger-host .swagger-ui table thead tr td,
-  .swagger-host .swagger-ui .response-col_status,
-  .swagger-host .swagger-ui .response-col_links,
-  .swagger-host .swagger-ui .model-title,
-  .swagger-host .swagger-ui .model,
-  .swagger-host .swagger-ui .tab li button.tablinks {
-    color: var(--app-body-text);
-  }
-  .swagger-host .swagger-ui .opblock .opblock-section-header {
-    background: var(--app-content-bg);
-    box-shadow: none;
-  }
-  .swagger-host .swagger-ui .opblock-body pre.microlight { background: #0f172a; }
-  .swagger-host .swagger-ui select,
-  .swagger-host .swagger-ui input[type="text"],
-  .swagger-host .swagger-ui input[type="password"],
-  .swagger-host .swagger-ui textarea {
-    background: var(--app-content-bg);
-    color: var(--app-body-text);
-    border-color: var(--app-border);
-  }
+/* ── El botón de copiar dibujaba dos iconos ──────────────────────────────── */
+/* El icono de Swagger son dos capas: una imagen de fondo con el glifo oscuro y,
+   encima, un <svg> cuyo path lleva \`fill="#ffffff"\` fijo. Sobre un fondo claro
+   se leen como uno solo, pero en oscuro se ven desalineadas y parecen dos.
+   Se deja una sola capa —el SVG— y se le quita el blanco fijo para que siga al
+   color del texto y funcione en los dos temas. */
+.swagger-host .swagger-ui .copy-to-clipboard,
+.swagger-host .swagger-ui .copy-to-clipboard button {
+  background-image: none;
+  /* Explícito y no heredado: el contenedor del icono trae su propio color y
+     dejarlo a la herencia lo volvía invisible en uno de los dos temas. */
+  color: #3b4151;
+}
+.swagger-host .swagger-ui .copy-to-clipboard button svg,
+.swagger-host .swagger-ui .copy-to-clipboard button svg path {
+  fill: currentColor;
+}
+html:not(.light) .swagger-host .swagger-ui .copy-to-clipboard,
+html:not(.light) .swagger-host .swagger-ui .copy-to-clipboard button {
+  color: var(--app-body-text);
+}
+
+/* ── Tema oscuro de la app ───────────────────────────────────────────────── */
+html:not(.light) .swagger-host .swagger-ui,
+html:not(.light) .swagger-host .swagger-ui .info .title,
+html:not(.light) .swagger-host .swagger-ui .info li,
+html:not(.light) .swagger-host .swagger-ui .info p,
+html:not(.light) .swagger-host .swagger-ui .info table,
+html:not(.light) .swagger-host .swagger-ui label,
+html:not(.light) .swagger-host .swagger-ui .opblock-tag,
+html:not(.light) .swagger-host .swagger-ui .opblock-tag small,
+html:not(.light) .swagger-host .swagger-ui .opblock .opblock-summary-operation-id,
+html:not(.light) .swagger-host .swagger-ui .opblock .opblock-summary-path,
+html:not(.light) .swagger-host .swagger-ui .opblock .opblock-summary-description,
+html:not(.light) .swagger-host .swagger-ui .opblock-description-wrapper p,
+html:not(.light) .swagger-host .swagger-ui .opblock-external-docs-wrapper p,
+html:not(.light) .swagger-host .swagger-ui .opblock-title_normal p,
+html:not(.light) .swagger-host .swagger-ui .parameter__name,
+html:not(.light) .swagger-host .swagger-ui .parameter__type,
+html:not(.light) .swagger-host .swagger-ui .parameter__in,
+html:not(.light) .swagger-host .swagger-ui .parameter__extension,
+html:not(.light) .swagger-host .swagger-ui table thead tr th,
+html:not(.light) .swagger-host .swagger-ui table thead tr td,
+html:not(.light) .swagger-host .swagger-ui .response-col_status,
+html:not(.light) .swagger-host .swagger-ui .response-col_links,
+html:not(.light) .swagger-host .swagger-ui .responses-inner h4,
+html:not(.light) .swagger-host .swagger-ui .responses-inner h5,
+html:not(.light) .swagger-host .swagger-ui .model-title,
+html:not(.light) .swagger-host .swagger-ui .model,
+html:not(.light) .swagger-host .swagger-ui .model-toggle,
+html:not(.light) .swagger-host .swagger-ui .tab li button.tablinks,
+html:not(.light) .swagger-host .swagger-ui .dialog-ux .modal-ux-header h3,
+html:not(.light) .swagger-host .swagger-ui .dialog-ux .modal-ux-content h4,
+html:not(.light) .swagger-host .swagger-ui .dialog-ux .modal-ux-content p {
+  color: var(--app-body-text);
+}
+
+/* El candado usa fill="currentColor": sin esto queda negro sobre fondo oscuro. */
+html:not(.light) .swagger-host .swagger-ui .authorization__btn,
+html:not(.light) .swagger-host .swagger-ui .authorization__btn svg,
+html:not(.light) .swagger-host .swagger-ui .copy-to-clipboard button svg,
+html:not(.light) .swagger-host .swagger-ui .expand-operation svg,
+html:not(.light) .swagger-host .swagger-ui .models-control svg,
+html:not(.light) .swagger-host .swagger-ui .model-box-control svg,
+html:not(.light) .swagger-host .swagger-ui .opblock-control-arrow svg,
+html:not(.light) .swagger-host .swagger-ui .opblock-summary-control svg {
+  color: var(--app-body-text);
+  fill: currentColor;
+}
+/* El candado cerrado es el estado con autorización activa: verde, como en el
+   Swagger de siempre, para que se distinga de un vistazo del abierto. */
+html:not(.light) .swagger-host .swagger-ui .authorization__btn svg.locked {
+  color: #49cc90;
+}
+
+html:not(.light) .swagger-host .swagger-ui .opblock .opblock-section-header {
+  background: var(--app-content-bg);
+  box-shadow: none;
+}
+html:not(.light) .swagger-host .swagger-ui .opblock-body pre.microlight,
+html:not(.light) .swagger-host .swagger-ui .highlight-code > .microlight {
+  background: #0f172a;
+}
+html:not(.light) .swagger-host .swagger-ui .model-box,
+html:not(.light) .swagger-host .swagger-ui section.models,
+html:not(.light) .swagger-host .swagger-ui .dialog-ux .modal-ux {
+  background: var(--app-card-bg);
+  border-color: var(--app-border);
+}
+html:not(.light) .swagger-host .swagger-ui select,
+html:not(.light) .swagger-host .swagger-ui input[type="text"],
+html:not(.light) .swagger-host .swagger-ui input[type="password"],
+html:not(.light) .swagger-host .swagger-ui input[type="email"],
+html:not(.light) .swagger-host .swagger-ui textarea {
+  background: var(--app-content-bg);
+  color: var(--app-body-text);
+  border-color: var(--app-border);
 }
 `;
