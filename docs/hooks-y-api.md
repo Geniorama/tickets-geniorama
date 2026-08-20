@@ -153,6 +153,23 @@ Dos límites, para que suplantar no sirva para ascender: solo pueden hacerlo las
 llaves atadas a una cuenta **del equipo** —una llave de cliente con `act_as`
 igual recibe un `403`—, y nadie puede escribir en nombre de un administrador.
 
+### Referencia interactiva
+
+El contrato campo por campo está en **Administración → Integraciones del equipo →
+Ver la guía → Referencia interactiva**: Swagger UI sobre esta misma instalación,
+con *Authorize* para pegar el token y *Try it out* para lanzar llamadas reales
+sin salir del panel.
+
+El spec crudo se sirve en `GET /api/v1/openapi.json`, **sin llave** — no contiene
+secretos, y pedirlo autenticado obligaría a tener una llave antes de poder leer
+cómo se usan las llaves. Es OpenAPI 3.0.3, así que se importa tal cual en Postman
+(*Import → Link*), Insomnia o el nodo *HTTP Request* de n8n, y sirve para generar
+clientes.
+
+Swagger UI se sirve desde la propia instalación (`public/swagger-ui/`, que se
+copia desde `node_modules` en `predev`/`prebuild`), no desde un CDN: la pantalla
+funciona en una red cerrada y no le pide nada a terceros.
+
 ### Endpoints
 
 | Método | Ruta | Permiso |

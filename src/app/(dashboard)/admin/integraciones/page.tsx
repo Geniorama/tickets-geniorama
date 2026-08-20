@@ -8,7 +8,7 @@ import { GChatIntegrations } from "@/components/admin/gchat-integrations";
 import { BriefRoutings } from "@/components/admin/brief-routings";
 import { HooksManager } from "@/components/integrations/hooks-manager";
 import { ApiKeys } from "@/components/integrations/api-keys";
-import { Plug, Webhook, KeyRound, BookOpen } from "lucide-react";
+import { Plug, Webhook, KeyRound, BookOpen, Code2 } from "lucide-react";
 
 export const metadata = { title: "Integraciones del equipo" };
 
@@ -94,6 +94,23 @@ export default async function IntegracionesPage() {
         >
           <BookOpen style={{ width: "0.875rem", height: "0.875rem" }} />
           Ver la guía de hooks y API
+        </Link>
+        <Link
+          href="/admin/integraciones/api/referencia"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.375rem",
+            marginTop: "0.75rem",
+            marginLeft: "1.25rem",
+            fontSize: "0.8125rem",
+            fontWeight: 500,
+            color: "#6366f1",
+            textDecoration: "none",
+          }}
+        >
+          <Code2 style={{ width: "0.875rem", height: "0.875rem" }} />
+          Referencia interactiva (Swagger)
         </Link>
       </div>
 

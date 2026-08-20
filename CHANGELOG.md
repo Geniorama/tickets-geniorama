@@ -9,6 +9,24 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.68.0] — 2026-08-20
+
+### Documentación de la API al estilo Swagger
+
+La guía de integración explica el porqué y da el paso a paso, pero no servía para responder «¿qué campos acepta exactamente este endpoint?». Ahora hay lo otro: el contrato, campo por campo.
+
+**Referencia interactiva** en Administración → Integraciones del equipo → *Referencia interactiva*. Es Swagger UI sobre esta misma instalación: se pulsa *Authorize*, se pega el token de una llave y cada endpoint se puede lanzar de verdad con *Try it out*. Los 17 endpoints llevan descripción, ejemplos de cuerpo —incluido el caso «en nombre de un cliente»— y el detalle de cada código de error.
+
+**Y el spec crudo** en `GET /api/v1/openapi.json`, sin llave. Es OpenAPI 3.0.3 válido, así que se importa tal cual en Postman, Insomnia o el nodo *HTTP Request* de n8n, y sirve para generar clientes.
+
+El documento se arma en código a partir de los mismos enums que usa el servidor —permisos, estados, prioridades—, así que no puede desfasarse respecto a lo que la API acepta de verdad. Y Swagger UI se sirve desde la propia instalación, no desde un CDN: la pantalla funciona en una red cerrada y no le pide nada a terceros.
+
+#### Corrige: `public/` quedaba detrás del inicio de sesión
+
+Al montar esto salió a la luz que el middleware de sesión interceptaba también los archivos estáticos servidos desde `public/`: el navegador recibía un redirect a `/login` en vez del archivo. Solo se notaba con recursos nuevos —los `.png` ya estaban exceptuados—, pero era un problema esperando a la siguiente carpeta que se añadiera ahí.
+
+---
+
 ## [1.67.0] — 2026-08-20
 
 ### Los tickets que entran por la API nacen «Por asignar»

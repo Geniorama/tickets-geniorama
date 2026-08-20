@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import Link from "next/link";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, Code2 } from "lucide-react";
 import { requireCan } from "@/lib/access/can";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 
@@ -49,6 +49,27 @@ export default async function ApiGuidePage() {
       >
         <ArrowLeft style={{ width: "0.875rem", height: "0.875rem" }} />
         Integraciones del equipo
+      </Link>
+
+      <Link
+        href="/admin/integraciones/api/referencia"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.625rem",
+          padding: "0.875rem 1rem",
+          marginBottom: "1.5rem",
+          borderRadius: "0.5rem",
+          border: "1px solid rgba(99,102,241,0.3)",
+          backgroundColor: "rgba(99,102,241,0.08)",
+          textDecoration: "none",
+        }}
+      >
+        <Code2 style={{ width: "1rem", height: "1rem", color: "#6366f1", flexShrink: 0 }} />
+        <span style={{ fontSize: "0.8125rem", color: "var(--app-body-text)", lineHeight: 1.5 }}>
+          <strong style={{ color: "#6366f1" }}>Referencia interactiva</strong> — el contrato campo por
+          campo, con Swagger UI y «Try it out» para probar sin salir del panel.
+        </span>
       </Link>
 
       {guide ? (

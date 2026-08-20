@@ -47,3 +47,6 @@ next-env.d.ts
 
 .claude/*
 .claude/settings.local.json
+
+# Swagger UI: se copia desde node_modules en predev/prebuild (scripts/copy-swagger-ui.mjs)
+public/swagger-ui/
