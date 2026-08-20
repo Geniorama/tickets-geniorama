@@ -9,6 +9,22 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.64.2] — 2026-08-19
+
+### Corrige: el tour de bienvenida había perdido la mitad de sus pasos
+
+Regresión introducida en la v1.59.0 con el menú contextual. El tour explicaba los módulos señalando sus enlaces en el menú lateral —Tickets, Proyectos, Tareas, y los tres del portal del cliente—, pero esos enlaces solo están visibles cuando su módulo está activo, y el tour arranca en el inicio, donde no hay ninguno.
+
+No fallaba de forma visible: el tour descarta en silencio los pasos cuyo elemento no existe. Simplemente **dejaba de explicar los módulos**, que era su parte más útil. Un cliente nuevo perdía 3 de sus pasos.
+
+Ahora un único paso señala el **selector de módulos** y nombra los que esa persona verá según su rol: al cliente se le habla de Tickets, Proyectos y Portal; al administrador, también de Infraestructura y Administración.
+
+El tour pasa de 15 a 12 pasos para el equipo y a 9 para clientes — más corto y, sobre todo, correspondiéndose con lo que se ve en pantalla.
+
+Se añade una comprobación que verifica, para los tres roles, que cada paso apunte a un elemento que realmente se renderiza. Es la que faltaba: sin ella, un selector obsoleto vuelve a pasar desapercibido.
+
+---
+
 ## [1.64.1] — 2026-08-19
 
 ### Los nombres del menú dejan de repetirse

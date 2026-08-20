@@ -17,6 +17,20 @@ const isCliente = (r: Role) => r === "CLIENTE";
 
 const nav = (href: string) => `[data-tour-id="${href}"]`;
 
+/** Qué módulos nombrar en el paso del selector, según lo que ese rol puede ver. */
+function modulesDescription(role: Role): string {
+  if (isCliente(role)) {
+    return "Desde aquí entras a cada módulo: Tickets para tus solicitudes de soporte, " +
+      "Proyectos para seguir el trabajo en curso y el Portal con tus empresas, planes y servicios contratados.";
+  }
+  if (isAdmin(role)) {
+    return "Desde aquí entras a cada módulo: Tickets, Proyectos, Infraestructura (sitios y servicios) " +
+      "y Administración (usuarios, empresas y planes). Solo aparecen los módulos a los que tienes acceso.";
+  }
+  return "Desde aquí entras a cada módulo: Tickets, Proyectos e Infraestructura. " +
+    "Solo aparecen los módulos a los que tienes acceso.";
+}
+
 /** Tour de bienvenida: recorre el menú lateral y las partes principales, adaptado al rol. */
 export function getWelcomeTour(role: Role): TourDef {
   const steps: TourStep[] = [];
@@ -27,33 +41,24 @@ export function getWelcomeTour(role: Role): TourDef {
       "Te muestro en un minuto cómo está organizada la app y para qué sirve cada parte. Avanza con «Siguiente» y puedes salir cuando quieras.",
   });
 
+  // El menú es contextual: solo se ven las secciones del módulo activo. Por eso
+  // los módulos se explican desde el selector y no uno a uno, que es como
+  // estaba antes de la v1.59.0 — aquellos pasos apuntaban a enlaces que ya no
+  // están visibles a la vez y el tour los descartaba en silencio.
   steps.push({
-    selector: nav("/dashboard"),
-    title: "Dashboard",
-    description: "Tu pantalla de inicio: un resumen de tu actividad, pendientes y novedades.",
-    side: "right",
-  });
-  steps.push({
-    selector: nav("/tickets"),
-    title: "Tickets",
-    description: "Solicitudes e incidencias de soporte. Aquí se crean y se les da seguimiento hasta cerrarlas.",
-    side: "right",
-  });
-  steps.push({
-    selector: nav("/proyectos"),
-    title: "Proyectos",
-    description: "Agrupan el trabajo por cliente o iniciativa, con sus tareas, archivos y cronograma.",
+    selector: '[data-tour-id="app-launcher"]',
+    title: "Los módulos",
+    description: modulesDescription(role) +
+      " Al entrar en uno, el menú de abajo muestra solo sus secciones.",
     side: "right",
   });
 
-  if (isStaff(role)) {
-    steps.push({
-      selector: nav("/tareas"),
-      title: "Tareas",
-      description: "Tu lista de tareas de proyectos: prioridades, fechas, checklists y responsables.",
-      side: "right",
-    });
-  }
+  steps.push({
+    selector: nav("/dashboard"),
+    title: "Inicio",
+    description: "Tu resumen de actividad y pendientes. Vuelve aquí cuando quieras elegir otro módulo.",
+    side: "right",
+  });
 
   steps.push({
     selector: nav("/boveda"),
@@ -73,36 +78,6 @@ export function getWelcomeTour(role: Role): TourDef {
       selector: nav("/panel"),
       title: "Panel",
       description: "Una vista operativa del equipo para seguir el estado general del trabajo.",
-      side: "right",
-    });
-  }
-
-  if (isCliente(role)) {
-    steps.push({
-      selector: nav("/mis-empresas"),
-      title: "Mis empresas",
-      description: "Las empresas asociadas a tu cuenta y su información.",
-      side: "right",
-    });
-    steps.push({
-      selector: nav("/mis-planes"),
-      title: "Mis planes",
-      description: "Tus planes contratados y las horas o soporte disponibles.",
-      side: "right",
-    });
-    steps.push({
-      selector: nav("/mis-servicios"),
-      title: "Mis servicios",
-      description: "Servicios como dominios, hosting o correo, con sus vencimientos.",
-      side: "right",
-    });
-  }
-
-  if (isAdmin(role)) {
-    steps.push({
-      selector: nav("/admin/users"),
-      title: "Administración",
-      description: "Como administrador gestionas usuarios, empresas, planes, servicios y la configuración del equipo.",
       side: "right",
     });
   }
