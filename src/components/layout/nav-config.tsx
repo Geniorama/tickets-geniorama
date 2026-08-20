@@ -50,14 +50,14 @@ export const APP_ICONS: Record<AppKey, React.ElementType> = {
 export const APP_SECTIONS: Record<AppKey, NavSection[]> = {
   TICKETS: [
     { href: "/tickets",             label: "Tickets",     icon: Ticket,         isRoot: true },
-    { href: "/tickets/plantillas",  label: "Plantillas",  icon: LayoutTemplate, roles: STAFF },
-    { href: "/reportes",            label: "Reportes",    icon: BarChart3 },
+    { href: "/tickets/plantillas",  label: "Plantillas de ticket", icon: LayoutTemplate, roles: STAFF },
+    { href: "/reportes",            label: "Reportes de tickets", icon: BarChart3 },
   ],
   PROYECTOS: [
     { href: "/proyectos",                 label: "Proyectos",   icon: FolderKanban,   isRoot: true },
-    { href: "/proyectos/reportes",        label: "Reportes",    icon: BarChart3 },
+    { href: "/proyectos/reportes",        label: "Reportes de proyectos", icon: BarChart3 },
     { href: "/tareas",                    label: "Tareas",      icon: ListTodo,       roles: STAFF },
-    { href: "/tareas/plantillas",         label: "Plantillas",  icon: LayoutTemplate, roles: STAFF, requires: "editar" },
+    { href: "/tareas/plantillas",         label: "Plantillas de tarea", icon: LayoutTemplate, roles: STAFF, requires: "editar" },
     { href: "/admin/tareas-recurrentes",  label: "Recurrentes", icon: Repeat,         roles: ADMIN, requires: "gestionar" },
   ],
   INFRAESTRUCTURA: [

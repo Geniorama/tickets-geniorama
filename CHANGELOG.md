@@ -9,6 +9,25 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.64.1] — 2026-08-19
+
+### Los nombres del menú dejan de repetirse
+
+Continuación de la v1.59.1, que desambiguó las dos «Integraciones». Con el menú contextual, entradas que antes se distinguían por su posición en la jerarquía quedaron con el mismo nombre en módulos distintos:
+
+| Antes | Ahora |
+|---|---|
+| Tickets → Reportes | **Reportes de tickets** |
+| Proyectos → Reportes | **Reportes de proyectos** |
+| Tickets → Plantillas | **Plantillas de ticket** |
+| Proyectos → Plantillas | **Plantillas de tarea** |
+
+Las páginas de plantillas y la de reportes de proyectos ya se titulaban así; solo el menú las igualaba. La de reportes de tickets decía «Reportes» a secas y ahora también dice «Reportes de tickets», en el encabezado y en el título de la pestaña.
+
+Se añadió una comprobación de etiquetas duplicadas al conjunto de pruebas de navegación: fue la que destapó lo de «Plantillas», que había pasado desapercibido.
+
+---
+
 ## [1.64.0] — 2026-08-18
 
 ### Las instrucciones del agente de WhatsApp se editan desde el panel

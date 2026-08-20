@@ -238,7 +238,7 @@ export function ReportView({
     <div>
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-6 no-print">
-        <h1 className="text-2xl font-bold text-gray-900">Reportes</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Reportes de tickets</h1>
         <div className="flex items-center gap-2">
           <button
             onClick={() => downloadCSV(buildCSV(tickets, plans, isClient, selectedCompanyLabel, selectedPlanLabel))}
