@@ -110,6 +110,11 @@ export type CreateTicketInput = {
   title: string;
   description: string;
   priority?: Priority;
+  /**
+   * Solo el equipo puede elegirlo. Sin él, el ticket nace POR_ASIGNAR: lo que
+   * entra por una integración no tiene dueño todavía y hay que triarlo.
+   */
+  status?: TicketStatus;
   category?: string | null;
   assignedToId?: string | null;
   siteId?: string | null;
@@ -138,6 +143,12 @@ export async function createTicketViaApi(
     }
     planId = plan.id;
   }
+
+  // Un cliente no elige el estado de lo que abre, igual que en la interfaz.
+  if (isClient && input.status && input.status !== "POR_ASIGNAR") {
+    return { ok: false, status: 403, error: "Un cliente no puede elegir el estado del ticket." };
+  }
+  const status: TicketStatus = isClient ? "POR_ASIGNAR" : (input.status ?? "POR_ASIGNAR");
 
   if (input.assignedToId) {
     if (isClient) {
@@ -183,7 +194,7 @@ export async function createTicketViaApi(
         description: `${input.description.trim()}\n\n${sourceNote(keyLabel)}`,
         priority: input.priority ?? "MEDIA",
         category: input.category ?? null,
-        status: isClient ? "POR_ASIGNAR" : "ABIERTO",
+        status,
         clientId: isClient ? author.id : null,
         createdById: author.id,
         assignedToId: input.assignedToId ?? null,

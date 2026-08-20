@@ -221,6 +221,28 @@ curl -X POST https://<tu-dominio>/api/v1/tasks \
 tarea que ya creó con `duplicate: true` en vez de duplicarla. Mándalo siempre que
 tu origen tenga un identificador propio.
 
+### El estado de un ticket nuevo
+
+Sin `status`, un ticket creado por API nace **`POR_ASIGNAR`**, venga de la llave
+que venga: lo que entra por una integración todavía no tiene dueño y pasa por la
+misma bandeja de triaje que el resto.
+
+Para elegirlo, mándalo en el cuerpo:
+
+```json
+{
+  "title": "Revisión mensual del hosting",
+  "description": "Programada.",
+  "status": "EN_PROGRESO"
+}
+```
+
+Valores: `POR_ASIGNAR`, `ABIERTO`, `EN_PROGRESO`, `EN_REVISION`, `CERRADO`.
+
+Solo las llaves del equipo pueden elegirlo. Si la llave actúa como cliente —por
+su propia cuenta o vía `onBehalfOf`— el ticket sale `POR_ASIGNAR` y mandar otro
+estado devuelve un `403`, igual que en la interfaz.
+
 Cerrar un ticket:
 
 ```bash

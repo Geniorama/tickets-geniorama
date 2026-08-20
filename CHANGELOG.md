@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.67.0] — 2026-08-20
+
+### Los tickets que entran por la API nacen «Por asignar»
+
+Dos ajustes sobre `POST /api/v1/tickets`, que hasta ahora no dejaba decidir el estado y elegía uno discutible.
+
+**El estado ya se puede mandar en el cuerpo**, con `status`. Acepta los cinco valores de siempre y sigue siendo cosa del equipo: si la llave actúa como cliente —por su cuenta o vía `onBehalfOf`—, mandar un estado distinto de `POR_ASIGNAR` devuelve un `403`, el mismo freno que aplica la interfaz.
+
+**Y sin `status`, el ticket nace `POR_ASIGNAR`.** Antes solo salía así cuando lo abría un cliente; con una llave del equipo nacía `ABIERTO`, es decir, ya triado. Era un mal defecto: un ticket que llega desde WhatsApp o desde un formulario no tiene dueño todavía y tiene que pasar por la misma bandeja que el resto, no colarse como si alguien ya lo hubiera revisado.
+
+---
+
 ## [1.66.1] — 2026-08-20
 
 ### Corrige: cuatro de cada diez llaves de API no servían

@@ -20,6 +20,9 @@ import { createTicketViaApi, listTickets } from "@/lib/api/tickets";
  * `onBehalfOf` (id o email) atribuye el ticket a otra persona y exige el permiso
  * `act_as`. Es lo que necesita un bot que atiende clientes: el ticket queda a
  * nombre de quien lo pidió, con su plan y su empresa, no a nombre del bot.
+ *
+ * Sin `status`, el ticket nace POR_ASIGNAR: lo que llega por una integración
+ * todavía no tiene dueño y pasa por la misma bandeja de triaje que el resto.
  */
 
 export const dynamic = "force-dynamic";
@@ -28,6 +31,7 @@ const createSchema = z.object({
   title: z.string().trim().min(1, "title es requerido").max(200),
   description: z.string().trim().min(1, "description es requerida"),
   priority: z.enum(["BAJA", "MEDIA", "ALTA", "CRITICA"]).optional(),
+  status: z.enum(["POR_ASIGNAR", "ABIERTO", "EN_PROGRESO", "EN_REVISION", "CERRADO"]).optional(),
   category: z.string().trim().max(80).optional(),
   assignedToId: z.string().optional(),
   siteId: z.string().optional(),
@@ -71,6 +75,7 @@ export async function POST(req: Request) {
     title: parsed.data.title,
     description: parsed.data.description,
     priority: parsed.data.priority,
+    status: parsed.data.status,
     category: parsed.data.category ?? null,
     assignedToId: parsed.data.assignedToId ?? null,
     siteId: parsed.data.siteId ?? null,
