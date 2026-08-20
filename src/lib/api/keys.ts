@@ -58,24 +58,35 @@ export type ApiActor = {
 
 export type AuthFailure = { error: string; status: 401 | 403 };
 
-function parseToken(req: Request): string | null {
+/**
+ * `gnr_<prefijo de 8 hex>_<secreto>`.
+ *
+ * El corte es por los **dos primeros** guiones bajos y no por todos: el secreto
+ * es base64url, un alfabeto que incluye `_`, así que partirlo entero descartaba
+ * cuatro de cada diez llaves como si no llevaran cabecera.
+ */
+const TOKEN_RE = new RegExp(`^${TOKEN_PREFIX}_([0-9a-f]{8})_(.{16,})$`);
+
+function parseToken(req: Request): { token: string; prefix: string } | null {
   const header = req.headers.get("authorization") ?? "";
   const token = header.replace(/^Bearer\s+/i, "").trim();
-  if (!token.startsWith(`${TOKEN_PREFIX}_`)) return null;
-  const parts = token.split("_");
-  // `gnr_<prefijo>_<secreto>`; el secreto es base64url y no lleva guiones bajos.
-  if (parts.length !== 3 || parts[1].length !== 8 || parts[2].length < 16) return null;
-  return token;
+  const match = TOKEN_RE.exec(token);
+  if (!match) return null;
+  return { token, prefix: match[1] };
 }
 
 /**
  * Resuelve quién llama. Devuelve el actor o el motivo del rechazo — nunca lanza.
  */
 export async function authenticateApiKey(req: Request): Promise<ApiActor | AuthFailure> {
-  const token = parseToken(req);
-  if (!token) return { error: "Falta la cabecera Authorization: Bearer <token>", status: 401 };
-
-  const prefix = token.split("_")[1];
+  const parsed = parseToken(req);
+  if (!parsed) {
+    return {
+      error: "Falta la cabecera Authorization: Bearer gnr_… o el token está mal formado",
+      status: 401,
+    };
+  }
+  const { token, prefix } = parsed;
 
   const key = await prisma.apiKey
     .findUnique({

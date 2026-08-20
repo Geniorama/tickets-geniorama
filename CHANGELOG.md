@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.66.1] — 2026-08-20
+
+### Corrige: cuatro de cada diez llaves de API no servían
+
+Regresión de la v1.66.0, el mismo día. El validador del token lo partía por **todos** los guiones bajos esperando exactamente tres trozos (`gnr_`, prefijo, secreto), pero el secreto se genera en base64url — un alfabeto que **sí incluye** `_`. Cerca del 40 % de las llaves nacían con uno dentro y quedaban rechazadas antes de llegar a la base.
+
+El síntoma despistaba: la respuesta decía «Falta la cabecera Authorization», así que el problema parecía estar en quien llamaba —una cabecera mal puesta en Postman o en n8n— y no en la llave.
+
+Ahora el corte es por los dos primeros guiones bajos y el mensaje distingue entre no mandar cabecera y mandar un token mal formado. **Las llaves ya creadas funcionan sin tocarlas**: el hash se calcula sobre el token entero, que nunca cambió.
+
+---
+
 ## [1.66.0] — 2026-08-20
 
 ### Las integraciones se hacen por fuera: hooks y API
