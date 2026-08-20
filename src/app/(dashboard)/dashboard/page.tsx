@@ -1,5 +1,8 @@
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
+import { getAccessibleApps } from "@/lib/access/can";
+import { ModuleGrid, type ModuleSummary } from "@/components/layout/module-grid";
+import type { AppKey } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import {
@@ -113,6 +116,10 @@ export default async function DashboardPage() {
   // Los borradores no aparecen en el dashboard hasta publicarse
   taskWhere.isDraft = false;
 
+  // Los módulos concedidos deciden qué se ofrece en el inicio: hasta ahora
+  // dependía solo del rol, así que no reflejaba los niveles de la Fase 1.
+  const apps = await getAccessibleApps(session.user);
+
   // ── Parallel queries ───────────────────────────────────────────────────────
   const [
     tickets,
@@ -219,6 +226,7 @@ export default async function DashboardPage() {
 
   const taskRate = pct(taskStats.completadas, taskStats.total);
 
+
   const overdueTasks = recentTasks
     .filter((t) => t.dueDate && new Date(t.dueDate) < today && t.status !== "COMPLETADO" && t.status !== "EN_REVISION")
     .slice(0, 4);
@@ -235,6 +243,20 @@ export default async function DashboardPage() {
     })
     .sort((a, b) => (daysUntilExpiry(a) ?? 0) - (daysUntilExpiry(b) ?? 0));
 
+  // Una cifra por módulo, para saber qué espera dentro antes de entrar. Se
+  // prioriza lo que pide atención: si hay tareas vencidas, eso es lo que se ve.
+  const moduleSummaries: Partial<Record<AppKey, ModuleSummary>> = {
+    TICKETS: ticketStats.abiertos + ticketStats.progreso > 0
+      ? { value: ticketStats.abiertos + ticketStats.progreso, label: "sin cerrar" }
+      : { value: ticketStats.total, label: "en total" },
+    PROYECTOS: taskStats.vencidas > 0
+      ? { value: taskStats.vencidas, label: taskStats.vencidas === 1 ? "tarea vencida" : "tareas vencidas", alert: true }
+      : { value: projectStats.activos, label: projectStats.activos === 1 ? "proyecto activo" : "proyectos activos" },
+    ...(admin && (expiredAlertPlans.length > 0)
+      ? { ADMIN: { value: expiredAlertPlans.length, label: expiredAlertPlans.length === 1 ? "plan vencido" : "planes vencidos", alert: true } as ModuleSummary }
+      : {}),
+  };
+
   return (
     <div>
 
@@ -248,8 +270,11 @@ export default async function DashboardPage() {
         </p>
       </div>
 
+      <ModuleGrid apps={apps} summaries={moduleSummaries} />
+
       {/* ── KPI row ── */}
       <div data-tour-id="page-stats" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
+        {apps.includes("TICKETS") && (
         <KpiCard
           icon={Ticket}
           label="Tickets"
@@ -263,6 +288,8 @@ export default async function DashboardPage() {
             { label: "Cerrados",    value: ticketStats.cerrados,   color: "#22c55e" },
           ]}
         />
+        )}
+        {apps.includes("PROYECTOS") && (
         <KpiCard
           icon={FolderKanban}
           label="Proyectos"
@@ -275,7 +302,8 @@ export default async function DashboardPage() {
             { label: "Pausados",    value: projectStats.pausados,     color: "#f59e0b" },
           ]}
         />
-        {(staff || admin) && (
+        )}
+        {apps.includes("PROYECTOS") && (staff || admin) && (
           <KpiCard
             icon={ListTodo}
             label="Tareas"
@@ -290,7 +318,7 @@ export default async function DashboardPage() {
             ]}
           />
         )}
-        {admin && (
+        {apps.includes("ADMIN") && (
           <KpiCard
             icon={Users}
             label="Usuarios activos"

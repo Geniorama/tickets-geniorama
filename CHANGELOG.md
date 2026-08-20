@@ -9,6 +9,24 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.65.0] — 2026-08-19
+
+### El inicio muestra tus módulos
+
+Completa la Fase 2. Desde la v1.59.0 el inicio es el punto neutro desde el que se elige dónde trabajar, pero la única forma de cambiar de módulo era abrir el selector del menú. Ahora los módulos están a la vista, cada uno con una cifra que responde «¿qué me espera ahí?» antes de entrar.
+
+- **Tickets** — cuántos hay sin cerrar.
+- **Proyectos** — proyectos activos, o **tareas vencidas en rojo** si las hay: lo que pide atención manda sobre lo que solo informa.
+- **Administración** — planes vencidos, cuando los hay.
+
+Solo aparecen los módulos concedidos, y el CRM no se ofrece mientras no esté construido.
+
+#### Las estadísticas del inicio ya respetan los niveles
+
+Las tarjetas de Tickets, Proyectos, Tareas y Usuarios se decidían **solo por el rol**, así que no reflejaban los niveles introducidos en la Fase 1. Ahora dependen del módulo concedido: quitarle a alguien el acceso a un módulo también le quita su tarjeta del inicio, en lugar de dejarle una cifra sobre algo que no puede abrir.
+
+---
+
 ## [1.64.2] — 2026-08-19
 
 ### Corrige: el tour de bienvenida había perdido la mitad de sus pasos
