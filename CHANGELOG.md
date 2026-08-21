@@ -9,6 +9,36 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.72.0] — 2026-08-21
+
+### Buscador global ⌘K — cierra la Fase 2
+
+Con la app partida en módulos, encontrar algo obligaba a acordarse primero de en cuál vivía. Ya no: se pulsa **⌘K** (Ctrl+K en Windows) desde cualquier pantalla, se escribe, y aparece lo que haya —tickets, tareas, proyectos, cuentas, oportunidades, sitios, empresas y usuarios— agrupado por módulo para no perder de vista dónde está cada cosa.
+
+El atajo también está escrito en un botón de la barra superior y es un paso del tour. Un atajo que nadie ve no existe.
+
+Se navega con ↑ ↓ y se abre con ↵. Busca a partir de tres letras: por debajo casi todo coincide y el resultado no ayuda.
+
+#### El buscador no puede ser la rendija
+
+Dos reglas lo sostienen:
+
+- **Un módulo al que no tienes acceso no se busca.** Sus resultados no es que se oculten al pintarlos: la consulta ni se lanza.
+- **La frontera de datos es la de siempre.** Un proyecto privado del que no eres miembro no aparece, el borrador de otro tampoco, y un cliente encuentra los tickets de su empresa pero ninguno de otra.
+
+#### Las reglas de visibilidad ahora viven en un solo sitio
+
+El buscador lee de seis sitios a la vez, y si la lista de proyectos y el buscador definieran por separado quién ve qué, tarde o temprano una de las dos se quedaría vieja y enseñaría de más. Las reglas se extrajeron a `src/lib/search/scopes.ts` y **las páginas de Proyectos y Tareas ahora las importan de ahí**, en vez de tener cada una su copia.
+
+Se comprobó con 24 pruebas sobre una base desechable. Seis comparan, para administrador, colaborador y cliente, que las reglas extraídas devuelven **exactamente el mismo conjunto** que la lógica que estaba escrita a mano en cada página. El resto ataca la frontera desde fuera.
+
+#### Dos cosas que las pruebas destaparon
+
+- **Un módulo que aún no aplica niveles no se puede filtrar por nivel.** Tickets y Portal siguen decidiendo por rol (`enforced: false` en el registro), así que exigirles un nivel habría dejado el buscador **más cerrado que el propio módulo**: hay dos clientes sin perfil que ven sus tickets en pantalla y no habrían encontrado ninguno. Ahora el buscador usa el criterio de cada módulo, y cuando Tickets se migre, se ajustará solo.
+- **Los borradores propios sí se buscan.** La regla que se reutilizó venía de la API, que se los niega al cliente; la página de tickets sí los muestra. Manda la página: cada quien encuentra sus propios borradores, y los de nadie más.
+
+---
+
 ## [1.71.1] — 2026-08-21
 
 ### Textos de Integraciones al día

@@ -1,5 +1,6 @@
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
+import { visibleTaskWhere } from "@/lib/search/scopes";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { TaskList } from "@/components/projects/task-list";
@@ -63,26 +64,10 @@ export default async function TareasPage({
   const sortBy  = params.sortBy  ?? "dueDate";
   const sortDir = (params.sortDir === "desc" ? "desc" : "asc") as "asc" | "desc";
 
-  // Filtro base por rol
-  let roleWhere: Record<string, unknown> = {};
-  if (admin) {
-    roleWhere = {};
-  } else if (staff) {
-    roleWhere = {
-      OR: [
-        { assignedToId: userId },
-        { project: { managerId: userId } },
-      ],
-    };
-  } else {
-    // Clientes ven tareas de proyectos de sus empresas
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { companies: { select: { id: true } } },
-    });
-    const companyIds = (user?.companies ?? []).map((c) => c.id);
-    roleWhere = { project: { companyId: { in: companyIds } } };
-  }
+  // Filtro base por rol, incluida la regla de que los borradores son privados
+  // de quien los escribe. Vive en `search/scopes.ts` porque el buscador global
+  // lee de aquí también, y las dos vistas tienen que coincidir siempre.
+  const roleWhere = await visibleTaskWhere(session.user);
 
   const where = {
     ...roleWhere,
@@ -91,8 +76,6 @@ export default async function TareasPage({
     ...(projectValues?.length  ? { projectId:   { in: projectValues } }  : {}),
     ...(assigneeValues?.length ? { assignedToId:{ in: assigneeValues } } : {}),
     ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
-    // Los borradores son privados: cada quien solo ve los suyos
-    AND: [{ OR: [{ isDraft: false }, { createdById: userId }] }],
   };
 
   // Proyectos disponibles para el filtro (misma lógica de rol)

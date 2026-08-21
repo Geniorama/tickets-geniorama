@@ -84,6 +84,13 @@ export function getWelcomeTour(role: Role): TourDef {
 
   // Barra superior y herramientas siempre visibles
   steps.push({
+    selector: '[data-tour-id="search"]',
+    title: "Buscar en todo",
+    description:
+      "Encuentra tickets, tareas, proyectos y cuentas sin acordarte de en qué módulo están. Se abre con ⌘K (Ctrl+K en Windows).",
+    side: "bottom",
+  });
+  steps.push({
     selector: '[data-tour-id="notifications"]',
     title: "Notificaciones",
     description: "Aquí llegan tus avisos: asignaciones, comentarios, menciones y vencimientos.",

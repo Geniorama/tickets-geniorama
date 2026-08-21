@@ -1,5 +1,6 @@
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { operationalCompanyWhere } from "@/lib/crm/accounts";
+import { visibleProjectWhere } from "@/lib/search/scopes";
 import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { ProjectList } from "@/components/projects/project-list";
@@ -50,34 +51,10 @@ export default async function ProyectosPage({
     ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
   };
 
-  // Filtro base por rol
-  let roleWhere: Record<string, unknown> = {};
-  if (admin) {
-    roleWhere = {};
-  } else if (staff) {
-    roleWhere = {
-      OR: [
-        // Proyectos públicos donde es manager o tiene tareas asignadas
-        { isPrivate: false, OR: [{ managerId: userId }, { tasks: { some: { assignedToId: userId } } }] },
-        // Proyectos privados donde es miembro
-        { isPrivate: true, members: { some: { userId } } },
-      ],
-    };
-  } else {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { companies: { select: { id: true } } },
-    });
-    const companyIds = (user?.companies ?? []).map((c) => c.id);
-    roleWhere = {
-      OR: [
-        // Proyectos públicos de su empresa
-        { isPrivate: false, companyId: { in: companyIds } },
-        // Proyectos privados donde es miembro explícito
-        { isPrivate: true, members: { some: { userId } } },
-      ],
-    };
-  }
+  // Filtro base por rol. Vive en `search/scopes.ts` porque el buscador global
+  // lee de aquí también: si cada uno definiera la visibilidad por su cuenta,
+  // una de las dos acabaría enseñando de más.
+  const roleWhere = await visibleProjectWhere(session.user);
 
   const where = { ...roleWhere, ...extraFilters };
   const page = Math.max(1, parseInt(params.page ?? "1", 10));

@@ -278,7 +278,17 @@
       "Bash(perl -0pi -e 's{process\\\\.env\\\\.DATABASE_URL = process\\\\.env\\\\.TEST_DATABASE_URL;\\\\n}{}' ./tmp-crmapi-test.ts)",
       "Bash(DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest?sslmode=disable\" npx tsx ./tmp-crmapi-test.ts)",
       "Bash(perl -0pi -e 's/\"version\": \"1\\\\.70\\\\.0\"/\"version\": \"1.71.0\"/' package.json)",
-      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.71\\\\.0\"/\"version\": \"1.71.1\"/' package.json)"
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.71\\\\.0\"/\"version\": \"1.71.1\"/' package.json)",
+      "Bash(perl -0pi -e 's{href: `/admin/sitios/\\\\$\\\\{s\\\\.id\\\\}`}{href: `/admin/sitios/\\\\${s.id}/edit`}' src/lib/search/global.ts)",
+      "Bash(perl -0pi -e 's{href: `/admin/companies/\\\\$\\\\{c\\\\.id\\\\}`}{href: `/admin/companies/\\\\${c.id}/edit`}' src/lib/search/global.ts)",
+      "Bash(perl -0pi -e 's{import \\\\{ NotificationBell \\\\} from \"\\\\@/components/layout/notification-bell\";}{import { NotificationBell } from \"\\\\@/components/layout/notification-bell\";\\\\nimport { GlobalSearch } from \"\\\\@/components/layout/global-search\";}' src/components/layout/topbar.tsx)",
+      "Bash(perl -0pi -e 's{APP_BY_KEY\\\\.get\\\\\\(app\\\\\\)\\\\?\\\\.label \\\\?\\\\? app}{APP_BY_KEY.get\\(app\\)?.name ?? app}' src/components/layout/global-search.tsx)",
+      "Bash(perl -0pi -e 's{import \\\\{ operationalCompanyWhere \\\\} from \"\\\\@/lib/crm/accounts\";}{import { operationalCompanyWhere } from \"\\\\@/lib/crm/accounts\";\\\\nimport { visibleProjectWhere } from \"\\\\@/lib/search/scopes\";}' \"src/app/\\(dashboard\\)/proyectos/page.tsx\")",
+      "Bash(DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest?sslmode=disable\" npx tsx ./tmp-search-test.ts)",
+      "Bash(perl -0pi -e 's{data: \\\\{ name: \"Zeta \\([^\"]+\\)\", companyId}{data: { name: \"Zeta $1\", description: \"\", companyId}g' ./tmp-search-test.ts)",
+      "Bash(perl -0pi -e 's{\\\\{ title: \"Zeta \\([^\"]+\\)\", number}{{ title: \"Zeta $1\", description: \"\", number}g' ./tmp-search-test.ts)",
+      "Bash(perl -0pi -e 's{import \\\\{ can \\\\} from \"\\\\@/lib/access/can\";}{import { can } from \"\\\\@/lib/access/can\";\\\\nimport { APP_BY_KEY } from \"\\\\@/lib/access/apps\";}' src/lib/search/global.ts)",
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.71\\\\.1\"/\"version\": \"1.72.0\"/' package.json)"
     ]
   }
 }

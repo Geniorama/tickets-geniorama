@@ -6,6 +6,7 @@ import type { Session } from "next-auth";
 import { LogOut, Menu } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationBell } from "@/components/layout/notification-bell";
+import { GlobalSearch } from "@/components/layout/global-search";
 import { TourHelpButton } from "@/components/tour/tour-help-button";
 
 const roleLabels = {
@@ -53,8 +54,12 @@ export function Topbar({
         <Menu className="w-5 h-5" />
       </button>
 
-      {/* Espaciador — solo en desktop */}
-      <div className="hidden lg:block" />
+      {/* El buscador ocupa el hueco que antes era espaciador: con la app
+          partida en módulos, es el atajo para llegar a algo sin acordarse de
+          en cuál vive. */}
+      <div data-tour-id="search" className="flex items-center">
+        <GlobalSearch />
+      </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
         <TourHelpButton />
