@@ -1,6 +1,7 @@
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
 import { getAccessibleApps } from "@/lib/access/can";
+import { OPEN_STAGES } from "@/lib/crm/deals";
 import { ModuleGrid, type ModuleSummary } from "@/components/layout/module-grid";
 import type { AppKey, AccountStage } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
@@ -122,13 +123,16 @@ export default async function DashboardPage() {
 
   // La cifra del CRM solo se consulta si el módulo está concedido: para casi
   // todos los usuarios estas dos consultas no llegan a hacerse.
-  const crmCounts = apps.includes("CRM")
-    ? await prisma.company.groupBy({
-        by: ["stage"],
-        where: { isActive: true },
-        _count: { _all: true },
-      })
-    : [];
+  const [crmCounts, dealsAbiertas] = apps.includes("CRM")
+    ? await Promise.all([
+        prisma.company.groupBy({
+          by: ["stage"],
+          where: { isActive: true },
+          _count: { _all: true },
+        }),
+        prisma.deal.count({ where: { stage: { in: OPEN_STAGES } } }),
+      ])
+    : [[], 0];
   const crmBy = (stage: AccountStage) =>
     crmCounts.find((c) => c.stage === stage)?._count._all ?? 0;
   const enSeguimiento = crmBy("LEAD") + crmBy("PROSPECTO");
@@ -267,9 +271,11 @@ export default async function DashboardPage() {
       : { value: projectStats.activos, label: projectStats.activos === 1 ? "proyecto activo" : "proyectos activos" },
     ...(apps.includes("CRM")
       ? {
-          CRM: enSeguimiento > 0
-            ? { value: enSeguimiento, label: "en seguimiento" }
-            : { value: crmBy("CLIENTE"), label: crmBy("CLIENTE") === 1 ? "cliente" : "clientes" },
+          CRM: dealsAbiertas > 0
+            ? { value: dealsAbiertas, label: dealsAbiertas === 1 ? "oportunidad abierta" : "oportunidades abiertas" }
+            : enSeguimiento > 0
+              ? { value: enSeguimiento, label: "en seguimiento" }
+              : { value: crmBy("CLIENTE"), label: crmBy("CLIENTE") === 1 ? "cliente" : "clientes" },
         }
       : {}),
     ...(admin && (expiredAlertPlans.length > 0)

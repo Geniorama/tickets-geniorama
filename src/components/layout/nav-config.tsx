@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Ticket, Building2, Users, BookOpen, CreditCard,
   BarChart3, FolderKanban, ListTodo, TrendingUp, Server as ServerIcon, Globe,
   KeyRound, Plug, Sparkles, Repeat, Webhook, LayoutList, LayoutTemplate, Bot,
-  CalendarClock, Wrench, Briefcase, ShieldCheck, Handshake,
+  CalendarClock, Wrench, Briefcase, ShieldCheck, Handshake, Target,
 } from "lucide-react";
 import type { AppKey, Role } from "@/generated/prisma";
 
@@ -78,6 +78,7 @@ export const APP_SECTIONS: Record<AppKey, NavSection[]> = {
   ],
   CRM: [
     { href: "/crm", label: "Cuentas", icon: Handshake, isRoot: true, requires: "ver" },
+    { href: "/crm/oportunidades", label: "Oportunidades", icon: Target, requires: "ver" },
   ],
 };
 

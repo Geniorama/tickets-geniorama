@@ -260,7 +260,18 @@
       "Bash(git fetch *)",
       "Bash(awk '/^model Company \\\\{/,/^\\\\}/' prisma/schema.prisma)",
       "Bash(perl -pi -e 's/\"version\": \"1\\\\.68\\\\.1\"/\"version\": \"1.69.0\"/' package.json)",
-      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.69\\\\.0\"/\"version\": \"1.69.1\"/' package.json)"
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.69\\\\.0\"/\"version\": \"1.69.1\"/' package.json)",
+      "Bash(perl -0pi -e 's/  CalendarClock, Wrench, Briefcase, ShieldCheck, Handshake,/  CalendarClock, Wrench, Briefcase, ShieldCheck, Handshake, Target,/' src/components/layout/nav-config.tsx)",
+      "Bash(perl -0pi -e 's{label: \"Oportunidades\", icon: TrendingUp}{label: \"Oportunidades\", icon: Target}' src/components/layout/nav-config.tsx)",
+      "Bash(pg_isready)",
+      "Bash(psql -lqt postgres)",
+      "Bash(psql postgres *)",
+      "Bash(psql postgresql://__CMDSUB_OUTPUT__@localhost:5432/geniorama_migtest -q -v ON_ERROR_STOP=1 -f prisma/migrations/20260821140000_add_crm_deals_and_activities/migration.sql)",
+      "Bash(TEST_DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" npx tsx \"/private/tmp/claude-501/-Users-angelburgos-Documents-proyectos-web-tickets-geniorama/3a08fee3-37d4-4bed-b8ca-e279ae4cff1c/scratchpad/test-deals.ts\")",
+      "Bash(perl -0pi -e 's{\\\\.\\\\./\\\\.\\\\./\\\\.\\\\./\\\\.\\\\./\\\\.\\\\./Users/angelburgos/Documents/proyectos-web/tickets-geniorama/src}{/Users/angelburgos/Documents/proyectos-web/tickets-geniorama/src}g' \"/private/tmp/claude-501/-Users-angelburgos-Documents-proyectos-web-tickets-geniorama/3a08fee3-37d4-4bed-b8ca-e279ae4cff1c/scratchpad/test-deals.ts\")",
+      "Bash(TEST_DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" npx tsx ./tmp-migtest-deals.ts)",
+      "Bash(perl -0pi -e 's/password: \"x\"/passwordHash: \"x\"/' ./tmp-migtest-deals.ts)",
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.69\\\\.1\"/\"version\": \"1.70.0\"/' package.json)"
     ]
   }
 }

@@ -31,6 +31,26 @@ enum AccountStage {
   INACTIVO
 }
 
+/// Etapas del pipeline de venta. GANADA y PERDIDA son terminales: al llegar a
+/// una de las dos se sella `closedAt` y la oportunidad sale del tablero activo.
+enum DealStage {
+  NUEVA
+  CONTACTADA
+  PROPUESTA
+  NEGOCIACION
+  GANADA
+  PERDIDA
+}
+
+/// Cómo ocurrió una interacción comercial.
+enum ActivityType {
+  NOTA
+  LLAMADA
+  CORREO
+  REUNION
+  WHATSAPP
+}
+
 enum PlanType {
   BOLSA_HORAS
   SOPORTE_MENSUAL
@@ -165,6 +185,8 @@ model Company {
   vaultEntries VaultEntry[]
   owner        User?     @relation("AccountOwner", fields: [ownerId], references: [id])
   contacts     Contact[]
+  deals        Deal[]
+  crmActivities CrmActivity[]
 
   @@index([stage])
   @@map("companies")
@@ -198,8 +220,87 @@ model Contact {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  deals         Deal[]
+  crmActivities CrmActivity[]
+
   @@index([companyId, isPrimary])
   @@map("contacts")
+}
+
+// Una oportunidad de venta concreta sobre una cuenta. La cuenta responde «con
+// quién hablamos»; la oportunidad, «qué estamos vendiendo y por cuánto». Por eso
+// una misma empresa puede tener varias abiertas a la vez.
+model Deal {
+  id     String    @id @default(cuid())
+  title  String
+  stage  DealStage @default(NUEVA)
+  /// Valor estimado. Como en `Service.price`, en la moneda de la agencia.
+  amount Float?
+
+  /// Cuándo se espera cerrarla; sirve para el pronóstico del mes.
+  expectedCloseAt DateTime? @map("expected_close_at")
+  /// Se sella al pasar a GANADA o PERDIDA, y se borra si se reabre.
+  closedAt        DateTime? @map("closed_at")
+  /// Por qué se perdió. Lo que más enseña del pipeline con el tiempo.
+  lostReason      String?   @map("lost_reason")
+
+  notes String? @db.Text
+
+  companyId String  @map("company_id")
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  /// Comercial que la lleva.
+  ownerId String? @map("owner_id")
+  owner   User?   @relation("DealOwner", fields: [ownerId], references: [id])
+
+  /// Con quién se está hablando dentro de la cuenta.
+  contactId String?  @map("contact_id")
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  createdById String @map("created_by_id")
+  createdBy   User   @relation("DealCreatedBy", fields: [createdById], references: [id])
+
+  activities CrmActivity[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([stage])
+  @@index([companyId])
+  @@index([ownerId, stage])
+  @@map("deals")
+}
+
+// Lo que pasó con una cuenta: una llamada, un correo, una reunión, una nota.
+// Es el historial que hace que retomar una conversación tres meses después no
+// dependa de la memoria de nadie.
+model CrmActivity {
+  id      String       @id @default(cuid())
+  type    ActivityType @default(NOTA)
+  /// Qué pasó, en una línea.
+  summary String
+  notes   String?      @db.Text
+  /// Cuándo ocurrió de verdad, que no es cuándo se apuntó.
+  occurredAt DateTime  @map("occurred_at")
+
+  companyId String  @map("company_id")
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  /// Si la interacción fue sobre una oportunidad concreta.
+  dealId String? @map("deal_id")
+  deal   Deal?   @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  contactId String?  @map("contact_id")
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  createdById String @map("created_by_id")
+  createdBy   User   @relation("CrmActivityCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([companyId, occurredAt])
+  @@index([dealId, occurredAt])
+  @@map("crm_activities")
 }
 
 model User {
@@ -265,6 +366,9 @@ model User {
   ownedAccounts   Company[] @relation("AccountOwner")
   contactProfile  Contact?  @relation("ContactUser")
   createdContacts Contact[] @relation("ContactCreatedBy")
+  ownedDeals      Deal[]    @relation("DealOwner")
+  createdDeals    Deal[]    @relation("DealCreatedBy")
+  crmActivities   CrmActivity[] @relation("CrmActivityCreatedBy")
 
   @@map("users")
 }

@@ -9,6 +9,48 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.70.0] — 2026-08-21
+
+### Fase 3, paso 2: el pipeline y el historial
+
+El paso 1 dejó registrar **con quién** se habla. Este añade **qué se está vendiendo** y **qué ha pasado**.
+
+#### Una oportunidad no es una cuenta
+
+Son cosas distintas a propósito. La cuenta es la relación con la empresa; la oportunidad es una venta concreta, con su valor y su fecha de cierre. Por eso una misma empresa puede tener **varias abiertas a la vez**, y un cliente de años puede tener una oportunidad nueva sin dejar de ser cliente.
+
+Etapas: Nueva → Contactada → Propuesta → Negociación, y dos terminales, Ganada y Perdida. Entrar en una terminal sella `closedAt`; **sacarla de ahí lo borra**, para que reabrir una oportunidad la devuelva de verdad al pipeline en vez de dejarla cerrada con otra etiqueta.
+
+Marcarla como perdida **pide el motivo en el momento**, con un campo en línea. Preguntarlo después no funciona, y con los meses es el dato que más enseña del pipeline.
+
+#### El tablero
+
+`/crm/oportunidades` es un kanban con el mismo arrastrar de los tableros de tareas y tickets. Cada columna muestra **cuánto hay puesto en esa fase**, no solo cuántas tarjetas: es la pregunta que uno se hace al mirar un pipeline.
+
+Por defecto solo se ven las abiertas. Las ganadas y perdidas se acumulan sin límite y en unos meses taparían lo vivo; se muestran con «Ver cerradas».
+
+#### El historial
+
+Llamadas, correos, reuniones, WhatsApps y notas, con **cuándo ocurrió de verdad** — que no es cuándo se apuntó. Se registra siempre contra la cuenta y, si la hubo, también contra la oportunidad: así la ficha de la cuenta enseña el historial completo sin unir dos listas, y la de la oportunidad solo lo suyo.
+
+Se apunta en línea, sin salir de la ficha, porque se escribe justo después de colgar.
+
+#### Qué se comprobó antes de desplegar
+
+Migración puramente aditiva: **no toca ninguna tabla existente**. Probada sobre una copia del esquema anterior, y después 16 comprobaciones sobre los borrados, que es donde esto se rompe de verdad:
+
+- Borrar un **contacto** deja la oportunidad viva y sin contacto — no se lleva la venta por delante.
+- Borrar una **oportunidad** se lleva su actividad, y **no** la actividad suelta de la cuenta ni las demás oportunidades.
+- Borrar una **cuenta** no deja oportunidades ni actividad colgando.
+
+En producción: 33 migraciones registradas, 0 problemáticas, y nada de lo que la migración crea existía ya.
+
+### La cifra del inicio ahora mira el pipeline
+
+La tarjeta del CRM prioriza lo que está en curso: primero las oportunidades abiertas, luego los leads y prospectos en seguimiento, y el total de clientes solo como respaldo.
+
+---
+
 ## [1.69.1] — 2026-08-21
 
 ### La tarjeta del CRM en el inicio ya dice algo
