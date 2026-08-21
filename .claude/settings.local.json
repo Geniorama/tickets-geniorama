@@ -241,7 +241,26 @@
       "Bash(perl -pi -e 's/\"version\": \"1\\\\.58\\\\.0\"/\"version\": \"1.59.0\"/' package.json)",
       "Bash(pkill -f \"next dev\")",
       "Bash(sed -n '/## \\\\[1.59.0\\\\]/,/^## \\\\[1.58.0\\\\]/p' CHANGELOG.md)",
-      "Bash(perl -pi -e 's/\"version\": \"1\\\\.59\\\\.0\"/\"version\": \"1.59.1\"/' package.json)"
+      "Bash(perl -pi -e 's/\"version\": \"1\\\\.59\\\\.0\"/\"version\": \"1.59.1\"/' package.json)",
+      "Bash(git rm *)",
+      "Bash(git merge *)",
+      "Bash(git branch *)",
+      "Bash(pkill -f \"next-server.*3001\")",
+      "Bash(kill 74353)",
+      "Bash(perl -e 'select\\(undef,undef,undef,1.5\\)')",
+      "Bash(npx next *)",
+      "Bash(kill 75218 75238)",
+      "Bash(perl -e 'select\\(undef,undef,undef,2\\)')",
+      "Bash(npm view *)",
+      "Bash(npm ls *)",
+      "Bash(npm audit *)",
+      "Bash(curl *)",
+      "Bash(python3 -c ' *)",
+      "Bash(npm uninstall *)",
+      "Bash(git fetch *)",
+      "Bash(awk '/^model Company \\\\{/,/^\\\\}/' prisma/schema.prisma)",
+      "Bash(perl -pi -e 's/\"version\": \"1\\\\.68\\\\.1\"/\"version\": \"1.69.0\"/' package.json)",
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.69\\\\.0\"/\"version\": \"1.69.1\"/' package.json)"
     ]
   }
 }

@@ -2,7 +2,7 @@ import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
 import { getAccessibleApps } from "@/lib/access/can";
 import { ModuleGrid, type ModuleSummary } from "@/components/layout/module-grid";
-import type { AppKey } from "@/generated/prisma";
+import type { AppKey, AccountStage } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import {
@@ -119,6 +119,19 @@ export default async function DashboardPage() {
   // Los módulos concedidos deciden qué se ofrece en el inicio: hasta ahora
   // dependía solo del rol, así que no reflejaba los niveles de la Fase 1.
   const apps = await getAccessibleApps(session.user);
+
+  // La cifra del CRM solo se consulta si el módulo está concedido: para casi
+  // todos los usuarios estas dos consultas no llegan a hacerse.
+  const crmCounts = apps.includes("CRM")
+    ? await prisma.company.groupBy({
+        by: ["stage"],
+        where: { isActive: true },
+        _count: { _all: true },
+      })
+    : [];
+  const crmBy = (stage: AccountStage) =>
+    crmCounts.find((c) => c.stage === stage)?._count._all ?? 0;
+  const enSeguimiento = crmBy("LEAD") + crmBy("PROSPECTO");
 
   // ── Parallel queries ───────────────────────────────────────────────────────
   const [
@@ -252,6 +265,13 @@ export default async function DashboardPage() {
     PROYECTOS: taskStats.vencidas > 0
       ? { value: taskStats.vencidas, label: taskStats.vencidas === 1 ? "tarea vencida" : "tareas vencidas", alert: true }
       : { value: projectStats.activos, label: projectStats.activos === 1 ? "proyecto activo" : "proyectos activos" },
+    ...(apps.includes("CRM")
+      ? {
+          CRM: enSeguimiento > 0
+            ? { value: enSeguimiento, label: "en seguimiento" }
+            : { value: crmBy("CLIENTE"), label: crmBy("CLIENTE") === 1 ? "cliente" : "clientes" },
+        }
+      : {}),
     ...(admin && (expiredAlertPlans.length > 0)
       ? { ADMIN: { value: expiredAlertPlans.length, label: expiredAlertPlans.length === 1 ? "plan vencido" : "planes vencidos", alert: true } as ModuleSummary }
       : {}),

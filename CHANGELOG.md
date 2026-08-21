@@ -9,6 +9,24 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.69.1] — 2026-08-21
+
+### La tarjeta del CRM en el inicio ya dice algo
+
+Era la única de las cinco sin cifra: las demás anuncian qué espera dentro («7 sin cerrar», «16 tareas vencidas») y el CRM solo repetía su descripción.
+
+Ahora muestra **lo que pide seguimiento** — leads y prospectos sumados — y, cuando no hay ninguno abierto, el total de clientes. Misma prioridad que el resto del inicio: primero lo que está en curso, el total como respaldo.
+
+La consulta (`groupBy` por etapa) solo se lanza si el usuario tiene el módulo concedido, así que para quien no tiene CRM el inicio no paga nada por esto.
+
+### Verificado en producción (v1.69.0)
+
+- La migración quedó aplicada: **43 empresas** pasaron a `CLIENTE` por el DEFAULT, tabla `contacts` creada.
+- El selector de empresa de **Nuevo proyecto** sigue ofreciendo las mismas **43** — el filtro operativo no cambió nada de lo que ya funcionaba.
+- El CRM aparece en el selector de módulos como módulo real, ya no como «Próximamente».
+
+---
+
 ## [1.69.0] — 2026-08-20
 
 ### Fase 3: nace el CRM — cuentas y contactos
