@@ -90,11 +90,23 @@ export function Sidebar({
   const sections = (activeApp ? APP_SECTIONS[activeApp] ?? [] : []).filter(permitido);
   const tools = ALWAYS_VISIBLE.filter(visible);
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  /**
+   * Qué entrada del menú se resalta.
+   *
+   * Solo una: la del prefijo más largo que case con la ruta. Comparar cada una
+   * por su cuenta encendía dos a la vez, porque la raíz de un módulo —`/crm`—
+   * es prefijo de todo lo que cuelga de ella, así que «Cuentas» seguía
+   * iluminada estando en Contactos.
+   */
+  const candidatos = [...sections, ...tools]
+    .map((s) => s.href)
+    .filter((href) => pathname === href || pathname.startsWith(href + "/"))
+    .sort((a, b) => b.length - a.length);
+  const hrefActivo = candidatos[0] ?? null;
 
   function renderLink(item: NavSection) {
     const Icon = item.icon;
-    const active = isActive(item.href);
+    const active = item.href === hrefActivo;
     return (
       <li key={item.href}>
         <Link

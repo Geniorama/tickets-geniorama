@@ -296,7 +296,8 @@
       "Bash(perl -0pi -e 's{import crypto from \"crypto\";\\\\nimport bcrypt from \"bcryptjs\";\\\\n}{}' src/actions/crm.actions.ts)",
       "Bash(perl -0pi -e 's{import \\\\{ sendInvitationEmail \\\\} from \"\\\\@/lib/email\";}{import { sendInvitationEmail } from \"\\\\@/lib/email\";\\\\nimport { grantPortalAccess } from \"\\\\@/lib/crm/portal-access\";}' src/actions/crm.actions.ts)",
       "Bash(DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest?sslmode=disable\" npx tsx ./tmp-portal-test.ts)",
-      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.72\\\\.2\"/\"version\": \"1.73.0\"/' package.json)"
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.72\\\\.2\"/\"version\": \"1.73.0\"/' package.json)",
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.73\\\\.0\"/\"version\": \"1.73.1\"/' package.json)"
     ]
   }
 }

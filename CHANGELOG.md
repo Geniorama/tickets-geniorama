@@ -9,6 +9,16 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.73.1] — 2026-08-21
+
+### Solo una entrada del menú resaltada a la vez
+
+Estando en Contactos u Oportunidades, **«Cuentas» seguía iluminada también**. Cada entrada comprobaba por su cuenta si la ruta empezaba por su enlace, y la raíz de un módulo —`/crm`— es prefijo de todo lo que cuelga de ella.
+
+Ahora se resalta una sola: la del prefijo más largo que case. Venía de la v1.70.0, cuando el CRM dejó de tener una única sección.
+
+---
+
 ## [1.73.0] — 2026-08-21
 
 ### Contactos: sección propia y paso a usuario del portal
