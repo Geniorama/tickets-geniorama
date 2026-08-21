@@ -9,6 +9,14 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.72.1] — 2026-08-21
+
+### Los estados del buscador, con sus tildes
+
+Derivar el texto del enum (`EN_REVISION` → «En revision») se comía las tildes, y en un resultado de búsqueda se nota. Los estados ahora salen de `src/lib/status-labels.ts`, escritos como se leen. Las insignias de cada módulo conservan sus mapas porque además llevan color e icono; este es solo el texto, para quien únicamente necesita eso.
+
+---
+
 ## [1.72.0] — 2026-08-21
 
 ### Buscador global ⌘K — cierra la Fase 2

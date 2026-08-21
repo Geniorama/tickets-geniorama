@@ -23,6 +23,7 @@ import { ticketCode } from "@/lib/ticket-code";
 import { taskCode } from "@/lib/task-code";
 import { ACCOUNT_STAGE_LABELS } from "@/lib/crm/accounts";
 import { DEAL_STAGE_LABELS } from "@/lib/crm/deals";
+import { statusLabel } from "@/lib/status-labels";
 import { visibleProjectWhere, visibleTaskWhere, visibleTicketWhere, type Viewer } from "@/lib/search/scopes";
 
 export type SearchHit = {
@@ -255,8 +256,4 @@ async function buscarUsuarios(q: string): Promise<SearchHit[]> {
   }));
 }
 
-/** Los enums se guardan en mayúsculas con guion bajo; se leen mejor así. */
-function estado(value: string): string {
-  const texto = value.replace(/_/g, " ").toLowerCase();
-  return texto.charAt(0).toUpperCase() + texto.slice(1);
-}
+const estado = statusLabel;
