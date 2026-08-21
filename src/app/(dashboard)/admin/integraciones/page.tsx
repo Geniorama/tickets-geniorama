@@ -76,8 +76,9 @@ export default async function IntegracionesPage() {
         </div>
         <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--app-text-muted)", lineHeight: 1.55 }}>
           La plataforma no habla con ningún canal por su cuenta: <strong>cuenta lo que pasa</strong> por
-          hooks y <strong>deja escribir</strong> por su API. Lo que se haga con eso —WhatsApp, Slack,
-          Telegram, un CRM— se arma fuera, donde se pueda cambiar sin tocar el producto.
+          hooks y <strong>deja escribir</strong> por su API. Lo que se haga con eso —avisar por WhatsApp,
+          Slack o Telegram, mandar una propuesta, facturar— se arma fuera, donde se pueda cambiar sin
+          tocar el producto.
         </p>
         <Link
           href="/admin/integraciones/api"
@@ -120,7 +121,7 @@ export default async function IntegracionesPage() {
             icon={<Webhook style={{ width: "1rem", height: "1rem", color: "#6366f1" }} />}
             title="Hooks de organización"
           >
-            Reciben lo que ocurre en toda la plataforma: tickets, tareas, proyectos y comentarios.
+            Reciben lo que ocurre en toda la plataforma: tickets, tareas, proyectos, comentarios y el CRM.
             Los proyectos privados quedan fuera — sus eventos solo llegan a los hooks del propio
             proyecto, que se configuran desde su ficha.
           </SectionHeader>

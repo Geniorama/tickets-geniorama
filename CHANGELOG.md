@@ -9,6 +9,14 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.71.1] — 2026-08-21
+
+### Textos de Integraciones al día
+
+Dos frases se quedaron viejas al añadir el CRM: los hooks de organización decían recibir «tickets, tareas, proyectos y comentarios», y la introducción ponía «un CRM» como ejemplo de lo que se arma fuera de la plataforma — cuando ahora hay uno dentro. Los ejemplos son otros: avisar por WhatsApp, mandar una propuesta, facturar.
+
+---
+
 ## [1.71.0] — 2026-08-21
 
 ### El CRM se conecta: API y webhooks
