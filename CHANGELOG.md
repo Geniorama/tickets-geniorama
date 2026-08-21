@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.72.2] — 2026-08-21
+
+### El buscador ahora se ve
+
+Como botón pequeño y apagado se perdía en una barra casi vacía. El problema era de forma, no de tamaño: **nadie busca un botón, se busca la caja donde escribir**.
+
+Ahora es un campo de búsqueda: ancho, con fondo propio, el texto «Buscar tickets, tareas, proyectos…» a la vista y el atajo `⌘K` a la derecha. Se ilumina al pasar por encima. Al pulsarlo se abre la misma paleta de siempre, que es donde se escribe de verdad.
+
+En móvil se queda como icono, donde el ancho hace falta para otras cosas.
+
+---
+
 ## [1.72.1] — 2026-08-21
 
 ### Los estados del buscador, con sus tildes

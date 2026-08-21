@@ -251,22 +251,41 @@ export function GlobalSearch() {
 
   return (
     <>
-      {/* El atajo no se descubre solo: hace falta verlo escrito. */}
+      {/*
+        Parece un campo de búsqueda porque tiene que parecerlo. Como botón
+        pequeño se perdía en una barra casi vacía: nadie busca un botón, se
+        busca la caja donde escribir. Al pulsarla se abre la paleta, que es
+        donde se escribe de verdad.
+      */}
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Buscar"
+        aria-label="Buscar en toda la plataforma"
         title="Buscar (⌘K)"
+        className="w-9 h-9 md:w-full md:h-auto justify-center md:justify-start"
         style={{
-          display: "inline-flex", alignItems: "center", gap: "0.5rem",
-          padding: "0.35rem 0.6rem", borderRadius: "0.5rem",
-          border: "1px solid var(--app-border)", background: "transparent",
-          color: "var(--app-text-muted)", cursor: "pointer", fontSize: "0.8125rem",
+          display: "inline-flex", alignItems: "center", gap: "0.55rem",
+          maxWidth: "26rem",
+          padding: "0.5rem 0.75rem", borderRadius: "0.6rem",
+          border: "1px solid var(--app-border)",
+          backgroundColor: "var(--app-content-bg)",
+          color: "var(--app-text-muted)", cursor: "pointer", fontSize: "0.875rem",
+          transition: "border-color 0.15s, color 0.15s",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = "#fd1384";
+          e.currentTarget.style.color = "var(--app-body-text)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = "var(--app-border)";
+          e.currentTarget.style.color = "var(--app-text-muted)";
         }}
       >
-        <Search style={{ width: "0.9rem", height: "0.9rem" }} />
-        <span className="hidden md:inline">Buscar</span>
-        <kbd className="hidden md:inline" style={kbdStyle}>⌘K</kbd>
+        <Search style={{ width: "1rem", height: "1rem", flexShrink: 0 }} />
+        <span className="hidden md:inline" style={{ flex: 1, textAlign: "left", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          Buscar tickets, tareas, proyectos…
+        </span>
+        <kbd className="hidden md:inline" style={{ ...kbdStyle, flexShrink: 0 }}>⌘K</kbd>
       </button>
 
       {mounted && open && createPortal(dialogo, document.body)}

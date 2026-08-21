@@ -57,7 +57,7 @@ export function Topbar({
       {/* El buscador ocupa el hueco que antes era espaciador: con la app
           partida en módulos, es el atajo para llegar a algo sin acordarse de
           en cuál vive. */}
-      <div data-tour-id="search" className="flex items-center">
+      <div data-tour-id="search" className="flex items-center flex-1 min-w-0 px-3 lg:pl-0 lg:pr-6">
         <GlobalSearch />
       </div>
 

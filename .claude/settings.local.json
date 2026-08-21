@@ -290,7 +290,8 @@
       "Bash(perl -0pi -e 's{import \\\\{ can \\\\} from \"\\\\@/lib/access/can\";}{import { can } from \"\\\\@/lib/access/can\";\\\\nimport { APP_BY_KEY } from \"\\\\@/lib/access/apps\";}' src/lib/search/global.ts)",
       "Bash(perl -0pi -e 's/\"version\": \"1\\\\.71\\\\.1\"/\"version\": \"1.72.0\"/' package.json)",
       "Bash(perl -0pi -e 's{import \\\\{ DEAL_STAGE_LABELS \\\\} from \"\\\\@/lib/crm/deals\";}{import { DEAL_STAGE_LABELS } from \"\\\\@/lib/crm/deals\";\\\\nimport { statusLabel } from \"\\\\@/lib/status-labels\";}' src/lib/search/global.ts)",
-      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.72\\\\.0\"/\"version\": \"1.72.1\"/' package.json)"
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.72\\\\.0\"/\"version\": \"1.72.1\"/' package.json)",
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.72\\\\.1\"/\"version\": \"1.72.2\"/' package.json)"
     ]
   }
 }
