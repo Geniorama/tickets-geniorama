@@ -79,6 +79,7 @@ export const APP_SECTIONS: Record<AppKey, NavSection[]> = {
   CRM: [
     { href: "/crm", label: "Cuentas", icon: Handshake, isRoot: true, requires: "ver" },
     { href: "/crm/oportunidades", label: "Oportunidades", icon: Target, requires: "ver" },
+    { href: "/crm/contactos", label: "Contactos", icon: Users, requires: "ver" },
   ],
 };
 

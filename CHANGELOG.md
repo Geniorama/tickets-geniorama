@@ -9,6 +9,41 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.73.0] — 2026-08-21
+
+### Contactos: sección propia y paso a usuario del portal
+
+#### Los contactos ya no viven escondidos
+
+Se podían crear desde el primer día, pero solo entrando en la ficha de una cuenta. Buscar a alguien exigía recordar antes en qué empresa estaba, **y casi siempre se recuerda antes el nombre de la persona**.
+
+Ahora el CRM tiene su sección **Contactos**: todas las personas en un listado, con buscador por nombre, correo, teléfono o empresa, y un filtro para ver solo quienes ya tienen acceso al portal. Desde ahí se crea un contacto eligiendo la cuenta, que es el camino inverso al de la ficha y el que se sigue cuando la persona llega antes que la empresa.
+
+#### Un contacto puede convertirse en usuario
+
+Es el puente entre las dos formas que tiene alguien de existir aquí: un contacto es de la agenda comercial y no entra a ningún sitio; un usuario sí. En vez de duplicar a la persona, **se enlazan** — por eso `Contact` lleva `userId` desde el primer día.
+
+Con el correo puesto aparece «Dar acceso al portal» en la ficha de la cuenta. La contraseña no la pone nadie: se manda la misma invitación que usa Administración para que la persona la establezca.
+
+**Qué no puede hacer esta puerta.** Crear credenciales es lo más delicado del CRM, así que está acotado por cuatro reglas, no por confianza:
+
+- El usuario nace **siempre CLIENTE** y **siempre atado a la empresa de la cuenta**. No se puede elegir rol ni empresa, así que llevar el CRM no permite fabricarse un colaborador ni un administrador.
+- Si ya existe un usuario con ese correo **no se crea otro**: se enlaza con quien ya está y se le suma la empresa. Duplicar personas por correo es como se corrompe una base de clientes.
+- Si el correo es de **alguien del equipo**, se rechaza. Enlazarlo no le daría más poder —ya lo tiene—, pero ataría su cuenta a una empresa desde el CRM, y eso lo decide Administración.
+- Un correo no puede reflejar a **dos contactos**.
+
+Pide nivel **Gestor** en el CRM: no basta con poder editar.
+
+Queda apuntado en el historial de la cuenta, con quién lo hizo y cuándo — dentro de seis meses alguien lo preguntará.
+
+#### Por dentro
+
+La lógica vive en `src/lib/crm/portal-access.ts` y no dentro de la Server Action, porque una función normal se puede probar de verdad y una Server Action arranca pidiendo sesión. **24 comprobaciones** sobre base desechable cubren las cuatro reglas y los rechazos: sin correo, contacto de otra cuenta, invitar dos veces, correo de staff, correo ya enlazado.
+
+Una de esas pruebas cambió el diseño: en la primera versión, enlazar con la cuenta de un administrador **funcionaba**. No escalaba privilegios, pero dejaba a un miembro del equipo figurando como contacto-cliente y con una empresa atada desde el CRM. Ahora se rechaza.
+
+---
+
 ## [1.72.2] — 2026-08-21
 
 ### El buscador ahora se ve

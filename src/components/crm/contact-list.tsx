@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Mail, Phone, Star, Trash2, Plus, X } from "lucide-react";
-import { createContact, deleteContact } from "@/actions/crm.actions";
+import { Mail, Phone, Star, Trash2, Plus, X, ShieldCheck, UserPlus } from "lucide-react";
+import { createContact, deleteContact, inviteContactAsUser } from "@/actions/crm.actions";
 
 type Contact = {
   id: string;
@@ -11,6 +11,8 @@ type Contact = {
   phone: string | null;
   position: string | null;
   isPrimary: boolean;
+  /** Se rellena cuando la persona ya entra al portal. */
+  userId?: string | null;
 };
 
 /**
@@ -21,14 +23,37 @@ export function ContactList({
   accountId,
   contacts,
   canEdit,
+  canInvite = false,
 }: {
   accountId: string;
   contacts: Contact[];
   canEdit: boolean;
+  /** Dar acceso al portal crea un usuario: pide GESTOR, no basta con editar. */
+  canInvite?: boolean;
 }) {
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [invitando, setInvitando] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  function handleInvite(contacto: Contact) {
+    setError(null);
+    setAviso(null);
+    setInvitando(contacto.id);
+    startTransition(async () => {
+      const result = await inviteContactAsUser(contacto.id, accountId);
+      setInvitando(null);
+      if (result?.error) setError(result.error);
+      else if (result?.emailError) {
+        setAviso(`Se creó el acceso, pero no salió el correo: ${result.emailError}. Puedes reenviar la invitación desde Administración → Usuarios.`);
+      } else if (result?.reutilizado) {
+        setAviso(`${contacto.name} ya tenía usuario: se enlazó y se le añadió esta empresa.`);
+      } else {
+        setAviso(`Invitación enviada a ${contacto.email}. La contraseña la establece esa persona.`);
+      }
+    });
+  }
 
   function handleCreate(formData: FormData) {
     setError(null);
@@ -121,6 +146,13 @@ export function ContactList({
         </form>
       )}
 
+      {aviso && (
+        <p style={{ fontSize: "0.8125rem", color: "#16a34a", marginBottom: "0.75rem" }}>{aviso}</p>
+      )}
+      {error && !adding && (
+        <p style={{ fontSize: "0.8125rem", color: "#b91c1c", marginBottom: "0.75rem" }}>{error}</p>
+      )}
+
       {contacts.length === 0 && !adding ? (
         <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)" }}>
           Sin contactos todavía.
@@ -147,6 +179,12 @@ export function ContactList({
                       Principal
                     </span>
                   )}
+                  {c.userId && (
+                    <span title="Entra al portal con su propio usuario" style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", fontSize: "0.6875rem", color: "#22c55e" }}>
+                      <ShieldCheck style={{ width: "0.75rem", height: "0.75rem" }} />
+                      Portal
+                    </span>
+                  )}
                   {c.position && (
                     <span style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>· {c.position}</span>
                   )}
@@ -165,6 +203,32 @@ export function ContactList({
                     </a>
                   )}
                 </div>
+
+                {/* Sin correo no hay a dónde mandar la invitación, así que se
+                    dice en vez de ofrecer un botón que va a fallar. */}
+                {canInvite && !c.userId && (
+                  c.email ? (
+                    <button
+                      type="button"
+                      onClick={() => handleInvite(c)}
+                      disabled={isPending}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: "0.3rem",
+                        marginTop: "0.5rem", padding: "0.3rem 0.6rem", borderRadius: "0.4rem",
+                        border: "1px solid var(--app-border)", background: "none",
+                        fontSize: "0.75rem", color: "var(--app-nav-text)",
+                        cursor: isPending ? "wait" : "pointer",
+                      }}
+                    >
+                      <UserPlus style={{ width: "0.75rem", height: "0.75rem" }} />
+                      {invitando === c.id ? "Creando acceso..." : "Dar acceso al portal"}
+                    </button>
+                  ) : (
+                    <p style={{ fontSize: "0.6875rem", color: "var(--app-text-muted)", marginTop: "0.4rem" }}>
+                      Añade un correo para poder darle acceso al portal.
+                    </p>
+                  )
+                )}
               </div>
 
               {canEdit && (

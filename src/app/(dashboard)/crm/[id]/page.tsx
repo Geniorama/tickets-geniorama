@@ -20,6 +20,8 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
   const session = await requireCan("CRM", "ver");
   const { id } = await params;
   const canEdit = await can(session.user, "CRM", "editar");
+  // Dar acceso al portal crea un usuario que inicia sesión: es más que editar.
+  const canInvite = await can(session.user, "CRM", "gestionar");
 
   const account = await prisma.company.findUnique({
     where: { id },
@@ -29,7 +31,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
       contacts: {
         where: { isActive: true },
         orderBy: [{ isPrimary: "desc" }, { name: "asc" }],
-        select: { id: true, name: true, email: true, phone: true, position: true, isPrimary: true },
+        select: { id: true, name: true, email: true, phone: true, position: true, isPrimary: true, userId: true },
       },
       deals: {
         orderBy: [{ closedAt: "asc" }, { expectedCloseAt: "asc" }, { createdAt: "desc" }],
@@ -161,7 +163,12 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
           )}
         </div>
 
-        <ContactList accountId={account.id} contacts={account.contacts} canEdit={canEdit} />
+        <ContactList
+          accountId={account.id}
+          contacts={account.contacts}
+          canEdit={canEdit}
+          canInvite={canInvite}
+        />
 
         {/* Qué tiene ya esta cuenta en el resto de la app */}
         <div

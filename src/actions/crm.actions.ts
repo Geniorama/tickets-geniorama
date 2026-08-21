@@ -12,6 +12,11 @@ import {
   emitDealStageHooks, emitDeletedHook,
 } from "@/lib/hooks/dispatch";
 import { contactPayload, dealPayload } from "@/lib/hooks/payload";
+import { generateInvitationToken } from "@/actions/invitation.actions";
+import { sendInvitationEmail } from "@/lib/email";
+import { grantPortalAccess } from "@/lib/crm/portal-access";
+
+const BASE_URL = process.env.AUTH_URL ?? "http://localhost:3000";
 
 const STAGES = ["LEAD", "PROSPECTO", "CLIENTE", "INACTIVO"] as const;
 
@@ -235,6 +240,43 @@ export async function deleteContact(contactId: string, accountId: string) {
 
   revalidatePath(`/crm/${accountId}`);
   return { success: true };
+}
+
+/**
+ * Le da acceso al portal a un contacto.
+ *
+ * Pide GESTOR y no basta con editar: esto acaba en credenciales con las que
+ * alguien inicia sesión. La lógica y sus límites viven en
+ * `lib/crm/portal-access.ts`, donde se pueden probar.
+ *
+ * La contraseña no la pone nadie: se manda la misma invitación que usa
+ * Administración para que la persona la establezca.
+ */
+export async function inviteContactAsUser(contactId: string, accountId: string) {
+  const session = await requireCan("CRM", "gestionar");
+
+  const result = await grantPortalAccess(session.user.id, contactId, accountId);
+  if (!result.ok) return { error: result.error };
+
+  emitContactHook("contact.updated", contactId, { actor: session.user });
+
+  // El correo se manda al final: que falle no debe dejar a medias un usuario
+  // que ya existe. Se avisa, y se puede reenviar desde Administración.
+  let emailError: string | undefined;
+  try {
+    const token = await generateInvitationToken(result.userId);
+    await sendInvitationEmail(
+      { name: result.contactName, email: result.email },
+      `${BASE_URL}/set-password?token=${token}`,
+    );
+  } catch (err) {
+    emailError = err instanceof Error ? err.message : String(err);
+    console.error("[inviteContactAsUser] Error enviando la invitación:", emailError);
+  }
+
+  revalidatePath(`/crm/${accountId}`);
+  revalidatePath("/crm/contactos");
+  return { success: true, emailError, reutilizado: result.reutilizado };
 }
 
 // ─── Oportunidades ────────────────────────────────────────────────────────────
