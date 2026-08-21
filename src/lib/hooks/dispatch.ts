@@ -19,7 +19,11 @@ import { prisma } from "@/lib/prisma";
 import type { HookEvent } from "@/lib/hooks/events";
 import {
   APP_URL,
+  accountPayload,
+  activityPayload,
   commentPayload,
+  contactPayload,
+  dealPayload,
   projectPayload,
   taskPayload,
   ticketPayload,
@@ -328,6 +332,62 @@ export function emitCommentHook(commentId: string, opts: { actor?: HookActor } =
       data: resolved.payload,
     });
   })();
+}
+
+// ─── CRM ─────────────────────────────────────────────────────────────────────
+//
+// Nada del CRM cuelga de un proyecto, así que estos eventos van siempre a los
+// hooks de organización: no se pasa `projectId`.
+
+export function emitAccountHook(
+  event: HookEvent,
+  accountId: string,
+  opts: { actor?: HookActor; changes?: HookChanges } = {},
+): void {
+  void emitHook({ event, actor: opts.actor, changes: opts.changes, load: () => accountPayload(accountId) });
+}
+
+export function emitContactHook(
+  event: HookEvent,
+  contactId: string,
+  opts: { actor?: HookActor; changes?: HookChanges } = {},
+): void {
+  void emitHook({ event, actor: opts.actor, changes: opts.changes, load: () => contactPayload(contactId) });
+}
+
+export function emitDealHook(
+  event: HookEvent,
+  dealId: string,
+  opts: { actor?: HookActor; changes?: HookChanges } = {},
+): void {
+  void emitHook({ event, actor: opts.actor, changes: opts.changes, load: () => dealPayload(dealId) });
+}
+
+export function emitActivityHook(activityId: string, opts: { actor?: HookActor } = {}): void {
+  void emitHook({ event: "activity.logged", actor: opts.actor, load: () => activityPayload(activityId) });
+}
+
+/**
+ * Cerrar una oportunidad manda dos eventos: el cambio de etapa, que interesa a
+ * quien sigue el pipeline entero, y `deal.won` / `deal.lost`, que es lo que se
+ * engancha a facturación o a un canal de avisos sin tener que filtrar por etapa
+ * del otro lado.
+ */
+export function emitDealStageHooks(
+  dealId: string,
+  from: string,
+  to: string,
+  opts: { actor?: HookActor } = {},
+): void {
+  if (from === to) return;
+
+  emitDealHook("deal.stage_changed", dealId, {
+    actor: opts.actor,
+    changes: { stage: { from, to } },
+  });
+
+  if (to === "GANADA") emitDealHook("deal.won", dealId, { actor: opts.actor });
+  if (to === "PERDIDA") emitDealHook("deal.lost", dealId, { actor: opts.actor });
 }
 
 /** Eventos de borrado: la entidad ya no existe, así que el payload viaja hecho. */

@@ -10,7 +10,10 @@
  * que esperan n8n, Zapier y Make, y evita tener que traducir en cada workflow.
  */
 
-export const HOOK_RESOURCES = ["ticket", "task", "project", "comment"] as const;
+export const HOOK_RESOURCES = [
+  "ticket", "task", "project", "comment",
+  "account", "contact", "deal", "activity",
+] as const;
 export type HookResource = (typeof HOOK_RESOURCES)[number];
 
 export type HookEventDefinition = {
@@ -44,6 +47,27 @@ export const HOOK_EVENTS: readonly HookEventDefinition[] = [
 
   // ── Comentarios ──
   { key: "comment.created",        resource: "comment", label: "Comentario nuevo",         description: "Alguien comentó en un ticket o en una tarea. Las notas internas no salen." },
+
+  // ── CRM · Cuentas ──
+  { key: "account.created",        resource: "account", label: "Cuenta creada",            description: "Se registró una empresa en el CRM, sea lead o cliente." },
+  { key: "account.updated",        resource: "account", label: "Cuenta editada",           description: "Cambiaron sus datos comerciales: responsable, origen, NIT." },
+  { key: "account.stage_changed",  resource: "account", label: "Cuenta cambió de etapa",   description: "Pasó a otra etapa del ciclo. El payload trae la anterior — aquí es donde se detecta que un lead se volvió cliente." },
+
+  // ── CRM · Contactos ──
+  { key: "contact.created",        resource: "contact", label: "Contacto creado",          description: "Se añadió una persona a una cuenta." },
+  { key: "contact.updated",        resource: "contact", label: "Contacto editado",         description: "Cambiaron sus datos o pasó a ser el contacto principal." },
+  { key: "contact.deleted",        resource: "contact", label: "Contacto eliminado",       description: "Se quitó la persona de la cuenta." },
+
+  // ── CRM · Oportunidades ──
+  { key: "deal.created",           resource: "deal",    label: "Oportunidad creada",       description: "Se abrió una venta sobre una cuenta." },
+  { key: "deal.updated",           resource: "deal",    label: "Oportunidad editada",      description: "Cambió el título, el valor, la fecha de cierre o el responsable." },
+  { key: "deal.stage_changed",     resource: "deal",    label: "Oportunidad cambió de etapa", description: "Se movió en el pipeline. El payload trae la etapa anterior." },
+  { key: "deal.won",               resource: "deal",    label: "Oportunidad ganada",       description: "Se cerró a favor. Llega además del cambio de etapa: es el evento que se quiere enganchar a facturación o a un canal de avisos." },
+  { key: "deal.lost",              resource: "deal",    label: "Oportunidad perdida",      description: "Se cerró sin venta. El payload trae el motivo." },
+  { key: "deal.deleted",           resource: "deal",    label: "Oportunidad eliminada",    description: "Se borró la oportunidad y su historial." },
+
+  // ── CRM · Actividad ──
+  { key: "activity.logged",        resource: "activity", label: "Actividad registrada",    description: "Se apuntó una llamada, un correo, una reunión o una nota sobre una cuenta." },
 ] as const;
 
 export type HookEvent = (typeof HOOK_EVENTS)[number]["key"];
@@ -61,17 +85,25 @@ export const RESOURCE_LABELS: Record<HookResource, string> = {
   task: "Tareas",
   project: "Proyectos",
   comment: "Comentarios",
+  account: "CRM · Cuentas",
+  contact: "CRM · Contactos",
+  deal: "CRM · Oportunidades",
+  activity: "CRM · Actividad",
 };
+
+/** Lo que pertenece al CRM, que no cuelga de ningún proyecto. */
+const CRM_RESOURCES: HookResource[] = ["account", "contact", "deal", "activity"];
 
 /**
  * Eventos que tiene sentido suscribir en un hook de proyecto.
  *
  * Los tickets no cuelgan de un proyecto —son soporte, viven contra un plan y un
  * sitio—, así que un hook de proyecto nunca los recibiría y ofrecerlos en su
- * selector solo generaría hooks mudos.
+ * selector solo generaría hooks mudos. Lo mismo vale para el CRM: una
+ * oportunidad es de una empresa, no de un proyecto.
  */
 export const PROJECT_SCOPED_EVENTS: string[] = HOOK_EVENTS.filter(
-  (e) => e.resource !== "ticket",
+  (e) => e.resource !== "ticket" && !CRM_RESOURCES.includes(e.resource),
 ).map((e) => e.key);
 
 /** Los eventos que un hook puede pedir según su alcance. */

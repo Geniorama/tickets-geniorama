@@ -271,7 +271,13 @@
       "Bash(perl -0pi -e 's{\\\\.\\\\./\\\\.\\\\./\\\\.\\\\./\\\\.\\\\./\\\\.\\\\./Users/angelburgos/Documents/proyectos-web/tickets-geniorama/src}{/Users/angelburgos/Documents/proyectos-web/tickets-geniorama/src}g' \"/private/tmp/claude-501/-Users-angelburgos-Documents-proyectos-web-tickets-geniorama/3a08fee3-37d4-4bed-b8ca-e279ae4cff1c/scratchpad/test-deals.ts\")",
       "Bash(TEST_DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" npx tsx ./tmp-migtest-deals.ts)",
       "Bash(perl -0pi -e 's/password: \"x\"/passwordHash: \"x\"/' ./tmp-migtest-deals.ts)",
-      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.69\\\\.1\"/\"version\": \"1.70.0\"/' package.json)"
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.69\\\\.1\"/\"version\": \"1.70.0\"/' package.json)",
+      "Bash(perl -0pi -e 's{resource: \\\\{ type: \"string\", enum: \\\\[\"ticket\", \"task\", \"project\", \"comment\"\\\\] \\\\}}{resource: { type: \"string\", enum: [\"ticket\", \"task\", \"project\", \"comment\", \"account\", \"contact\", \"deal\", \"activity\"] }}' src/lib/api/openapi.ts)",
+      "Bash(TEST_DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" npx tsx ./tmp-crmapi-test.ts)",
+      "Bash(TEST_DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest?sslmode=disable\" npx tsx ./tmp-crmapi-test.ts)",
+      "Bash(perl -0pi -e 's{process\\\\.env\\\\.DATABASE_URL = process\\\\.env\\\\.TEST_DATABASE_URL;\\\\n}{}' ./tmp-crmapi-test.ts)",
+      "Bash(DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest?sslmode=disable\" npx tsx ./tmp-crmapi-test.ts)",
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.70\\\\.0\"/\"version\": \"1.71.0\"/' package.json)"
     ]
   }
 }

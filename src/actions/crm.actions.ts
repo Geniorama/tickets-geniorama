@@ -7,6 +7,11 @@ import { prisma } from "@/lib/prisma";
 import { requireCan } from "@/lib/access/can";
 import type { AccountStage, DealStage } from "@/generated/prisma";
 import { DEAL_STAGES, isClosedStage } from "@/lib/crm/deals";
+import {
+  emitAccountHook, emitActivityHook, emitContactHook, emitDealHook,
+  emitDealStageHooks, emitDeletedHook,
+} from "@/lib/hooks/dispatch";
+import { contactPayload, dealPayload } from "@/lib/hooks/payload";
 
 const STAGES = ["LEAD", "PROSPECTO", "CLIENTE", "INACTIVO"] as const;
 
@@ -23,7 +28,7 @@ const accountSchema = z.object({
  * registrar un prospecto, no un cliente ya cerrado.
  */
 export async function createAccount(formData: FormData) {
-  await requireCan("CRM", "crear");
+  const session = await requireCan("CRM", "crear");
 
   const parsed = accountSchema.safeParse({
     name:    formData.get("name"),
@@ -45,12 +50,14 @@ export async function createAccount(formData: FormData) {
     select: { id: true },
   });
 
+  emitAccountHook("account.created", account.id, { actor: session.user });
+
   revalidatePath("/crm");
   redirect(`/crm/${account.id}`);
 }
 
 export async function updateAccount(accountId: string, formData: FormData) {
-  await requireCan("CRM", "editar");
+  const session = await requireCan("CRM", "editar");
 
   const parsed = accountSchema.safeParse({
     name:    formData.get("name"),
@@ -60,6 +67,12 @@ export async function updateAccount(accountId: string, formData: FormData) {
     ownerId: formData.get("ownerId") || undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const antes = await prisma.company.findUnique({
+    where: { id: accountId },
+    select: { stage: true },
+  });
+  if (!antes) return { error: "Cuenta no encontrada" };
 
   await prisma.company.update({
     where: { id: accountId },
@@ -72,6 +85,16 @@ export async function updateAccount(accountId: string, formData: FormData) {
     },
   });
 
+  emitAccountHook("account.updated", accountId, { actor: session.user });
+  // Que un lead pase a cliente es lo que quiere enganchar quien integra, y
+  // desde este formulario también puede ocurrir.
+  if (antes.stage !== parsed.data.stage) {
+    emitAccountHook("account.stage_changed", accountId, {
+      actor: session.user,
+      changes: { stage: { from: antes.stage, to: parsed.data.stage } },
+    });
+  }
+
   revalidatePath("/crm");
   revalidatePath(`/crm/${accountId}`);
   return { success: true };
@@ -82,11 +105,21 @@ export async function updateAccount(accountId: string, formData: FormData) {
  * aparte del formulario completo.
  */
 export async function setAccountStage(accountId: string, stage: AccountStage) {
-  await requireCan("CRM", "editar");
+  const session = await requireCan("CRM", "editar");
 
   if (!STAGES.includes(stage)) return { error: "Etapa no válida" };
 
+  const antes = await prisma.company.findUnique({ where: { id: accountId }, select: { stage: true } });
+  if (!antes) return { error: "Cuenta no encontrada" };
+
   await prisma.company.update({ where: { id: accountId }, data: { stage } });
+
+  if (antes.stage !== stage) {
+    emitAccountHook("account.stage_changed", accountId, {
+      actor: session.user,
+      changes: { stage: { from: antes.stage, to: stage } },
+    });
+  }
 
   revalidatePath("/crm");
   revalidatePath(`/crm/${accountId}`);
@@ -123,12 +156,12 @@ export async function createContact(accountId: string, formData: FormData) {
   });
   if (!account) return { error: "Cuenta no encontrada" };
 
-  await prisma.$transaction(async (tx) => {
+  const contacto = await prisma.$transaction(async (tx) => {
     // Solo puede haber un contacto principal por cuenta.
     if (parsed.data.isPrimary) {
       await tx.contact.updateMany({ where: { companyId: accountId }, data: { isPrimary: false } });
     }
-    await tx.contact.create({
+    return tx.contact.create({
       data: {
         companyId:  accountId,
         name:       parsed.data.name.trim(),
@@ -139,15 +172,18 @@ export async function createContact(accountId: string, formData: FormData) {
         isPrimary:  parsed.data.isPrimary,
         createdById: session.user.id,
       },
+      select: { id: true },
     });
   });
+
+  emitContactHook("contact.created", contacto.id, { actor: session.user });
 
   revalidatePath(`/crm/${accountId}`);
   return { success: true };
 }
 
 export async function updateContact(contactId: string, accountId: string, formData: FormData) {
-  await requireCan("CRM", "editar");
+  const session = await requireCan("CRM", "editar");
 
   const parsed = contactSchema.safeParse({
     name:      formData.get("name"),
@@ -177,14 +213,25 @@ export async function updateContact(contactId: string, accountId: string, formDa
     });
   });
 
+  emitContactHook("contact.updated", contactId, { actor: session.user });
+
   revalidatePath(`/crm/${accountId}`);
   return { success: true };
 }
 
 export async function deleteContact(contactId: string, accountId: string) {
-  await requireCan("CRM", "editar");
+  const session = await requireCan("CRM", "editar");
 
-  await prisma.contact.deleteMany({ where: { id: contactId, companyId: accountId } });
+  // El payload se arma antes de borrar: después ya no hay a quién consultar.
+  const payload = await contactPayload(contactId).catch(() => null);
+
+  const { count } = await prisma.contact.deleteMany({ where: { id: contactId, companyId: accountId } });
+
+  // Solo se avisa si de verdad se borró algo suyo: un id de otra cuenta no
+  // borra nada y tampoco debe generar un evento.
+  if (count > 0 && payload) {
+    emitDeletedHook("contact.deleted", payload, { actor: session.user });
+  }
 
   revalidatePath(`/crm/${accountId}`);
   return { success: true };
@@ -272,13 +319,20 @@ export async function createDeal(formData: FormData) {
     select: { id: true },
   });
 
+  emitDealHook("deal.created", deal.id, { actor: session.user });
+  // Nacer ya cerrada es raro pero posible (se registra una venta ya hecha), y
+  // quien escucha `deal.won` espera enterarse igual.
+  if (isClosedStage(d.stage)) {
+    emitDealStageHooks(deal.id, "NUEVA", d.stage, { actor: session.user });
+  }
+
   revalidatePath("/crm/oportunidades");
   revalidatePath(`/crm/${d.companyId}`);
   redirect(`/crm/oportunidades/${deal.id}`);
 }
 
 export async function updateDeal(dealId: string, formData: FormData) {
-  await requireCan("CRM", "editar");
+  const session = await requireCan("CRM", "editar");
 
   const parsed = readDeal(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -310,6 +364,9 @@ export async function updateDeal(dealId: string, formData: FormData) {
     },
   });
 
+  emitDealHook("deal.updated", dealId, { actor: session.user });
+  emitDealStageHooks(dealId, current.stage, d.stage, { actor: session.user });
+
   revalidatePath("/crm/oportunidades");
   revalidatePath(`/crm/oportunidades/${dealId}`);
   revalidatePath(`/crm/${current.companyId}`);
@@ -322,13 +379,13 @@ export async function updateDeal(dealId: string, formData: FormData) {
  * verdad al pipeline en vez de dejarla cerrada con otra etiqueta.
  */
 export async function setDealStage(dealId: string, stage: DealStage, lostReason?: string) {
-  await requireCan("CRM", "editar");
+  const session = await requireCan("CRM", "editar");
 
   if (!DEAL_STAGES.includes(stage)) return { error: "Etapa no válida" };
 
   const current = await prisma.deal.findUnique({
     where: { id: dealId },
-    select: { companyId: true, closedAt: true },
+    select: { companyId: true, closedAt: true, stage: true },
   });
   if (!current) return { error: "Oportunidad no encontrada" };
 
@@ -343,6 +400,8 @@ export async function setDealStage(dealId: string, stage: DealStage, lostReason?
     },
   });
 
+  emitDealStageHooks(dealId, current.stage, stage, { actor: session.user });
+
   revalidatePath("/crm/oportunidades");
   revalidatePath(`/crm/oportunidades/${dealId}`);
   revalidatePath(`/crm/${current.companyId}`);
@@ -352,13 +411,17 @@ export async function setDealStage(dealId: string, stage: DealStage, lostReason?
 export async function deleteDeal(dealId: string) {
   // Borrar se lleva el historial de la oportunidad por delante, así que pide
   // GESTOR y no basta con poder editar.
-  await requireCan("CRM", "gestionar");
+  const session = await requireCan("CRM", "gestionar");
 
   const deal = await prisma.deal.findUnique({ where: { id: dealId }, select: { companyId: true } });
   if (!deal) return { error: "Oportunidad no encontrada" };
 
+  const payload = await dealPayload(dealId).catch(() => null);
+
   // Sus actividades caen con ella por `onDelete: Cascade`.
   await prisma.deal.delete({ where: { id: dealId } });
+
+  if (payload) emitDeletedHook("deal.deleted", payload, { actor: session.user });
 
   revalidatePath("/crm/oportunidades");
   revalidatePath(`/crm/${deal.companyId}`);
@@ -405,7 +468,8 @@ export async function logActivity(accountId: string, formData: FormData) {
     if (count === 0) return { error: "La oportunidad no pertenece a esta cuenta" };
   }
 
-  await prisma.crmActivity.create({
+  const actividad = await prisma.crmActivity.create({
+    select: { id: true },
     data: {
       companyId: accountId,
       dealId:    a.dealId || null,
@@ -419,6 +483,8 @@ export async function logActivity(accountId: string, formData: FormData) {
       createdById: session.user.id,
     },
   });
+
+  emitActivityHook(actividad.id, { actor: session.user });
 
   revalidatePath(`/crm/${accountId}`);
   if (a.dealId) revalidatePath(`/crm/oportunidades/${a.dealId}`);

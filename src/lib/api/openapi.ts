@@ -130,6 +130,122 @@ const commentSchema = {
   },
 } as const;
 
+// ─── CRM ─────────────────────────────────────────────────────────────────────
+
+const ACCOUNT_STAGE = ["LEAD", "PROSPECTO", "CLIENTE", "INACTIVO"];
+const DEAL_STAGE = ["NUEVA", "CONTACTADA", "PROPUESTA", "NEGOCIACION", "GANADA", "PERDIDA"];
+const ACTIVITY_TYPE = ["NOTA", "LLAMADA", "CORREO", "REUNION", "WHATSAPP"];
+
+/** Cómo viaja una cuenta cuando es la referencia de otra cosa, no el sujeto. */
+const accountRef = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+    stage: { type: "string", enum: ACCOUNT_STAGE },
+  },
+} as const;
+
+const accountSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+    stage: {
+      type: "string",
+      enum: ACCOUNT_STAGE,
+      description:
+        "Etapa del ciclo de vida. Solo las `CLIENTE` aparecen donde se elige «la empresa» de un proyecto, un plan o un sitio.",
+    },
+    source: { type: "string", nullable: true, description: "De dónde salió: referido, web, evento…" },
+    taxId: { type: "string", nullable: true },
+    isActive: { type: "boolean" },
+    createdAt: { type: "string", format: "date-time" },
+    updatedAt: { type: "string", format: "date-time" },
+    url: { type: "string", format: "uri" },
+    owner: person,
+    contactCount: { type: "integer" },
+    dealCount: { type: "integer" },
+  },
+} as const;
+
+const contactSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    name: { type: "string" },
+    email: { type: "string", nullable: true },
+    phone: { type: "string", nullable: true },
+    position: { type: "string", nullable: true },
+    isPrimary: { type: "boolean", description: "Solo uno por cuenta: marcar otro desmarca el anterior." },
+    isActive: { type: "boolean" },
+    createdAt: { type: "string", format: "date-time" },
+    updatedAt: { type: "string", format: "date-time" },
+    url: { type: "string", format: "uri" },
+    account: accountRef,
+  },
+} as const;
+
+const dealSchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    title: { type: "string" },
+    stage: { type: "string", enum: DEAL_STAGE },
+    amount: { type: "number", nullable: true, description: "Valor estimado, en la moneda de la agencia." },
+    notes: { type: "string", nullable: true },
+    expectedCloseAt: { type: "string", format: "date-time", nullable: true },
+    closedAt: {
+      type: "string", format: "date-time", nullable: true,
+      description: "Se sella al pasar a GANADA o PERDIDA, y vuelve a null si se reabre.",
+    },
+    lostReason: { type: "string", nullable: true },
+    isOpen: {
+      type: "boolean",
+      description: "Si sigue viva. Evita tener que saberse de memoria qué etapas son terminales.",
+    },
+    createdAt: { type: "string", format: "date-time" },
+    updatedAt: { type: "string", format: "date-time" },
+    url: { type: "string", format: "uri" },
+    account: accountRef,
+    owner: person,
+    contact: {
+      type: "object",
+      nullable: true,
+      properties: { id: { type: "string" }, name: { type: "string" }, email: { type: "string", nullable: true } },
+    },
+    createdBy: person,
+  },
+} as const;
+
+const activitySchema = {
+  type: "object",
+  properties: {
+    id: { type: "string" },
+    type: { type: "string", enum: ACTIVITY_TYPE },
+    summary: { type: "string", description: "Qué pasó, en una línea." },
+    notes: { type: "string", nullable: true },
+    occurredAt: {
+      type: "string", format: "date-time",
+      description: "Cuándo ocurrió de verdad, que no es cuándo se apuntó.",
+    },
+    createdAt: { type: "string", format: "date-time" },
+    url: { type: "string", format: "uri" },
+    account: accountRef,
+    deal: {
+      type: "object",
+      nullable: true,
+      properties: { id: { type: "string" }, title: { type: "string" }, stage: { type: "string", enum: DEAL_STAGE } },
+    },
+    contact: {
+      type: "object",
+      nullable: true,
+      properties: { id: { type: "string" }, name: { type: "string" }, email: { type: "string", nullable: true } },
+    },
+    createdBy: person,
+  },
+} as const;
+
 const errorSchema = {
   type: "object",
   properties: {
@@ -233,7 +349,7 @@ export function buildOpenApiDocument(baseUrl: string) {
       title: "API de Geniorama Tickets",
       version: process.env.NEXT_PUBLIC_APP_VERSION ?? "1.0.0",
       description: [
-        "API para leer y escribir tickets, tareas, proyectos y comentarios desde fuera de la plataforma.",
+        "API para leer y escribir tickets, tareas, proyectos, comentarios y el CRM desde fuera de la plataforma.",
         "",
         "**Autenticación.** Toda llamada lleva `Authorization: Bearer gnr_…`. Las llaves se crean en",
         "Administración → Integraciones del equipo, y cada una **escribe en nombre de un usuario**: ve",
@@ -244,6 +360,10 @@ export function buildOpenApiDocument(baseUrl: string) {
         "",
         "**Lo que la API no hace.** No crea proyectos ni usuarios, no escribe notas internas y no deja a",
         "un cliente asignar ni cerrar. Son las mismas fronteras que aplica la interfaz.",
+        "",
+        "**CRM.** Los endpoints de `/accounts` y `/deals` exigen además que el dueño de la llave tenga el",
+        "módulo CRM concedido: `read` necesita nivel Lectura, `write` necesita Miembro. Si a esa persona se",
+        "le retira el módulo, sus llaves dejan de leer el CRM en la siguiente llamada, sin revocarlas.",
         "",
         "Para recibir avisos en sentido contrario —que la plataforma te cuente lo que pasa— se usan los",
         "hooks, que se configuran en esa misma pantalla.",
@@ -256,6 +376,8 @@ export function buildOpenApiDocument(baseUrl: string) {
       { name: "Tareas", description: "Trabajo dentro de un proyecto." },
       { name: "Proyectos", description: "Solo lectura." },
       { name: "Usuarios", description: "Directorio mínimo, para resolver responsables y `onBehalfOf`." },
+      { name: "CRM · Cuentas", description: "Empresas y prospectos, con sus contactos y su historial." },
+      { name: "CRM · Oportunidades", description: "El pipeline de venta." },
     ],
     components: {
       securitySchemes: {
@@ -270,6 +392,10 @@ export function buildOpenApiDocument(baseUrl: string) {
         Task: taskSchema,
         Project: projectSchema,
         Comment: commentSchema,
+        Account: accountSchema,
+        Contact: contactSchema,
+        Deal: dealSchema,
+        Activity: activitySchema,
         Error: errorSchema,
       },
     },
@@ -324,7 +450,7 @@ export function buildOpenApiDocument(baseUrl: string) {
                 type: "object",
                 properties: {
                   key: { type: "string", example: "ticket.status_changed" },
-                  resource: { type: "string", enum: ["ticket", "task", "project", "comment"] },
+                  resource: { type: "string", enum: ["ticket", "task", "project", "comment", "account", "contact", "deal", "activity"] },
                   label: { type: "string" },
                   description: { type: "string" },
                 },
@@ -775,6 +901,315 @@ export function buildOpenApiDocument(baseUrl: string) {
               },
             }),
             ...commonErrors(),
+          },
+        },
+      },
+
+      // ── CRM · Cuentas ──
+      "/accounts": {
+        get: {
+          operationId: "listAccounts",
+          tags: ["CRM · Cuentas"],
+          summary: "Listar cuentas",
+          description: "Empresas y prospectos. Requiere `read` y nivel Lectura en el CRM.",
+          parameters: [
+            {
+              name: "stage",
+              in: "query",
+              description: "Filtra por etapa del ciclo de vida.",
+              schema: { type: "string", enum: ACCOUNT_STAGE },
+            },
+            { name: "search", in: "query", description: "Busca por nombre, sin distinguir mayúsculas.", schema: { type: "string" } },
+            ...paginationParams,
+          ],
+          responses: {
+            "200": okWith("accounts", { type: "array", items: { $ref: "#/components/schemas/Account" } }, {
+              nextCursor: { type: "string", nullable: true },
+            }),
+            ...commonErrors(),
+          },
+        },
+        post: {
+          operationId: "createAccount",
+          tags: ["CRM · Cuentas"],
+          summary: "Registrar una cuenta",
+          description: [
+            "Deja un lead en el CRM desde un formulario web, un anuncio o un chatbot. Requiere `write` y nivel Miembro en el CRM.",
+            "",
+            "**Un nombre repetido no falla:** devuelve la cuenta que ya existe, con `200` en vez de `201`. Los formularios se envían dos veces todo el tiempo, y un duplicado en el CRM cuesta más que una llamada idempotente.",
+            "",
+            "Sin `stage`, la cuenta nace como `LEAD`: nadie conecta un formulario para registrar clientes ya cerrados.",
+          ].join("\n"),
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["name"],
+                  properties: {
+                    name: { type: "string", maxLength: 160, example: "Acme S.A.S." },
+                    stage: { type: "string", enum: ACCOUNT_STAGE, default: "LEAD" },
+                    taxId: { type: "string", nullable: true },
+                    source: { type: "string", nullable: true, example: "Formulario web" },
+                    ownerId: { type: "string", nullable: true, description: "Comercial que la lleva. Tiene que ser del equipo y estar activo." },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": okWith("account", { $ref: "#/components/schemas/Account" }),
+            "201": okWith("account", { $ref: "#/components/schemas/Account" }),
+            ...commonErrors(notFound("El responsable indicado")),
+          },
+        },
+      },
+
+      "/accounts/{id}": {
+        get: {
+          operationId: "getAccount",
+          tags: ["CRM · Cuentas"],
+          summary: "Ver una cuenta",
+          parameters: [idParam],
+          responses: {
+            "200": okWith("account", { $ref: "#/components/schemas/Account" }),
+            ...commonErrors(notFound("La cuenta")),
+          },
+        },
+        patch: {
+          operationId: "updateAccount",
+          tags: ["CRM · Cuentas"],
+          summary: "Actualizar una cuenta",
+          description:
+            "Solo los campos que se manden. Cambiar `stage` dispara además `account.stage_changed`, que es como se detecta desde fuera que un lead se volvió cliente. Requiere `write` y nivel Miembro en el CRM.",
+          parameters: [idParam],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string", maxLength: 160 },
+                    stage: { type: "string", enum: ACCOUNT_STAGE },
+                    taxId: { type: "string", nullable: true },
+                    source: { type: "string", nullable: true },
+                    ownerId: { type: "string", nullable: true },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": okWith("account", { $ref: "#/components/schemas/Account" }),
+            ...commonErrors(notFound("La cuenta")),
+          },
+        },
+      },
+
+      "/accounts/{id}/contacts": {
+        get: {
+          operationId: "listContacts",
+          tags: ["CRM · Cuentas"],
+          summary: "Contactos de una cuenta",
+          parameters: [idParam],
+          responses: {
+            "200": okWith("contacts", { type: "array", items: { $ref: "#/components/schemas/Contact" } }),
+            ...commonErrors(notFound("La cuenta")),
+          },
+        },
+        post: {
+          operationId: "createContact",
+          tags: ["CRM · Cuentas"],
+          summary: "Añadir un contacto",
+          description:
+            "La persona con la que se habla en esa empresa. Marcar `isPrimary` desmarca al anterior: solo hay un principal por cuenta. Requiere `write` y nivel Miembro en el CRM.",
+          parameters: [idParam],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["name"],
+                  properties: {
+                    name: { type: "string", maxLength: 160 },
+                    email: { type: "string", format: "email", nullable: true },
+                    phone: { type: "string", nullable: true },
+                    position: { type: "string", nullable: true, example: "Directora de marketing" },
+                    notes: { type: "string", nullable: true },
+                    isPrimary: { type: "boolean", default: false },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": okWith("contact", { $ref: "#/components/schemas/Contact" }),
+            ...commonErrors(notFound("La cuenta")),
+          },
+        },
+      },
+
+      "/accounts/{id}/activities": {
+        get: {
+          operationId: "listActivities",
+          tags: ["CRM · Cuentas"],
+          summary: "Historial de una cuenta",
+          description:
+            "Todo lo apuntado sobre la cuenta, incluida la actividad de sus oportunidades, de lo más reciente a lo más viejo.",
+          parameters: [idParam, ...paginationParams],
+          responses: {
+            "200": okWith("activities", { type: "array", items: { $ref: "#/components/schemas/Activity" } }, {
+              nextCursor: { type: "string", nullable: true },
+            }),
+            ...commonErrors(),
+          },
+        },
+        post: {
+          operationId: "logActivity",
+          tags: ["CRM · Cuentas"],
+          summary: "Apuntar una interacción",
+          description: [
+            "Deja una llamada, un correo, una reunión o una nota en el historial. Es el endpoint que conecta la centralita o el buzón con el CRM sin que nadie teclee nada. Requiere `write` y nivel Miembro en el CRM.",
+            "",
+            "`occurredAt` es opcional: sin él se asume que acaba de pasar, que es el caso de un sistema que avisa en el momento. Mándalo si el evento llega tarde.",
+            "",
+            "`contactId` y `dealId`, si se mandan, tienen que ser de esta misma cuenta.",
+          ].join("\n"),
+          parameters: [idParam],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["summary"],
+                  properties: {
+                    summary: { type: "string", maxLength: 200, example: "Llamada de descubrimiento" },
+                    type: { type: "string", enum: ACTIVITY_TYPE, default: "NOTA" },
+                    notes: { type: "string", nullable: true },
+                    occurredAt: { type: "string", format: "date-time", nullable: true },
+                    contactId: { type: "string", nullable: true },
+                    dealId: { type: "string", nullable: true },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": okWith("activity", { $ref: "#/components/schemas/Activity" }),
+            ...commonErrors(notFound("La cuenta")),
+          },
+        },
+      },
+
+      // ── CRM · Oportunidades ──
+      "/deals": {
+        get: {
+          operationId: "listDeals",
+          tags: ["CRM · Oportunidades"],
+          summary: "Listar oportunidades",
+          description: "Requiere `read` y nivel Lectura en el CRM.",
+          parameters: [
+            { name: "stage", in: "query", description: "Filtra por etapa del pipeline.", schema: { type: "string", enum: DEAL_STAGE } },
+            { name: "accountId", in: "query", description: "Solo las de una cuenta.", schema: { type: "string" } },
+            {
+              name: "open",
+              in: "query",
+              description: "`true` deja solo las vivas; `false`, solo las cerradas. Sin el parámetro salen todas.",
+              schema: { type: "boolean" },
+            },
+            ...paginationParams,
+          ],
+          responses: {
+            "200": okWith("deals", { type: "array", items: { $ref: "#/components/schemas/Deal" } }, {
+              nextCursor: { type: "string", nullable: true },
+            }),
+            ...commonErrors(),
+          },
+        },
+        post: {
+          operationId: "createDeal",
+          tags: ["CRM · Oportunidades"],
+          summary: "Abrir una oportunidad",
+          description:
+            "Una venta concreta sobre una cuenta. Una misma empresa puede tener varias abiertas. Requiere `write` y nivel Miembro en el CRM.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["title", "accountId"],
+                  properties: {
+                    title: { type: "string", maxLength: 160, example: "Rediseño del sitio web" },
+                    accountId: { type: "string" },
+                    stage: { type: "string", enum: DEAL_STAGE, default: "NUEVA" },
+                    amount: { type: "number", nullable: true, example: 8000000 },
+                    expectedCloseAt: { type: "string", format: "date-time", nullable: true },
+                    contactId: { type: "string", nullable: true, description: "Tiene que ser un contacto de esa cuenta." },
+                    ownerId: { type: "string", nullable: true },
+                    notes: { type: "string", nullable: true },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "201": okWith("deal", { $ref: "#/components/schemas/Deal" }),
+            ...commonErrors(notFound("La cuenta")),
+          },
+        },
+      },
+
+      "/deals/{id}": {
+        get: {
+          operationId: "getDeal",
+          tags: ["CRM · Oportunidades"],
+          summary: "Ver una oportunidad",
+          parameters: [idParam],
+          responses: {
+            "200": okWith("deal", { $ref: "#/components/schemas/Deal" }),
+            ...commonErrors(notFound("La oportunidad")),
+          },
+        },
+        patch: {
+          operationId: "updateDeal",
+          tags: ["CRM · Oportunidades"],
+          summary: "Actualizar o mover una oportunidad",
+          description: [
+            "Solo los campos que se manden. Requiere `write` y nivel Miembro en el CRM.",
+            "",
+            "Mandar `stage` la mueve en el pipeline igual que arrastrar la tarjeta: pasar a `GANADA` o `PERDIDA` sella la fecha de cierre, y sacarla de ahí la borra. Dispara `deal.stage_changed` y, al cerrar, además `deal.won` o `deal.lost`.",
+            "",
+            "`lostReason` solo se guarda cuando la etapa es `PERDIDA`.",
+          ].join("\n"),
+          parameters: [idParam],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string", maxLength: 160 },
+                    stage: { type: "string", enum: DEAL_STAGE },
+                    amount: { type: "number", nullable: true },
+                    expectedCloseAt: { type: "string", format: "date-time", nullable: true },
+                    contactId: { type: "string", nullable: true },
+                    ownerId: { type: "string", nullable: true },
+                    notes: { type: "string", nullable: true },
+                    lostReason: { type: "string", maxLength: 200, nullable: true },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": okWith("deal", { $ref: "#/components/schemas/Deal" }),
+            ...commonErrors(notFound("La oportunidad")),
           },
         },
       },

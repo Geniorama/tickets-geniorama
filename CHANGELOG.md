@@ -9,6 +9,62 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.71.0] — 2026-08-21
+
+### El CRM se conecta: API y webhooks
+
+No se montó un sistema aparte. El CRM entra en la integración que ya existía —las mismas llaves `gnr_`, los mismos hooks, la misma firma— porque quien ya tenga un workflow contra los tickets no debería aprender dos APIs.
+
+#### Trece eventos nuevos
+
+`account.created`, `account.updated`, `account.stage_changed`; `contact.created/updated/deleted`; `deal.created`, `deal.updated`, `deal.stage_changed`, `deal.won`, `deal.lost`, `deal.deleted`; y `activity.logged`.
+
+Aparecen solos en el selector de hooks: el catálogo vive en código, así que añadir un evento nunca fue una migración.
+
+Dos decisiones que se notan al integrar:
+
+- **Ganar y perder mandan dos eventos.** El cambio de etapa, para quien sigue el pipeline entero, y `deal.won` / `deal.lost` aparte — así enganchar una venta cerrada a facturación no obliga a filtrar por etapa del otro lado.
+- **Nada del CRM se ofrece en un hook de proyecto.** Una oportunidad es de una empresa, no de un proyecto; ofrecerla ahí solo generaría hooks mudos. Es el mismo criterio que ya se aplicaba a los tickets.
+
+#### Seis endpoints
+
+```
+GET  POST   /api/v1/accounts
+GET  PATCH  /api/v1/accounts/:id
+GET  POST   /api/v1/accounts/:id/contacts
+GET  POST   /api/v1/accounts/:id/activities
+GET  POST   /api/v1/deals
+GET  PATCH  /api/v1/deals/:id
+```
+
+Los dos que justifican todo esto:
+
+- **`POST /accounts`** deja un lead desde un formulario web o un chatbot. **Un nombre repetido devuelve la cuenta que ya existe** en vez de fallar o duplicar: los formularios se envían dos veces todo el tiempo, y un duplicado en el CRM cuesta más que una llamada idempotente. Sin `stage`, entra como `LEAD` — nadie conecta un formulario para registrar clientes ya cerrados.
+- **`POST /accounts/:id/activities`** apunta una llamada o un correo desde la centralita o el buzón. `occurredAt` es opcional porque un sistema que avisa en el momento no tiene que calcular la fecha.
+
+`PATCH /deals/:id` con `stage` mueve la oportunidad igual que arrastrar la tarjeta: sella o borra `closedAt` y dispara los mismos eventos. Mover por API y mover en el tablero dejan exactamente lo mismo.
+
+#### Una llave no es un permiso aparte
+
+Hereda lo que su dueño puede hacer en el CRM, resuelto con el mismo `can()` que usan las pantallas: `read` exige nivel Lectura, `write` exige Miembro. Si a alguien se le retira el módulo, **sus llaves dejan de leer el CRM en la siguiente llamada**, sin revocar nada. Y como el rol es el techo, una llave de cliente no entra aunque tenga el perfil comercial.
+
+El guardia va dentro de cada función y no en las rutas, para que una ruta nueva no pueda olvidarse de comprobarlo.
+
+#### Comprobado
+
+47 comprobaciones sobre una base desechable, centradas en la frontera:
+
+- sin el módulo concedido no se lee; con Lectura se lee pero no se escribe; una llave de cliente no entra ni con perfil comercial;
+- un contacto o una oportunidad de **otra cuenta** no cuela en ninguna de las tres rutas que los aceptan;
+- cerrar sella la fecha, reabrir la borra junto con el motivo de pérdida, y `open=true` devuelve lo vivo;
+- la documentación cubre las seis rutas, sin `operationId` repetidos.
+
+### Un Postgres local sin TLS ya sirve para pruebas
+
+`prisma.ts` forzaba SSL siempre, así que no había forma de apuntar a una base local: el adaptador intentaba negociar cifrado contra un servidor que no lo ofrece. Ahora SSL sigue activado por defecto —RDS lo exige— y solo se desactiva si la URL dice `sslmode=disable`. La URL de producción no lleva ese parámetro, así que para ella no cambia nada.
+
+---
+
 ## [1.70.0] — 2026-08-21
 
 ### Fase 3, paso 2: el pipeline y el historial

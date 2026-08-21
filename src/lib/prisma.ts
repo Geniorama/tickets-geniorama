@@ -1,11 +1,22 @@
 import { PrismaClient } from "@/generated/prisma";
 import { PrismaPg } from "@prisma/adapter-pg";
 
+/**
+ * SSL va activado por defecto —RDS lo exige— salvo que la URL diga
+ * explícitamente `sslmode=disable`. Sin esa salida, un Postgres local sin TLS
+ * no se puede usar ni para pruebas: el adaptador intenta negociar cifrado
+ * contra un servidor que no lo ofrece y falla al conectar.
+ */
+function sslFor(url: string): { rejectUnauthorized: boolean } | false {
+  return /[?&]sslmode=disable\b/.test(url) ? false : { rejectUnauthorized: false };
+}
+
 function createPrismaClient() {
+  const connectionString = process.env.DATABASE_URL!;
   const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL!,
+    connectionString,
     max: 10,
-    ssl: { rejectUnauthorized: false },
+    ssl: sslFor(connectionString),
   });
   return new PrismaClient({
     adapter,

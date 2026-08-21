@@ -198,6 +198,194 @@ export async function projectPayload(id: string) {
 
 export { projectSelect };
 
+// ─── CRM · Cuentas ───────────────────────────────────────────────────────────
+
+const accountSelect = {
+  id: true,
+  name: true,
+  stage: true,
+  source: true,
+  taxId: true,
+  isActive: true,
+  createdAt: true,
+  updatedAt: true,
+  owner: { select: { id: true, name: true, email: true } },
+  _count: { select: { contacts: true, deals: true } },
+} as const;
+
+type AccountRow = NonNullable<Awaited<ReturnType<typeof loadAccountRow>>>;
+
+function loadAccountRow(id: string) {
+  return prisma.company.findUnique({ where: { id }, select: accountSelect });
+}
+
+export function serializeAccount(account: AccountRow) {
+  return {
+    id: account.id,
+    name: account.name,
+    stage: account.stage,
+    source: account.source,
+    taxId: account.taxId,
+    isActive: account.isActive,
+    createdAt: iso(account.createdAt),
+    updatedAt: iso(account.updatedAt),
+    url: `${APP_URL}/crm/${account.id}`,
+    owner: person(account.owner),
+    contactCount: account._count.contacts,
+    dealCount: account._count.deals,
+  };
+}
+
+export async function accountPayload(id: string) {
+  const row = await loadAccountRow(id);
+  return row ? serializeAccount(row) : null;
+}
+
+export { accountSelect };
+
+// ─── CRM · Contactos ─────────────────────────────────────────────────────────
+
+const contactSelect = {
+  id: true,
+  name: true,
+  email: true,
+  phone: true,
+  position: true,
+  isPrimary: true,
+  isActive: true,
+  createdAt: true,
+  updatedAt: true,
+  company: { select: { id: true, name: true, stage: true } },
+} as const;
+
+type ContactRow = NonNullable<Awaited<ReturnType<typeof loadContactRow>>>;
+
+function loadContactRow(id: string) {
+  return prisma.contact.findUnique({ where: { id }, select: contactSelect });
+}
+
+export function serializeContact(contact: ContactRow) {
+  return {
+    id: contact.id,
+    name: contact.name,
+    email: contact.email,
+    phone: contact.phone,
+    position: contact.position,
+    isPrimary: contact.isPrimary,
+    isActive: contact.isActive,
+    createdAt: iso(contact.createdAt),
+    updatedAt: iso(contact.updatedAt),
+    url: `${APP_URL}/crm/${contact.company.id}`,
+    account: { id: contact.company.id, name: contact.company.name, stage: contact.company.stage },
+  };
+}
+
+export async function contactPayload(id: string) {
+  const row = await loadContactRow(id);
+  return row ? serializeContact(row) : null;
+}
+
+export { contactSelect };
+
+// ─── CRM · Oportunidades ─────────────────────────────────────────────────────
+
+const dealSelect = {
+  id: true,
+  title: true,
+  stage: true,
+  amount: true,
+  notes: true,
+  expectedCloseAt: true,
+  closedAt: true,
+  lostReason: true,
+  createdAt: true,
+  updatedAt: true,
+  company: { select: { id: true, name: true, stage: true } },
+  owner: { select: { id: true, name: true, email: true } },
+  contact: { select: { id: true, name: true, email: true } },
+  createdBy: { select: { id: true, name: true, email: true } },
+} as const;
+
+type DealRow = NonNullable<Awaited<ReturnType<typeof loadDealRow>>>;
+
+function loadDealRow(id: string) {
+  return prisma.deal.findUnique({ where: { id }, select: dealSelect });
+}
+
+export function serializeDeal(deal: DealRow) {
+  return {
+    id: deal.id,
+    title: deal.title,
+    stage: deal.stage,
+    amount: deal.amount,
+    notes: deal.notes,
+    expectedCloseAt: iso(deal.expectedCloseAt),
+    closedAt: iso(deal.closedAt),
+    lostReason: deal.lostReason,
+    // Un consumidor no debería tener que saberse qué etapas son terminales para
+    // decidir si actuar: se lo decimos.
+    isOpen: deal.closedAt === null,
+    createdAt: iso(deal.createdAt),
+    updatedAt: iso(deal.updatedAt),
+    url: `${APP_URL}/crm/oportunidades/${deal.id}`,
+    account: { id: deal.company.id, name: deal.company.name, stage: deal.company.stage },
+    owner: person(deal.owner),
+    contact: deal.contact ? { id: deal.contact.id, name: deal.contact.name, email: deal.contact.email } : null,
+    createdBy: person(deal.createdBy),
+  };
+}
+
+export async function dealPayload(id: string) {
+  const row = await loadDealRow(id);
+  return row ? serializeDeal(row) : null;
+}
+
+export { dealSelect };
+
+// ─── CRM · Actividad ─────────────────────────────────────────────────────────
+
+const activitySelect = {
+  id: true,
+  type: true,
+  summary: true,
+  notes: true,
+  occurredAt: true,
+  createdAt: true,
+  company: { select: { id: true, name: true, stage: true } },
+  deal: { select: { id: true, title: true, stage: true } },
+  contact: { select: { id: true, name: true, email: true } },
+  createdBy: { select: { id: true, name: true, email: true } },
+} as const;
+
+type ActivityRow = NonNullable<Awaited<ReturnType<typeof loadActivityRow>>>;
+
+function loadActivityRow(id: string) {
+  return prisma.crmActivity.findUnique({ where: { id }, select: activitySelect });
+}
+
+export function serializeActivity(activity: ActivityRow) {
+  return {
+    id: activity.id,
+    type: activity.type,
+    summary: activity.summary,
+    notes: activity.notes,
+    occurredAt: iso(activity.occurredAt),
+    createdAt: iso(activity.createdAt),
+    url: `${APP_URL}/crm/${activity.company.id}`,
+    account: { id: activity.company.id, name: activity.company.name, stage: activity.company.stage },
+    deal: activity.deal ? { id: activity.deal.id, title: activity.deal.title, stage: activity.deal.stage } : null,
+    contact: activity.contact ? { id: activity.contact.id, name: activity.contact.name, email: activity.contact.email } : null,
+    createdBy: person(activity.createdBy),
+  };
+}
+
+export async function activityPayload(id: string) {
+  const row = await loadActivityRow(id);
+  return row ? serializeActivity(row) : null;
+}
+
+export { activitySelect };
+
 // ─── Comentarios ─────────────────────────────────────────────────────────────
 
 const commentSelect = {
