@@ -4,6 +4,7 @@ import { requireCan, can } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { ACCOUNT_STAGE_COLORS, ACCOUNT_STAGE_LABELS } from "@/lib/crm/accounts";
 import { SearchInput } from "@/components/ui/search-input";
+import { fullName } from "@/lib/crm/contact-name";
 import { Suspense } from "react";
 
 export const metadata = { title: "Contactos" };
@@ -33,7 +34,8 @@ export default async function ContactsPage({
       ...(busqueda
         ? {
             OR: [
-              { name:  { contains: busqueda, mode: "insensitive" as const } },
+              { firstName: { contains: busqueda, mode: "insensitive" as const } },
+              { lastName:  { contains: busqueda, mode: "insensitive" as const } },
               { email: { contains: busqueda, mode: "insensitive" as const } },
               { phone: { contains: busqueda, mode: "insensitive" as const } },
               { company: { name: { contains: busqueda, mode: "insensitive" as const } } },
@@ -41,9 +43,9 @@ export default async function ContactsPage({
           }
         : {}),
     },
-    orderBy: [{ company: { name: "asc" } }, { isPrimary: "desc" }, { name: "asc" }],
+    orderBy: [{ company: { name: "asc" } }, { isPrimary: "desc" }, { lastName: "asc" }, { firstName: "asc" }],
     select: {
-      id: true, name: true, email: true, phone: true, position: true,
+      id: true, firstName: true, lastName: true, email: true, phone: true, position: true,
       isPrimary: true, userId: true,
       company: { select: { id: true, name: true, stage: true } },
     },
@@ -114,7 +116,7 @@ export default async function ContactsPage({
             >
               <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
                 <span style={{ fontSize: "0.9375rem", fontWeight: 600, color: "var(--app-body-text)" }}>
-                  {c.name}
+                  {fullName(c)}
                 </span>
                 {c.isPrimary && (
                   <span title="Contacto principal" style={{ display: "inline-flex", alignItems: "center", gap: "0.15rem", fontSize: "0.6875rem", color: "#f59e0b" }}>

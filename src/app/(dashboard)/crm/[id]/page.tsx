@@ -9,6 +9,7 @@ import { ContactList } from "@/components/crm/contact-list";
 import { StageSelector } from "@/components/crm/stage-selector";
 import { ActivityTimeline, type TimelineActivity } from "@/components/crm/activity-timeline";
 import { BackButton } from "@/components/ui/back-button";
+import { fullName } from "@/lib/crm/contact-name";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,8 +31,8 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
       owner: { select: { name: true } },
       contacts: {
         where: { isActive: true },
-        orderBy: [{ isPrimary: "desc" }, { name: "asc" }],
-        select: { id: true, name: true, email: true, phone: true, position: true, isPrimary: true, userId: true },
+        orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }, { firstName: "asc" }],
+        select: { id: true, firstName: true, lastName: true, email: true, phone: true, position: true, isPrimary: true, userId: true },
       },
       deals: {
         orderBy: [{ closedAt: "asc" }, { expectedCloseAt: "asc" }, { createdAt: "desc" }],
@@ -57,7 +58,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
       take: 50,
       select: {
         id: true, type: true, summary: true, notes: true, occurredAt: true,
-        contact: { select: { name: true } },
+        contact: { select: { firstName: true, lastName: true } },
         deal: { select: { id: true, title: true } },
         createdBy: { select: { name: true } },
       },
@@ -196,8 +197,13 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
         <div className="lg:col-span-2">
           <ActivityTimeline
             accountId={account.id}
-            activities={activities as TimelineActivity[]}
-            contacts={account.contacts.map((c) => ({ id: c.id, name: c.name }))}
+            // El historial solo necesita a la persona entera: se compone aquí y
+            // no en el cliente, que no tiene por qué saber cómo se arma.
+            activities={activities.map((a) => ({
+              ...a,
+              contact: a.contact ? { name: fullName(a.contact) } : null,
+            })) as TimelineActivity[]}
+            contacts={account.contacts.map((c) => ({ id: c.id, name: fullName(c) }))}
             deals={abiertas.map((d) => ({ id: d.id, title: d.title }))}
             canEdit={canEdit}
           />

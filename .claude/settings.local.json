@@ -297,7 +297,20 @@
       "Bash(perl -0pi -e 's{import \\\\{ sendInvitationEmail \\\\} from \"\\\\@/lib/email\";}{import { sendInvitationEmail } from \"\\\\@/lib/email\";\\\\nimport { grantPortalAccess } from \"\\\\@/lib/crm/portal-access\";}' src/actions/crm.actions.ts)",
       "Bash(DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest?sslmode=disable\" npx tsx ./tmp-portal-test.ts)",
       "Bash(perl -0pi -e 's/\"version\": \"1\\\\.72\\\\.2\"/\"version\": \"1.73.0\"/' package.json)",
-      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.73\\\\.0\"/\"version\": \"1.73.1\"/' package.json)"
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.73\\\\.0\"/\"version\": \"1.73.1\"/' package.json)",
+      "Bash(perl -0pi -e 's{import \\\\{ taskCode \\\\} from \"\\\\@/lib/task-code\";}{import { taskCode } from \"\\\\@/lib/task-code\";\\\\nimport { fullName } from \"\\\\@/lib/crm/contact-name\";}' src/lib/hooks/payload.ts)",
+      "Bash(perl -0pi -e 's{  contact: \\\\{ select: \\\\{ id: true, name: true, email: true \\\\} \\\\},}{  contact: { select: { id: true, firstName: true, lastName: true, email: true } },}g' src/lib/hooks/payload.ts)",
+      "Bash(perl -0pi -e 's{contact: deal\\\\.contact \\\\? \\\\{ id: deal\\\\.contact\\\\.id, name: deal\\\\.contact\\\\.name, email: deal\\\\.contact\\\\.email \\\\} : null,}{contact: deal.contact ? { id: deal.contact.id, name: fullName\\(deal.contact\\), email: deal.contact.email } : null,}' src/lib/hooks/payload.ts)",
+      "Bash(perl -0pi -e 's{contact: activity\\\\.contact \\\\? \\\\{ id: activity\\\\.contact\\\\.id, name: activity\\\\.contact\\\\.name, email: activity\\\\.contact\\\\.email \\\\} : null,}{contact: activity.contact ? { id: activity.contact.id, name: fullName\\(activity.contact\\), email: activity.contact.email } : null,}' src/lib/hooks/payload.ts)",
+      "Bash(perl -0pi -e 's{import \\\\{ isClosedStage \\\\} from \"\\\\@/lib/crm/deals\";}{import { isClosedStage } from \"\\\\@/lib/crm/deals\";\\\\nimport { splitName } from \"\\\\@/lib/crm/contact-name\";}' src/lib/api/crm.ts)",
+      "Bash(perl -0pi -e 's{orderBy: \\\\[\\\\{ isPrimary: \"desc\" \\\\}, \\\\{ name: \"asc\" \\\\}\\\\],}{orderBy: [{ isPrimary: \"desc\" }, { lastName: \"asc\" }, { firstName: \"asc\" }],}g' src/lib/api/crm.ts)",
+      "Bash(perl -0pi -e 's{    name:      formData\\\\.get\\\\\\(\"name\"\\\\\\),\\\\n}{    firstName: formData.get\\(\"firstName\"\\),\\\\n    lastName:  formData.get\\(\"lastName\"\\) || undefined,\\\\n}g' src/actions/crm.actions.ts)",
+      "Bash(perl -0pi -e 's{        name:       parsed\\\\.data\\\\.name\\\\.trim\\\\\\(\\\\\\),}{        firstName:  parsed.data.firstName.trim\\(\\),\\\\n        lastName:   parsed.data.lastName?.trim\\(\\) || null,}' src/actions/crm.actions.ts)",
+      "Bash(perl -0pi -e 's{        name:      parsed\\\\.data\\\\.name\\\\.trim\\\\\\(\\\\\\),}{        firstName: parsed.data.firstName.trim\\(\\),\\\\n        lastName:  parsed.data.lastName?.trim\\(\\) || null,}' src/actions/crm.actions.ts)",
+      "Bash(perl -0pi -e 's{orderBy: \\\\[\\\\{ isPrimary: \"desc\" \\\\}, \\\\{ name: \"asc\" \\\\}\\\\],\\\\n        select: \\\\{ id: true, name: true, email: true, phone: true, position: true, isPrimary: true, userId: true \\\\},}{orderBy: [{ isPrimary: \"desc\" }, { lastName: \"asc\" }, { firstName: \"asc\" }],\\\\n        select: { id: true, firstName: true, lastName: true, email: true, phone: true, position: true, isPrimary: true, userId: true },}' \"src/app/\\(dashboard\\)/crm/[id]/page.tsx\")",
+      "Bash(perl -0pi -e 's{import \\\\{ BackButton \\\\} from \"\\\\@/components/ui/back-button\";}{import { BackButton } from \"\\\\@/components/ui/back-button\";\\\\nimport { fullName } from \"\\\\@/lib/crm/contact-name\";}' \"src/app/\\(dashboard\\)/crm/[id]/page.tsx\")",
+      "Bash(DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest?sslmode=disable\" npx tsx ./tmp-names-test.ts)",
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.73\\\\.1\"/\"version\": \"1.74.0\"/' package.json)"
     ]
   }
 }

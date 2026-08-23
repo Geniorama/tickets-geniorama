@@ -3,10 +3,12 @@
 import { useState, useTransition } from "react";
 import { Mail, Phone, Star, Trash2, Plus, X, ShieldCheck, UserPlus } from "lucide-react";
 import { createContact, deleteContact, inviteContactAsUser } from "@/actions/crm.actions";
+import { fullName } from "@/lib/crm/contact-name";
 
 type Contact = {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string | null;
   email: string | null;
   phone: string | null;
   position: string | null;
@@ -48,7 +50,7 @@ export function ContactList({
       else if (result?.emailError) {
         setAviso(`Se creó el acceso, pero no salió el correo: ${result.emailError}. Puedes reenviar la invitación desde Administración → Usuarios.`);
       } else if (result?.reutilizado) {
-        setAviso(`${contacto.name} ya tenía usuario: se enlazó y se le añadió esta empresa.`);
+        setAviso(`${fullName(contacto)} ya tenía usuario: se enlazó y se le añadió esta empresa.`);
       } else {
         setAviso(`Invitación enviada a ${contacto.email}. La contraseña la establece esa persona.`);
       }
@@ -104,7 +106,10 @@ export function ContactList({
 
       {adding && (
         <form action={handleCreate} style={{ marginBottom: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          <input name="name" placeholder="Nombre y apellidos" required style={inputStyle} autoFocus />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+            <input name="firstName" placeholder="Nombre" required style={inputStyle} autoFocus />
+            <input name="lastName" placeholder="Apellidos (opcional)" style={inputStyle} />
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
             <input name="email" type="email" placeholder="Correo (opcional)" style={inputStyle} />
             <input name="phone" placeholder="Teléfono (opcional)" style={inputStyle} />
@@ -171,7 +176,7 @@ export function ContactList({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flexWrap: "wrap" }}>
                   <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--app-body-text)" }}>
-                    {c.name}
+                    {fullName(c)}
                   </span>
                   {c.isPrimary && (
                     <span title="Contacto principal" style={{ display: "inline-flex", alignItems: "center", gap: "0.2rem", fontSize: "0.6875rem", color: "#f59e0b" }}>
@@ -234,9 +239,9 @@ export function ContactList({
               {canEdit && (
                 <button
                   type="button"
-                  onClick={() => handleDelete(c.id, c.name)}
+                  onClick={() => handleDelete(c.id, fullName(c))}
                   disabled={isPending}
-                  aria-label={`Eliminar a ${c.name}`}
+                  aria-label={`Eliminar a ${fullName(c)}`}
                   style={{ background: "none", border: "none", cursor: "pointer", color: "#dc2626", padding: "0.15rem", flexShrink: 0 }}
                 >
                   <Trash2 style={{ width: "0.9rem", height: "0.9rem" }} />

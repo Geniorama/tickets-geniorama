@@ -197,7 +197,11 @@ model Company {
 // enlaza con su `User` en vez de duplicar la persona.
 model Contact {
   id        String   @id @default(cuid())
-  name      String
+  /// Nombre de pila. Es lo único obligatorio: a veces se apunta a alguien en
+  /// una llamada sabiendo solo cómo se llama.
+  firstName String   @map("first_name")
+  /// Apellidos, los dos juntos si los hay. Opcional por lo mismo.
+  lastName  String?  @map("last_name")
   email     String?
   phone     String?
   /// Cargo dentro de la empresa.
@@ -224,6 +228,8 @@ model Contact {
   crmActivities CrmActivity[]
 
   @@index([companyId, isPrimary])
+  // La agenda se lee y se ordena por apellido, como cualquier agenda.
+  @@index([lastName, firstName])
   @@map("contacts")
 }
 

@@ -64,9 +64,15 @@ export function StandaloneContactForm({
         </select>
       </div>
 
-      <div>
-        <label htmlFor="name" style={labelStyle}>Nombre y apellidos</label>
-        <input id="name" name="name" required autoFocus style={inputStyle} placeholder="Ana Pérez" />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+        <div>
+          <label htmlFor="firstName" style={labelStyle}>Nombre</label>
+          <input id="firstName" name="firstName" required autoFocus style={inputStyle} placeholder="Ana" />
+        </div>
+        <div>
+          <label htmlFor="lastName" style={labelStyle}>Apellidos {opcional}</label>
+          <input id="lastName" name="lastName" style={inputStyle} placeholder="Pérez Gómez" />
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>

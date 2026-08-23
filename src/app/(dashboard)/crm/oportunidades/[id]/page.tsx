@@ -9,6 +9,7 @@ import { DealStageSelector } from "@/components/crm/deal-stage-selector";
 import { ActivityTimeline, type TimelineActivity } from "@/components/crm/activity-timeline";
 import { BackButton } from "@/components/ui/back-button";
 import { formatDate } from "@/lib/format-date";
+import { fullName } from "@/lib/crm/contact-name";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -34,7 +35,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
       companyId: true,
       company: { select: { id: true, name: true, stage: true } },
       owner: { select: { name: true } },
-      contact: { select: { name: true } },
+      contact: { select: { firstName: true, lastName: true } },
       contactId: true, ownerId: true,
     },
   });
@@ -46,7 +47,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
     orderBy: { occurredAt: "desc" },
     select: {
       id: true, type: true, summary: true, notes: true, occurredAt: true,
-      contact: { select: { name: true } },
+      contact: { select: { firstName: true, lastName: true } },
       deal: { select: { id: true, title: true } },
       createdBy: { select: { name: true } },
     },
@@ -88,7 +89,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
             {[
               formatAmount(deal.amount),
               deal.owner ? `Responsable: ${deal.owner.name}` : null,
-              deal.contact ? `Contacto: ${deal.contact.name}` : null,
+              deal.contact ? `Contacto: ${fullName(deal.contact)}` : null,
               deal.expectedCloseAt && !isClosedStage(deal.stage) ? `Cierre esperado: ${formatDate(deal.expectedCloseAt)}` : null,
               deal.closedAt ? `Cerrada el ${formatDate(deal.closedAt)}` : null,
             ].filter(Boolean).map((t) => ` · ${t}`).join("")}
@@ -106,7 +107,10 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ActivityTimeline
           accountId={deal.companyId}
-          activities={activities as TimelineActivity[]}
+          activities={activities.map((a) => ({
+            ...a,
+            contact: a.contact ? { name: fullName(a.contact) } : null,
+          })) as TimelineActivity[]}
           contacts={contactos}
           deals={[]}
           canEdit={canEdit}

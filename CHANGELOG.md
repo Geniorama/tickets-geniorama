@@ -9,6 +9,34 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.74.0] — 2026-08-22
+
+### Los contactos tienen nombre y apellidos separados
+
+Un solo campo servía para apuntar, pero no para trabajar: no se puede ordenar la agenda por apellido, ni buscar solo por él, ni escribir «Hola Ana» en un correo sin adivinar dónde termina el nombre.
+
+Ahora son dos campos. **El nombre es obligatorio y los apellidos no**: a veces se apunta a alguien en plena llamada sabiendo solo cómo se llama. El listado se ordena por apellido, como cualquier agenda, y la búsqueda mira los dos.
+
+#### La migración no pierde nombres
+
+La que genera Prisma para este cambio elimina `name` y añade `first_name NOT NULL` de golpe: sobre una tabla con filas **falla**, y si no fallara se llevaría los nombres por delante. Está escrita a mano en cuatro pasos —columnas nulables, reparto, obligatoria, borrado del campo viejo— para que no se pierda nada.
+
+El corte es por el **primer** espacio: lo de antes es el nombre y lo de después son los apellidos. Es lo correcto en español, donde son dos: «Ana Pérez Gómez» da «Ana» + «Pérez Gómez». Cortar por el último dejaría «Ana Pérez» de nombre.
+
+Probada sobre una copia con los casos que rompen: un nombre solo («Madonna» → sin apellidos), espacios de más («  Luis   Carlos  Ruiz  » → «Luis» + «Carlos Ruiz», ya normalizado), y un nombre en blanco, que en vez de romper la migración queda como «Sin nombre». En producción hay **0 contactos**, así que no había nada que repartir — pero la migración tiene que ser correcta igual.
+
+#### La API no rompe a quien ya la usa
+
+`POST /accounts/:id/contacts` acepta ahora `firstName` y `lastName`, **y sigue aceptando `name` entero**, que parte igual que la migración. Quitar un campo de una API pública rompe integraciones ajenas y aquí no hacía falta.
+
+Lo mismo en los webhooks: el payload de un contacto **mantiene `name`** —compuesto, aunque en la base ya no exista esa columna— y añade `firstName` y `lastName`. Es la regla escrita en `payload.ts` desde el principio: añadir campos es seguro, quitarlos no.
+
+#### Comprobado
+
+22 comprobaciones: el reparto y sus casos raros, que los contactos migrados se leen enteros, que la API funciona por las dos vías y falla si no llega ninguna, que el payload conserva `name`, que la agenda ordena por apellido y busca por él, y que al dar acceso al portal el usuario se crea con la persona entera.
+
+---
+
 ## [1.73.1] — 2026-08-21
 
 ### Solo una entrada del menú resaltada a la vez

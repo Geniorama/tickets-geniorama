@@ -23,6 +23,7 @@
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { fullName } from "@/lib/crm/contact-name";
 
 export type GrantResult =
   | { ok: false; error: string }
@@ -37,7 +38,7 @@ export async function grantPortalAccess(
   const contacto = await prisma.contact.findFirst({
     where: { id: contactId, companyId: accountId },
     select: {
-      id: true, name: true, email: true, userId: true,
+      id: true, firstName: true, lastName: true, email: true, userId: true,
       company: { select: { id: true } },
     },
   });
@@ -81,7 +82,7 @@ export async function grantPortalAccess(
     const provisional = await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 12);
     const creado = await prisma.user.create({
       data: {
-        name: contacto.name,
+        name: fullName(contacto),
         email,
         passwordHash: provisional,
         role: "CLIENTE",
@@ -102,12 +103,12 @@ export async function grantPortalAccess(
       contactId: contacto.id,
       type: "NOTA",
       summary: reutilizado
-        ? `${contacto.name} se enlazó con su usuario existente`
-        : `${contacto.name} recibió acceso al portal`,
+        ? `${fullName(contacto)} se enlazó con su usuario existente`
+        : `${fullName(contacto)} recibió acceso al portal`,
       occurredAt: new Date(),
       createdById: actorId,
     },
   });
 
-  return { ok: true, userId, contactName: contacto.name, email, reutilizado };
+  return { ok: true, userId, contactName: fullName(contacto), email, reutilizado };
 }

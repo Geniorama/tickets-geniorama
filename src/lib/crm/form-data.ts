@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { FormAccount } from "@/components/crm/deal-form";
+import { fullName } from "@/lib/crm/contact-name";
 
 /**
  * Lo que necesita el formulario de una oportunidad: las cuentas con sus
@@ -22,8 +23,8 @@ export async function getDealFormData(): Promise<{
         name: true,
         contacts: {
           where: { isActive: true },
-          orderBy: [{ isPrimary: "desc" }, { name: "asc" }],
-          select: { id: true, name: true },
+          orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }, { firstName: "asc" }],
+          select: { id: true, firstName: true, lastName: true },
         },
       },
     }),
@@ -34,5 +35,12 @@ export async function getDealFormData(): Promise<{
     }),
   ]);
 
-  return { accounts, owners };
+  // El selector solo quiere una etiqueta por persona: se compone aquí.
+  return {
+    accounts: accounts.map((a) => ({
+      ...a,
+      contacts: a.contacts.map((c) => ({ id: c.id, name: fullName(c) })),
+    })),
+    owners,
+  };
 }

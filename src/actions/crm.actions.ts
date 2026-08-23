@@ -134,7 +134,9 @@ export async function setAccountStage(accountId: string, stage: AccountStage) {
 // ─── Contactos ────────────────────────────────────────────────────────────────
 
 const contactSchema = z.object({
-  name:     z.string().min(1, "El nombre es requerido").max(160),
+  firstName: z.string().min(1, "El nombre es requerido").max(80),
+  // Opcional: a veces se apunta a alguien en una llamada sabiendo solo su nombre.
+  lastName:  z.string().max(80).optional(),
   email:    z.string().email("El correo no es válido").max(160).optional().or(z.literal("")),
   phone:    z.string().max(60).optional(),
   position: z.string().max(80).optional(),
@@ -146,7 +148,8 @@ export async function createContact(accountId: string, formData: FormData) {
   const session = await requireCan("CRM", "crear");
 
   const parsed = contactSchema.safeParse({
-    name:      formData.get("name"),
+    firstName: formData.get("firstName"),
+    lastName:  formData.get("lastName") || undefined,
     email:     formData.get("email") || "",
     phone:     formData.get("phone") || undefined,
     position:  formData.get("position") || undefined,
@@ -169,7 +172,8 @@ export async function createContact(accountId: string, formData: FormData) {
     return tx.contact.create({
       data: {
         companyId:  accountId,
-        name:       parsed.data.name.trim(),
+        firstName:  parsed.data.firstName.trim(),
+        lastName:   parsed.data.lastName?.trim() || null,
         email:      parsed.data.email?.trim() || null,
         phone:      parsed.data.phone?.trim() || null,
         position:   parsed.data.position?.trim() || null,
@@ -191,7 +195,8 @@ export async function updateContact(contactId: string, accountId: string, formDa
   const session = await requireCan("CRM", "editar");
 
   const parsed = contactSchema.safeParse({
-    name:      formData.get("name"),
+    firstName: formData.get("firstName"),
+    lastName:  formData.get("lastName") || undefined,
     email:     formData.get("email") || "",
     phone:     formData.get("phone") || undefined,
     position:  formData.get("position") || undefined,
@@ -208,7 +213,8 @@ export async function updateContact(contactId: string, accountId: string, formDa
     await tx.contact.updateMany({
       where: { id: contactId, companyId: accountId },
       data: {
-        name:      parsed.data.name.trim(),
+        firstName: parsed.data.firstName.trim(),
+        lastName:  parsed.data.lastName?.trim() || null,
         email:     parsed.data.email?.trim() || null,
         phone:     parsed.data.phone?.trim() || null,
         position:  parsed.data.position?.trim() || null,

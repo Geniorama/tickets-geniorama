@@ -17,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import type { AccountStage, ActivityType, DealStage, Prisma } from "@/generated/prisma";
 import { can, type Capability } from "@/lib/access/can";
 import { isClosedStage } from "@/lib/crm/deals";
+import { splitName } from "@/lib/crm/contact-name";
 import {
   accountSelect, activitySelect, contactSelect, dealSelect,
   serializeAccount, serializeActivity, serializeContact, serializeDeal,
@@ -200,20 +201,42 @@ export async function listContacts(user: ApiUser, accountId: string) {
   const rows = await prisma.contact.findMany({
     where: { companyId: accountId, isActive: true },
     select: contactSelect,
-    orderBy: [{ isPrimary: "desc" }, { name: "asc" }],
+    orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }, { firstName: "asc" }],
   });
 
   return { contacts: rows.map(serializeContact) };
 }
 
 export type CreateContactInput = {
-  name: string;
+  /** Nombre entero. Se acepta por compatibilidad y se parte al guardar. */
+  name?: string;
+  firstName?: string;
+  lastName?: string | null;
   email?: string | null;
   phone?: string | null;
   position?: string | null;
   notes?: string | null;
   isPrimary?: boolean;
 };
+
+/**
+ * Resuelve el nombre venga como venga.
+ *
+ * La API aceptaba `name` entero antes de que el contacto tuviera nombre y
+ * apellidos separados, y hay workflows escritos así. Se sigue aceptando: si
+ * llega `name` y no `firstName`, se parte. Quitar un campo de una API pública
+ * rompe integraciones ajenas y aquí no hace falta.
+ */
+function resolveName(input: CreateContactInput): { firstName: string; lastName: string | null } | null {
+  if (input.firstName?.trim()) {
+    return {
+      firstName: input.firstName.trim().slice(0, 80),
+      lastName: input.lastName?.trim().slice(0, 80) || null,
+    };
+  }
+  if (input.name?.trim()) return splitName(input.name);
+  return null;
+}
 
 export async function createContactViaApi(
   user: ApiUser,
@@ -226,6 +249,9 @@ export async function createContactViaApi(
   const account = await prisma.company.findUnique({ where: { id: accountId }, select: { id: true } });
   if (!account) return { ok: false, status: 404, error: "Cuenta no encontrada" };
 
+  const nombre = resolveName(input);
+  if (!nombre) return { ok: false, status: 400, error: "Falta el nombre del contacto." };
+
   const created = await prisma.$transaction(async (tx) => {
     if (input.isPrimary) {
       await tx.contact.updateMany({ where: { companyId: accountId }, data: { isPrimary: false } });
@@ -233,7 +259,8 @@ export async function createContactViaApi(
     return tx.contact.create({
       data: {
         companyId: accountId,
-        name: input.name.trim().slice(0, 160),
+        firstName: nombre.firstName,
+        lastName: nombre.lastName,
         email: input.email?.trim() || null,
         phone: input.phone?.trim() || null,
         position: input.position?.trim() || null,

@@ -12,6 +12,7 @@
 import { prisma } from "@/lib/prisma";
 import { ticketCode } from "@/lib/ticket-code";
 import { taskCode } from "@/lib/task-code";
+import { fullName } from "@/lib/crm/contact-name";
 
 export const APP_URL = (process.env.AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
@@ -247,7 +248,8 @@ export { accountSelect };
 
 const contactSelect = {
   id: true,
-  name: true,
+  firstName: true,
+  lastName: true,
   email: true,
   phone: true,
   position: true,
@@ -267,7 +269,11 @@ function loadContactRow(id: string) {
 export function serializeContact(contact: ContactRow) {
   return {
     id: contact.id,
-    name: contact.name,
+    // `name` se mantiene aunque en la base ya no exista: es un contrato público
+    // y quitarlo rompería los workflows que ya lo leen. Ahora se compone.
+    name: fullName(contact),
+    firstName: contact.firstName,
+    lastName: contact.lastName,
     email: contact.email,
     phone: contact.phone,
     position: contact.position,
@@ -302,7 +308,7 @@ const dealSelect = {
   updatedAt: true,
   company: { select: { id: true, name: true, stage: true } },
   owner: { select: { id: true, name: true, email: true } },
-  contact: { select: { id: true, name: true, email: true } },
+  contact: { select: { id: true, firstName: true, lastName: true, email: true } },
   createdBy: { select: { id: true, name: true, email: true } },
 } as const;
 
@@ -330,7 +336,7 @@ export function serializeDeal(deal: DealRow) {
     url: `${APP_URL}/crm/oportunidades/${deal.id}`,
     account: { id: deal.company.id, name: deal.company.name, stage: deal.company.stage },
     owner: person(deal.owner),
-    contact: deal.contact ? { id: deal.contact.id, name: deal.contact.name, email: deal.contact.email } : null,
+    contact: deal.contact ? { id: deal.contact.id, name: fullName(deal.contact), email: deal.contact.email } : null,
     createdBy: person(deal.createdBy),
   };
 }
@@ -353,7 +359,7 @@ const activitySelect = {
   createdAt: true,
   company: { select: { id: true, name: true, stage: true } },
   deal: { select: { id: true, title: true, stage: true } },
-  contact: { select: { id: true, name: true, email: true } },
+  contact: { select: { id: true, firstName: true, lastName: true, email: true } },
   createdBy: { select: { id: true, name: true, email: true } },
 } as const;
 
@@ -374,7 +380,7 @@ export function serializeActivity(activity: ActivityRow) {
     url: `${APP_URL}/crm/${activity.company.id}`,
     account: { id: activity.company.id, name: activity.company.name, stage: activity.company.stage },
     deal: activity.deal ? { id: activity.deal.id, title: activity.deal.title, stage: activity.deal.stage } : null,
-    contact: activity.contact ? { id: activity.contact.id, name: activity.contact.name, email: activity.contact.email } : null,
+    contact: activity.contact ? { id: activity.contact.id, name: fullName(activity.contact), email: activity.contact.email } : null,
     createdBy: person(activity.createdBy),
   };
 }

@@ -173,7 +173,12 @@ const contactSchema = {
   type: "object",
   properties: {
     id: { type: "string" },
-    name: { type: "string" },
+    name: {
+      type: "string",
+      description: "Nombre y apellidos juntos. Se compone; el dato vive separado.",
+    },
+    firstName: { type: "string" },
+    lastName: { type: "string", nullable: true },
     email: { type: "string", nullable: true },
     phone: { type: "string", nullable: true },
     position: { type: "string", nullable: true },
@@ -1032,9 +1037,15 @@ export function buildOpenApiDocument(baseUrl: string) {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["name"],
+                  description: "Manda `firstName` (y opcionalmente `lastName`), o `name` entero.",
                   properties: {
-                    name: { type: "string", maxLength: 160 },
+                    firstName: { type: "string", maxLength: 80, example: "Ana" },
+                    lastName: { type: "string", maxLength: 80, nullable: true, example: "Pérez Gómez" },
+                    name: {
+                      type: "string", maxLength: 160,
+                      description:
+                        "Nombre entero. Se acepta por compatibilidad con los workflows escritos antes de separar nombre y apellidos: se parte por el primer espacio.",
+                    },
                     email: { type: "string", format: "email", nullable: true },
                     phone: { type: "string", nullable: true },
                     position: { type: "string", nullable: true, example: "Directora de marketing" },
