@@ -9,6 +9,34 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.75.0] — 2026-08-24
+
+### El inicio, más limpio
+
+El problema no era el estilo: era que **la misma cifra aparecía dos y tres veces**. «Tickets 101» estaba en la tarjeta del módulo y otra vez en un KPI. El 93 % de tareas completadas salía en «Estado de tareas» y de nuevo en «Resumen de productividad». Las 15 vencidas y los 32 proyectos activos, igual. Cuatro pantallas de scroll para decir lo mismo tres veces.
+
+#### Lo urgente se dice una vez, arriba
+
+Una banda de **«Requiere atención»** abre la página con lo que de verdad hay que mirar hoy —tareas vencidas, por vencer, planes vencidos, por vencer—, cada cifra enlazada a donde se resuelve. Lo de más abajo pasa a ser **el detalle de esa banda**, no una segunda cuenta en paralelo.
+
+Si no hay nada urgente, no se pinta nada. Un aviso que sale siempre deja de leerse a la semana.
+
+#### Fuera lo repetido
+
+- **La fila de cuatro KPI desaparece.** Las tarjetas de módulo ya decían lo mismo y además llevan a alguna parte.
+- **«Resumen de productividad» desaparece.** Sus cuatro cifras estaban las cuatro más arriba. Queda un enlace a Productividad, que es donde se analizan de verdad.
+- **Las cuatro tarjetas de alerta se vuelven dos:** las de tareas juntas, las de planes juntas.
+
+#### Y el hueco vacío
+
+El grid de abajo estiraba todas las tarjetas a la misma altura, así que «Por vencer (1)» ocupaba una columna entera para una sola fila. Ahora cada tarjeta mide lo que ocupa.
+
+#### Por dentro
+
+La página pasa de **804 a 623 líneas**. Las cuatro alertas repetían el mismo marcado copiado cuatro veces; ahora hay un `AlertCard` que admite varias listas dentro. Y se cayó una consulta: el conteo de usuarios activos solo alimentaba el KPI que ya no existe, así que el inicio hace **una consulta menos** por carga.
+
+---
+
 ## [1.74.1] — 2026-08-23
 
 ### Los contactos ya salen en el buscador ⌘K

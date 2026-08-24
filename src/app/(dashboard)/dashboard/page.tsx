@@ -3,13 +3,12 @@ import { isAdmin } from "@/lib/roles";
 import { getAccessibleApps } from "@/lib/access/can";
 import { OPEN_STAGES } from "@/lib/crm/deals";
 import { ModuleGrid, type ModuleSummary } from "@/components/layout/module-grid";
+import { AttentionBar, type AttentionItem } from "@/components/dashboard/attention-bar";
+import { AlertCard } from "@/components/dashboard/alert-card";
 import type { AppKey, AccountStage } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import {
-  Ticket, FolderKanban, ListTodo, Users,
-  AlertTriangle, Clock, CalendarClock, CheckCircle2, TrendingUp, CreditCard, Star,
-} from "lucide-react";
+import { Clock, CreditCard, Star } from "lucide-react";
 import type { TaskStatus, Priority, ProjectStatus } from "@/generated/prisma";
 import { formatDate } from "@/lib/format-date";
 import { getEffectiveExpiresAt, daysUntilExpiry, PLAN_EXPIRY_WARNING_DAYS } from "@/lib/plans";
@@ -145,7 +144,6 @@ export default async function DashboardPage() {
     recentTickets,
     recentTasks,
     upcomingTasksList,
-    userCount,
     rawAlertPlans,
     favoriteProjects,
   ] = await Promise.all([
@@ -184,10 +182,6 @@ export default async function DashboardPage() {
           take: 5,
         })
       : Promise.resolve([] as { id: string; title: string; status: string; dueDate: Date | null; project: { id: string; name: string } }[]),
-    // User count (admin only)
-    admin
-      ? prisma.user.count({ where: { isActive: true } })
-      : Promise.resolve(null),
     // Plans with expiry (admin only) — filtrar en JS para soportar durationDays
     admin
       ? prisma.plan.findMany({
@@ -283,81 +277,38 @@ export default async function DashboardPage() {
       : {}),
   };
 
+  // Lo que pide atención, ya resuelto: la banda solo pinta lo que no es cero.
+  const atencion: AttentionItem[] = [
+    { count: taskStats.vencidas,        one: "tarea vencida",  many: "tareas vencidas",  href: "/tareas", tone: "grave" },
+    { count: taskStats.porVencer,       one: "tarea por vencer", many: "tareas por vencer", href: "/tareas", tone: "aviso" },
+    ...(admin
+      ? [
+          { count: expiredAlertPlans.length,  one: "plan vencido",   many: "planes vencidos",   href: "/admin/plans", tone: "grave" as const },
+          { count: expiringAlertPlans.length, one: "plan por vencer", many: "planes por vencer", href: "/admin/plans", tone: "aviso" as const },
+        ]
+      : []),
+  ];
+
   return (
     <div>
 
-      {/* Welcome */}
-      <div style={{ marginBottom: "1.5rem" }}>
+      <div style={{ marginBottom: "1.25rem" }}>
         <h1 data-tour-id="page-title" style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
           Hola, {name} 👋
         </h1>
-        <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
-          {now.toLocaleDateString("es-CO", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+        <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginTop: "0.2rem" }}>
+          {now.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" })}
         </p>
       </div>
 
-      <ModuleGrid apps={apps} summaries={moduleSummaries} />
+      {/*
+        Lo urgente, una sola vez y arriba del todo. Estas cifras salían antes en
+        un KPI, en una tarjeta de alerta y otra vez en el resumen de
+        productividad; ahora se dicen aquí y lo de abajo es su detalle.
+      */}
+      <AttentionBar items={atencion} />
 
-      {/* ── KPI row ── */}
-      <div data-tour-id="page-stats" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-6">
-        {apps.includes("TICKETS") && (
-        <KpiCard
-          icon={Ticket}
-          label="Tickets"
-          value={ticketStats.total}
-          href="/tickets"
-          accent="#3b82f6"
-          sub={[
-            { label: "Abiertos",    value: ticketStats.abiertos,  color: "#64748b" },
-            { label: "En progreso", value: ticketStats.progreso,   color: "#3b82f6" },
-            { label: "En revisión", value: ticketStats.revision,   color: "#8b5cf6" },
-            { label: "Cerrados",    value: ticketStats.cerrados,   color: "#22c55e" },
-          ]}
-        />
-        )}
-        {apps.includes("PROYECTOS") && (
-        <KpiCard
-          icon={FolderKanban}
-          label="Proyectos"
-          value={projectStats.total}
-          href="/proyectos"
-          accent="#8b5cf6"
-          sub={[
-            { label: "Activos",     value: projectStats.activos,     color: "#3b82f6" },
-            { label: "Completados", value: projectStats.completados,  color: "#22c55e" },
-            { label: "Pausados",    value: projectStats.pausados,     color: "#f59e0b" },
-          ]}
-        />
-        )}
-        {apps.includes("PROYECTOS") && (staff || admin) && (
-          <KpiCard
-            icon={ListTodo}
-            label="Tareas"
-            value={taskStats.total}
-            href="/tareas"
-            accent="#22c55e"
-            sub={[
-              { label: "Activas",     value: taskStats.activas,      color: "#3b82f6" },
-              { label: "En revisión", value: taskStats.enRevision,   color: "#8b5cf6" },
-              { label: "Por vencer",  value: taskStats.porVencer,    color: taskStats.porVencer > 0 ? "#f59e0b" : "var(--app-text-muted)" },
-              { label: "Vencidas",    value: taskStats.vencidas,     color: taskStats.vencidas > 0 ? "#dc2626" : "var(--app-text-muted)" },
-            ]}
-          />
-        )}
-        {apps.includes("ADMIN") && (
-          <KpiCard
-            icon={Users}
-            label="Usuarios activos"
-            value={userCount ?? 0}
-            href="/admin/users"
-            accent="#fd1384"
-            sub={[
-              { label: "Tasa de tareas", value: `${taskRate}%`, color: taskRate >= 75 ? "#16a34a" : taskRate >= 40 ? "#b45309" : "#dc2626" },
-              { label: "Tareas críticas", value: taskStats.criticas, color: taskStats.criticas > 0 ? "#f97316" : "var(--app-text-muted)" },
-            ]}
-          />
-        )}
-      </div>
+      <ModuleGrid apps={apps} summaries={moduleSummaries} />
 
       {/* ── Proyectos favoritos ── */}
       {favoriteProjects.length > 0 && (
@@ -494,221 +445,130 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      {/* ── Bottom row — solo staff/admin ── */}
-      {(staff || admin) && <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {/*
+        Lo urgente en detalle. Antes eran cuatro tarjetas con el mismo marcado
+        copiado, dentro de un grid que las estiraba todas a la misma altura:
+        «Por vencer (1)» ocupaba una columna entera para una sola fila. Ahora
+        las tareas van juntas en una tarjeta y los planes en otra, y el grid ya
+        no estira nada.
+      */}
+      {(staff || admin) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" style={{ alignItems: "start" }}>
 
-        {/* Task breakdown */}
-        {taskStats.total > 0 && (
-          <div style={{ backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.75rem", padding: "1.25rem" }}>
-            <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "1rem" }}>
-              Estado de tareas
-            </p>
-            {/* Stacked bar */}
-            <div style={{ display: "flex", height: "10px", borderRadius: "9999px", overflow: "hidden", gap: "2px", marginBottom: "1rem" }}>
-              {(["PENDIENTE", "EN_PROGRESO", "EN_REVISION", "COMPLETADO"] as TaskStatus[]).map((s) => {
-                const count = tasks.filter((t) => t.status === s).length;
-                return count > 0 ? (
-                  <div key={s} title={`${TASK_STATUS_LABEL[s]}: ${count}`} style={{ flex: count, backgroundColor: TASK_STATUS_COLOR[s] }} />
-                ) : null;
-              })}
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              {(["PENDIENTE", "EN_PROGRESO", "EN_REVISION", "COMPLETADO"] as TaskStatus[]).map((s) => {
-                const count = tasks.filter((t) => t.status === s).length;
-                const w = pct(count, taskStats.total);
-                return (
-                  <div key={s} style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
-                    <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", width: "7rem", flexShrink: 0 }}>{TASK_STATUS_LABEL[s]}</span>
-                    <div style={{ flex: 1, height: "6px", borderRadius: "9999px", backgroundColor: "var(--app-border)", overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${w}%`, backgroundColor: TASK_STATUS_COLOR[s], borderRadius: "9999px" }} />
-                    </div>
-                    <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-body-text)", minWidth: "1.5rem", textAlign: "right" }}>{count}</span>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid var(--app-border)" }}>
-              <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)" }}>Tasa de completado</span>
-              <span style={{ fontSize: "1rem", fontWeight: 700, color: taskRate >= 75 ? "#16a34a" : taskRate >= 40 ? "#b45309" : "#dc2626" }}>{taskRate}%</span>
-            </div>
-          </div>
-        )}
-
-        {/* Overdue tasks alert */}
-        {overdueTasks.length > 0 && (
-          <div style={{ backgroundColor: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "0.75rem", padding: "1.25rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-              <AlertTriangle style={{ width: "1rem", height: "1rem", color: "#dc2626", flexShrink: 0 }} />
-              <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#dc2626", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                Tareas vencidas ({taskStats.vencidas})
+          {/* El reparto de tareas no es una alerta: es el estado general. */}
+          {taskStats.total > 0 && (
+            <div style={{ backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.75rem", padding: "1.25rem" }}>
+              <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "1rem" }}>
+                Estado de tareas
               </p>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              {overdueTasks.map((t) => (
-                <Link
-                  key={t.id}
-                  href={t.project ? `/proyectos/${t.project.id}/tareas/${t.id}` : `/tareas/${t.id}`}
-                  style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", textDecoration: "none" }}
-                >
-                  <div style={{ overflow: "hidden" }}>
-                    <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {t.title}
-                    </p>
-                    <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{t.project?.name ?? "Sin proyecto"}</p>
-                  </div>
-                  <span style={{ fontSize: "0.75rem", color: "#dc2626", whiteSpace: "nowrap", flexShrink: 0 }}>
-                    <Clock style={{ width: "0.75rem", height: "0.75rem", display: "inline", verticalAlign: "middle", marginRight: "0.2rem" }} />
-                    {formatDate(t.dueDate!)}
-                  </span>
+              <div style={{ display: "flex", height: "10px", borderRadius: "9999px", overflow: "hidden", gap: "2px", marginBottom: "1rem" }}>
+                {(["PENDIENTE", "EN_PROGRESO", "EN_REVISION", "COMPLETADO"] as TaskStatus[]).map((s) => {
+                  const count = tasks.filter((t) => t.status === s).length;
+                  return count > 0 ? (
+                    <div key={s} title={`${TASK_STATUS_LABEL[s]}: ${count}`} style={{ flex: count, backgroundColor: TASK_STATUS_COLOR[s] }} />
+                  ) : null;
+                })}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                {(["PENDIENTE", "EN_PROGRESO", "EN_REVISION", "COMPLETADO"] as TaskStatus[]).map((s) => {
+                  const count = tasks.filter((t) => t.status === s).length;
+                  const w = pct(count, taskStats.total);
+                  return (
+                    <div key={s} style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+                      <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", width: "7rem", flexShrink: 0 }}>{TASK_STATUS_LABEL[s]}</span>
+                      <div style={{ flex: 1, height: "6px", borderRadius: "9999px", backgroundColor: "var(--app-border)", overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${w}%`, backgroundColor: TASK_STATUS_COLOR[s], borderRadius: "9999px" }} />
+                      </div>
+                      <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-body-text)", minWidth: "1.5rem", textAlign: "right" }}>{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid var(--app-border)" }}>
+                <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)" }}>Tasa de completado</span>
+                <span style={{ fontSize: "1rem", fontWeight: 700, color: taskRate >= 75 ? "#16a34a" : taskRate >= 40 ? "#b45309" : "#dc2626" }}>{taskRate}%</span>
+              </div>
+              {/* El «Resumen de productividad» que había abajo repetía estas
+                  mismas cifras. Se queda el enlace a donde de verdad se
+                  analizan. */}
+              {admin && (
+                <Link href="/admin/estadisticas" style={{ display: "block", marginTop: "0.85rem", fontSize: "0.8125rem", color: "#fd1384", textDecoration: "none", fontWeight: 500 }}>
+                  Ver productividad →
                 </Link>
-              ))}
+              )}
             </div>
-            {taskStats.vencidas > overdueTasks.length && (
-              <Link href="/tareas" style={{ display: "block", marginTop: "0.75rem", fontSize: "0.8125rem", color: "#dc2626", textDecoration: "none", fontWeight: 500 }}>
-                Ver {taskStats.vencidas - overdueTasks.length} más →
-              </Link>
-            )}
-          </div>
-        )}
+          )}
 
-        {/* Upcoming tasks */}
-        {upcomingTasksList.length > 0 && (
-          <div style={{ backgroundColor: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "0.75rem", padding: "1.25rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-              <CalendarClock style={{ width: "1rem", height: "1rem", color: "#d97706", flexShrink: 0 }} />
-              <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#d97706", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                Por vencer ({taskStats.porVencer})
-              </p>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              {upcomingTasksList.map((t) => {
-                const tomorrowStr = tomorrow.toISOString().slice(0, 10);
-                const isToday = t.dueDate && t.dueDate.toISOString().slice(0, 10) < tomorrowStr;
-                return (
-                  <Link
-                    key={t.id}
-                    href={t.project ? `/proyectos/${t.project.id}/tareas/${t.id}` : `/tareas/${t.id}`}
-                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", textDecoration: "none" }}
-                  >
-                    <div style={{ overflow: "hidden" }}>
-                      <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {t.title}
-                      </p>
-                      <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{t.project?.name ?? "Sin proyecto"}</p>
-                    </div>
-                    <span style={{ fontSize: "0.75rem", color: isToday ? "#dc2626" : "#d97706", whiteSpace: "nowrap", flexShrink: 0 }}>
-                      <Clock style={{ width: "0.75rem", height: "0.75rem", display: "inline", verticalAlign: "middle", marginRight: "0.2rem" }} />
-                      {isToday ? "Hoy" : "Mañana"}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-            {taskStats.porVencer > upcomingTasksList.length && (
-              <Link href="/tareas" style={{ display: "block", marginTop: "0.75rem", fontSize: "0.8125rem", color: "#d97706", textDecoration: "none", fontWeight: 500 }}>
-                Ver {taskStats.porVencer - upcomingTasksList.length} más →
-              </Link>
-            )}
-          </div>
-        )}
-        {/* Alertas de planes (admin) */}
-        {admin && (expiredAlertPlans.length > 0 || expiringAlertPlans.length > 0) && (
-          <div style={{ borderRadius: "0.75rem", overflow: "hidden", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-            {expiredAlertPlans.length > 0 && (
-              <div style={{ backgroundColor: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: "0.75rem", padding: "1.25rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-                  <CreditCard style={{ width: "1rem", height: "1rem", color: "#dc2626", flexShrink: 0 }} />
-                  <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#dc2626", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    Planes vencidos ({expiredAlertPlans.length})
-                  </p>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  {expiredAlertPlans.slice(0, 5).map((p) => {
-                    const expiry = getEffectiveExpiresAt(p)!;
-                    return (
-                      <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
-                        <div style={{ overflow: "hidden" }}>
-                          <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
-                          <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{p.company.name}</p>
-                        </div>
-                        <span style={{ fontSize: "0.75rem", color: "#dc2626", whiteSpace: "nowrap", flexShrink: 0 }}>
-                          Venció {formatDate(expiry)}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                {expiredAlertPlans.length > 5 && (
-                  <a href="/admin/plans" style={{ display: "block", marginTop: "0.75rem", fontSize: "0.8125rem", color: "#dc2626", textDecoration: "none", fontWeight: 500 }}>
-                    Ver {expiredAlertPlans.length - 5} más →
-                  </a>
-                )}
-              </div>
-            )}
+          <AlertCard
+            icon={Clock}
+            sections={[
+              {
+                label: "Tareas vencidas",
+                tone: "grave",
+                total: taskStats.vencidas,
+                moreHref: "/tareas",
+                rows: overdueTasks.map((t) => ({
+                  id: t.id,
+                  title: t.title,
+                  context: t.project?.name ?? "Sin proyecto",
+                  meta: formatDate(t.dueDate!),
+                  href: t.project ? `/proyectos/${t.project.id}/tareas/${t.id}` : `/tareas/${t.id}`,
+                })),
+              },
+              {
+                label: "Por vencer",
+                tone: "aviso",
+                total: taskStats.porVencer,
+                moreHref: "/tareas",
+                rows: upcomingTasksList.map((t) => {
+                  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+                  const esHoy = t.dueDate ? t.dueDate.toISOString().slice(0, 10) < tomorrowStr : false;
+                  return {
+                    id: t.id,
+                    title: t.title,
+                    context: t.project?.name ?? "Sin proyecto",
+                    meta: esHoy ? "Hoy" : "Mañana",
+                    href: t.project ? `/proyectos/${t.project.id}/tareas/${t.id}` : `/tareas/${t.id}`,
+                  };
+                }),
+              },
+            ]}
+          />
 
-            {expiringAlertPlans.length > 0 && (
-              <div style={{ backgroundColor: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "0.75rem", padding: "1.25rem" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-                  <CreditCard style={{ width: "1rem", height: "1rem", color: "#d97706", flexShrink: 0 }} />
-                  <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "#d97706", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    Planes por vencer ({expiringAlertPlans.length})
-                  </p>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                  {expiringAlertPlans.slice(0, 5).map((p) => {
-                    const days = daysUntilExpiry(p)!;
-                    return (
-                      <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
-                        <div style={{ overflow: "hidden" }}>
-                          <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
-                          <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{p.company.name}</p>
-                        </div>
-                        <span style={{ fontSize: "0.75rem", color: "#d97706", whiteSpace: "nowrap", flexShrink: 0 }}>
-                          <Clock style={{ width: "0.75rem", height: "0.75rem", display: "inline", verticalAlign: "middle", marginRight: "0.2rem" }} />
-                          {days} día{days !== 1 ? "s" : ""}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                {expiringAlertPlans.length > 5 && (
-                  <a href="/admin/plans" style={{ display: "block", marginTop: "0.75rem", fontSize: "0.8125rem", color: "#d97706", textDecoration: "none", fontWeight: 500 }}>
-                    Ver {expiringAlertPlans.length - 5} más →
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>}
-
-      {/* ── Admin: quick productivity ── */}
-      {admin && (
-        <div style={{ marginTop: "1rem", backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.75rem", padding: "1.25rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-            <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Resumen de productividad
-            </p>
-            <Link href="/admin/estadisticas" style={{ fontSize: "0.8125rem", color: "#fd1384", textDecoration: "none", fontWeight: 500 }}>
-              Ver detalle →
-            </Link>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.75rem" }}>
-            {[
-              { icon: CheckCircle2, label: "Tareas completadas", value: taskStats.completadas, color: "#22c55e" },
-              { icon: AlertTriangle, label: "Tareas vencidas",   value: taskStats.vencidas,   color: taskStats.vencidas > 0 ? "#dc2626" : "var(--app-text-muted)" },
-              { icon: TrendingUp,   label: "Tasa global",        value: `${taskRate}%`,        color: taskRate >= 75 ? "#16a34a" : taskRate >= 40 ? "#b45309" : "#dc2626" },
-              { icon: FolderKanban, label: "Proyectos activos",  value: projectStats.activos,  color: "#8b5cf6" },
-            ].map(({ icon: Icon, label, value, color }) => (
-              <div key={label} style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.875rem", borderRadius: "0.5rem", backgroundColor: "var(--app-content-bg)" }}>
-                <Icon style={{ width: "1.25rem", height: "1.25rem", color, flexShrink: 0 }} />
-                <div>
-                  <p style={{ fontSize: "1.125rem", fontWeight: 700, color }}>{value}</p>
-                  <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{label}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          {admin && (
+            <AlertCard
+              icon={CreditCard}
+              sections={[
+                {
+                  label: "Planes vencidos",
+                  tone: "grave",
+                  total: expiredAlertPlans.length,
+                  moreHref: "/admin/plans",
+                  rows: expiredAlertPlans.slice(0, 4).map((p) => ({
+                    id: p.id,
+                    title: p.name,
+                    context: p.company.name,
+                    meta: `Venció ${formatDate(getEffectiveExpiresAt(p)!)}`,
+                  })),
+                },
+                {
+                  label: "Planes por vencer",
+                  tone: "aviso",
+                  total: expiringAlertPlans.length,
+                  moreHref: "/admin/plans",
+                  rows: expiringAlertPlans.slice(0, 4).map((p) => {
+                    const dias = daysUntilExpiry(p)!;
+                    return {
+                      id: p.id,
+                      title: p.name,
+                      context: p.company.name,
+                      meta: `${dias} día${dias !== 1 ? "s" : ""}`,
+                    };
+                  }),
+                },
+              ]}
+            />
+          )}
         </div>
       )}
     </div>
@@ -716,47 +576,6 @@ export default async function DashboardPage() {
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
-
-function KpiCard({
-  icon: Icon, label, value, href, accent, sub,
-}: {
-  icon: React.ElementType;
-  label: string;
-  value: number | string;
-  href: string;
-  accent: string;
-  sub: { label: string; value: number | string; color: string }[];
-}) {
-  return (
-    <Link href={href} style={{ textDecoration: "none" }}>
-      <div
-        style={{
-          backgroundColor: "var(--app-card-bg)",
-          border: "1px solid var(--app-border)",
-          borderRadius: "0.75rem",
-          padding: "1.25rem",
-          transition: "border-color 0.15s",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
-          <div style={{ width: "2.25rem", height: "2.25rem", borderRadius: "0.5rem", backgroundColor: `${accent}1a`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Icon style={{ width: "1.125rem", height: "1.125rem", color: accent }} />
-          </div>
-          <span style={{ fontSize: "2rem", fontWeight: 700, color: "var(--app-body-text)" }}>{value}</span>
-        </div>
-        <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--app-body-text)", marginBottom: "0.625rem" }}>{label}</p>
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-          {sub.map((s) => (
-            <div key={s.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{s.label}</span>
-              <span style={{ fontSize: "0.75rem", fontWeight: 600, color: s.color }}>{s.value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 function Section({
   title, href, count, empty, emptyText, children,
