@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.75.1] — 2026-08-24
+
+### La tarjeta de tareas vencidas estaba vacía teniendo 15
+
+Salía al verificar la v1.75.0: la banda de arriba decía «15 tareas vencidas» y la tarjeta de abajo no mostraba ninguna.
+
+Las vencidas no se consultaban: se sacaban **filtrando las 6 tareas más recientes**, así que bastaba con que ninguna de esas 6 lo estuviera para que la lista quedara vacía. Venía de antes del rediseño, pero ahí no se notaba porque la tarjeta simplemente no se pintaba; ahora que la banda anuncia la cifra, el hueco cantaba.
+
+Ahora tienen su propia consulta, ordenadas por la más vencida primero.
+
+---
+
 ## [1.75.0] — 2026-08-24
 
 ### El inicio, más limpio

@@ -144,6 +144,7 @@ export default async function DashboardPage() {
     recentTickets,
     recentTasks,
     upcomingTasksList,
+    overdueTasks,
     rawAlertPlans,
     favoriteProjects,
   ] = await Promise.all([
@@ -180,6 +181,17 @@ export default async function DashboardPage() {
           select: { id: true, title: true, status: true, dueDate: true, project: { select: { id: true, name: true } } },
           orderBy: { dueDate: "asc" },
           take: 5,
+        })
+      : Promise.resolve([] as { id: string; title: string; status: string; dueDate: Date | null; project: { id: string; name: string } }[]),
+    // Vencidas de verdad. Antes se sacaban filtrando las 6 tareas más
+    // recientes, así que la tarjeta podía salir vacía teniendo 15 vencidas:
+    // basta con que ninguna de las 6 últimas lo esté.
+    staff || admin
+      ? prisma.task.findMany({
+          where: { ...taskWhere, dueDate: { lt: today }, status: { notIn: ["COMPLETADO", "EN_REVISION"] } },
+          select: { id: true, title: true, status: true, dueDate: true, project: { select: { id: true, name: true } } },
+          orderBy: { dueDate: "asc" },
+          take: 4,
         })
       : Promise.resolve([] as { id: string; title: string; status: string; dueDate: Date | null; project: { id: string; name: string } }[]),
     // Plans with expiry (admin only) — filtrar en JS para soportar durationDays
@@ -237,10 +249,6 @@ export default async function DashboardPage() {
 
   const taskRate = pct(taskStats.completadas, taskStats.total);
 
-
-  const overdueTasks = recentTasks
-    .filter((t) => t.dueDate && new Date(t.dueDate) < today && t.status !== "COMPLETADO" && t.status !== "EN_REVISION")
-    .slice(0, 4);
 
   // Planes: separar vencidos y próximos a vencer
   const expiredAlertPlans = rawAlertPlans.filter((p) => {
