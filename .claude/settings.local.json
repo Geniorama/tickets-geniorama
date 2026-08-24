@@ -314,7 +314,8 @@
       "Bash(perl -0pi -e 's{import \\\\{ statusLabel \\\\} from \"\\\\@/lib/status-labels\";}{import { statusLabel } from \"\\\\@/lib/status-labels\";\\\\nimport { fullName } from \"\\\\@/lib/crm/contact-name\";}' src/lib/search/global.ts)",
       "Bash(perl -0pi -e 's/\"version\": \"1\\\\.74\\\\.0\"/\"version\": \"1.74.1\"/' package.json)",
       "Bash(perl -0pi -e 's/\"version\": \"1\\\\.74\\\\.1\"/\"version\": \"1.75.0\"/' package.json)",
-      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.75\\\\.0\"/\"version\": \"1.75.1\"/' package.json)"
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.75\\\\.0\"/\"version\": \"1.75.1\"/' package.json)",
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.76\\\\.0\"/\"version\": \"1.76.1\"/' package.json)"
     ]
   }
 }

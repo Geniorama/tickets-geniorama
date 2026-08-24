@@ -21,15 +21,21 @@ export default async function DealsPage({
   const verCerradas = cerradas === "1";
   const stages = verCerradas ? DEAL_STAGES : OPEN_STAGES;
 
-  const deals = await prisma.deal.findMany({
-    where: { stage: { in: stages } },
-    orderBy: [{ expectedCloseAt: "asc" }, { createdAt: "desc" }],
-    select: {
-      id: true, title: true, stage: true, amount: true, expectedCloseAt: true,
-      company: { select: { id: true, name: true } },
-      owner: { select: { name: true } },
-    },
-  });
+  const [deals, cerradasOcultas] = await Promise.all([
+    prisma.deal.findMany({
+      where: { stage: { in: stages } },
+      orderBy: [{ expectedCloseAt: "asc" }, { createdAt: "desc" }],
+      select: {
+        id: true, title: true, stage: true, amount: true, expectedCloseAt: true,
+        company: { select: { id: true, name: true } },
+        owner: { select: { name: true } },
+      },
+    }),
+    // Cuántas quedan fuera del tablero. Sin este número, marcar una
+    // oportunidad como ganada la hacía desaparecer sin decir a dónde: el
+    // filtro está bien, esconderlo en silencio no.
+    prisma.deal.count({ where: { closedAt: { not: null } } }),
+  ]);
 
   const abiertas = deals.filter((d) => !isClosedStage(d.stage));
   const enJuego = abiertas.reduce((sum, d) => sum + (d.amount ?? 0), 0);
@@ -43,10 +49,19 @@ export default async function DealsPage({
           </h1>
           <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
             {abiertas.length === 0
-              ? "Nada abierto en el pipeline todavía."
+              ? "Nada abierto en el pipeline."
               : `${abiertas.length} ${abiertas.length === 1 ? "abierta" : "abiertas"}${
                   enJuego > 0 ? ` · ${formatAmount(enJuego)} en juego` : ""
                 }`}
+            {/* Lo que el tablero está escondiendo, dicho en voz alta. */}
+            {!verCerradas && cerradasOcultas > 0 && (
+              <>
+                {" · "}
+                <Link href="/crm/oportunidades?cerradas=1" style={{ color: "#fd1384", textDecoration: "none" }}>
+                  {cerradasOcultas} {cerradasOcultas === 1 ? "cerrada oculta" : "cerradas ocultas"}
+                </Link>
+              </>
+            )}
           </p>
         </div>
 
@@ -58,7 +73,9 @@ export default async function DealsPage({
               border: "1px solid var(--app-border)", color: "var(--app-nav-text)", textDecoration: "none",
             }}
           >
-            {verCerradas ? "Ocultar cerradas" : "Ver cerradas"}
+            {verCerradas
+              ? "Ocultar cerradas"
+              : `Ver cerradas${cerradasOcultas > 0 ? ` (${cerradasOcultas})` : ""}`}
           </Link>
           {canEdit && (
             <Link

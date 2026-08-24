@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.76.1] — 2026-08-24
+
+### El tablero dice lo que está escondiendo
+
+Marcar una oportunidad como ganada la hacía **desaparecer del tablero sin decir a dónde**. El filtro era correcto —las ganadas y perdidas se acumulan sin límite y en unos meses taparían el pipeline— pero aplicarlo en silencio no: quien acaba de cerrar una venta va al tablero a verla y no está.
+
+Ahora el tablero cuenta lo que deja fuera: **«1 cerrada oculta»** junto al resumen, enlazado, y el botón pasa a decir **«Ver cerradas (1)»**. El filtro no cambia; deja de ser invisible.
+
+Una oportunidad cerrada sigue viéndose siempre en la ficha de su cuenta, atenuada, junto a las demás.
+
+---
+
 ## [1.76.0] — 2026-08-24
 
 ### Teléfonos en formato internacional y correo obligatorio
