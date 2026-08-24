@@ -18,6 +18,7 @@ import type { AccountStage, ActivityType, DealStage, Prisma } from "@/generated/
 import { can, type Capability } from "@/lib/access/can";
 import { isClosedStage } from "@/lib/crm/deals";
 import { splitName } from "@/lib/crm/contact-name";
+import { normalizePhone, DEFAULT_DIAL } from "@/lib/crm/phone";
 import {
   accountSelect, activitySelect, contactSelect, dealSelect,
   serializeAccount, serializeActivity, serializeContact, serializeDeal,
@@ -212,8 +213,11 @@ export type CreateContactInput = {
   name?: string;
   firstName?: string;
   lastName?: string | null;
-  email?: string | null;
+  /** Obligatorio: sin correo el contacto no entra en una campaña. */
+  email: string;
+  /** Se guarda en E.164. Si llega sin indicativo se usa `phoneDial`. */
   phone?: string | null;
+  phoneDial?: string | null;
   position?: string | null;
   notes?: string | null;
   isPrimary?: boolean;
@@ -252,6 +256,18 @@ export async function createContactViaApi(
   const nombre = resolveName(input);
   if (!nombre) return { ok: false, status: 400, error: "Falta el nombre del contacto." };
 
+  const correo = input.email?.trim().toLowerCase();
+  if (!correo) return { ok: false, status: 400, error: "El correo es obligatorio." };
+
+  // Se normaliza aquí y no al exportar: lo que entra por API acaba en las
+  // mismas campañas que lo tecleado a mano.
+  let telefono: string | null = null;
+  if (input.phone?.trim()) {
+    const r = normalizePhone(input.phone, input.phoneDial || DEFAULT_DIAL);
+    if (!r.ok) return { ok: false, status: 400, error: r.error };
+    telefono = r.e164;
+  }
+
   const created = await prisma.$transaction(async (tx) => {
     if (input.isPrimary) {
       await tx.contact.updateMany({ where: { companyId: accountId }, data: { isPrimary: false } });
@@ -261,8 +277,8 @@ export async function createContactViaApi(
         companyId: accountId,
         firstName: nombre.firstName,
         lastName: nombre.lastName,
-        email: input.email?.trim() || null,
-        phone: input.phone?.trim() || null,
+        email: correo,
+        phone: telefono,
         position: input.position?.trim() || null,
         notes: input.notes?.trim() || null,
         isPrimary: input.isPrimary ?? false,

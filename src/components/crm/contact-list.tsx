@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Mail, Phone, Star, Trash2, Plus, X, ShieldCheck, UserPlus } from "lucide-react";
 import { createContact, deleteContact, inviteContactAsUser } from "@/actions/crm.actions";
 import { fullName } from "@/lib/crm/contact-name";
+import { COUNTRIES, DEFAULT_DIAL, formatPhone } from "@/lib/crm/phone";
 
 type Contact = {
   id: string;
@@ -110,9 +111,15 @@ export function ContactList({
             <input name="firstName" placeholder="Nombre" required style={inputStyle} autoFocus />
             <input name="lastName" placeholder="Apellidos (opcional)" style={inputStyle} />
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
-            <input name="email" type="email" placeholder="Correo (opcional)" style={inputStyle} />
-            <input name="phone" placeholder="Teléfono (opcional)" style={inputStyle} />
+          <input name="email" type="email" placeholder="Correo" required style={inputStyle} />
+          {/* Indicativo aparte: es lo que convierte un teléfono en enviable. */}
+          <div style={{ display: "grid", gridTemplateColumns: "7.5rem 1fr", gap: "0.5rem" }}>
+            <select name="phoneDial" defaultValue={DEFAULT_DIAL} style={inputStyle} aria-label="Indicativo del país">
+              {COUNTRIES.map((c) => (
+                <option key={c.iso} value={c.dial}>{c.iso} {c.dial}</option>
+              ))}
+            </select>
+            <input name="phone" inputMode="tel" placeholder="Teléfono (opcional)" style={inputStyle} />
           </div>
           <input name="position" placeholder="Cargo (opcional)" style={inputStyle} />
           <label style={{ display: "flex", alignItems: "center", gap: "0.45rem", fontSize: "0.8125rem", color: "var(--app-nav-text)" }}>
@@ -204,7 +211,7 @@ export function ContactList({
                   {c.phone && (
                     <a href={`tel:${c.phone}`} style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: "var(--app-text-muted)", textDecoration: "none" }}>
                       <Phone style={{ width: "0.75rem", height: "0.75rem" }} />
-                      {c.phone}
+                      {formatPhone(c.phone)}
                     </a>
                   )}
                 </div>

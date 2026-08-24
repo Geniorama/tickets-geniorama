@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createContact } from "@/actions/crm.actions";
+import { COUNTRIES, DEFAULT_DIAL } from "@/lib/crm/phone";
 
 /**
  * Alta de un contacto eligiendo la cuenta.
@@ -75,14 +76,22 @@ export function StandaloneContactForm({
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-        <div>
-          <label htmlFor="email" style={labelStyle}>Correo {opcional}</label>
-          <input id="email" name="email" type="email" style={inputStyle} placeholder="ana@empresa.co" />
-        </div>
-        <div>
-          <label htmlFor="phone" style={labelStyle}>Teléfono {opcional}</label>
-          <input id="phone" name="phone" style={inputStyle} />
+      <div>
+        <label htmlFor="email" style={labelStyle}>Correo</label>
+        <input id="email" name="email" type="email" required style={inputStyle} placeholder="ana@empresa.co" />
+      </div>
+
+      <div>
+        <label htmlFor="phone" style={labelStyle}>Teléfono {opcional}</label>
+        {/* El indicativo va aparte para que el número quede enviable: una
+            campaña necesita +57…, no «300 123 4567». */}
+        <div style={{ display: "grid", gridTemplateColumns: "9rem 1fr", gap: "0.5rem" }}>
+          <select name="phoneDial" defaultValue={DEFAULT_DIAL} style={inputStyle} aria-label="Indicativo del país">
+            {COUNTRIES.map((c) => (
+              <option key={c.iso} value={c.dial}>{c.name} {c.dial}</option>
+            ))}
+          </select>
+          <input id="phone" name="phone" inputMode="tel" style={inputStyle} placeholder="300 123 4567" />
         </div>
       </div>
 
@@ -102,7 +111,8 @@ export function StandaloneContactForm({
       </label>
 
       <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", margin: 0 }}>
-        Con el correo puesto, después se le puede dar acceso al portal desde la ficha de la cuenta.
+        Con el correo se le puede dar acceso al portal desde la ficha de la cuenta. El teléfono se
+        guarda en formato internacional para poder usarlo en campañas.
       </p>
 
       {error && <p style={{ fontSize: "0.8125rem", color: "#b91c1c" }}>{error}</p>}

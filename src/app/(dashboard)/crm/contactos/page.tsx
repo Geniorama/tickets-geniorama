@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ACCOUNT_STAGE_COLORS, ACCOUNT_STAGE_LABELS } from "@/lib/crm/accounts";
 import { SearchInput } from "@/components/ui/search-input";
 import { fullName } from "@/lib/crm/contact-name";
+import { formatPhone } from "@/lib/crm/phone";
 import { Suspense } from "react";
 
 export const metadata = { title: "Contactos" };
@@ -156,7 +157,7 @@ export default async function ContactsPage({
                 {c.phone && (
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
                     <Phone style={{ width: "0.75rem", height: "0.75rem" }} />
-                    {c.phone}
+                    {formatPhone(c.phone)}
                   </span>
                 )}
               </div>

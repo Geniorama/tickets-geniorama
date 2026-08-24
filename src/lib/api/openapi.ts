@@ -179,8 +179,12 @@ const contactSchema = {
     },
     firstName: { type: "string" },
     lastName: { type: "string", nullable: true },
-    email: { type: "string", nullable: true },
-    phone: { type: "string", nullable: true },
+    email: { type: "string", format: "email" },
+    phone: {
+      type: "string", nullable: true,
+      description: "Siempre en E.164 (`+573001234567`), listo para usar en una campaña.",
+      example: "+573001234567",
+    },
     position: { type: "string", nullable: true },
     isPrimary: { type: "boolean", description: "Solo uno por cuenta: marcar otro desmarca el anterior." },
     isActive: { type: "boolean" },
@@ -1037,7 +1041,9 @@ export function buildOpenApiDocument(baseUrl: string) {
               "application/json": {
                 schema: {
                   type: "object",
-                  description: "Manda `firstName` (y opcionalmente `lastName`), o `name` entero.",
+                  required: ["email"],
+                  description:
+                    "Manda `firstName` (y opcionalmente `lastName`), o `name` entero. El correo es obligatorio.",
                   properties: {
                     firstName: { type: "string", maxLength: 80, example: "Ana" },
                     lastName: { type: "string", maxLength: 80, nullable: true, example: "Pérez Gómez" },
@@ -1046,8 +1052,21 @@ export function buildOpenApiDocument(baseUrl: string) {
                       description:
                         "Nombre entero. Se acepta por compatibilidad con los workflows escritos antes de separar nombre y apellidos: se parte por el primer espacio.",
                     },
-                    email: { type: "string", format: "email", nullable: true },
-                    phone: { type: "string", nullable: true },
+                    email: {
+                      type: "string", format: "email",
+                      description: "**Obligatorio desde la v1.76.0.** Un contacto sin correo no entra en ninguna campaña.",
+                    },
+                    phone: {
+                      type: "string", nullable: true,
+                      description:
+                        "Se guarda en E.164. Se acepta con espacios, guiones o con `00` delante; si llega sin indicativo se le pone el de `phoneDial`.",
+                      example: "300 123 4567",
+                    },
+                    phoneDial: {
+                      type: "string", nullable: true, default: "+57",
+                      description: "Indicativo para los números que llegan sin él.",
+                      example: "+57",
+                    },
                     position: { type: "string", nullable: true, example: "Directora de marketing" },
                     notes: { type: "string", nullable: true },
                     isPrimary: { type: "boolean", default: false },

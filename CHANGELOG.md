@@ -9,6 +9,48 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.76.0] — 2026-08-24
+
+### Teléfonos en formato internacional y correo obligatorio
+
+Los dos cambios apuntan a lo mismo: que la lista de contactos sirva para **enviar una campaña** y no solo para consultarla.
+
+#### El teléfono se guarda en E.164
+
+Un teléfono sirve para llamar aunque esté escrito como sea; para una campaña no. WhatsApp, los SMS y cualquier pasarela quieren `+573001234567`. Si en la base pone «300 123 4567» hay que adivinar el país al exportar, y adivinar sobre miles de contactos sale mal.
+
+Ahora el formulario tiene un **selector de indicativo** —Colombia por defecto, y once países más— junto al número, y se normaliza **al guardar**, no al enviar: así el error se ve en el formulario y no seis meses después en un envío fallido. Se acepta lo que la gente escribe de verdad: con espacios, guiones, paréntesis, con `00` delante en vez de `+`, o con el `0` de larga distancia, que no forma parte del número internacional.
+
+En pantalla se lee agrupado (`+57 300 123 4567`); lo que se guarda y se exporta no lleva espacios.
+
+No se añadió ninguna librería: E.164 cabe en unas pocas reglas —`+`, de 8 a 15 dígitos, indicativo delante— y lo que una librería aportaría de más, saber si el número existe en ese país, no lo sabe nadie hasta que se marca.
+
+#### El correo pasa a ser obligatorio
+
+Un contacto sin correo no entra en una campaña ni puede recibir acceso al portal, así que crearlo solo aplaza el problema. Es obligatorio en los formularios, en la API y **en la base**.
+
+#### La migración se niega a inventar datos
+
+El teléfono se arregla solo: se normaliza lo que hay y lo que no llegue a parecer un número se deja vacío, antes que guardar basura con pinta de válida.
+
+El correo no se puede arreglar solo. Poner `NOT NULL` sobre una columna con nulos exige inventarse un valor, y un correo inventado en un CRM acaba en un envío a la nada. Así que si hay contactos sin correo **la migración se para y dice cuántos son y cómo listarlos**; se rellenan y se vuelve a lanzar. Fallar es peor que continuar en casi todo, menos en fabricar datos.
+
+En producción los dos contactos que hay ya tenían correo y el teléfono en E.164, así que para ellos la migración no cambia nada.
+
+#### Esto rompe la API
+
+`POST /accounts/:id/contacts` **exige ahora `email`**. Es un cambio incompatible y va anunciado en la referencia. Hay una llave activa con permiso de escritura; si tiene un workflow que crea contactos sin correo, dejará de funcionar hasta que lo mande.
+
+El campo `phone` sigue aceptándose escrito de cualquier forma y se guarda normalizado; se puede mandar `phoneDial` para los números sin indicativo.
+
+#### Comprobado
+
+29 comprobaciones: los siete formatos de entrada que se normalizan, los cuatro que se rechazan con su motivo, la ida y vuelta entre E.164 y pantalla, que la API rechaza sin correo y con teléfono imposible **sin dejar nada creado a medias**, y que el payload de los webhooks viaja en E.164.
+
+La migración se probó dos veces sobre datos sucios: una con siete teléfonos mal escritos —todos normalizados o descartados— y otra con contactos sin correo, para ver que **se para sin perder nada** y que tras rellenarlos aplica bien.
+
+---
+
 ## [1.75.1] — 2026-08-24
 
 ### La tarjeta de tareas vencidas estaba vacía teniendo 15

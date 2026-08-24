@@ -202,7 +202,11 @@ model Contact {
   firstName String   @map("first_name")
   /// Apellidos, los dos juntos si los hay. Opcional por lo mismo.
   lastName  String?  @map("last_name")
-  email     String?
+  /// Obligatorio: sin correo un contacto no entra en una campaña ni puede
+  /// recibir acceso al portal.
+  email     String
+  /// Siempre en E.164 (`+573001234567`). Se normaliza al guardar, no al
+  /// enviar: ver `src/lib/crm/phone.ts`.
   phone     String?
   /// Cargo dentro de la empresa.
   position  String?

@@ -15,6 +15,7 @@ import { contactPayload, dealPayload } from "@/lib/hooks/payload";
 import { generateInvitationToken } from "@/actions/invitation.actions";
 import { sendInvitationEmail } from "@/lib/email";
 import { grantPortalAccess } from "@/lib/crm/portal-access";
+import { normalizePhone, DEFAULT_DIAL } from "@/lib/crm/phone";
 
 const BASE_URL = process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -137,12 +138,28 @@ const contactSchema = z.object({
   firstName: z.string().min(1, "El nombre es requerido").max(80),
   // Opcional: a veces se apunta a alguien en una llamada sabiendo solo su nombre.
   lastName:  z.string().max(80).optional(),
-  email:    z.string().email("El correo no es válido").max(160).optional().or(z.literal("")),
+  // Obligatorio: sin correo el contacto no entra en una campaña ni puede
+  // recibir acceso al portal.
+  email:    z.string().min(1, "El correo es requerido").email("El correo no es válido").max(160),
   phone:    z.string().max(60).optional(),
+  /** Indicativo elegido en el formulario, para los números escritos sin él. */
+  phoneDial: z.string().max(6).optional(),
   position: z.string().max(80).optional(),
   notes:    z.string().max(2000).optional(),
   isPrimary: z.boolean().default(false),
 });
+
+/**
+ * El teléfono es opcional, pero si viene tiene que quedar en E.164: guardar
+ * «300 123 4567» obliga a adivinar el país al montar una campaña.
+ */
+function resolverTelefono(phone?: string, dial?: string):
+  | { ok: true; e164: string | null }
+  | { ok: false; error: string } {
+  if (!phone?.trim()) return { ok: true, e164: null };
+  const r = normalizePhone(phone, dial || DEFAULT_DIAL);
+  return r.ok ? { ok: true, e164: r.e164 } : { ok: false, error: r.error };
+}
 
 export async function createContact(accountId: string, formData: FormData) {
   const session = await requireCan("CRM", "crear");
@@ -152,11 +169,15 @@ export async function createContact(accountId: string, formData: FormData) {
     lastName:  formData.get("lastName") || undefined,
     email:     formData.get("email") || "",
     phone:     formData.get("phone") || undefined,
+    phoneDial: formData.get("phoneDial") || undefined,
     position:  formData.get("position") || undefined,
     notes:     formData.get("notes") || undefined,
     isPrimary: formData.get("isPrimary") === "true",
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const telefono = resolverTelefono(parsed.data.phone, parsed.data.phoneDial);
+  if (!telefono.ok) return { error: telefono.error };
 
   const account = await prisma.company.findUnique({
     where: { id: accountId },
@@ -174,8 +195,8 @@ export async function createContact(accountId: string, formData: FormData) {
         companyId:  accountId,
         firstName:  parsed.data.firstName.trim(),
         lastName:   parsed.data.lastName?.trim() || null,
-        email:      parsed.data.email?.trim() || null,
-        phone:      parsed.data.phone?.trim() || null,
+        email:      parsed.data.email.trim().toLowerCase(),
+        phone:      telefono.e164,
         position:   parsed.data.position?.trim() || null,
         notes:      parsed.data.notes?.trim() || null,
         isPrimary:  parsed.data.isPrimary,
@@ -199,11 +220,15 @@ export async function updateContact(contactId: string, accountId: string, formDa
     lastName:  formData.get("lastName") || undefined,
     email:     formData.get("email") || "",
     phone:     formData.get("phone") || undefined,
+    phoneDial: formData.get("phoneDial") || undefined,
     position:  formData.get("position") || undefined,
     notes:     formData.get("notes") || undefined,
     isPrimary: formData.get("isPrimary") === "true",
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const telefono = resolverTelefono(parsed.data.phone, parsed.data.phoneDial);
+  if (!telefono.ok) return { error: telefono.error };
 
   await prisma.$transaction(async (tx) => {
     if (parsed.data.isPrimary) {
@@ -215,8 +240,8 @@ export async function updateContact(contactId: string, accountId: string, formDa
       data: {
         firstName: parsed.data.firstName.trim(),
         lastName:  parsed.data.lastName?.trim() || null,
-        email:     parsed.data.email?.trim() || null,
-        phone:     parsed.data.phone?.trim() || null,
+        email:     parsed.data.email.trim().toLowerCase(),
+        phone:     telefono.e164,
         position:  parsed.data.position?.trim() || null,
         notes:     parsed.data.notes?.trim() || null,
         isPrimary: parsed.data.isPrimary,

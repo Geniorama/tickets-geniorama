@@ -16,6 +16,11 @@ import { createContactViaApi, isDenied, listContacts } from "@/lib/api/crm";
  * El nombre va separado en `firstName` y `lastName`, pero se sigue aceptando
  * `name` entero: quitarlo rompería los workflows escritos antes de la
  * separación, y partirlo aquí cuesta nada.
+ *
+ * El **correo sí es obligatorio**, y eso sí rompe a quien creaba contactos sin
+ * él. Se asume a conciencia: un contacto sin correo no entra en ninguna
+ * campaña, así que crearlo solo aplaza el problema. El teléfono se guarda
+ * siempre en E.164.
  */
 
 export const dynamic = "force-dynamic";
@@ -25,8 +30,12 @@ const createSchema = z.object({
   lastName: z.string().trim().max(80).nullable().optional(),
   /** Nombre entero. Se sigue aceptando por compatibilidad y se parte al guardar. */
   name: z.string().trim().min(1).max(160).optional(),
-  email: z.string().email("El correo no es válido").max(160).nullable().optional(),
+  // Obligatorio desde la v1.76.0: un contacto sin correo no sirve para una
+  // campaña. Es un cambio incompatible y va anunciado en la referencia.
+  email: z.string().min(1, "El correo es obligatorio").email("El correo no es válido").max(160),
   phone: z.string().trim().max(60).nullable().optional(),
+  /** Indicativo para los números que llegan sin él. Por defecto, Colombia. */
+  phoneDial: z.string().trim().max(6).nullable().optional(),
   position: z.string().trim().max(80).nullable().optional(),
   notes: z.string().max(2000).nullable().optional(),
   isPrimary: z.boolean().optional(),
