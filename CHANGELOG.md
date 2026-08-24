@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.76.2] — 2026-08-24
+
+### La oportunidad ganada tampoco salía al mostrar las cerradas
+
+Al verificar la v1.76.1 apareció lo de verdad: pulsar «Ver cerradas» abría la columna **Ganada vacía**, aunque la oportunidad estaba bien guardada. Con la URL escrita a mano sí salía.
+
+Era caché de navegación del cliente: al llegar por un enlace, el router servía una copia anterior de la página. `force-dynamic` en el layout no cubre ese caso, así que ahora lo declaran también las páginas del CRM —tablero, cuentas, ficha de cuenta, contactos y ficha de oportunidad—, que es donde los datos cambian mientras se trabaja.
+
+Una tarjeta recién ganada que no aparece al volver al tablero se lee como que no se guardó, y eso es lo peor que puede hacer un CRM.
+
+---
+
 ## [1.76.1] — 2026-08-24
 
 ### El tablero dice lo que está escondiendo

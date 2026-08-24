@@ -5,6 +5,14 @@ import { prisma } from "@/lib/prisma";
 import { DEAL_STAGES, OPEN_STAGES, formatAmount, isClosedStage } from "@/lib/crm/deals";
 import { DealBoard, type BoardDeal } from "@/components/crm/deal-board";
 
+/**
+ * Nada de caché entre navegaciones: el CRM cambia mientras se trabaja, y una
+ * tarjeta recién ganada que no aparece al volver al tablero se lee como que no
+ * se guardó. `force-dynamic` en el layout no basta para el caché del router del
+ * cliente al navegar con un enlace.
+ */
+export const dynamic = "force-dynamic";
+
 export const metadata = { title: "Oportunidades" };
 
 export default async function DealsPage({

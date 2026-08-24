@@ -11,6 +11,14 @@ import { BackButton } from "@/components/ui/back-button";
 import { formatDate } from "@/lib/format-date";
 import { fullName } from "@/lib/crm/contact-name";
 
+/**
+ * Nada de caché entre navegaciones: el CRM cambia mientras se trabaja, y una
+ * tarjeta recién ganada que no aparece al volver al tablero se lee como que no
+ * se guardó. `force-dynamic` en el layout no basta para el caché del router del
+ * cliente al navegar con un enlace.
+ */
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const deal = await prisma.deal.findUnique({ where: { id }, select: { title: true } });
