@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.74.1] — 2026-08-23
+
+### Los contactos ya salen en el buscador ⌘K
+
+Faltaba justo lo que más se busca por nombre: una persona. Ahora aparecen bajo CRM, junto a cuentas y oportunidades.
+
+Se busca por nombre, apellido, correo y **también por teléfono** — que es como se llega a un contacto cuando entra una llamada de un número que no se reconoce. El resultado dice de qué empresa es, qué cargo tiene y si ya entra al portal, y lleva a la ficha de su cuenta, que es donde se hace algo con esa persona.
+
+Se aplican las mismas reglas que al resto: sin el módulo CRM concedido la consulta ni se lanza, un cliente no los ve nunca, y los contactos dados de baja no aparecen.
+
+---
+
 ## [1.74.0] — 2026-08-22
 
 ### Los contactos tienen nombre y apellidos separados

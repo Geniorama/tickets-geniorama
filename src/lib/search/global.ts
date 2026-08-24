@@ -24,6 +24,7 @@ import { taskCode } from "@/lib/task-code";
 import { ACCOUNT_STAGE_LABELS } from "@/lib/crm/accounts";
 import { DEAL_STAGE_LABELS } from "@/lib/crm/deals";
 import { statusLabel } from "@/lib/status-labels";
+import { fullName } from "@/lib/crm/contact-name";
 import { visibleProjectWhere, visibleTaskWhere, visibleTicketWhere, type Viewer } from "@/lib/search/scopes";
 
 export type SearchHit = {
@@ -84,6 +85,7 @@ export async function globalSearch(viewer: Viewer, rawQuery: string): Promise<Se
     verProyectos ? buscarProyectos(viewer, q) : [],
     verProyectos ? buscarTareas(viewer, q)  : [],
     verCrm      ? buscarCuentas(q)          : [],
+    verCrm      ? buscarContactos(q)        : [],
     verCrm      ? buscarOportunidades(q)    : [],
     verInfra    ? buscarSitios(q)           : [],
     verAdmin    ? buscarEmpresas(q)         : [],
@@ -181,6 +183,50 @@ async function buscarCuentas(q: string): Promise<SearchHit[]> {
       c._count.deals > 0 ? `${c._count.deals} ${c._count.deals === 1 ? "oportunidad" : "oportunidades"}` : null,
     ].filter(Boolean).join(" · "),
     href: `/crm/${c.id}`,
+  }));
+}
+
+/**
+ * Personas del CRM.
+ *
+ * Se busca también por teléfono porque es como se llega a un contacto cuando
+ * entra una llamada de un número que no se reconoce.
+ *
+ * El resultado lleva a la ficha de su cuenta: un contacto no tiene página
+ * propia, y de todas formas es ahí donde se hace algo con él.
+ */
+async function buscarContactos(q: string): Promise<SearchHit[]> {
+  const rows = await prisma.contact.findMany({
+    where: {
+      isActive: true,
+      OR: [
+        { firstName: like(q) },
+        { lastName: like(q) },
+        { email: like(q) },
+        { phone: like(q) },
+      ],
+    },
+    select: {
+      id: true, firstName: true, lastName: true, position: true, email: true, userId: true,
+      company: { select: { id: true, name: true } },
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    take: PER_GROUP,
+  });
+
+  return rows.map((c) => ({
+    id: c.id,
+    app: "CRM" as AppKey,
+    kind: "Contacto",
+    title: fullName(c),
+    subtitle: [
+      c.company.name,
+      c.position,
+      // Que ya entre al portal cambia lo que se puede hacer con esa persona,
+      // así que se ve sin abrir la ficha.
+      c.userId ? "Con portal" : null,
+    ].filter(Boolean).join(" · "),
+    href: `/crm/${c.company.id}`,
   }));
 }
 
