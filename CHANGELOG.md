@@ -9,6 +9,39 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.77.0] — 2026-08-25
+
+### Notificaciones push: cada quien las activa en su dispositivo
+
+En **Mi perfil**, todo el mundo —equipo y clientes— tiene ahora un interruptor para recibir los avisos en el móvil o el escritorio aunque tenga la pestaña cerrada.
+
+#### No hay un catálogo nuevo de avisos
+
+Va enganchado a `notify()`, así que **lo que ya llegaba a la campana llega ahora al dispositivo**: asignaciones, menciones, comentarios, vencimientos. No hubo que tocar ninguno de los sitios que avisan, y no queda una segunda lista de «avisos push» que mantener en paralelo.
+
+#### Se activa por dispositivo, no por cuenta
+
+El navegador da una suscripción distinta en el móvil y en el portátil, y el permiso lo concede cada uno. Por eso la pantalla habla de «este dispositivo»: activarlo en el portátil no lo activa en el teléfono.
+
+El permiso se pide **dentro del clic**, no al cargar la página: pedirlo al entrar hace que los navegadores lo ignoren, y molesta. Hay además un botón para **enviarse un aviso de prueba**, porque activar algo y no ver nunca nada deja la duda de si funcionó.
+
+#### Lo que se cuidó
+
+- **Un push que falla no tumba lo que lo provocó.** Igual que los hooks: asignar una tarea no depende de que el móvil de alguien esté accesible.
+- **Las suscripciones se limpian solas.** Cuando el servicio de push responde que el endpoint ya no existe (404/410) —se limpió el navegador, se desinstaló— la fila se borra. Si no, cada aviso paga por dispositivos que ya nadie usa.
+- **Un navegador que cambia de cuenta cambia de dueño.** El endpoint es único: si alguien inicia sesión con otro usuario en el mismo equipo, la suscripción se reasigna en vez de duplicarse. Sin esto, seguiría recibiendo los avisos del usuario anterior.
+- **El service worker no cachea nada.** Solo escucha avisos. Un service worker que cachea rutas de una app con sesión es una forma conocida de enseñarle a alguien los datos de quien usó el navegador antes.
+
+#### Falta un paso que no puedo dar yo
+
+Las claves VAPID viven en el `.env.local` **del servidor**, que el despliegue excluye a propósito para no pisarlo. Mientras no estén, la app funciona igual: el interruptor dice que falta configurarlo y no se intenta enviar nada. Las instrucciones y las variables están en `.env.example`.
+
+#### Comprobado
+
+14 comprobaciones: que sin claves no se rompe nada y las notificaciones normales siguen creándose; que un endpoint no se duplica y se reasigna al nuevo dueño; que al borrar a alguien se van sus dispositivos; y, con claves puestas contra un servidor de push simulado por TLS, que **el cuerpo viaja cifrado y firmado con VAPID** y que el dispositivo que responde 410 se borra mientras el vivo se conserva.
+
+---
+
 ## [1.76.3] — 2026-08-24
 
 ### Los tableros se quedaban con las tarjetas viejas al cambiar de filtro

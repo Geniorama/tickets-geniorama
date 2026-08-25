@@ -373,6 +373,8 @@ model User {
   createdApiKeys ApiKey[] @relation("ApiKeyCreatedBy")
 
   // CRM
+  pushSubscriptions PushSubscription[]
+
   ownedAccounts   Company[] @relation("AccountOwner")
   contactProfile  Contact?  @relation("ContactUser")
   createdContacts Contact[] @relation("ContactCreatedBy")
@@ -969,6 +971,36 @@ model Site {
   vaultEntries VaultEntry[]
 
   @@map("sites")
+}
+
+/// Un navegador concreto suscrito a las notificaciones push.
+///
+/// La suscripción es por **dispositivo**, no por persona: alguien con el móvil
+/// y el portátil tiene dos, y activar en uno no activa en el otro. Por eso la
+/// clave natural es el `endpoint` que da el navegador y no el usuario.
+///
+/// Se borran solas: cuando el servicio de push responde que el endpoint ya no
+/// existe —se desinstaló la app, se limpió el navegador— se elimina la fila.
+/// Ver `src/lib/push/send.ts`.
+model PushSubscription {
+  id       String @id @default(cuid())
+  /// La URL que da el navegador. Identifica al dispositivo.
+  endpoint String @unique
+  /// Claves de cifrado del propio navegador: sin ellas no se puede enviar.
+  p256dh   String
+  auth     String
+
+  /// Para que la persona reconozca cuál es cuál al desactivar.
+  userAgent String? @map("user_agent")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastUsedAt DateTime? @map("last_used_at")
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 model Notification {

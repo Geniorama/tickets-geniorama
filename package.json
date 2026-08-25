@@ -1,6 +1,6 @@
 {
   "name": "geniorama-tickets",
-  "version": "1.76.3",
+  "version": "1.77.0",
   "private": true,
   "scripts": {
     "predev": "node scripts/copy-swagger-ui.mjs",
@@ -24,6 +24,7 @@
     "@tiptap/react": "^3.20.1",
     "@tiptap/starter-kit": "^3.20.1",
     "@types/react-big-calendar": "^1.16.3",
+    "@types/web-push": "^3.6.4",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -45,6 +46,7 @@
     "remark-gfm": "^4.0.1",
     "swagger-ui-dist": "^5.32.14",
     "tiptap-markdown": "^0.9.0",
+    "web-push": "^3.6.7",
     "zeptomail": "^7.0.2",
     "zod": "^4.3.6"
   },

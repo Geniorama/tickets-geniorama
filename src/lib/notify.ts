@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { sendGChatNotification } from "@/lib/gchat";
 import { dispatchUserWebhooks } from "@/lib/user-webhooks";
+import { sendPushToUser, sendPushToUsers } from "@/lib/push/send";
 
 /** Crea una notificación sin lanzar errores (fire-and-forget).
  *  Pasa `skipGChat: true` para omitir el webhook (p. ej. proyectos privados). */
@@ -21,6 +22,9 @@ export async function notify(
   }
   // Webhook personal del destinatario (solo sus propias notificaciones)
   dispatchUserWebhooks(userId, type, title, message, link).catch(() => {});
+  // Y al dispositivo, si lo activó. Va aquí y no en cada sitio que avisa: así
+  // cualquier notificación que ya existía llega al móvil sin tocar nada más.
+  sendPushToUser(userId, { title, body: message, url: link, tag: type }).catch(() => {});
   if (!skipGChat) {
     sendGChatNotification(type, title, message, link).catch(() => {});
   }
@@ -57,6 +61,7 @@ export async function notifyMany(
   for (const userId of unique) {
     dispatchUserWebhooks(userId, type, title, message, link).catch(() => {});
   }
+  sendPushToUsers(unique, { title, body: message, url: link, tag: type }).catch(() => {});
   // Una sola vez a GChat independientemente del número de destinatarios
   if (!skipGChat) {
     sendGChatNotification(type, title, message, link).catch(() => {});

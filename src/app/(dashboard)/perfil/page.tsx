@@ -6,6 +6,8 @@ import { SchedulingLinksManager } from "@/components/collaborator/scheduling-lin
 import { AvatarUploader } from "@/components/collaborator/avatar-uploader";
 import type { SchedulingLinkData } from "@/lib/scheduling";
 import { KeyRound, CalendarClock, UserCircle } from "lucide-react";
+import { PushToggle } from "@/components/settings/push-toggle";
+import { VAPID_PUBLIC_KEY } from "@/lib/push/config";
 
 export const metadata = { title: "Mi perfil" };
 
@@ -70,6 +72,12 @@ export default async function PerfilPage() {
             <p className="text-sm font-medium text-gray-900">{ROLE_LABELS[session.user.role] ?? session.user.role}</p>
           </div>
         </div>
+      </div>
+
+      {/* Push: va antes del reparto por rol porque lo tiene todo el mundo,
+          sea del equipo o cliente. */}
+      <div className="max-w-xl mb-6">
+        <PushToggle publicKey={VAPID_PUBLIC_KEY} />
       </div>
 
       {staff ? (
