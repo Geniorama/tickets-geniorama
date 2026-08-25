@@ -9,6 +9,28 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.78.0] — 2026-08-25
+
+### Las tareas recurrentes ya avisan
+
+La v1.77.2 hizo que se generaran; faltaba que se supiera. **El cron era el único camino de creación de tareas que no avisaba a nadie**: creaba la tarea, avanzaba la plantilla y ahí terminaba. Ni Google Chat, ni la campana, ni el webhook personal, ni push. La tarea aparecía en silencio, y quien debía hacerla se enteraba si entraba a mirar.
+
+Ahora hace lo mismo que la creación manual:
+
+- **Al canal de tareas de Google Chat**, como «Nueva tarea recurrente» —distinguida a propósito de una creada a mano, porque en el canal importa saber que salió sola—, con proyecto, responsable y fecha de vencimiento.
+- **A quien la recibe**: campana, su webhook personal y, desde la v1.77.0, el dispositivo si activó las notificaciones push.
+
+Dos detalles que importan:
+
+- **Lo privado sigue siendo privado.** Una tarea de un proyecto privado no se anuncia en el canal del equipo, igual que en la creación manual; su responsable sí recibe su aviso.
+- **Se avisa después de confirmar la transacción**, nunca dentro. Anunciar en Google Chat una tarea que luego revierte es peor que no anunciarla.
+
+#### Comprobado
+
+12 comprobaciones sobre una base desechable con un Google Chat simulado: que el mensaje llega con nombre, proyecto, responsable y vencimiento; que el proyecto privado **no** sale al canal pero su responsable sí recibe la campana; que el enlace apunta a la tarea dentro de su proyecto; y que un segundo barrido no genera ni anuncia nada.
+
+---
+
 ## [1.77.2] — 2026-08-25
 
 ### Las tareas recurrentes no se generaban: nadie llamaba al cron
