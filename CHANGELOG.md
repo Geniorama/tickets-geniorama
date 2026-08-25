@@ -9,6 +9,16 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.77.1] — 2026-08-25
+
+### El service worker no se podía descargar
+
+Al verificar la v1.77.0: `/sw.js` respondía **307 al login**. El middleware de sesión lo estaba interceptando, y un service worker se descarga **sin cookies**, así que el navegador nunca llegaba a registrarlo y las notificaciones no se habrían podido activar en ningún dispositivo.
+
+Ahora está excluido del middleware, junto a los estáticos. No expone nada: solo escucha avisos, no lee datos.
+
+---
+
 ## [1.77.0] — 2026-08-25
 
 ### Notificaciones push: cada quien las activa en su dispositivo

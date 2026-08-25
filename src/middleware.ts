@@ -16,6 +16,10 @@ export const config = {
   // en `public/`. Sin excluirlos, el navegador recibe un redirect a /login en
   // vez del script y la pantalla se queda vacía.
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.png$|api/logout|api/cron|api/integrations|api/v1|swagger-ui).*)",
+    // `sw.js` va fuera a propósito: un service worker se descarga sin cookies
+    // de sesión, así que si el middleware lo redirige al login el navegador no
+    // llega a registrarlo y las notificaciones push no se activan nunca.
+    // No expone nada: solo escucha avisos, no lee datos.
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\.png$|api/logout|api/cron|api/integrations|api/v1|swagger-ui).*)",
   ],
 };
