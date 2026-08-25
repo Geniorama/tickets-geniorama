@@ -8,14 +8,6 @@ import { fullName } from "@/lib/crm/contact-name";
 import { formatPhone } from "@/lib/crm/phone";
 import { Suspense } from "react";
 
-/**
- * Nada de caché entre navegaciones: el CRM cambia mientras se trabaja, y una
- * tarjeta recién ganada que no aparece al volver al tablero se lee como que no
- * se guardó. `force-dynamic` en el layout no basta para el caché del router del
- * cliente al navegar con un enlace.
- */
-export const dynamic = "force-dynamic";
-
 export const metadata = { title: "Contactos" };
 
 /**

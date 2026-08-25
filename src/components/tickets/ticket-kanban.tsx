@@ -211,6 +211,21 @@ function KanbanColumn({
 
 export function TicketKanban({ tickets: initialTickets }: { tickets: TicketWithRelations[] }) {
   const [tickets, setTickets] = useState(initialTickets);
+
+  /*
+   * `useState` solo usa su valor inicial la primera vez. Al navegar dentro de
+   * la misma pantalla —cambiar un filtro, mostrar lo cerrado— React reutiliza
+   * este componente, así que los tickets que llegan por props se ignoraban y se
+   * seguía pintando la lista vieja: columnas nuevas con tarjetas de antes.
+   *
+   * Este es el patrón que documenta React para sincronizar estado con props:
+   * ajustar durante el render, no en un efecto, que provocaría un parpadeo.
+   */
+  const [vistos, setVistos] = useState(initialTickets);
+  if (vistos !== initialTickets) {
+    setVistos(initialTickets);
+    setTickets(initialTickets);
+  }
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumn, setOverColumn] = useState<TicketStatus | null>(null);
   const [, startTransition] = useTransition();

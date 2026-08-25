@@ -9,15 +9,27 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.76.3] — 2026-08-24
+
+### Los tableros se quedaban con las tarjetas viejas al cambiar de filtro
+
+**El diagnóstico de la v1.76.2 estaba equivocado y esta versión lo corrige.** Allí se culpó al caché y se marcaron cinco páginas del CRM como `force-dynamic`; no era eso, no arregló nada, y esos cinco marcados se revierten.
+
+Lo que pasaba de verdad se vio pidiendo el payload del servidor a mano: **llegaba correcto, con la oportunidad ganada dentro**. El fallo estaba en el navegador.
+
+`useState(props)` solo usa su valor inicial **la primera vez**. Al navegar dentro de la misma pantalla —pulsar «Ver cerradas», cambiar un filtro— React reutiliza el componente, así que las columnas nuevas se pintaban con las tarjetas de antes: seis columnas y las dos oportunidades de siempre. Recargando con otra URL sí salía, porque eso monta el componente de cero.
+
+Arreglado con el patrón que documenta React para sincronizar estado con props: ajustar durante el render, no en un efecto, que causaría un parpadeo.
+
+**El mismo fallo estaba en los tres tableros** —oportunidades, tickets y tareas—, porque el del CRM se escribió copiando el de tareas. Los tres quedan corregidos.
+
+---
+
 ## [1.76.2] — 2026-08-24
 
-### La oportunidad ganada tampoco salía al mostrar las cerradas
+### ~~La oportunidad ganada tampoco salía al mostrar las cerradas~~ (diagnóstico erróneo)
 
-Al verificar la v1.76.1 apareció lo de verdad: pulsar «Ver cerradas» abría la columna **Ganada vacía**, aunque la oportunidad estaba bien guardada. Con la URL escrita a mano sí salía.
-
-Era caché de navegación del cliente: al llegar por un enlace, el router servía una copia anterior de la página. `force-dynamic` en el layout no cubre ese caso, así que ahora lo declaran también las páginas del CRM —tablero, cuentas, ficha de cuenta, contactos y ficha de oportunidad—, que es donde los datos cambian mientras se trabaja.
-
-Una tarjeta recién ganada que no aparece al volver al tablero se lee como que no se guardó, y eso es lo peor que puede hacer un CRM.
+Se atribuyó al caché de navegación y se añadió `force-dynamic` a cinco páginas del CRM. **No era la causa y no lo arregló.** Ver la v1.76.3: era `useState` sin sincronizar con las props. Los `force-dynamic` de esta versión quedan revertidos.
 
 ---
 

@@ -293,6 +293,21 @@ export function TaskKanban({
   projectId: string;
 }) {
   const [tasks, setTasks] = useState(initialTasks);
+
+  /*
+   * `useState` solo usa su valor inicial la primera vez. Al navegar dentro de
+   * la misma pantalla —cambiar un filtro, mostrar lo cerrado— React reutiliza
+   * este componente, así que las tareas que llegan por props se ignoraban y se
+   * seguía pintando la lista vieja: columnas nuevas con tarjetas de antes.
+   *
+   * Este es el patrón que documenta React para sincronizar estado con props:
+   * ajustar durante el render, no en un efecto, que provocaría un parpadeo.
+   */
+  const [vistos, setVistos] = useState(initialTasks);
+  if (vistos !== initialTasks) {
+    setVistos(initialTasks);
+    setTasks(initialTasks);
+  }
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumn, setOverColumn] = useState<TaskStatus | null>(null);
   const [, startTransition] = useTransition();
