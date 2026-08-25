@@ -9,6 +9,25 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.77.2] — 2026-08-25
+
+### Las tareas recurrentes no se generaban: nadie llamaba al cron
+
+El endpoint `/api/cron/recurring-tasks` está bien escrito —incluso se pone al día solo si estuvo caído varios ciclos—, pero **no había nada que lo invocara**. Se construyó esperando un programador externo (en su día, Vercel Cron) y al mudarse la app a un VPS con PM2 ese programador se quedó atrás. En el repositorio no había ningún cron, ni en el despliegue tampoco.
+
+El síntoma en producción: una plantilla mensual activa con `nextRunAt` **diez días vencido**, `lastRunAt` en junio y **una sola tarea generada** en toda la vida de la función.
+
+Ahora lo lanza GitHub Actions una vez al día, a las 06:00 de Colombia, para que las tareas del día estén antes de que empiece la jornada. Va en Actions y no en el crontab del servidor porque este repositorio ya despliega desde ahí: un solo sitio donde mirar cuándo corrió y qué contestó.
+
+**Falla en voz alta.** Si el barrido no devuelve 200, el workflow se marca en rojo y dice qué mirar. Un cron que calla cuando algo va mal es exactamente cómo se llega a dos meses sin generar tareas. También se puede lanzar a mano desde la pestaña Actions sin esperar al día siguiente.
+
+#### Dos cosas que quedan pendientes de configurar
+
+- **`CRON_SECRET`.** Si está vacío en el servidor, `/api/cron/*` queda **abierto a internet**: cualquiera puede disparar la generación de tareas. Debe ponerse en el `.env.local` del servidor **y** como secreto del repositorio, con el mismo valor. Documentado en `.env.example`.
+- **`/api/cron/overdue` sigue sin programar.** Está en la misma situación, pero encender ese de golpe mandaría a Google Chat un mensaje por cada elemento vencido —hoy son quince—, así que se deja fuera a propósito hasta decidirlo.
+
+---
+
 ## [1.77.1] — 2026-08-25
 
 ### El service worker no se podía descargar

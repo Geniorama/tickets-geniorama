@@ -1,0 +1,53 @@
+# Genera las tareas recurrentes, una vez al día.
+#
+# El endpoint existe desde hace meses, pero nadie lo llamaba: se escribió
+# esperando un «cron runner» externo (en su día, Vercel Cron) y al mudarse la
+# app a un VPS con PM2 ese programador se quedó atrás. Resultado: las plantillas
+# activas acumulaban vencimiento sin generar nada.
+#
+# Va aquí y no en el crontab del servidor porque este repositorio ya despliega
+# desde Actions: un solo sitio donde mirar cuándo corrió y qué contestó.
+
+name: Tareas recurrentes
+
+on:
+  schedule:
+    # 11:00 UTC = 06:00 en Colombia. Las tareas del día aparecen antes de que
+    # empiece la jornada, no a media tarde.
+    - cron: "0 11 * * *"
+  # Para poder lanzarlo a mano tras un fallo sin esperar al día siguiente.
+  workflow_dispatch:
+
+jobs:
+  generar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Barrer plantillas vencidas
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          # -w escribe el código al final del cuerpo para poder separarlos.
+          respuesta=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            --max-time 60 \
+            https://app.geniorama.co/api/cron/recurring-tasks)
+
+          codigo=$(echo "$respuesta" | tail -n1)
+          cuerpo=$(echo "$respuesta" | sed '$d')
+
+          echo "HTTP $codigo"
+          echo "$cuerpo"
+
+          # Fallar en voz alta. Un cron que calla cuando algo va mal es
+          # exactamente cómo se llega a llevar dos meses sin generar tareas.
+          if [ "$codigo" != "200" ]; then
+            echo "::error::El barrido devolvió HTTP $codigo. Si es 401, falta el secreto CRON_SECRET o no coincide con el del servidor."
+            exit 1
+          fi
+
+          # Deja el resumen a la vista en la pestaña del workflow.
+          echo "### Tareas recurrentes" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          echo "$cuerpo" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

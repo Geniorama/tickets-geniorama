@@ -320,7 +320,9 @@
       "Bash(openssl req *)",
       "Bash(DATABASE_URL=postgresql://__CMDSUB_OUTPUT__@localhost:5432/geniorama_migtest?sslmode=disable NODE_TLS_REJECT_UNAUTHORIZED=0 VAPID_PUBLIC_KEY=BBpIp8qGcoxGVPlk2FWMEqdCcH-8g8Aqrqi1y0eP5__sjZX7qQAXqm_39AIwTqgGaY1vZwkUA1uXQYkbS69_6G0 VAPID_PRIVATE_KEY=W7gjvCtumm9BRhwVvd0OCCCRNpZLTqvh3tPuioxOIzY VAPID_SUBJECT=mailto:soporte@geniorama.co npx tsx ./tmp-push-real.ts)",
       "Bash(perl -0pi -e 's/\"version\": \"1\\\\.76\\\\.3\"/\"version\": \"1.77.0\"/' package.json)",
-      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.77\\\\.0\"/\"version\": \"1.77.1\"/' package.json)"
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.77\\\\.0\"/\"version\": \"1.77.1\"/' package.json)",
+      "Bash(python3 -c \"import yaml,sys; yaml.safe_load\\(open\\('.github/workflows/cron-recurring-tasks.yml'\\)\\); print\\('YAML válido'\\)\")",
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.77\\\\.1\"/\"version\": \"1.77.2\"/' package.json)"
     ]
   }
 }
