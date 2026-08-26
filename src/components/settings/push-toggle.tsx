@@ -128,8 +128,15 @@ export function PushToggle({ publicKey }: { publicKey: string }) {
     setAviso(null);
     setOcupado(true);
     const r = await sendTestPush();
-    if (r?.error) setError(r.error);
-    else setAviso("Enviado. Debería aparecer en un momento.");
+    if (r?.error) {
+      setError(r.error);
+    } else {
+      const n = r?.enviados ?? 0;
+      setAviso(
+        `Aceptado por ${n} ${n === 1 ? "dispositivo" : "dispositivos"}. Si no aparece nada, revisa las notificaciones del sistema para este navegador.` +
+          (r?.fallidos ? ` (${r.fallidos} sin entregar)` : ""),
+      );
+    }
     setOcupado(false);
   }
 

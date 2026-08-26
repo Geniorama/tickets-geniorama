@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.78.1] — 2026-08-26
+
+### El botón de prueba de las push mentía
+
+Decía «Enviado» aunque el servicio de push hubiera rechazado **todos** los dispositivos, y la tabla marcaba `lastUsedAt` en todas las suscripciones aunque no se hubiera entregado ninguna. Con eso, cuando las notificaciones no llegan, no hay forma de saber si falla el servidor, el navegador o el sistema operativo: todo dice que fue bien.
+
+Ahora el envío devuelve lo que pasó de verdad —cuántos dispositivos aceptaron, cuántos fallaron y **qué contestó el servicio de push**— y el botón lo enseña: «Aceptado por 2 dispositivos» o el error concreto («invalid JWT», «key does not match»…). `lastUsedAt` solo se marca en los que aceptaron.
+
+`notify()` sigue ignorando el resultado: un push que falla no puede tumbar la acción que lo provocó.
+
+---
+
 ## [1.78.0] — 2026-08-25
 
 ### Las tareas recurrentes ya avisan

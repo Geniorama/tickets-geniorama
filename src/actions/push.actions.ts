@@ -78,12 +78,29 @@ export async function sendTestPush() {
     return { error: "No hay ningún dispositivo activado" };
   }
 
-  await sendPushToUser(session.user.id, {
+  const r = await sendPushToUser(session.user.id, {
     title: "Notificaciones activadas",
     body: "Así se verán los avisos de Geniorama en este dispositivo.",
     url: "/dashboard",
     tag: "prueba",
   });
 
-  return { success: true };
+  // Se cuenta lo que pasó de verdad. Decir «Enviado» cuando el servicio de
+  // push rechazó los tres dispositivos deja al que lo prueba sin saber si el
+  // problema es el servidor, el navegador o el sistema operativo.
+  if (r.enviados === 0) {
+    const detalle = r.errores[0] ? ` (${r.errores[0]})` : "";
+    return {
+      error:
+        r.borradas > 0 && r.fallidos === 0
+          ? "El navegador ya no acepta este dispositivo. Desactiva y vuelve a activar."
+          : `Ningún dispositivo aceptó el aviso${detalle}`,
+    };
+  }
+
+  return {
+    success: true,
+    enviados: r.enviados,
+    fallidos: r.fallidos,
+  };
 }
