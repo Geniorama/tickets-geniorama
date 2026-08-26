@@ -123,20 +123,63 @@ export function PushToggle({ publicKey }: { publicKey: string }) {
     }
   }
 
+  /**
+   * Dónde mirar cuando el aviso llega pero no se ve.
+   *
+   * Es el fallo más difícil de diagnosticar de todo esto: el permiso del sitio
+   * está concedido, el push llega, el service worker lo muestra… y el sistema
+   * operativo lo esconde porque el navegador entero no tiene permiso o hay un
+   * modo de concentración activo. Nadie lo adivina solo.
+   */
+  function dondeMirar(): string {
+    const ua = navigator.userAgent;
+    if (/Mac OS X/.test(ua)) {
+      return "Ajustes del Sistema → Notificaciones → tu navegador, y comprueba que no tengas activado un modo de concentración.";
+    }
+    if (/Windows/.test(ua)) {
+      return "Configuración → Sistema → Notificaciones → tu navegador, y comprueba el Asistente de concentración.";
+    }
+    if (/Android/.test(ua)) {
+      return "Ajustes → Aplicaciones → tu navegador → Notificaciones.";
+    }
+    return "los ajustes de notificaciones del sistema para tu navegador.";
+  }
+
   async function probar() {
     setError(null);
     setAviso(null);
     setOcupado(true);
+
     const r = await sendTestPush();
     if (r?.error) {
       setError(r.error);
-    } else {
-      const n = r?.enviados ?? 0;
-      setAviso(
-        `Aceptado por ${n} ${n === 1 ? "dispositivo" : "dispositivos"}. Si no aparece nada, revisa las notificaciones del sistema para este navegador.` +
-          (r?.fallidos ? ` (${r.fallidos} sin entregar)` : ""),
-      );
+      setOcupado(false);
+      return;
     }
+
+    // Que el servicio de push lo acepte no significa que llegara. Se comprueba
+    // en el propio navegador si el service worker lo mostró: es el paso que
+    // separa «falla el servidor» de «lo esconde el sistema», y sin él la
+    // prueba deja igual de a ciegas que antes.
+    let llego = false;
+    try {
+      const reg = await navigator.serviceWorker.getRegistration();
+      for (let i = 0; i < 6 && !llego; i++) {
+        await new Promise((res) => setTimeout(res, 500));
+        const abiertas = (await reg?.getNotifications({ tag: "prueba" })) ?? [];
+        llego = abiertas.length > 0;
+      }
+    } catch {
+      // Si el navegador no deja consultarlas, se queda en el mensaje genérico.
+    }
+
+    const n = r?.enviados ?? 0;
+    setAviso(
+      llego
+        ? `Llegó a este dispositivo. Si no lo viste en pantalla, es el sistema quien lo está ocultando: revisa ${dondeMirar()}`
+        : `Aceptado por ${n} ${n === 1 ? "dispositivo" : "dispositivos"}, pero no se pudo confirmar que llegara a este navegador.` +
+            (r?.fallidos ? ` (${r.fallidos} sin entregar)` : ""),
+    );
     setOcupado(false);
   }
 

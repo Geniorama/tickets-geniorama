@@ -325,7 +325,8 @@
       "Bash(perl -0pi -e 's/\"version\": \"1\\\\.77\\\\.1\"/\"version\": \"1.77.2\"/' package.json)",
       "Bash(gh workflow *)",
       "Bash(gh secret *)",
-      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.78\\\\.0\"/\"version\": \"1.78.1\"/' package.json)"
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.78\\\\.0\"/\"version\": \"1.78.1\"/' package.json)",
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.78\\\\.1\"/\"version\": \"1.78.2\"/' package.json)"
     ]
   }
 }

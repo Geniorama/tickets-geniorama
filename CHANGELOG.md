@@ -9,6 +9,23 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.78.2] — 2026-08-26
+
+### La prueba de push ahora confirma que el aviso llegó al dispositivo
+
+Que el servicio de push acepte el envío no significa que se vea. Entre «aceptado» y «lo estás viendo» quedan dos eslabones que la prueba no miraba: si el service worker recibió el aviso, y si el sistema operativo lo enseñó.
+
+Ahora, tras enviar, el navegador comprueba durante tres segundos si el aviso llegó de verdad —consultando las notificaciones del propio service worker— y lo dice:
+
+- **Llegó**: entonces el problema es que el sistema lo está ocultando, y se indica exactamente dónde mirar según el sistema (Ajustes del Sistema → Notificaciones en macOS, Configuración → Notificaciones y Asistente de concentración en Windows).
+- **No llegó**: se distingue de lo anterior y se dice cuántos dispositivos lo aceptaron.
+
+Es el paso que separa «falla el servidor» de «lo esconde el sistema». Sin él, una prueba que sale bien deja igual de a ciegas que una que no sale.
+
+Es también el fallo más difícil de diagnosticar de todo esto: el permiso del sitio concedido, el push entregado, el service worker mostrándolo… y el sistema escondiéndolo porque el navegador entero no tiene permiso o hay un modo de concentración activo. Nadie lo adivina solo.
+
+---
+
 ## [1.78.1] — 2026-08-26
 
 ### El botón de prueba de las push mentía
