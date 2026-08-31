@@ -15,6 +15,10 @@ import { contactPayload, dealPayload } from "@/lib/hooks/payload";
 import { generateInvitationToken } from "@/actions/invitation.actions";
 import { sendInvitationEmail } from "@/lib/email";
 import { grantPortalAccess } from "@/lib/crm/portal-access";
+// Compartido con Facturación: dos lecturas de importe acaban discrepando en
+// cómo tratan los puntos de miles justo cuando alguien compara una
+// oportunidad con su cobro.
+import { parseAmount } from "@/lib/money";
 import { normalizePhone, DEFAULT_DIAL } from "@/lib/crm/phone";
 
 const BASE_URL = process.env.AUTH_URL ?? "http://localhost:3000";
@@ -324,14 +328,6 @@ const dealSchema = z.object({
   ownerId:   z.string().optional(),
   notes:     z.string().max(4000).optional(),
 });
-
-/** El importe llega como texto del formulario y puede venir vacío o con puntos de miles. */
-function parseAmount(raw: FormDataEntryValue | null): number | null {
-  const text = String(raw ?? "").trim();
-  if (!text) return null;
-  const n = Number(text.replace(/[^\d.,-]/g, "").replace(/\./g, "").replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-}
 
 function parseDate(raw: FormDataEntryValue | null): Date | null {
   const text = String(raw ?? "").trim();

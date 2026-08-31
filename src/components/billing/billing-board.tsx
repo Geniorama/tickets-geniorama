@@ -15,6 +15,7 @@ import {
 import { formatAmount, parseAmount } from "@/lib/money";
 import { setBillingStatus } from "@/actions/billing.actions";
 import { formatDate } from "@/lib/format-date";
+import { AmountInput } from "@/components/ui/amount-input";
 
 export type BoardItem = {
   id: string;
@@ -301,16 +302,16 @@ export function BillingBoard({
               </p>
             </div>
 
-            <input
-              autoFocus
-              inputMode="numeric"
+            <AmountInput
               value={abono}
-              onChange={(e) => setAbono(e.target.value)}
-              placeholder="500000"
+              onValueChange={setAbono}
+              placeholder="500.000"
+              ariaLabel="Importe abonado"
               style={{
                 width: "100%", padding: "0.55rem 0.75rem", fontSize: "0.875rem",
                 borderRadius: "0.5rem", border: "1px solid var(--app-border)",
                 backgroundColor: "var(--app-bg)", color: "var(--app-body-text)",
+                textAlign: "right", fontVariantNumeric: "tabular-nums",
               }}
             />
 

@@ -9,6 +9,25 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.80.1] — 2026-08-31
+
+### Los importes se escriben con separadores de miles
+
+Los totales ya se **mostraban** con puntos, pero al teclearlos no: había que contar ceros con el dedo para distinguir `1200000` de `12000000`. En un importe de factura, equivocarse en un cero no es un detalle.
+
+Ahora el campo va poniendo los puntos mientras se escribe, en las líneas de un cobro, en el abono parcial y en el valor de una oportunidad del CRM.
+
+Dos cosas que se cuidaron y se notan al usarlo:
+
+- **El cursor no salta.** Al insertar un punto, el texto crece y el cursor se iría al final; se reposiciona contando **dígitos** en vez de caracteres, así que se puede corregir en medio de un número.
+- **No hace falta un campo oculto.** Se envía el texto formateado y el servidor lo entiende, porque ya quitaba los puntos al leerlo. Un campo oculto en paralelo es una cosa más que puede desincronizarse de lo que se ve.
+
+De paso, el CRM tenía **su propia copia** de la lectura de importes. Ahora usa la misma que Facturación: dos formas de interpretar los puntos de miles acaban discrepando justo cuando alguien compara una oportunidad con su cobro. Es la misma consolidación que ya se hizo con el formateo.
+
+15 comprobaciones sobre el formateo y su ida y vuelta: que las letras se ignoran, que los ceros de la izquierda se van, que reformatear no rompe, y que las cuentas de un cobro cuadran partiendo del texto tecleado.
+
+---
+
 ## [1.80.0] — 2026-08-31
 
 ### Un cobro se compone de varias líneas, cada una exenta o con IVA

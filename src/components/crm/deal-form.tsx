@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import type { DealStage } from "@/generated/prisma";
 import { DEAL_STAGES, DEAL_STAGE_LABELS } from "@/lib/crm/deals";
 import { createDeal, updateDeal } from "@/actions/crm.actions";
+import { AmountInput } from "@/components/ui/amount-input";
 
 export type FormAccount = {
   id: string;
@@ -113,10 +114,10 @@ export function DealForm({
         </div>
         <div>
           <label htmlFor="amount" style={labelStyle}>Valor estimado {opcional}</label>
-          <input
-            id="amount" name="amount" inputMode="numeric" style={inputStyle}
+          <AmountInput
+            id="amount" name="amount" style={inputStyle}
             defaultValue={initial?.amount ?? ""}
-            placeholder="8000000"
+            placeholder="8.000.000"
           />
         </div>
       </div>

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { calcularTotales, describirImpuesto, EXENTO, IVA_RATE, type LineaCobro } from "@/lib/billing/totals";
 import { formatAmount, parseAmount } from "@/lib/money";
+import { AmountInput, formatearImporte } from "@/components/ui/amount-input";
 
 /**
  * Las líneas de un cobro, con su total al pie.
@@ -24,7 +25,7 @@ const inputStyle: React.CSSProperties = {
 export function LineEditor({ initial }: { initial?: LineaCobro[] }) {
   const [filas, setFilas] = useState<Fila[]>(
     initial && initial.length > 0
-      ? initial.map((l) => ({ concept: l.concept, amount: String(l.amount), taxRate: l.taxRate }))
+      ? initial.map((l) => ({ concept: l.concept, amount: formatearImporte(l.amount), taxRate: l.taxRate }))
       : [{ concept: "", amount: "", taxRate: EXENTO }],
   );
 
@@ -60,13 +61,12 @@ export function LineEditor({ initial }: { initial?: LineaCobro[] }) {
               placeholder="Hosting — septiembre"
               style={inputStyle}
             />
-            <input
+            <AmountInput
               value={f.amount}
-              onChange={(e) => actualizar(i, { amount: e.target.value })}
-              inputMode="numeric"
-              placeholder="1200000"
+              onValueChange={(v) => actualizar(i, { amount: v })}
+              placeholder="1.200.000"
               style={{ ...inputStyle, textAlign: "right", fontVariantNumeric: "tabular-nums" }}
-              aria-label="Importe de la línea"
+              ariaLabel="Importe de la línea"
             />
             <select
               value={f.taxRate}
