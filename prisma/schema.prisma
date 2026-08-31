@@ -51,6 +51,19 @@ enum ActivityType {
   WHATSAPP
 }
 
+/// Estado de un cobro, en el orden en que avanza.
+///
+/// `ABONADO` es la razón de que un cobro tenga importe y no sea una tarea
+/// suelta: significa que entró parte del dinero, no todo. Sin un monto contra
+/// el que comparar, «abonado» no querría decir nada.
+enum BillingStatus {
+  BACKLOG
+  POR_FACTURAR
+  FACTURADO
+  ABONADO
+  PAGADO
+}
+
 enum PlanType {
   BOLSA_HORAS
   SOPORTE_MENSUAL
@@ -126,6 +139,7 @@ enum AppKey {
   PORTAL
   ADMIN
   CRM
+  FACTURACION
 }
 
 // Nivel dentro de un módulo. Es independiente del rol: el rol delimita QUÉ
@@ -183,6 +197,7 @@ model Company {
   services     Service[]
   sites        Site[]
   vaultEntries VaultEntry[]
+  billingItems BillingItem[]
   owner        User?     @relation("AccountOwner", fields: [ownerId], references: [id])
   contacts     Contact[]
   deals        Deal[]
@@ -374,6 +389,8 @@ model User {
 
   // CRM
   pushSubscriptions PushSubscription[]
+  billingOwned      BillingItem[] @relation("BillingOwner")
+  billingCreated    BillingItem[] @relation("BillingCreatedBy")
 
   ownedAccounts   Company[] @relation("AccountOwner")
   contactProfile  Contact?  @relation("ContactUser")
@@ -1001,6 +1018,54 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+/// Un cobro: algo que hay que facturarle a una empresa y cobrar.
+///
+/// Sustituye al tablero de Trello. Cada tarjeta era un cobro concreto —«Hosting
+/// yamahaumb.com, septiembre»— moviéndose entre listas, así que aquí es un
+/// registro con importe y estado, no una tarea.
+///
+/// El dinero se guarda en dos campos: `amount` es lo que se cobra y `paidAmount`
+/// lo que ya entró. Un solo campo obligaría a elegir entre saber cuánto se
+/// facturó o cuánto se ha recibido, y en un abono parcial hacen falta los dos.
+model BillingItem {
+  id      String        @id @default(cuid())
+  /// Qué se cobra, en una línea.
+  concept String
+  status  BillingStatus @default(BACKLOG)
+
+  /// Lo que se factura.
+  amount     Float
+  /// Lo que ya entró. Igual a `amount` cuando está pagado.
+  paidAmount Float @default(0) @map("paid_amount")
+
+  companyId String  @map("company_id")
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  /// Cuándo toca facturarlo o, si ya se emitió, cuándo vence la factura.
+  dueDate       DateTime? @map("due_date")
+  invoiceNumber String?   @map("invoice_number")
+  /// Se sellan al pasar por su estado, y se borran si el cobro retrocede.
+  invoicedAt    DateTime? @map("invoiced_at")
+  paidAt        DateTime? @map("paid_at")
+
+  notes String? @db.Text
+
+  /// Quién lo persigue.
+  ownerId String? @map("owner_id")
+  owner   User?   @relation("BillingOwner", fields: [ownerId], references: [id])
+
+  createdById String @map("created_by_id")
+  createdBy   User   @relation("BillingCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([companyId])
+  @@index([dueDate])
+  @@map("billing_items")
 }
 
 model Notification {

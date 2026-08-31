@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Ticket, Building2, Users, BookOpen, CreditCard,
   BarChart3, FolderKanban, ListTodo, TrendingUp, Server as ServerIcon, Globe,
   KeyRound, Plug, Sparkles, Repeat, Webhook, LayoutList, LayoutTemplate, Bot,
-  CalendarClock, Wrench, Briefcase, ShieldCheck, Handshake, Target,
+  CalendarClock, Wrench, Briefcase, ShieldCheck, Handshake, Target, Receipt,
 } from "lucide-react";
 import type { AppKey, Role } from "@/generated/prisma";
 
@@ -45,6 +45,7 @@ export const APP_ICONS: Record<AppKey, React.ElementType> = {
   PORTAL:          Briefcase,
   ADMIN:           ShieldCheck,
   CRM:             Handshake,
+  FACTURACION:     Receipt,
 };
 
 export const APP_SECTIONS: Record<AppKey, NavSection[]> = {
@@ -81,6 +82,9 @@ export const APP_SECTIONS: Record<AppKey, NavSection[]> = {
     { href: "/crm/oportunidades", label: "Oportunidades", icon: Target, requires: "ver" },
     { href: "/crm/contactos", label: "Contactos", icon: Users, requires: "ver" },
   ],
+  FACTURACION: [
+    { href: "/facturacion", label: "Cobros", icon: Receipt, isRoot: true, requires: "ver" },
+  ],
 };
 
 /**
@@ -105,6 +109,7 @@ const EXTRA_PREFIXES: Partial<Record<AppKey, string[]>> = {
   PORTAL:    ["/mis-empresas", "/mis-planes", "/mis-servicios"],
   ADMIN:     ["/admin/users", "/admin/companies", "/admin/plans", "/admin/estadisticas", "/admin/integraciones"],
   CRM:       ["/crm"],
+  FACTURACION: ["/facturacion"],
 };
 
 /**

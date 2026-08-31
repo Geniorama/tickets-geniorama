@@ -63,15 +63,7 @@ export const ACTIVITY_TYPES: ActivityType[] = [
   "NOTA", "LLAMADA", "CORREO", "REUNION", "WHATSAPP",
 ];
 
-/**
- * Los importes se muestran sin decimales: en una propuesta comercial los
- * centavos son ruido, y la columna del tablero es estrecha.
- */
-export function formatAmount(amount: number | null | undefined): string | null {
-  if (amount === null || amount === undefined) return null;
-  return new Intl.NumberFormat("es-CO", {
-    style: "currency",
-    currency: "COP",
-    maximumFractionDigits: 0,
-  }).format(amount);
-}
+// El formateo de dinero se mudó a `lib/money.ts` al llegar Facturación: dos
+// copias acaban discrepando justo cuando alguien compara una oportunidad con
+// su cobro. Se reexporta para no tocar los seis sitios que ya lo importaban.
+export { formatAmount } from "@/lib/money";

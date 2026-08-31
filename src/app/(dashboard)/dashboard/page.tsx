@@ -2,6 +2,7 @@ import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
 import { getAccessibleApps } from "@/lib/access/can";
 import { OPEN_STAGES } from "@/lib/crm/deals";
+import { formatAmount } from "@/lib/money";
 import { ModuleGrid, type ModuleSummary } from "@/components/layout/module-grid";
 import { AttentionBar, type AttentionItem } from "@/components/dashboard/attention-bar";
 import { AlertCard } from "@/components/dashboard/alert-card";
@@ -132,6 +133,19 @@ export default async function DashboardPage() {
         prisma.deal.count({ where: { stage: { in: OPEN_STAGES } } }),
       ])
     : [[], 0];
+  // Lo que falta por cobrar. Solo se consulta si el módulo está concedido.
+  const porCobrar = apps.includes("FACTURACION")
+    ? await prisma.billingItem.aggregate({
+        where: { status: { not: "PAGADO" } },
+        _sum: { amount: true, paidAmount: true },
+        _count: { _all: true },
+      })
+    : null;
+  const saldoPorCobrar = Math.max(
+    0,
+    (porCobrar?._sum.amount ?? 0) - (porCobrar?._sum.paidAmount ?? 0),
+  );
+
   const crmBy = (stage: AccountStage) =>
     crmCounts.find((c) => c.stage === stage)?._count._all ?? 0;
   const enSeguimiento = crmBy("LEAD") + crmBy("PROSPECTO");
@@ -278,6 +292,13 @@ export default async function DashboardPage() {
             : enSeguimiento > 0
               ? { value: enSeguimiento, label: "en seguimiento" }
               : { value: crmBy("CLIENTE"), label: crmBy("CLIENTE") === 1 ? "cliente" : "clientes" },
+        }
+      : {}),
+    ...(apps.includes("FACTURACION") && porCobrar
+      ? {
+          FACTURACION: saldoPorCobrar > 0
+            ? { value: formatAmount(saldoPorCobrar) ?? "0", label: "por cobrar" }
+            : { value: porCobrar._count._all, label: porCobrar._count._all === 1 ? "cobro" : "cobros" },
         }
       : {}),
     ...(admin && (expiredAlertPlans.length > 0)

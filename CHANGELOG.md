@@ -9,6 +9,48 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.79.0] — 2026-08-31
+
+### Módulo de Facturación
+
+Sustituye el tablero de Trello, con las mismas cinco listas: **Backlog → Por facturar → Facturado → Abonado → Pagado**.
+
+#### «Abonado» es lo que define el modelo
+
+Un abono parcial solo significa algo contra un importe, así que una tarjeta aquí no es una tarea: es un **cobro con dinero**. Y el dinero va en dos campos —lo que se factura y lo que ya entró—, porque uno solo obligaría a elegir entre saber cuánto se facturó o cuánto se ha recibido, y en un abono hacen falta los dos.
+
+Al soltar una tarjeta en «Abonado» se pregunta cuánto entró: es la única columna que no se puede deducir del movimiento. La tarjeta muestra entonces lo abonado y **lo que falta**, que es la cifra que se busca.
+
+#### El estado manda sobre el dinero y las fechas
+
+Un cobro va hacia adelante y hacia atrás: una factura se anula, un pago se devuelve. Cada sello se pone al entrar en su estado y **se quita al salir** — volver a «Por facturar» borra la fecha de pago, la de facturación, lo abonado y el número de factura. Sin eso quedan cobros «por facturar» con número de factura y fecha de pago, que es justo lo que hace que nadie vuelva a fiarse del tablero.
+
+Esa lógica vive en `src/lib/billing/move.ts` como función pura, fuera de la Server Action, para poder comprobarla caso por caso. Toca dinero: misma separación que se hizo con el acceso al portal.
+
+#### Detalles que se notan al usarlo
+
+- **Las columnas suman lo que falta por cobrar**, no lo facturado. En «Abonado», sumar el total mentiría sobre la caja pendiente.
+- **Los pagados se ocultan por defecto** y el tablero dice cuántos esconde, con la lección ya aprendida en el CRM.
+- **El número de factura solo se pide cuando ya se emitió.** Pedirlo antes invita a inventárselo.
+- **Backlog va primero**, no al final como en Trello: es lo que todavía no toca, y a la derecha está lo cobrado. Si estorba ahí, cambiarlo es una línea.
+- El inicio muestra **cuánto hay por cobrar** en la tarjeta del módulo.
+
+#### Permisos
+
+Módulo nuevo en el catálogo, con niveles desde el primer día. **Ningún cliente puede tenerlo**: aquí está lo que se le cobra a todos, no solo a él. Borrar un cobro pide Gestor, porque borra el rastro de un dinero.
+
+#### Por dentro
+
+El formateo de importes se mudó de `lib/crm/deals.ts` a `lib/money.ts`: al llegar Facturación habría hecho falta una segunda copia, y dos formateadores de dinero acaban discrepando justo cuando alguien compara una oportunidad con su cobro.
+
+El alta del módulo en el enum `AppKey` va en **su propia migración**. PostgreSQL deja añadir un valor a un enum dentro de una transacción pero no usarlo en esa misma transacción; separarlo evita que un día, al conceder permisos en la misma migración, falle solo en producción.
+
+#### Comprobado
+
+29 comprobaciones: las cinco listas y su orden, que un cliente no puede tener el módulo, que las rutas resuelven y no hay etiquetas duplicadas, la lectura de importes tecleados con puntos y signo de peso, y sobre todo el recorrido completo del tablero — facturar, abonar de más (se topa en el total), pagar, y **retroceder**, que es donde se ensucia todo.
+
+---
+
 ## [1.78.2] — 2026-08-26
 
 ### La prueba de push ahora confirma que el aviso llegó al dispositivo

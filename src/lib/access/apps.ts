@@ -87,6 +87,16 @@ export const APPS: readonly AppDefinition[] = [
     enforced: true,
     allowedRoles: ["ADMINISTRADOR", "COLABORADOR"],
   },
+  {
+    key: "FACTURACION",
+    name: "Facturación",
+    description: "Qué hay por facturar, facturado y cobrado.",
+    href: "/facturacion",
+    built: true,
+    enforced: true,
+    // Nunca un cliente: aquí está lo que se le cobra a todos, no solo a él.
+    allowedRoles: ["ADMINISTRADOR", "COLABORADOR"],
+  },
 ] as const;
 
 export const APP_BY_KEY = new Map(APPS.map((a) => [a.key, a]));
