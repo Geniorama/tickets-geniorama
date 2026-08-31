@@ -9,6 +9,7 @@ import { getBillingFormData } from "@/lib/billing/form-data";
 import { BillingForm } from "@/components/billing/billing-form";
 import { BackButton } from "@/components/ui/back-button";
 import { formatDate } from "@/lib/format-date";
+import { describirImpuesto } from "@/lib/billing/totals";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,8 +30,13 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
   const cobro = await prisma.billingItem.findUnique({
     where: { id },
     select: {
-      id: true, concept: true, status: true, amount: true, paidAmount: true,
+      id: true, concept: true, status: true, amount: true, subtotal: true,
+      taxAmount: true, paidAmount: true,
       dueDate: true, invoiceNumber: true, invoicedAt: true, paidAt: true, notes: true,
+      lines: {
+        orderBy: { position: "asc" },
+        select: { id: true, concept: true, amount: true, taxRate: true },
+      },
       companyId: true, ownerId: true,
       company: { select: { id: true, name: true } },
       owner: { select: { name: true } },
@@ -87,8 +93,26 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
             El dinero
           </p>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-            <Fila etiqueta="Se factura" valor={formatAmount(cobro.amount)} />
+          {/* El desglose por concepto: es lo que se compara contra la factura
+              de verdad cuando algo no cuadra. */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem", marginBottom: "0.85rem" }}>
+            {cobro.lines.map((l) => (
+              <div key={l.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem" }}>
+                <span style={{ fontSize: "0.8125rem", color: "var(--app-nav-text)", minWidth: 0 }}>
+                  {l.concept}
+                  <span style={{ color: "var(--app-text-muted)" }}> · {describirImpuesto(l.taxRate)}</span>
+                </span>
+                <span style={{ fontSize: "0.875rem", color: "var(--app-body-text)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                  {formatAmount(l.amount)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", paddingTop: "0.75rem", borderTop: "1px solid var(--app-border)" }}>
+            <Fila etiqueta="Subtotal" valor={formatAmount(cobro.subtotal)} />
+            <Fila etiqueta="IVA" valor={formatAmount(cobro.taxAmount)} />
+            <Fila etiqueta="Total" valor={formatAmount(cobro.amount)} />
             {cobro.paidAmount > 0 && (
               <Fila etiqueta="Abonado" valor={formatAmount(cobro.paidAmount)} color="#f59e0b" />
             )}
@@ -128,7 +152,7 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
                 id: cobro.id,
                 concept: cobro.concept,
                 status: cobro.status,
-                amount: cobro.amount,
+                lines: cobro.lines.map((l) => ({ concept: l.concept, amount: l.amount, taxRate: l.taxRate })),
                 dueDate: asDateInput(cobro.dueDate),
                 invoiceNumber: cobro.invoiceNumber,
                 ownerId: cobro.ownerId,

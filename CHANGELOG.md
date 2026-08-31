@@ -9,6 +9,37 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.80.0] — 2026-08-31
+
+### Un cobro se compone de varias líneas, cada una exenta o con IVA
+
+Un cobro casi nunca es una sola cosa: hosting, dominio y una hora de soporte van en la misma factura, y cada concepto puede ir exento o gravado. Con un único importe había que decidir el impuesto para el cobro entero, que es justo lo que no se puede hacer.
+
+Ahora el formulario tiene tantos conceptos como haga falta —cada uno con su importe y su **Exento / +19% IVA**— y muestra **subtotal, IVA y total** mientras se escribe. La ficha del cobro enseña el desglose línea a línea, que es lo que se compara contra la factura real cuando algo no cuadra.
+
+#### El IVA se calcula como en una factura, no línea a línea
+
+Esto lo cambió una prueba. Sumando el impuesto de cada línea por separado, tres conceptos de 333.333 al 19 % dan **189.999**; una factura declara «base gravada 19 %: 1.000.000, IVA: 190.000». El impuesto se calcula ahora **por tarifa sobre la base acumulada**, que es como se declara y evita que el redondeo se acumule. Un peso no rompe nada, pero es el peso que nadie sabe explicar cuando no cuadra.
+
+El porcentaje se guarda **por línea** en vez de un booleano «lleva IVA», para que el día que aparezca un 5 % sea un dato y no una migración. Cero es exento.
+
+#### Detalles
+
+- **El total lo calcula siempre el servidor.** Lo que manda el navegador es para pintar; si el cliente pudiera fijar el total, un cobro podría decir cualquier cosa.
+- **El desglose se enseña aunque todo vaya exento.** Ver «IVA $0» confirma que se eligió, en vez de dejar la duda de si se olvidó.
+- **Los abonos y los pagos son contra el total con IVA**, no contra la base.
+- `amount` pasa a ser el total y se guarda junto a `subtotal` y `taxAmount`: el tablero suma columnas enteras y la ficha de una empresa lista sus cobros, y unir las líneas en cada fila costaría en todas las pantallas. A cambio, solo se escribe al recalcular.
+
+#### La migración
+
+Cualquier cobro que ya existiera conserva su importe como total y gana una línea con ese mismo importe, **exenta**: nadie había declarado IVA todavía y suponerlo cambiaría cifras que alguien ya miró. Probado con un cobro de la forma anterior — mantiene su total, gana su línea y el desglose cuadra.
+
+#### Comprobado
+
+18 comprobaciones sobre el cálculo y su recorrido: todo exento, todo gravado, la mezcla de ambos en el mismo cobro, sin líneas, el agrupado por tarifa que no mezcla exentas con gravadas, que no quedan centavos sueltos, y que un abono deja pendiente el resto **del total con IVA**.
+
+---
+
 ## [1.79.0] — 2026-08-31
 
 ### Módulo de Facturación

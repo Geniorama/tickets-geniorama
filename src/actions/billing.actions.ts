@@ -9,14 +9,22 @@ import type { BillingStatus } from "@/generated/prisma";
 import { BILLING_STATUSES, isInvoiced } from "@/lib/billing/status";
 import { moveBillingStatus, sellosPara } from "@/lib/billing/move";
 import { parseAmount } from "@/lib/money";
+import { calcularTotales } from "@/lib/billing/totals";
 
 const estados = BILLING_STATUSES as [BillingStatus, ...BillingStatus[]];
+
+const lineaSchema = z.object({
+  concept: z.string().min(1, "Cada línea necesita un concepto").max(200),
+  amount:  z.number().positive("El importe de cada línea debe ser mayor que cero"),
+  // Cero es exento. Se acota para que nadie mande un 900 % desde el cliente.
+  taxRate: z.number().min(0).max(100),
+});
 
 const cobroSchema = z.object({
   concept:   z.string().min(1, "Escribe qué se cobra").max(200),
   companyId: z.string().min(1, "La empresa es requerida"),
   status:    z.enum(estados).default("BACKLOG"),
-  amount:    z.number().positive("El importe debe ser mayor que cero"),
+  lines:     z.array(lineaSchema).min(1, "Añade al menos una línea"),
   dueDate:   z.date().nullable(),
   invoiceNumber: z.string().max(60).optional(),
   ownerId:   z.string().optional(),
@@ -30,12 +38,31 @@ function parseDate(raw: FormDataEntryValue | null): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+/**
+ * Las líneas viajan como JSON en un campo oculto: son una lista de longitud
+ * variable, y nombrarlas `linea[0][importe]` obliga a reconstruir el array a
+ * mano en el servidor.
+ */
+function leerLineas(raw: FormDataEntryValue | null): unknown {
+  try {
+    const parsed = JSON.parse(String(raw ?? "[]"));
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((l: { concept?: unknown; amount?: unknown; taxRate?: unknown }) => ({
+      concept: String(l?.concept ?? "").trim(),
+      amount: parseAmount(l?.amount) ?? 0,
+      taxRate: Number(l?.taxRate ?? 0),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 function leer(formData: FormData) {
   return cobroSchema.safeParse({
     concept:   formData.get("concept"),
     companyId: formData.get("companyId"),
     status:    formData.get("status") || "BACKLOG",
-    amount:    parseAmount(formData.get("amount")) ?? 0,
+    lines:     leerLineas(formData.get("lines")),
     dueDate:   parseDate(formData.get("dueDate")),
     invoiceNumber: formData.get("invoiceNumber") || undefined,
     ownerId:   formData.get("ownerId") || undefined,
@@ -53,14 +80,27 @@ export async function createBillingItem(formData: FormData) {
   const empresa = await prisma.company.findUnique({ where: { id: d.companyId }, select: { id: true } });
   if (!empresa) return { error: "Empresa no encontrada" };
 
-  const ajuste = sellosPara(d.status, { amount: d.amount, paidAmount: 0, invoicedAt: null, paidAt: null });
+  // Los totales se calculan **siempre en el servidor**: lo que mande el
+  // navegador es para pintar, no para guardar.
+  const totales = calcularTotales(d.lines);
+  const ajuste = sellosPara(d.status, { amount: totales.total, paidAmount: 0, invoicedAt: null, paidAt: null });
 
   const cobro = await prisma.billingItem.create({
     data: {
       concept: d.concept.trim(),
       companyId: d.companyId,
       status: d.status,
-      amount: d.amount,
+      amount: totales.total,
+      subtotal: totales.subtotal,
+      taxAmount: totales.taxAmount,
+      lines: {
+        create: d.lines.map((l, i) => ({
+          concept: l.concept.trim(),
+          amount: l.amount,
+          taxRate: l.taxRate,
+          position: i,
+        })),
+      },
       dueDate: d.dueDate,
       invoiceNumber: isInvoiced(d.status) ? (d.invoiceNumber?.trim() || null) : null,
       ownerId: d.ownerId || null,
@@ -88,14 +128,28 @@ export async function updateBillingItem(id: string, formData: FormData) {
   });
   if (!actual) return { error: "Cobro no encontrado" };
 
-  const ajuste = sellosPara(d.status, { ...actual, amount: d.amount });
+  const totales = calcularTotales(d.lines);
+  const ajuste = sellosPara(d.status, { ...actual, amount: totales.total });
 
   await prisma.billingItem.update({
     where: { id },
     data: {
       concept: d.concept.trim(),
       status: d.status,
-      amount: d.amount,
+      amount: totales.total,
+      subtotal: totales.subtotal,
+      taxAmount: totales.taxAmount,
+      // Se reemplazan enteras: intentar casar cuál cambió obliga a mandar ids
+      // desde el cliente y a confiar en ellos.
+      lines: {
+        deleteMany: {},
+        create: d.lines.map((l, i) => ({
+          concept: l.concept.trim(),
+          amount: l.amount,
+          taxRate: l.taxRate,
+          position: i,
+        })),
+      },
       dueDate: d.dueDate,
       invoiceNumber: isInvoiced(d.status) ? (d.invoiceNumber?.trim() || null) : null,
       ownerId: d.ownerId || null,

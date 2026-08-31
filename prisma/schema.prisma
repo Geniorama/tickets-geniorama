@@ -1035,8 +1035,17 @@ model BillingItem {
   concept String
   status  BillingStatus @default(BACKLOG)
 
-  /// Lo que se factura.
+  /// El total a cobrar: bases más IVA. Se recalcula al tocar las líneas.
+  ///
+  /// Está guardado y no calculado al vuelo a propósito: el tablero suma
+  /// columnas enteras y la ficha de una empresa lista sus cobros, y hacer un
+  /// join a las líneas para cada fila costaría en cada pantalla. A cambio,
+  /// **solo se escribe desde `recalcularTotales`**, nunca a mano.
   amount     Float
+  /// Suma de las bases, sin impuestos.
+  subtotal   Float @default(0)
+  /// Lo que aporta el IVA. Cero si todo va exento.
+  taxAmount  Float @default(0) @map("tax_amount")
   /// Lo que ya entró. Igual a `amount` cuando está pagado.
   paidAmount Float @default(0) @map("paid_amount")
 
@@ -1062,10 +1071,36 @@ model BillingItem {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  lines BillingLine[]
+
   @@index([status])
   @@index([companyId])
   @@index([dueDate])
   @@map("billing_items")
+}
+
+/// Una línea de un cobro: un concepto con su base y su impuesto.
+///
+/// Un cobro casi nunca es una sola cosa —hosting, dominio y una hora de
+/// soporte van en la misma factura— y cada una puede ir exenta o con IVA. Con
+/// un único importe habría que decidir el impuesto para todo el cobro, que es
+/// justo lo que no se puede hacer.
+model BillingLine {
+  id      String @id @default(cuid())
+  concept String
+  /// Base imponible, sin impuesto.
+  amount  Float
+  /// Porcentaje de IVA. **Cero es exento.** Se guarda por línea y no como un
+  /// booleano para que un día un 5 % sea un dato y no una migración.
+  taxRate Float  @default(0) @map("tax_rate")
+  /// Para conservar el orden en que se escribieron.
+  position Int   @default(0)
+
+  billingItemId String      @map("billing_item_id")
+  billingItem   BillingItem @relation(fields: [billingItemId], references: [id], onDelete: Cascade)
+
+  @@index([billingItemId, position])
+  @@map("billing_lines")
 }
 
 model Notification {

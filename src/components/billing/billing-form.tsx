@@ -4,12 +4,14 @@ import { useState, useTransition } from "react";
 import type { BillingStatus } from "@/generated/prisma";
 import { BILLING_STATUSES, BILLING_STATUS_LABELS, isInvoiced } from "@/lib/billing/status";
 import { createBillingItem, updateBillingItem } from "@/actions/billing.actions";
+import { LineEditor } from "@/components/billing/line-editor";
+import type { LineaCobro } from "@/lib/billing/totals";
 
 type Initial = {
   id: string;
   concept: string;
   status: BillingStatus;
-  amount: number;
+  lines: LineaCobro[];
   dueDate: string | null;
   invoiceNumber: string | null;
   ownerId: string | null;
@@ -70,12 +72,15 @@ export function BillingForm({
       <input type="hidden" name="companyId" value={companyId} />
 
       <div>
-        <label htmlFor="concept" style={labelStyle}>Qué se cobra</label>
+        <label htmlFor="concept" style={labelStyle}>Título del cobro</label>
         <input
           id="concept" name="concept" required autoFocus={!editando} style={inputStyle}
           defaultValue={initial?.concept}
-          placeholder="Hosting yamahaumb.com — septiembre"
+          placeholder="Servicios septiembre — Yamaha UMB"
         />
+        <p style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
+          Cómo se reconoce en el tablero. El detalle va abajo, en los conceptos.
+        </p>
       </div>
 
       <div>
@@ -91,26 +96,18 @@ export function BillingForm({
         )}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-        <div>
-          <label htmlFor="status" style={labelStyle}>Estado</label>
-          <select
-            id="status" name="status" value={status} style={inputStyle}
-            onChange={(e) => setStatus(e.target.value as BillingStatus)}
-          >
-            {BILLING_STATUSES.map((s) => (
-              <option key={s} value={s}>{BILLING_STATUS_LABELS[s]}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor="amount" style={labelStyle}>Importe</label>
-          <input
-            id="amount" name="amount" required inputMode="numeric" style={inputStyle}
-            defaultValue={initial?.amount ?? ""}
-            placeholder="1200000"
-          />
-        </div>
+      <LineEditor initial={initial?.lines} />
+
+      <div>
+        <label htmlFor="status" style={labelStyle}>Estado</label>
+        <select
+          id="status" name="status" value={status} style={inputStyle}
+          onChange={(e) => setStatus(e.target.value as BillingStatus)}
+        >
+          {BILLING_STATUSES.map((s) => (
+            <option key={s} value={s}>{BILLING_STATUS_LABELS[s]}</option>
+          ))}
+        </select>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
