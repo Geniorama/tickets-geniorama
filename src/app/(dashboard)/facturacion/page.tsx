@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Bell, PieChart } from "lucide-react";
+import { Plus, Bell, PieChart, Link2 } from "lucide-react";
 import { requireCan, can } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { BILLING_STATUSES, OPEN_BILLING_STATUSES, pendiente } from "@/lib/billing/status";
@@ -112,6 +112,19 @@ export default async function BillingPage({
             <PieChart style={{ width: "0.9rem", height: "0.9rem" }} />
             Qué se vendió
           </Link>
+          {canManage && (
+            <Link
+              href="/facturacion/xubio"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "0.4rem",
+                fontSize: "0.8125rem", padding: "0.45rem 0.85rem", borderRadius: "0.5rem",
+                border: "1px solid var(--app-border)", color: "var(--app-nav-text)", textDecoration: "none",
+              }}
+            >
+              <Link2 style={{ width: "0.9rem", height: "0.9rem" }} />
+              Xubio
+            </Link>
+          )}
           {canManage && (
             <Link
               href="/facturacion/recordatorios"

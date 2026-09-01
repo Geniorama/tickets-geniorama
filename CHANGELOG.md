@@ -9,6 +9,42 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.88.0] — 2026-09-01
+
+### Conexión con Xubio: primera entrega
+
+Pantalla nueva en **Facturación → Xubio**. Por ahora hace una cosa: poner en
+correspondencia las empresas de aquí con los clientes de allá, que es el paso
+sin el cual no se puede facturar nada. **Todavía no emite ninguna factura**;
+eso va en la siguiente entrega y con un botón por cobro.
+
+La correspondencia se busca en tres pasos, y el orden importa: primero el
+vínculo ya guardado —porque alguien lo decidió—, luego el NIT —que es el
+identificador de verdad, y se compara con y sin dígito de verificación—, y por
+último el nombre, ignorando acentos, puntuación y la forma societaria: «Acme
+S.A.S.» y «ACME SAS» son la misma empresa.
+
+**Si el nombre encaja con más de un cliente, no se empareja sola.** Se marca y
+espera a que alguien elija. Emparejar mal significa facturarle a otro cliente.
+
+### Nada se crea sin que alguien lo pulse
+
+Dar de alta un cliente en Xubio enseña antes exactamente qué se va a mandar,
+NIT incluido, y espera confirmación. También se puede pegar a mano el
+identificador de un cliente que ya exista allá.
+
+El vínculo se guarda, y un mismo cliente de Xubio no puede quedar enlazado a
+dos empresas de aquí —lo impide la base de datos—: sería facturar a nombre de
+otro.
+
+### Lo que hace falta configurar
+
+En el `.env.local` del servidor: `XUBIO_CLIENT_ID` y `XUBIO_CLIENT_SECRET`. No
+se guardan en la base de datos ni se muestran en pantalla; la aplicación solo
+dice si están puestas. Mientras falten, la pantalla lo explica en vez de fallar.
+
+---
+
 ## [1.87.0] — 2026-09-01
 
 ### Cada abono lleva su comprobante

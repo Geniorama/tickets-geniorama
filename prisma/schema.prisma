@@ -203,6 +203,13 @@ model Company {
   /// explícitamente a dónde van las facturas.
   billingEmails   String[]    @default([]) @map("billing_emails")
 
+  /// El mismo cliente en Xubio, si ya se emparejó.
+  ///
+  /// Guardar el vínculo es lo que impide duplicar un cliente en la
+  /// contabilidad: emparejar por nombre o NIT en cada sincronización acabaría
+  /// creando un segundo «Acme S.A.S.» el día que alguien lo renombre allá.
+  xubioClientId   String?     @map("xubio_client_id")
+
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
 
