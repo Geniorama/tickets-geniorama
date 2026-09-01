@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { AmountInput } from "@/components/ui/amount-input";
 import { formatAmount } from "@/lib/money";
@@ -57,6 +58,11 @@ export function PaymentList({
   const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const [isPending, startTransition] = useTransition();
+  // `revalidatePath` invalida la caché del servidor, pero esta pantalla ya está
+  // pintada en el navegador y se queda con los abonos de antes. Sin este
+  // refresco, registras un pago, el formulario se cierra como si todo hubiera
+  // ido bien, y la lista sigue igual: parece que no se guardó.
+  const router = useRouter();
 
   const falta = Math.max(0, Math.round(total) - Math.round(cobrado));
   const hoy = new Date().toLocaleDateString("en-CA");
@@ -69,6 +75,7 @@ export function PaymentList({
       setImporte("");
       formRef.current?.reset();
       setAbriendo(false);
+      router.refresh();
     });
   }
 
@@ -76,7 +83,8 @@ export function PaymentList({
     setError(null);
     startTransition(async () => {
       const r = await deleteBillingPayment(id, billingItemId);
-      if (r?.error) setError(r.error);
+      if (r?.error) return setError(r.error);
+      router.refresh();
     });
   }
 

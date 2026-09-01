@@ -42,6 +42,13 @@ Ahora se niega y explica cuántos abonos estorban. De paso, el tablero **muestra
 por qué** se niega a mover una tarjeta: hasta ahora la tarjeta volvía sola a su
 sitio y nadie sabía la razón.
 
+### Arreglado sobre la marcha
+
+- Al registrar un abono, el formulario se cerraba como si todo hubiera ido bien
+  pero la lista seguía igual hasta recargar la página: parecía que no se había
+  guardado. Invalidar la caché del servidor no basta cuando la pantalla ya está
+  pintada en el navegador.
+
 ### Quién y cuándo
 
 Cada abono guarda quién lo apuntó. Quitarlo pide permiso de gestión, como
