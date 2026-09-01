@@ -22,10 +22,10 @@ const pagoSchema = z.object({
 });
 
 function refrescar(billingItemId: string) {
-  revalidatePath("/facturacion");
   revalidatePath(`/facturacion/${billingItemId}`);
-  // El informe por categoría no cambia con un abono, pero sí el tablero y la
-  // ficha; y quien acaba de cobrar suele volver al tablero.
+  // El tablero no se revalida aquí: se renderiza en cada visita, así que ya
+  // trae los importes al día. Pedirlo además era la única diferencia con el
+  // panel de novedades, que sí se refrescaba solo.
 }
 
 export async function addBillingPayment(billingItemId: string, formData: FormData) {

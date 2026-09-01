@@ -47,7 +47,8 @@ sitio y nadie sabía la razón.
 - Al registrar un abono, el formulario se cerraba como si todo hubiera ido bien
   pero la lista seguía igual hasta recargar la página: parecía que no se había
   guardado. Invalidar la caché del servidor no basta cuando la pantalla ya está
-  pintada en el navegador.
+  pintada en el navegador; hay que volver a pedirla, y hacerlo fuera de la
+  transición del formulario.
 
 ### Quién y cuándo
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import { AmountInput } from "@/components/ui/amount-input";
@@ -57,35 +57,48 @@ export function PaymentList({
   const [importe, setImporte] = useState("");
   const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
-  const [isPending, startTransition] = useTransition();
-  // `revalidatePath` invalida la caché del servidor, pero esta pantalla ya está
-  // pintada en el navegador y se queda con los abonos de antes. Sin este
-  // refresco, registras un pago, el formulario se cierra como si todo hubiera
-  // ido bien, y la lista sigue igual: parece que no se guardó.
+  const [isPending, setIsPending] = useState(false);
   const router = useRouter();
 
   const falta = Math.max(0, Math.round(total) - Math.round(cobrado));
   const hoy = new Date().toLocaleDateString("en-CA");
 
-  function enviar(formData: FormData) {
+  /**
+   * El refresco va **fuera** de una transición, y no es un detalle de estilo.
+   *
+   * Esta pantalla la pinta el servidor, así que tras guardar un abono hay que
+   * volver a pedirla: `revalidatePath` limpia la caché del servidor, pero el
+   * navegador sigue enseñando la lista que ya tenía. Metido dentro de
+   * `startTransition`, junto a la llamada del formulario, el refresco no
+   * llegaba a aplicarse —se probó, y el pago se guardaba pero la lista no se
+   * movía hasta recargar a mano—. Aquí se espera al servidor y luego se pide
+   * la pantalla de nuevo, que es lo que sí funciona.
+   */
+  async function enviar(formData: FormData) {
     setError(null);
-    startTransition(async () => {
+    setIsPending(true);
+    try {
       const r = await addBillingPayment(billingItemId, formData);
       if (r?.error) return setError(r.error);
       setImporte("");
       formRef.current?.reset();
       setAbriendo(false);
       router.refresh();
-    });
+    } finally {
+      setIsPending(false);
+    }
   }
 
-  function borrar(id: string) {
+  async function borrar(id: string) {
     setError(null);
-    startTransition(async () => {
+    setIsPending(true);
+    try {
       const r = await deleteBillingPayment(id, billingItemId);
       if (r?.error) return setError(r.error);
       router.refresh();
-    });
+    } finally {
+      setIsPending(false);
+    }
   }
 
   return (
