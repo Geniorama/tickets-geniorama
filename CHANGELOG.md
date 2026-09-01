@@ -9,6 +9,57 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.82.0] — 2026-08-31
+
+### Recordatorios de cobro automáticos
+
+Cada mañana a las nueve se revisan las facturas emitidas que siguen sin
+cobrarse y sale lo que toque. Las reglas las escribe quien gestiona
+facturación desde **Facturación → Recordatorios**: cuántos días respecto al
+vencimiento, por qué canal y con qué texto. En negativo avisa *antes* de que
+venza, que evita la mitad de las moras.
+
+El mensaje admite marcas —`{{contacto}}`, `{{factura}}`, `{{pendiente}}`,
+`{{vencimiento}}`, `{{dias}}`…— y el editor avisa si se escribe una que no
+existe, antes de que llegue así a un cliente.
+
+### El vencimiento de la factura, en su propio campo
+
+Hasta ahora una sola fecha significaba dos cosas: cuándo facturar y, si ya
+estaba emitida, cuándo vencía. Una fecha con dos significados no sirve para
+programar nada encima, así que se separó. A las facturas ya emitidas se les
+traspasó su fecha; en lo que aún no se ha facturado, la de siempre sigue
+queriendo decir lo que decía.
+
+### Lo que no puede pasar
+
+Escribirle a un cliente sobre su dinero no se deshace, así que hay tres frenos:
+
+- **Nada se envía dos veces.** Un índice único en la base impide que una regla
+  vuelva a escribir sobre el mismo cobro por el mismo canal, aunque el cron se
+  dispare dos veces. Un envío fallido sí se reintenta al día siguiente.
+- **Encender una regla no reclama lo atrasado.** Cuenta desde el día en que se
+  activa. Sin esto, una regla de «a los 30 días» soltaría de golpe un mensaje
+  por cada factura vencida del último año.
+- **Si no está claro a quién escribir, no se escribe.** Va al contacto
+  principal de la empresa; si hay varios y ninguno marcado, se omite y se avisa
+  en vez de escribirle a cinco personas sobre una deuda.
+
+Además, cada cobro se puede silenciar por su cuenta, y lo que sale queda
+anotado en su hilo de novedades y en el registro de la pantalla de reglas.
+
+### Canales
+
+El **correo funciona**. **SMS y WhatsApp quedan preparados pero sin conectar**:
+falta la cuenta del proveedor, no el sitio donde ponerla. Se pueden marcar en
+una regla —la pantalla lo avisa— y quedan anotados como «sin salir» en vez de
+romper el envío del correo. Para WhatsApp hará falta además que Meta apruebe
+las plantillas, que es requisito suyo para escribir a quien no te ha escrito
+en las últimas 24 horas.
+
+
+---
+
 ## [1.81.0] — 2026-08-31
 
 ### Novedades, soportes y etiquetas en los cobros

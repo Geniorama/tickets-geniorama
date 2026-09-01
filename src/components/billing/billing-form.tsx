@@ -13,6 +13,7 @@ type Initial = {
   status: BillingStatus;
   lines: LineaCobro[];
   dueDate: string | null;
+  invoiceDueDate: string | null;
   invoiceNumber: string | null;
   ownerId: string | null;
   notes: string | null;
@@ -112,13 +113,13 @@ export function BillingForm({
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
         <div>
-          <label htmlFor="dueDate" style={labelStyle}>Fecha {opcional}</label>
+          <label htmlFor="dueDate" style={labelStyle}>Fecha de facturación {opcional}</label>
           <input
             id="dueDate" name="dueDate" type="date" style={inputStyle}
             defaultValue={initial?.dueDate ?? ""}
           />
           <p style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
-            Cuándo toca facturarlo o, si ya se emitió, cuándo vence.
+            Cuándo toca emitir la factura.
           </p>
         </div>
         <div>
@@ -133,13 +134,25 @@ export function BillingForm({
       {/* El número de factura solo existe cuando ya se emitió: pedirlo antes
           invita a inventárselo. */}
       {isInvoiced(status) && (
-        <div>
-          <label htmlFor="invoiceNumber" style={labelStyle}>Número de factura {opcional}</label>
-          <input
-            id="invoiceNumber" name="invoiceNumber" style={inputStyle}
-            defaultValue={initial?.invoiceNumber ?? ""}
-            placeholder="FV-1042"
-          />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+          <div>
+            <label htmlFor="invoiceNumber" style={labelStyle}>Número de factura {opcional}</label>
+            <input
+              id="invoiceNumber" name="invoiceNumber" style={inputStyle}
+              defaultValue={initial?.invoiceNumber ?? ""}
+              placeholder="FV-1042"
+            />
+          </div>
+          <div>
+            <label htmlFor="invoiceDueDate" style={labelStyle}>Vence el {opcional}</label>
+            <input
+              id="invoiceDueDate" name="invoiceDueDate" type="date" style={inputStyle}
+              defaultValue={initial?.invoiceDueDate ?? ""}
+            />
+            <p style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
+              De aquí cuelgan los recordatorios automáticos.
+            </p>
+          </div>
         </div>
       )}
 

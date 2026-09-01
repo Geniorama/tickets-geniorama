@@ -1,0 +1,55 @@
+# Los recordatorios de cobro, una vez al día.
+#
+# Esto escribe a clientes reales sobre su dinero, así que corre una sola vez y
+# tarde: a las 9 de la mañana, no a las 6. Un correo de cobro que llega de
+# madrugada parece automático; a media mañana, parece que alguien lo mandó.
+#
+# Que se dispare dos veces no duplica nada —la base tiene un índice único
+# parcial que lo impide—, pero aun así se lanza una vez y en voz alta.
+
+name: Recordatorios de cobro
+
+on:
+  schedule:
+    # 14:00 UTC = 09:00 en Colombia.
+    - cron: "0 14 * * *"
+  # Para lanzarlo a mano el día que haya que recuperar un envío perdido.
+  workflow_dispatch:
+
+jobs:
+  recordar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mandar los recordatorios que tocan hoy
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          respuesta=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            --max-time 120 \
+            https://app.geniorama.co/api/cron/billing-reminders)
+
+          codigo=$(echo "$respuesta" | tail -n1)
+          cuerpo=$(echo "$respuesta" | sed '$d')
+
+          echo "HTTP $codigo"
+          echo "$cuerpo"
+
+          if [ "$codigo" != "200" ]; then
+            echo "::error::Los recordatorios devolvieron HTTP $codigo. Si es 401, falta el secreto CRON_SECRET o no coincide con el del servidor."
+            exit 1
+          fi
+
+          # Un cobro que no sale por falta de contacto principal no es un fallo
+          # del cron, pero sí algo que alguien tiene que arreglar: se avisa sin
+          # tumbar el trabajo.
+          omitidos=$(echo "$cuerpo" | grep -o '"omitidos":[0-9]*' | cut -d: -f2)
+          if [ -n "$omitidos" ] && [ "$omitidos" != "0" ]; then
+            echo "::warning::$omitidos recordatorio(s) no salieron. Mira 'problemas' en el resumen."
+          fi
+
+          echo "### Recordatorios de cobro" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          echo "$cuerpo" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

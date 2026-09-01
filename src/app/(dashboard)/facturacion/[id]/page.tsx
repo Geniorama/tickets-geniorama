@@ -15,6 +15,7 @@ import { listAttachments } from "@/lib/attachments";
 import { isAdmin } from "@/lib/roles";
 import { BillingNotes } from "@/components/billing/billing-notes";
 import { LabelPicker } from "@/components/billing/label-picker";
+import { ReminderPanel } from "@/components/billing/reminder-panel";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,7 +38,8 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
     select: {
       id: true, concept: true, status: true, amount: true, subtotal: true,
       taxAmount: true, paidAmount: true,
-      dueDate: true, invoiceNumber: true, invoicedAt: true, paidAt: true, notes: true,
+      dueDate: true, invoiceDueDate: true, invoiceNumber: true, invoicedAt: true, paidAt: true, notes: true,
+      remindersOff: true,
       lines: {
         orderBy: { position: "asc" },
         select: { id: true, concept: true, amount: true, taxRate: true },
@@ -61,6 +63,16 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
     listAttachments("BILLING", id),
     prisma.billingLabel.findMany({ orderBy: { position: "asc" }, select: { id: true, name: true, color: true } }),
   ]);
+
+  const recordatorios = await prisma.billingReminder.findMany({
+    where: { billingItemId: id },
+    orderBy: { sentAt: "desc" },
+    take: 10,
+    select: {
+      id: true, channel: true, status: true, recipient: true, recipientName: true,
+      error: true, sentAt: true, rule: { select: { name: true } },
+    },
+  });
   const color = BILLING_STATUS_COLORS[cobro.status];
   const falta = pendiente(cobro.amount, cobro.paidAmount);
 
@@ -151,6 +163,7 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
 
           <div style={{ marginTop: "1rem", paddingTop: "0.85rem", borderTop: "1px solid var(--app-border)", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
             <Sello etiqueta="Facturado el" fecha={cobro.invoicedAt} />
+            <Sello etiqueta="Vence el" fecha={cobro.invoiceDueDate} />
             <Sello etiqueta="Pagado el" fecha={cobro.paidAt} />
             <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
               Creado por {cobro.createdBy.name}
@@ -201,6 +214,23 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
               />
             </div>
 
+            <ReminderPanel
+              billingItemId={cobro.id}
+              off={cobro.remindersOff}
+              canEdit={canEdit}
+              tieneVencimiento={cobro.invoiceDueDate !== null}
+              salidos={recordatorios.map((r) => ({
+                id: r.id,
+                channel: r.channel,
+                status: r.status,
+                recipient: r.recipient,
+                recipientName: r.recipientName,
+                sentAt: r.sentAt,
+                error: r.error,
+                regla: r.rule?.name ?? null,
+              }))}
+            />
+
             <h2 style={{ fontSize: "0.9375rem", fontWeight: 600, color: "var(--app-body-text)", marginBottom: "0.6rem" }}>
               Datos del cobro
             </h2>
@@ -214,6 +244,7 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
                 status: cobro.status,
                 lines: cobro.lines.map((l) => ({ concept: l.concept, amount: l.amount, taxRate: l.taxRate })),
                 dueDate: asDateInput(cobro.dueDate),
+                invoiceDueDate: asDateInput(cobro.invoiceDueDate),
                 invoiceNumber: cobro.invoiceNumber,
                 ownerId: cobro.ownerId,
                 notes: cobro.notes,

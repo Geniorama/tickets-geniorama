@@ -28,6 +28,7 @@ const cobroSchema = z.object({
   status:    z.enum(estados).default("BACKLOG"),
   lines:     z.array(lineaSchema).min(1, "Añade al menos una línea"),
   dueDate:   z.date().nullable(),
+  invoiceDueDate: z.date().nullable(),
   invoiceNumber: z.string().max(60).optional(),
   ownerId:   z.string().optional(),
   notes:     z.string().max(4000).optional(),
@@ -66,6 +67,7 @@ function leer(formData: FormData) {
     status:    formData.get("status") || "BACKLOG",
     lines:     leerLineas(formData.get("lines")),
     dueDate:   parseDate(formData.get("dueDate")),
+    invoiceDueDate: parseDate(formData.get("invoiceDueDate")),
     invoiceNumber: formData.get("invoiceNumber") || undefined,
     ownerId:   formData.get("ownerId") || undefined,
     notes:     formData.get("notes") || undefined,
@@ -104,6 +106,10 @@ export async function createBillingItem(formData: FormData) {
         })),
       },
       dueDate: d.dueDate,
+      // El vencimiento solo tiene sentido con factura emitida; si el cobro
+      // retrocede se borra, igual que el número, para que no queden fechas
+      // sueltas disparando recordatorios de algo que ya no está facturado.
+      invoiceDueDate: isInvoiced(d.status) ? d.invoiceDueDate : null,
       invoiceNumber: isInvoiced(d.status) ? (d.invoiceNumber?.trim() || null) : null,
       ownerId: d.ownerId || null,
       notes: d.notes?.trim() || null,
@@ -153,6 +159,10 @@ export async function updateBillingItem(id: string, formData: FormData) {
         })),
       },
       dueDate: d.dueDate,
+      // El vencimiento solo tiene sentido con factura emitida; si el cobro
+      // retrocede se borra, igual que el número, para que no queden fechas
+      // sueltas disparando recordatorios de algo que ya no está facturado.
+      invoiceDueDate: isInvoiced(d.status) ? d.invoiceDueDate : null,
       invoiceNumber: isInvoiced(d.status) ? (d.invoiceNumber?.trim() || null) : null,
       ownerId: d.ownerId || null,
       notes: d.notes?.trim() || null,

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Bell } from "lucide-react";
 import { requireCan, can } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { BILLING_STATUSES, OPEN_BILLING_STATUSES, pendiente } from "@/lib/billing/status";
@@ -15,6 +15,7 @@ export default async function BillingPage({
 }) {
   const session = await requireCan("FACTURACION", "ver");
   const canEdit = await can(session.user, "FACTURACION", "editar");
+  const canManage = await can(session.user, "FACTURACION", "gestionar");
   const { pagados } = await searchParams;
 
   // Lo pagado se acumula sin límite y en unos meses taparía lo que falta por
@@ -100,6 +101,19 @@ export default async function BillingPage({
               ? "Ocultar pagados"
               : `Ver pagados${pagadosOcultos > 0 ? ` (${pagadosOcultos})` : ""}`}
           </Link>
+          {canManage && (
+            <Link
+              href="/facturacion/recordatorios"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "0.4rem",
+                fontSize: "0.8125rem", padding: "0.45rem 0.85rem", borderRadius: "0.5rem",
+                border: "1px solid var(--app-border)", color: "var(--app-nav-text)", textDecoration: "none",
+              }}
+            >
+              <Bell style={{ width: "0.9rem", height: "0.9rem" }} />
+              Recordatorios
+            </Link>
+          )}
           {canEdit && (
             <Link
               href="/facturacion/nuevo"

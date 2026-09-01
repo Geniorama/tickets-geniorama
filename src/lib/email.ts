@@ -215,3 +215,32 @@ export async function sendPasswordResetEmail(to: Recipient, resetUrl: string) {
     `,
   });
 }
+
+/**
+ * El recordatorio de cobro.
+ *
+ * El cuerpo lo escribe una persona en la regla, así que aquí solo se enmarca.
+ * Sin botones ni enlaces: no hay adónde mandar a un cliente —Facturación no es
+ * suya— y un correo sobre dinero se lee mejor pareciéndose a uno escrito a
+ * mano que a una notificación del sistema.
+ */
+export async function sendBillingReminderEmail(
+  to: Recipient,
+  mensaje: { asunto: string; cuerpo: string },
+) {
+  await client.sendMail({
+    from: FROM,
+    to: [{ email_address: { address: to.email, name: to.name } }],
+    subject: mensaje.asunto,
+    htmlbody: `
+      <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; color: #1f2937;">
+        <div style="background: #ffffff; padding: 32px; border: 1px solid #e5e7eb; border-radius: 8px;">
+          <p style="margin: 0; font-size: 15px; line-height: 1.6;">${mensaje.cuerpo}</p>
+        </div>
+        <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 16px;">
+          Geniorama
+        </p>
+      </div>
+    `,
+  });
+}

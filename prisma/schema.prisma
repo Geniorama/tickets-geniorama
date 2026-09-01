@@ -392,6 +392,7 @@ model User {
   pushSubscriptions PushSubscription[]
   billingOwned      BillingItem[] @relation("BillingOwner")
   billingCreated    BillingItem[] @relation("BillingCreatedBy")
+  billingRules      BillingReminderRule[] @relation("BillingRuleCreatedBy")
 
   ownedAccounts   Company[] @relation("AccountOwner")
   contactProfile  Contact?  @relation("ContactUser")
@@ -1053,8 +1054,14 @@ model BillingItem {
   companyId String  @map("company_id")
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
-  /// Cuándo toca facturarlo o, si ya se emitió, cuándo vence la factura.
+  /// Cuándo toca emitir la factura.
+  ///
+  /// Antes esta fecha significaba dos cosas —cuándo facturar y, si ya estaba
+  /// emitida, cuándo vencía—. Una fecha con dos significados no sirve para
+  /// programar nada encima, así que el vencimiento se separó en su campo.
   dueDate       DateTime? @map("due_date")
+  /// Cuándo vence la factura ya emitida. De aquí cuelgan los recordatorios.
+  invoiceDueDate DateTime? @map("invoice_due_date")
   invoiceNumber String?   @map("invoice_number")
   /// Se sellan al pasar por su estado, y se borran si el cobro retrocede.
   invoicedAt    DateTime? @map("invoiced_at")
@@ -1072,12 +1079,18 @@ model BillingItem {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  lines  BillingLine[]
-  labels BillingLabel[] @relation("BillingItemLabels")
+  /// Silencia los recordatorios de este cobro sin tocar las reglas. Para el
+  /// cliente que ya avisó de que paga el martes y al que no hay que perseguir.
+  remindersOff Boolean @default(false) @map("reminders_off")
+
+  lines     BillingLine[]
+  labels    BillingLabel[] @relation("BillingItemLabels")
+  reminders BillingReminder[]
 
   @@index([status])
   @@index([companyId])
   @@index([dueDate])
+  @@index([invoiceDueDate])
   @@map("billing_items")
 }
 
@@ -1100,6 +1113,96 @@ model BillingLabel {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("billing_labels")
+}
+
+/// Por dónde sale un recordatorio de cobro.
+enum ReminderChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+}
+
+enum ReminderStatus {
+  SENT
+  FAILED
+  /// El canal existe en la regla pero no está configurado en el servidor.
+  SKIPPED
+}
+
+/// Una regla de cobro: «a los N días del vencimiento, escribe esto por aquí».
+///
+/// Las escribe quien gestione facturación, sin desplegar nada. Puede haber
+/// varias sobre el mismo día si el mensaje del correo y el del WhatsApp deben
+/// sonar distinto.
+model BillingReminderRule {
+  id   String @id @default(cuid())
+  name String
+
+  /// Días respecto al vencimiento de la factura. Positivo es después;
+  /// negativo, antes —avisar tres días antes evita la mitad de las moras—.
+  offsetDays Int @map("offset_days")
+
+  channels ReminderChannel[]
+
+  /// Asunto del correo. Los otros canales no lo usan.
+  subject String
+  /// El cuerpo, con marcas tipo `{{cliente}}`. Ver `reminders/template.ts`.
+  body    String @db.Text
+
+  isActive Boolean @default(true) @map("is_active")
+
+  /// Desde cuándo cuenta la regla.
+  ///
+  /// Una regla nunca mira hacia atrás de esta fecha. Sin esto, activar una
+  /// regla de «a los 30 días» dispararía de golpe un mensaje por cada factura
+  /// vencida del último año, que es exactamente la clase de error que un
+  /// cliente no perdona.
+  activeSince DateTime @default(now()) @map("active_since")
+
+  createdById String @map("created_by_id")
+  createdBy   User   @relation("BillingRuleCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sent BillingReminder[]
+
+  @@index([isActive])
+  @@map("billing_reminder_rules")
+}
+
+/// Lo que se envió de verdad. Es el registro y, a la vez, el seguro contra
+/// reenvíos: la migración crea un índice único parcial sobre
+/// (rule_id, billing_item_id, channel) **solo para los SENT**, de modo que un
+/// mensaje entregado no se repite nunca y uno fallido sí se reintenta mañana.
+/// Ese índice es a mano: no se puede expresar en este esquema.
+model BillingReminder {
+  id String @id @default(cuid())
+
+  /// Si se borra la regla, el registro se queda: es historial de lo que se le
+  /// dijo a un cliente sobre su dinero.
+  ruleId String?              @map("rule_id")
+  rule   BillingReminderRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  billingItemId String      @map("billing_item_id")
+  billingItem   BillingItem @relation(fields: [billingItemId], references: [id], onDelete: Cascade)
+
+  channel ReminderChannel
+  status  ReminderStatus
+
+  /// El correo o el teléfono tal y como se usó, y a nombre de quién.
+  recipient     String
+  recipientName String? @map("recipient_name")
+
+  /// Qué se mandó. Guardado ya renderizado: si mañana cambia la plantilla,
+  /// esto sigue diciendo lo que el cliente leyó.
+  body  String  @db.Text
+  error String? @db.Text
+
+  sentAt DateTime @default(now()) @map("sent_at")
+
+  @@index([billingItemId, sentAt])
+  @@map("billing_reminders")
 }
 
 /// Una línea de un cobro: un concepto con su base y su impuesto.

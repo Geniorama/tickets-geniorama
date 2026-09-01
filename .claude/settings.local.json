@@ -343,7 +343,24 @@
       "Bash(psql \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c \"\\\\dn\")",
       "Bash(psql \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c \"select table_schema, count\\(*\\) from information_schema.tables where table_type='BASE TABLE' group by 1;\")",
       "Bash(psql \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c \"select tablename from pg_tables where schemaname='public' order by 1;\")",
-      "Bash(psql \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c 'TRUNCATE comments, attachments, billing_items, tickets, users, companies CASCADE;')"
+      "Bash(psql \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c 'TRUNCATE comments, attachments, billing_items, tickets, users, companies CASCADE;')",
+      "Bash(host tickets.geniorama.co)",
+      "Bash(printf 'Comprobante de prueba v1.81.0')",
+      "Bash(/System/Library/Printers/Libraries/./convert -f s.txt -o soporte-prueba.pdf)",
+      "Bash(cupsfilter s.txt)",
+      "Bash(awk '/^model BillingItem/,/^}/' prisma/schema.prisma)",
+      "Bash(awk '/^model Contact/,/^}/' prisma/schema.prisma)",
+      "Bash(awk '/^model AppSetting/,/^}/' prisma/schema.prisma)",
+      "Bash(awk '/^model BillingLabel/,/^}/' prisma/schema.prisma)",
+      "Bash(dropdb geniorama_migtest)",
+      "Bash(createdb geniorama_migtest)",
+      "Bash(DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest?sslmode=disable\" npx prisma migrate deploy)",
+      "Bash(git log *)",
+      "Bash(DATABASE_URL=postgresql://__CMDSUB_OUTPUT__@localhost:5432/geniorama_migtest?sslmode=disable npx prisma db push --schema=/tmp/basegen/schema.prisma --skip-generate --accept-data-loss)",
+      "Bash(DATABASE_URL=postgresql://__CMDSUB_OUTPUT__@localhost:5432/geniorama_migtest?sslmode=disable npx prisma db push --schema=/tmp/basegen/schema.prisma --skip-generate --accept-data-loss --force-reset)",
+      "Bash(psql -q \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c \"select count\\(*\\) as tablas from pg_tables where schemaname='public';\")",
+      "Bash(DATABASE_URL=postgresql://__CMDSUB_OUTPUT__@localhost:5432/geniorama_migtest?sslmode=disable npx prisma db push --schema=/tmp/basegen/schema.prisma --accept-data-loss)",
+      "Bash(env -u ZEPTOMAIL_TOKEN -u ZEPTOMAIL_FROM -u CRON_SECRET DATABASE_URL=postgresql://__CMDSUB_OUTPUT__@localhost:5432/geniorama_migtest?sslmode=disable npx tsx ./tmp-cron-test.ts)"
     ]
   }
 }
