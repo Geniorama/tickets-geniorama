@@ -75,15 +75,27 @@ jobs:
 
           cat diferencias.txt
 
-          # Excepción conocida y única: el índice único parcial de
+          # Se miran SOLO las líneas que son una diferencia de verdad —las que
+          # empiezan por [+] o [-]—. El resto del fichero es ruido: dotenv y el
+          # propio Prisma escriben avisos en la salida estándar, y una lista de
+          # exclusiones acababa dejándolos pasar por drift.
+          #
+          # Única excepción conocida: el índice único parcial de
           # `billing_reminders`, que impide reenviar un recordatorio ya
-          # entregado. Es `... WHERE status = 'SENT'`, y el lenguaje de esquema
-          # de Prisma no sabe expresar un índice parcial, así que aparece aquí
-          # para siempre. Si el fichero solo dice eso, no hay deriva.
-          otras=$(grep -vE "billing_reminders|rule_id, billing_item_id, channel|^\s*$|^\[\*\]" diferencias.txt || true)
+          # entregado. Es `... WHERE status = 'SENT'` y el lenguaje de esquema
+          # de Prisma no sabe expresar un índice parcial, así que aparecerá
+          # aquí siempre.
+          deriva=$(grep -E '^[[:space:]]*\[[+-]\]' diferencias.txt \
+                   | grep -v 'rule_id, billing_item_id, channel' || true)
 
-          if [ "$estado" = "2" ] && [ -n "$otras" ]; then
+          if [ -n "$deriva" ]; then
             echo "::error::El historial ya no reproduce schema.prisma. Casi siempre es un cambio empujado con 'prisma db push' sin escribir su migración."
+            echo "$deriva"
+            exit 1
+          fi
+
+          if [ "$estado" != "0" ] && [ "$estado" != "2" ]; then
+            echo "::error::La comprobación de deriva no pudo ejecutarse (código $estado)."
             exit 1
           fi
 
