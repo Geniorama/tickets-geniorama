@@ -4,14 +4,14 @@ import { useState, useTransition } from "react";
 import type { BillingStatus } from "@/generated/prisma";
 import { BILLING_STATUSES, BILLING_STATUS_LABELS, isInvoiced } from "@/lib/billing/status";
 import { createBillingItem, updateBillingItem } from "@/actions/billing.actions";
-import { LineEditor } from "@/components/billing/line-editor";
-import type { LineaCobro } from "@/lib/billing/totals";
+import { LineEditor, type Categoria } from "@/components/billing/line-editor";
+import type { LineaConCategoria } from "@/lib/billing/totals";
 
 type Initial = {
   id: string;
   concept: string;
   status: BillingStatus;
-  lines: LineaCobro[];
+  lines: LineaConCategoria[];
   dueDate: string | null;
   invoiceDueDate: string | null;
   invoiceNumber: string | null;
@@ -33,11 +33,13 @@ const opcional = <span style={{ fontWeight: 400, color: "var(--app-text-muted)" 
 export function BillingForm({
   companies,
   owners,
+  categorias,
   initial,
   fixedCompanyId,
 }: {
   companies: { id: string; name: string }[];
   owners: { id: string; name: string }[];
+  categorias: Categoria[];
   initial?: Initial;
   fixedCompanyId?: string;
 }) {
@@ -97,7 +99,7 @@ export function BillingForm({
         )}
       </div>
 
-      <LineEditor initial={initial?.lines} />
+      <LineEditor initial={initial?.lines} categorias={categorias} />
 
       <div>
         <label htmlFor="status" style={labelStyle}>Estado</label>

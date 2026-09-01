@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
  * también se le puede cobrar un anticipo.
  */
 export async function getBillingFormData() {
-  const [companies, owners] = await Promise.all([
+  const [companies, owners, categories] = await Promise.all([
     prisma.company.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
@@ -19,7 +19,14 @@ export async function getBillingFormData() {
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),
+    // Solo las activas: retirar una categoría la quita del desplegable sin
+    // descatalogar los cobros que ya la tienen.
+    prisma.billingCategory.findMany({
+      where: { isActive: true },
+      orderBy: { position: "asc" },
+      select: { id: true, name: true },
+    }),
   ]);
 
-  return { companies, owners };
+  return { companies, owners, categories };
 }

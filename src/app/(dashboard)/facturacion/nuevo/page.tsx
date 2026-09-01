@@ -12,7 +12,7 @@ export default async function NewBillingPage({
 }) {
   await requireCan("FACTURACION", "crear");
   const { empresa } = await searchParams;
-  const { companies, owners } = await getBillingFormData();
+  const { companies, owners, categories } = await getBillingFormData();
 
   const fija = empresa && companies.some((c) => c.id === empresa) ? empresa : undefined;
 
@@ -33,7 +33,7 @@ export default async function NewBillingPage({
           Primero hay que registrar una empresa.
         </p>
       ) : (
-        <BillingForm companies={companies} owners={owners} fixedCompanyId={fija} />
+        <BillingForm companies={companies} owners={owners} categorias={categories} fixedCompanyId={fija} />
       )}
     </div>
   );

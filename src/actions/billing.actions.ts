@@ -20,6 +20,9 @@ const lineaSchema = z.object({
   amount:  z.number().positive("El importe de cada línea debe ser mayor que cero"),
   // Cero es exento. Se acota para que nadie mande un 900 % desde el cliente.
   taxRate: z.number().min(0).max(100),
+  // Opcional: hay cobros anteriores a las categorías, y no se obliga a
+  // inventar una para poder guardar.
+  categoryId: z.string().nullable(),
 });
 
 const cobroSchema = z.object({
@@ -50,14 +53,36 @@ function leerLineas(raw: FormDataEntryValue | null): unknown {
   try {
     const parsed = JSON.parse(String(raw ?? "[]"));
     if (!Array.isArray(parsed)) return [];
-    return parsed.map((l: { concept?: unknown; amount?: unknown; taxRate?: unknown }) => ({
+    return parsed.map((l: { concept?: unknown; amount?: unknown; taxRate?: unknown; categoryId?: unknown }) => ({
       concept: String(l?.concept ?? "").trim(),
       amount: parseAmount(l?.amount) ?? 0,
       taxRate: Number(l?.taxRate ?? 0),
+      categoryId: l?.categoryId ? String(l.categoryId) : null,
     }));
   } catch {
     return [];
   }
+}
+
+/**
+ * Descarta categorías que no existen.
+ *
+ * El id viaja desde el navegador y la clave foránea lo rechazaría con un error
+ * feo. Se prefiere guardar el cobro sin catalogar —que se puede arreglar— a
+ * perder lo que alguien acababa de escribir.
+ */
+async function conCategoriasValidas<T extends { categoryId: string | null }>(lineas: T[]): Promise<T[]> {
+  const pedidas = [...new Set(lineas.map((l) => l.categoryId).filter((c): c is string => Boolean(c)))];
+  if (pedidas.length === 0) return lineas;
+
+  const existentes = new Set(
+    (await prisma.billingCategory.findMany({
+      where: { id: { in: pedidas } },
+      select: { id: true },
+    })).map((c) => c.id),
+  );
+
+  return lineas.map((l) => (l.categoryId && !existentes.has(l.categoryId) ? { ...l, categoryId: null } : l));
 }
 
 function leer(formData: FormData) {
@@ -86,7 +111,8 @@ export async function createBillingItem(formData: FormData) {
 
   // Los totales se calculan **siempre en el servidor**: lo que mande el
   // navegador es para pintar, no para guardar.
-  const totales = calcularTotales(d.lines);
+  const lineas = await conCategoriasValidas(d.lines);
+  const totales = calcularTotales(lineas);
   const ajuste = sellosPara(d.status, { amount: totales.total, paidAmount: 0, invoicedAt: null, paidAt: null });
 
   const cobro = await prisma.billingItem.create({
@@ -98,10 +124,11 @@ export async function createBillingItem(formData: FormData) {
       subtotal: totales.subtotal,
       taxAmount: totales.taxAmount,
       lines: {
-        create: d.lines.map((l, i) => ({
+        create: lineas.map((l, i) => ({
           concept: l.concept.trim(),
           amount: l.amount,
           taxRate: l.taxRate,
+          categoryId: l.categoryId,
           position: i,
         })),
       },
@@ -136,7 +163,8 @@ export async function updateBillingItem(id: string, formData: FormData) {
   });
   if (!actual) return { error: "Cobro no encontrado" };
 
-  const totales = calcularTotales(d.lines);
+  const lineas = await conCategoriasValidas(d.lines);
+  const totales = calcularTotales(lineas);
   const ajuste = sellosPara(d.status, { ...actual, amount: totales.total });
 
   await prisma.billingItem.update({
@@ -151,10 +179,11 @@ export async function updateBillingItem(id: string, formData: FormData) {
       // desde el cliente y a confiar en ellos.
       lines: {
         deleteMany: {},
-        create: d.lines.map((l, i) => ({
+        create: lineas.map((l, i) => ({
           concept: l.concept.trim(),
           amount: l.amount,
           taxRate: l.taxRate,
+          categoryId: l.categoryId,
           position: i,
         })),
       },

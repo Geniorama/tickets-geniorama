@@ -380,7 +380,11 @@
       "Bash(psql -tAq __TRACKED_VAR__/geniorama_fresh -c 'select 44-count\\(*\\) from _prisma_migrations;')",
       "Bash(awk '/^model Company /,/^}/' prisma/schema.prisma)",
       "Bash(dropdb --force geniorama_migtest)",
-      "Bash(psql -tAq \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c \"select column_name||' '||data_type||' default '||coalesce\\(column_default,'—'\\) from information_schema.columns where table_name='companies' and column_name='billing_emails';\")"
+      "Bash(psql -tAq \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c \"select column_name||' '||data_type||' default '||coalesce\\(column_default,'—'\\) from information_schema.columns where table_name='companies' and column_name='billing_emails';\")",
+      "Bash(awk '/^model BillingLine/,/^}/' prisma/schema.prisma)",
+      "Bash(psql -q \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c \"select name, color, position from billing_categories order by position;\")",
+      "Bash(psql -q \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c 'TRUNCATE billing_items, users, companies CASCADE;')",
+      "Bash(DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest?sslmode=disable\" npx tsx ./tmp-cat2-test.ts)"
     ]
   }
 }

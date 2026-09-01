@@ -9,6 +9,47 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.84.0] — 2026-09-01
+
+### Categorías: qué se vendió, no solo cuánto
+
+Cada línea de un cobro puede llevar ahora su categoría —**Hosting**,
+**Desarrollo web** y **Marketing** vienen puestas— y se pueden crear más sin
+desplegar. Va en la línea y no en el cobro a propósito: una misma factura mezcla
+el hosting del año con un rediseño, y separar eso es exactamente lo que
+contabilidad necesita.
+
+En la ficha del cobro aparece el reparto cuando hay más de una categoría, y el
+editor avisa si alguna línea se queda sin catalogar, antes de guardar.
+
+### Qué se vendió
+
+Pantalla nueva en **Facturación → Qué se vendió**: lo facturado en un periodo
+repartido por categoría, con su peso en porcentaje. El periodo va en la URL, así
+que se puede compartir o guardar. Y un **CSV con el detalle línea a línea**,
+porque contabilidad no vive en esta aplicación: lo que necesita es pegarlo en su
+libro, con los importes crudos para poder sumarlos.
+
+Lo que nadie catalogó aparece como «Sin categoría» y siempre al final: es una
+tarea pendiente, no una categoría.
+
+### El reparto es sobre la base, sin IVA
+
+No es una simplificación. El IVA se calcula por tarifa sobre la base acumulada
+de toda la factura; trocearlo por categoría obligaría a redondear dentro de cada
+trozo y la suma dejaría de dar el total —con tres líneas de 333.333 al 19 % da
+189.999 donde la factura dice 190.000—. Además contabilidad cataloga servicios
+por su valor neto: el IVA es una cuenta aparte. La suma del reparto es siempre
+exactamente el subtotal de la factura.
+
+### Retirar en vez de borrar
+
+Una categoría que deja de usarse se retira: desaparece del desplegable pero los
+cobros que ya la llevan siguen catalogados. Si se borrara, un informe cerrado
+cambiaría de cifras meses después.
+
+---
+
 ## [1.83.0] — 2026-09-01
 
 ### Correos de facturación por cliente

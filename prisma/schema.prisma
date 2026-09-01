@@ -1234,11 +1234,42 @@ model BillingLine {
   /// Para conservar el orden en que se escribieron.
   position Int   @default(0)
 
+  /// Qué se vendió, en el lenguaje de contabilidad: hosting, desarrollo,
+  /// marketing…
+  ///
+  /// Va en la línea y no en el cobro porque una misma factura mezcla cosas:
+  /// el hosting del año y el rediseño van juntos y hay que poder separarlos.
+  /// Opcional: los cobros anteriores a esto no tienen ninguna, y forzar una
+  /// categoría inventada sería peor que no tenerla.
+  categoryId String?          @map("category_id")
+  category   BillingCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
   billingItemId String      @map("billing_item_id")
   billingItem   BillingItem @relation(fields: [billingItemId], references: [id], onDelete: Cascade)
 
   @@index([billingItemId, position])
+  @@index([categoryId])
   @@map("billing_lines")
+}
+
+/// Cómo cataloga contabilidad lo que se vende.
+///
+/// Filas y no un enumerado, por lo mismo que las etiquetas: el día que se
+/// venda algo nuevo, darlo de alta no puede depender de un despliegue.
+model BillingCategory {
+  id    String @id @default(cuid())
+  name  String @unique
+  color String @default("#64748b")
+  /// Para ordenarlas a gusto en el desplegable.
+  position Int @default(0)
+  /// Se dejan de ofrecer sin borrarlas: los cobros viejos siguen catalogados.
+  isActive Boolean @default(true) @map("is_active")
+
+  lines BillingLine[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("billing_categories")
 }
 
 model Notification {

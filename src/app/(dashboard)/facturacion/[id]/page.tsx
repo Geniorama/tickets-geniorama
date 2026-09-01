@@ -9,7 +9,7 @@ import { getBillingFormData } from "@/lib/billing/form-data";
 import { BillingForm } from "@/components/billing/billing-form";
 import { BackButton } from "@/components/ui/back-button";
 import { formatDate } from "@/lib/format-date";
-import { describirImpuesto } from "@/lib/billing/totals";
+import { describirImpuesto, repartoPorCategoria } from "@/lib/billing/totals";
 import { listComments } from "@/lib/comments";
 import { listAttachments } from "@/lib/attachments";
 import { isAdmin } from "@/lib/roles";
@@ -43,7 +43,7 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
       remindersOff: true,
       lines: {
         orderBy: { position: "asc" },
-        select: { id: true, concept: true, amount: true, taxRate: true },
+        select: { id: true, concept: true, amount: true, taxRate: true, categoryId: true, category: { select: { name: true, color: true } } },
       },
       companyId: true, ownerId: true,
       labels: { select: { id: true, name: true, color: true } },
@@ -68,8 +68,8 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
   const canManage = await can(session.user, "FACTURACION", "gestionar");
 
   // Comentarios y adjuntos viven en las tablas compartidas del núcleo.
-  const [{ companies, owners }, comments, attachments, etiquetas] = await Promise.all([
-    canEdit ? getBillingFormData() : Promise.resolve({ companies: [], owners: [] }),
+  const [{ companies, owners, categories }, comments, attachments, etiquetas] = await Promise.all([
+    canEdit ? getBillingFormData() : Promise.resolve({ companies: [], owners: [], categories: [] }),
     listComments({ entityType: "BILLING", entityId: id, includeInternal: true }),
     listAttachments("BILLING", id),
     prisma.billingLabel.findMany({ orderBy: { position: "asc" }, select: { id: true, name: true, color: true } }),
@@ -92,6 +92,13 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
       error: true, sentAt: true, rule: { select: { name: true } },
     },
   });
+  const reparto = repartoPorCategoria(
+    cobro.lines.map((l) => ({
+      concept: l.concept, amount: l.amount, taxRate: l.taxRate,
+      categoryId: l.categoryId, categoryName: l.category?.name ?? null,
+    })),
+  );
+
   const color = BILLING_STATUS_COLORS[cobro.status];
   const falta = pendiente(cobro.amount, cobro.paidAmount);
 
@@ -156,6 +163,17 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
               <div key={l.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem" }}>
                 <span style={{ fontSize: "0.8125rem", color: "var(--app-nav-text)", minWidth: 0 }}>
                   {l.concept}
+                  {l.category && (
+                    <span
+                      style={{
+                        display: "inline-block", marginLeft: "0.4rem",
+                        fontSize: "0.6875rem", padding: "0.05rem 0.4rem", borderRadius: "9999px",
+                        border: `1px solid ${l.category.color}`, color: l.category.color,
+                      }}
+                    >
+                      {l.category.name}
+                    </span>
+                  )}
                   <span style={{ color: "var(--app-text-muted)" }}> · {describirImpuesto(l.taxRate)}</span>
                 </span>
                 <span style={{ fontSize: "0.875rem", color: "var(--app-body-text)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
@@ -179,6 +197,30 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
               destacada
             />
           </div>
+
+          {/* Solo con más de una categoría: repartir algo entre una sola parte
+              no es un reparto. */}
+          {reparto.length > 1 && (
+            <div style={{ marginTop: "1rem", paddingTop: "0.85rem", borderTop: "1px solid var(--app-border)" }}>
+              <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.5rem" }}>
+                Reparto por categoría
+              </p>
+              {reparto.map((r) => (
+                <div key={r.categoryId ?? "sin"} style={{ display: "flex", justifyContent: "space-between", gap: "1rem", fontSize: "0.8125rem", marginBottom: "0.2rem" }}>
+                  <span style={{ color: r.categoryId ? "var(--app-nav-text)" : "#b45309" }}>
+                    {r.nombre}
+                    <span style={{ color: "var(--app-text-muted)" }}> · {r.porcentaje.toFixed(0)}%</span>
+                  </span>
+                  <span style={{ color: "var(--app-body-text)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                    {formatAmount(r.base)}
+                  </span>
+                </div>
+              ))}
+              <p style={{ fontSize: "0.6875rem", color: "var(--app-text-muted)", marginTop: "0.4rem" }}>
+                Sobre la base, sin IVA.
+              </p>
+            </div>
+          )}
 
           <div style={{ marginTop: "1rem", paddingTop: "0.85rem", borderTop: "1px solid var(--app-border)", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
             <Sello etiqueta="Facturado el" fecha={cobro.invoicedAt} />
@@ -263,12 +305,13 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
             <BillingForm
               companies={companies}
               owners={owners}
+              categorias={categories}
               fixedCompanyId={cobro.companyId}
               initial={{
                 id: cobro.id,
                 concept: cobro.concept,
                 status: cobro.status,
-                lines: cobro.lines.map((l) => ({ concept: l.concept, amount: l.amount, taxRate: l.taxRate })),
+                lines: cobro.lines.map((l) => ({ concept: l.concept, amount: l.amount, taxRate: l.taxRate, categoryId: l.categoryId, categoryName: l.category?.name ?? null })),
                 dueDate: asDateInput(cobro.dueDate),
                 invoiceDueDate: asDateInput(cobro.invoiceDueDate),
                 invoiceNumber: cobro.invoiceNumber,

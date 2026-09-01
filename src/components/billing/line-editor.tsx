@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
-import { calcularTotales, describirImpuesto, EXENTO, IVA_RATE, type LineaCobro } from "@/lib/billing/totals";
+import { calcularTotales, describirImpuesto, EXENTO, IVA_RATE, type LineaConCategoria } from "@/lib/billing/totals";
 import { formatAmount, parseAmount } from "@/lib/money";
 import { AmountInput, formatearImporte } from "@/components/ui/amount-input";
 
@@ -14,7 +14,9 @@ import { AmountInput, formatearImporte } from "@/components/ui/amount-input";
  * un cobro podría decir cualquier cosa.
  */
 
-type Fila = { concept: string; amount: string; taxRate: number };
+type Fila = { concept: string; amount: string; taxRate: number; categoryId: string };
+
+export type Categoria = { id: string; name: string };
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "0.5rem 0.7rem", fontSize: "0.875rem",
@@ -22,22 +24,41 @@ const inputStyle: React.CSSProperties = {
   backgroundColor: "var(--app-bg)", color: "var(--app-body-text)",
 };
 
-export function LineEditor({ initial }: { initial?: LineaCobro[] }) {
+export function LineEditor({
+  initial,
+  categorias,
+}: {
+  initial?: LineaConCategoria[];
+  /** Lo que ofrece el desplegable. Solo las activas. */
+  categorias: Categoria[];
+}) {
   const [filas, setFilas] = useState<Fila[]>(
     initial && initial.length > 0
-      ? initial.map((l) => ({ concept: l.concept, amount: formatearImporte(l.amount), taxRate: l.taxRate }))
-      : [{ concept: "", amount: "", taxRate: EXENTO }],
+      ? initial.map((l) => ({
+          concept: l.concept, amount: formatearImporte(l.amount),
+          taxRate: l.taxRate, categoryId: l.categoryId ?? "",
+        }))
+      : [{ concept: "", amount: "", taxRate: EXENTO, categoryId: "" }],
   );
 
-  const lineas: LineaCobro[] = useMemo(
+  const lineas = useMemo(
     () =>
       filas
-        .map((f) => ({ concept: f.concept.trim(), amount: parseAmount(f.amount) ?? 0, taxRate: f.taxRate }))
+        .map((f) => ({
+          concept: f.concept.trim(),
+          amount: parseAmount(f.amount) ?? 0,
+          taxRate: f.taxRate,
+          categoryId: f.categoryId || null,
+        }))
         .filter((l) => l.concept.length > 0 && l.amount > 0),
     [filas],
   );
 
   const totales = useMemo(() => calcularTotales(lineas), [lineas]);
+
+  // Cuántas líneas cargadas se quedaron sin catalogar. Contabilidad lo pide
+  // para poder cuadrar, así que se avisa aquí y no cuando ya está guardado.
+  const sinCategoria = lineas.filter((l) => !l.categoryId).length;
 
   function actualizar(i: number, cambio: Partial<Fila>) {
     setFilas((prev) => prev.map((f, j) => (j === i ? { ...f, ...cambio } : f)));
@@ -54,7 +75,7 @@ export function LineEditor({ initial }: { initial?: LineaCobro[] }) {
 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
         {filas.map((f, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 8rem 8.5rem 2rem", gap: "0.4rem", alignItems: "center" }}>
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 9rem 8rem 7.5rem 2rem", gap: "0.4rem", alignItems: "center" }}>
             <input
               value={f.concept}
               onChange={(e) => actualizar(i, { concept: e.target.value })}
@@ -68,6 +89,17 @@ export function LineEditor({ initial }: { initial?: LineaCobro[] }) {
               style={{ ...inputStyle, textAlign: "right", fontVariantNumeric: "tabular-nums" }}
               ariaLabel="Importe de la línea"
             />
+            <select
+              value={f.categoryId}
+              onChange={(e) => actualizar(i, { categoryId: e.target.value })}
+              style={inputStyle}
+              aria-label="Categoría de la línea"
+            >
+              <option value="">Sin categoría</option>
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
             <select
               value={f.taxRate}
               onChange={(e) => actualizar(i, { taxRate: Number(e.target.value) })}
@@ -97,7 +129,14 @@ export function LineEditor({ initial }: { initial?: LineaCobro[] }) {
 
       <button
         type="button"
-        onClick={() => setFilas((prev) => [...prev, { concept: "", amount: "", taxRate: EXENTO }])}
+        onClick={() =>
+          setFilas((prev) => [
+            ...prev,
+            // Hereda la categoría de la última línea: en una factura de varias
+            // líneas lo normal es repetir categoría, no cambiarla.
+            { concept: "", amount: "", taxRate: EXENTO, categoryId: prev.at(-1)?.categoryId ?? "" },
+          ])
+        }
         style={{
           display: "inline-flex", alignItems: "center", gap: "0.3rem",
           marginTop: "0.6rem", background: "none", border: "none", padding: 0,
@@ -107,6 +146,15 @@ export function LineEditor({ initial }: { initial?: LineaCobro[] }) {
         <Plus style={{ width: "0.9rem", height: "0.9rem" }} />
         Añadir concepto
       </button>
+
+      {sinCategoria > 0 && (
+        <p style={{ fontSize: "0.75rem", color: "#b45309", marginTop: "0.5rem" }}>
+          {sinCategoria === 1
+            ? "Una línea se queda sin categoría."
+            : `${sinCategoria} líneas se quedan sin categoría.`}{" "}
+          Contabilidad no podrá catalogarlas.
+        </p>
+      )}
 
       {/* El desglose se enseña siempre: con todo exento, ver «IVA $0» confirma
           que se eligió, en vez de dejar la duda de si se olvidó. */}

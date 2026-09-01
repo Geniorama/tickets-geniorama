@@ -62,3 +62,60 @@ export function calcularTotales(lineas: LineaCobro[]): Totales {
 export function describirImpuesto(taxRate: number): string {
   return taxRate === 0 ? "Exento" : `+${taxRate}% IVA`;
 }
+
+export type LineaConCategoria = LineaCobro & {
+  categoryId: string | null;
+  categoryName: string | null;
+};
+
+export type Reparto = {
+  categoryId: string | null;
+  /** «Sin categoría» para lo que nadie catalogó. */
+  nombre: string;
+  /** Base imponible de esa categoría. */
+  base: number;
+  /** Qué parte del subtotal representa, de 0 a 100. */
+  porcentaje: number;
+};
+
+/**
+ * Cómo se reparte un cobro entre categorías.
+ *
+ * **Reparte la base, no el total con IVA**, y no es una simplificación: el IVA
+ * se calcula por tarifa sobre la base acumulada de toda la factura, así que
+ * trocearlo por categoría obligaría a redondear dentro de cada trozo y la suma
+ * de los trozos dejaría de dar el total. Es el mismo peso descuadrado que
+ * explica `calcularTotales`, pero repetido por categoría y más difícil de ver.
+ *
+ * Además, contabilidad cataloga servicios por su valor neto: el IVA es una
+ * cuenta aparte y no pertenece a ninguna categoría.
+ *
+ * Garantía: la suma de las bases devueltas es exactamente el subtotal.
+ */
+export function repartoPorCategoria(lineas: LineaConCategoria[]): Reparto[] {
+  const porCategoria = new Map<string | null, { nombre: string; base: number }>();
+
+  for (const l of lineas) {
+    const clave = l.categoryId;
+    const actual = porCategoria.get(clave);
+    const base = aPesos(l.amount);
+    if (actual) actual.base += base;
+    else porCategoria.set(clave, { nombre: l.categoryName ?? "Sin categoría", base });
+  }
+
+  const subtotal = [...porCategoria.values()].reduce((s, c) => s + c.base, 0);
+
+  return [...porCategoria.entries()]
+    .map(([categoryId, c]) => ({
+      categoryId,
+      nombre: c.nombre,
+      base: c.base,
+      porcentaje: subtotal > 0 ? (c.base / subtotal) * 100 : 0,
+    }))
+    // De más a menos dinero: es el orden en que se mira un reparto. Lo sin
+    // catalogar al final, aunque pese, porque es una tarea pendiente y no una
+    // categoría de verdad.
+    .sort((a, b) =>
+      a.categoryId === null ? 1 : b.categoryId === null ? -1 : b.base - a.base,
+    );
+}
