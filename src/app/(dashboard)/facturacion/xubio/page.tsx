@@ -64,8 +64,13 @@ export default async function XubioPage() {
                   <code style={{ color: "var(--app-body-text)" }}>{v}</code>
                 </span>
               ))}
-              , y reiniciar la aplicación. Se sacan de Xubio, en la configuración de integraciones
-              de la empresa.
+              , y reiniciar la aplicación.
+            </p>
+            <p style={{ margin: "0.4rem 0 0" }}>
+              En Xubio se sacan en <strong>Configuración → Integraciones → API de Xubio →
+              Nueva App Cliente</strong>. Si esa opción no aparece, es por el plan: la API solo
+              está en los planes <em>Emprendedor</em> y <em>Empresa</em>, y no en las cuentas de
+              contador.
             </p>
             <p style={{ margin: "0.4rem 0 0", color: "var(--app-text-muted)" }}>
               Las credenciales no se guardan en la base de datos ni se enseñan aquí; solo se dice

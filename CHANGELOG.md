@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.88.1] — 2026-09-01
+
+### Cambiado
+
+- La pantalla de Xubio da ahora la ruta exacta donde se sacan las credenciales
+  —Configuración → Integraciones → API de Xubio → Nueva App Cliente— y avisa de
+  que esa opción solo existe en los planes Emprendedor y Empresa. Antes decía
+  «en la configuración de integraciones», que no basta cuando la opción
+  directamente no aparece.
+
+---
+
 ## [1.88.0] — 2026-09-01
 
 ### Conexión con Xubio: primera entrega
