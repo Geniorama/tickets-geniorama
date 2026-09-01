@@ -118,6 +118,35 @@ export async function registrarPago(
   return { ok: true, id: pago.id };
 }
 
+/**
+ * Corrige un abono ya apuntado.
+ *
+ * Acotado al cobro: un id suelto no puede tocar el abono de otra factura.
+ * Después recalcula, así que corregir un importe puede mover el cobro de
+ * columna igual que apuntarlo o quitarlo.
+ */
+export async function actualizarPago(
+  pagoId: string,
+  billingItemId: string,
+  datos: { amount: number; paidOn: Date; method?: string | null; note?: string | null },
+): Promise<ResultadoPago> {
+  if (!(datos.amount > 0)) return { ok: false, error: "El abono tiene que ser mayor que cero" };
+
+  const { count } = await prisma.billingPayment.updateMany({
+    where: { id: pagoId, billingItemId },
+    data: {
+      amount: aPesos(datos.amount),
+      paidOn: datos.paidOn,
+      method: datos.method?.trim() || null,
+      note: datos.note?.trim() || null,
+    },
+  });
+  if (count === 0) return { ok: false, error: "Ese abono no existe en este cobro" };
+
+  await recalcularPagos(billingItemId);
+  return { ok: true, id: pagoId };
+}
+
 export async function borrarPago(pagoId: string, billingItemId: string): Promise<ResultadoPago> {
   // Acotado al cobro: un id suelto no puede borrar el abono de otra factura.
   const { count } = await prisma.billingPayment.deleteMany({

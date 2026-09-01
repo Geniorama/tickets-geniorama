@@ -2,11 +2,11 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { AmountInput } from "@/components/ui/amount-input";
 import { formatAmount } from "@/lib/money";
 import { formatDate } from "@/lib/format-date";
-import { addBillingPayment, deleteBillingPayment } from "@/actions/billing-payments.actions";
+import { addBillingPayment, updateBillingPayment, deleteBillingPayment } from "@/actions/billing-payments.actions";
 
 /**
  * Los abonos de un cobro.
@@ -54,6 +54,8 @@ export function PaymentList({
   canManage: boolean;
 }) {
   const [abriendo, setAbriendo] = useState(false);
+  /** El abono que se está corrigiendo, o null si se está creando uno nuevo. */
+  const [editando, setEditando] = useState<Abono | null>(null);
   const [importe, setImporte] = useState("");
   const [error, setError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
@@ -61,7 +63,16 @@ export function PaymentList({
   const router = useRouter();
 
   const falta = Math.max(0, Math.round(total) - Math.round(cobrado));
+  // Al corregir un abono, «lo que falta» se cuenta sin contarlo a él: si no,
+  // el atajo propondría un importe que ya incluye lo que se está cambiando.
+  const faltaSinEste = editando
+    ? Math.max(0, Math.round(total) - Math.round(cobrado) + Math.round(editando.amount))
+    : falta;
   const hoy = new Date().toLocaleDateString("en-CA");
+
+  /** El `<input type="date">` quiere yyyy-MM-dd. */
+  const asDateInput = (d: Date | string) =>
+    (typeof d === "string" ? new Date(d) : d).toISOString().slice(0, 10);
 
   /**
    * El refresco va **fuera** de una transición, y no es un detalle de estilo.
@@ -78,15 +89,31 @@ export function PaymentList({
     setError(null);
     setIsPending(true);
     try {
-      const r = await addBillingPayment(billingItemId, formData);
+      const r = editando
+        ? await updateBillingPayment(editando.id, billingItemId, formData)
+        : await addBillingPayment(billingItemId, formData);
       if (r?.error) return setError(r.error);
-      setImporte("");
-      formRef.current?.reset();
-      setAbriendo(false);
+      cerrar();
       router.refresh();
     } finally {
       setIsPending(false);
     }
+  }
+
+  function cerrar() {
+    setImporte("");
+    formRef.current?.reset();
+    setAbriendo(false);
+    setEditando(null);
+    setError(null);
+  }
+
+  /** Abre el formulario con lo que ya tiene ese abono. */
+  function corregir(a: Abono) {
+    setEditando(a);
+    setAbriendo(true);
+    setError(null);
+    setImporte(new Intl.NumberFormat("es-CO").format(a.amount));
   }
 
   async function borrar(id: string) {
@@ -148,6 +175,17 @@ export function PaymentList({
               <span style={{ flex: 1, minWidth: "6rem", fontSize: "0.6875rem", color: "var(--app-text-muted)", textAlign: "right" }}>
                 {a.registeredBy.name}
               </span>
+              {canEdit && (
+                <button
+                  type="button"
+                  onClick={() => corregir(a)}
+                  disabled={isPending}
+                  aria-label={`Corregir abono de ${formatAmount(a.amount)}`}
+                  style={{ background: "none", border: "none", padding: 0, color: "var(--app-text-muted)", cursor: "pointer", display: "inline-flex" }}
+                >
+                  <Pencil style={{ width: "0.8rem", height: "0.8rem" }} />
+                </button>
+              )}
               {canManage && (
                 <button
                   type="button"
@@ -179,7 +217,7 @@ export function PaymentList({
       ) : null}
 
       {canEdit && facturado && (abriendo ? (
-        <form ref={formRef} action={enviar} style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+        <form key={editando?.id ?? "nuevo"} ref={formRef} action={enviar} style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.6rem" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
             <div>
               <label htmlFor="amount" style={{ display: "block", fontSize: "0.75rem", color: "var(--app-text-muted)", marginBottom: "0.2rem" }}>
@@ -187,17 +225,17 @@ export function PaymentList({
               </label>
               <AmountInput
                 id="amount" name="amount" value={importe} onValueChange={setImporte}
-                placeholder={falta > 0 ? String(falta) : "500.000"}
+                placeholder={faltaSinEste > 0 ? String(faltaSinEste) : "500.000"}
                 ariaLabel="Importe del abono"
                 style={{ ...inputStyle, textAlign: "right", fontVariantNumeric: "tabular-nums" }}
               />
-              {falta > 0 && (
+              {faltaSinEste > 0 && (
                 <button
                   type="button"
-                  onClick={() => setImporte(new Intl.NumberFormat("es-CO").format(falta))}
+                  onClick={() => setImporte(new Intl.NumberFormat("es-CO").format(faltaSinEste))}
                   style={{ background: "none", border: "none", padding: 0, marginTop: "0.25rem", fontSize: "0.7rem", color: "#fd1384", cursor: "pointer" }}
                 >
-                  Poner lo que falta ({formatAmount(falta)})
+                  Poner lo que falta ({formatAmount(faltaSinEste)})
                 </button>
               )}
             </div>
@@ -205,13 +243,22 @@ export function PaymentList({
               <label htmlFor="paidOn" style={{ display: "block", fontSize: "0.75rem", color: "var(--app-text-muted)", marginBottom: "0.2rem" }}>
                 Cuándo entró
               </label>
-              <input id="paidOn" name="paidOn" type="date" required defaultValue={hoy} style={inputStyle} />
+              <input
+                id="paidOn" name="paidOn" type="date" required style={inputStyle}
+                defaultValue={editando ? asDateInput(editando.paidOn) : hoy}
+              />
             </div>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
-            <input name="method" placeholder="Cómo llegó (opcional)" maxLength={80} style={inputStyle} />
-            <input name="note" placeholder="Nota (opcional)" maxLength={500} style={inputStyle} />
+            <input
+              name="method" placeholder="Cómo llegó (opcional)" maxLength={80} style={inputStyle}
+              defaultValue={editando?.method ?? ""}
+            />
+            <input
+              name="note" placeholder="Nota (opcional)" maxLength={500} style={inputStyle}
+              defaultValue={editando?.note ?? ""}
+            />
           </div>
 
           <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -223,10 +270,10 @@ export function PaymentList({
                 cursor: isPending ? "wait" : "pointer", opacity: isPending ? 0.6 : 1,
               }}
             >
-              {isPending ? "Guardando..." : "Registrar abono"}
+              {isPending ? "Guardando..." : editando ? "Guardar cambios" : "Registrar abono"}
             </button>
             <button
-              type="button" onClick={() => { setAbriendo(false); setError(null); }}
+              type="button" onClick={cerrar}
               style={{ border: "1px solid var(--app-border)", background: "none", borderRadius: "0.5rem", padding: "0.5rem 0.9rem", fontSize: "0.875rem", color: "var(--app-text-muted)", cursor: "pointer" }}
             >
               Cancelar

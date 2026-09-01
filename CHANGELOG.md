@@ -9,6 +9,26 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.86.0] — 2026-09-01
+
+### Los abonos se pueden corregir
+
+Hasta ahora un abono solo se podía quitar y volver a poner, que para arreglar un
+importe mal tecleado es más trabajo del que debería. Ahora se corrigen en su
+sitio: importe, fecha, cómo llegó y la nota.
+
+Corregir recalcula igual que apuntar o quitar, así que subir un importe hasta
+cubrir el total cierra el cobro, y bajarlo lo vuelve a abrir. El atajo de «poner
+lo que falta» descuenta el abono que se está corrigiendo, para no proponer una
+cifra que ya lo incluye.
+
+Corregir pide el mismo permiso que apuntar. Podría parecer que tocar una cifra
+guardada merece más, pero quien puede editar ya cambia el total del cobro
+entero, que es un número más gordo; exigir más aquí solo conseguiría que un
+importe mal escrito se quedara mal.
+
+---
+
 ## [1.85.0] — 2026-09-01
 
 ### Los abonos pasan de ser un número a ser una lista
