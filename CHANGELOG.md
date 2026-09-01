@@ -9,6 +9,16 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.82.1] — 2026-08-31
+
+### Arreglado
+
+- En el editor de reglas no se podía teclear un número de días negativo: el
+  campo convertía el guion en un cero y «-5» acababa siendo «05». Justo el caso
+  de avisar *antes* del vencimiento, que era media función.
+
+---
+
 ## [1.82.0] — 2026-08-31
 
 ### Recordatorios de cobro automáticos

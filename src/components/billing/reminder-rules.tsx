@@ -235,7 +235,12 @@ function Formulario({
   onCancelar: () => void;
   isPending: boolean;
 }) {
-  const [cuandoDias, setCuandoDias] = useState(regla?.offsetDays ?? 3);
+  // El valor se guarda como texto y no como número. Un `<input type="number">`
+  // controlado con un número no deja teclear «-5»: al pulsar el signo el campo
+  // vale "" por un instante, `Number("")` es 0, y el usuario acaba con «05».
+  // Con texto, el guion sobrevive mientras se escribe.
+  const [dias, setDias] = useState(String(regla?.offsetDays ?? 3));
+  const n = Number(dias);
 
   return (
     <form
@@ -257,11 +262,14 @@ function Formulario({
           <input
             id={`offset-${regla?.id ?? "nueva"}`} name="offsetDays" type="number" required
             style={inputStyle} min={-90} max={365}
-            value={cuandoDias}
-            onChange={(e) => setCuandoDias(Number(e.target.value))}
+            value={dias}
+            onChange={(e) => setDias(e.target.value)}
           />
           <p style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
-            {cuando(cuandoDias)}. En negativo, avisa antes de que venza.
+            {dias.trim() === "" || !Number.isFinite(n)
+              ? "Escribe los días respecto al vencimiento."
+              : `${cuando(n)}.`}{" "}
+            En negativo, avisa antes de que venza.
           </p>
         </div>
         <div>
