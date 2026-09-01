@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireCan } from "@/lib/access/can";
 import { parseAmount } from "@/lib/money";
+import { prisma } from "@/lib/prisma";
+import { isAdmin } from "@/lib/roles";
+import { addFileAttachments, deleteAttachment } from "@/lib/attachments";
 import { registrarPago, actualizarPago, borrarPago } from "@/lib/billing/payments";
 
 /**
@@ -90,4 +93,64 @@ export async function deleteBillingPayment(pagoId: string, billingItemId: string
 
   refrescar(billingItemId);
   return { success: true };
+}
+
+// ─── Comprobantes ────────────────────────────────────────────────────────────
+
+/**
+ * El comprobante de un abono.
+ *
+ * Cuelga del abono y no del cobro: con tres pagos parciales hay tres soportes,
+ * y todos juntos en el cobro serían un montón de PDF sin saber cuál es de cuál.
+ *
+ * Nada de tablas nuevas: los adjuntos viven desde la Fase 0 en una tabla
+ * compartida. Aquí solo se comprueba que el abono sea de este cobro, para que
+ * un id suelto no cuelgue archivos del abono de otra factura.
+ */
+async function esDeEsteCobro(pagoId: string, billingItemId: string): Promise<boolean> {
+  const n = await prisma.billingPayment.count({ where: { id: pagoId, billingItemId } });
+  return n > 0;
+}
+
+export async function addPaymentReceipt(
+  pagoId: string,
+  billingItemId: string,
+  formData: FormData,
+) {
+  const session = await requireCan("FACTURACION", "editar");
+
+  const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
+  if (files.length === 0) return { error: "No se eligió ningún archivo" };
+
+  if (!(await esDeEsteCobro(pagoId, billingItemId))) return { error: "Ese abono no existe en este cobro" };
+
+  const { errors } = await addFileAttachments({
+    entityType: "BILLING_PAYMENT",
+    entityId: pagoId,
+    storageKey: "abono",
+    files,
+    uploadedById: session.user.id,
+  });
+
+  refrescar(billingItemId);
+  return errors.length > 0 ? { success: true, warning: errors.join(" · ") } : { success: true };
+}
+
+export async function deletePaymentReceipt(
+  attachmentId: string,
+  pagoId: string,
+  billingItemId: string,
+) {
+  const session = await requireCan("FACTURACION", "editar");
+
+  if (!(await esDeEsteCobro(pagoId, billingItemId))) return { error: "Ese abono no existe en este cobro" };
+
+  const r = await deleteAttachment(
+    attachmentId,
+    { entityType: "BILLING_PAYMENT", entityId: pagoId },
+    { id: session.user.id, isAdmin: isAdmin(session.user.role) },
+  );
+
+  refrescar(billingItemId);
+  return r.error ? { error: r.error } : { success: true };
 }

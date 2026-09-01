@@ -91,6 +91,23 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
     contactos: cobro.company.contacts,
   });
 
+  // Los comprobantes cuelgan de cada abono, en la tabla compartida. Una sola
+  // consulta para todos y luego se reparten: uno por abono serían N consultas
+  // para enseñar unas etiquetas.
+  const soportesPorAbono = new Map<string, { id: string; fileName: string | null; fileUrl: string | null }[]>();
+  if (cobro.payments.length > 0) {
+    const soportes = await prisma.attachment.findMany({
+      where: { entityType: "BILLING_PAYMENT", entityId: { in: cobro.payments.map((p) => p.id) } },
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+      select: { id: true, entityId: true, fileName: true, fileUrl: true },
+    });
+    for (const s of soportes) {
+      const lista = soportesPorAbono.get(s.entityId) ?? [];
+      lista.push({ id: s.id, fileName: s.fileName, fileUrl: s.fileUrl });
+      soportesPorAbono.set(s.entityId, lista);
+    }
+  }
+
   const recordatorios = await prisma.billingReminder.findMany({
     where: { billingItemId: id },
     orderBy: { sentAt: "desc" },
@@ -248,7 +265,7 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
 
         <PaymentList
           billingItemId={cobro.id}
-          abonos={cobro.payments}
+          abonos={cobro.payments.map((p) => ({ ...p, soportes: soportesPorAbono.get(p.id) ?? [] }))}
           total={cobro.amount}
           cobrado={cobro.paidAmount}
           facturado={isInvoiced(cobro.status)}

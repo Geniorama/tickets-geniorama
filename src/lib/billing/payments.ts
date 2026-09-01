@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import type { BillingStatus } from "@/generated/prisma";
 import { isInvoiced } from "@/lib/billing/status";
+import { deleteAttachmentsFor } from "@/lib/attachments";
 
 /**
  * Los abonos de un cobro.
@@ -153,6 +154,10 @@ export async function borrarPago(pagoId: string, billingItemId: string): Promise
     where: { id: pagoId, billingItemId },
   });
   if (count === 0) return { ok: false, error: "Ese abono no existe en este cobro" };
+
+  // El comprobante vive en la tabla compartida, que no tiene clave foránea:
+  // sin esto, el PDF de un abono borrado se quedaría suelto para siempre.
+  await deleteAttachmentsFor("BILLING_PAYMENT", pagoId);
 
   await recalcularPagos(billingItemId);
   return { ok: true, id: pagoId };

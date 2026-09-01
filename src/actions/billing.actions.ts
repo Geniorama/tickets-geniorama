@@ -228,11 +228,20 @@ export async function deleteBillingItem(id: string) {
   const cobro = await prisma.billingItem.findUnique({ where: { id }, select: { id: true } });
   if (!cobro) return { error: "Cobro no encontrado" };
 
+  // Los abonos sí caen por clave foránea, pero sus comprobantes no: viven en la
+  // tabla compartida. Hay que recogerlos antes de que desaparezcan los abonos,
+  // o quedan huérfanos sin forma de encontrarlos.
+  const abonos = await prisma.billingPayment.findMany({
+    where: { billingItemId: id },
+    select: { id: true },
+  });
+
   // Novedades y soportes polimórficos: sin cascada en la base, se borran aquí.
   // Mismo criterio que tareas y tickets.
   await prisma.$transaction(async (tx) => {
     await deleteCommentsFor("BILLING", id, tx);
     await deleteAttachmentsFor("BILLING", id, tx);
+    await deleteAttachmentsFor("BILLING_PAYMENT", abonos.map((a) => a.id), tx);
     await tx.billingItem.delete({ where: { id } });
   });
 

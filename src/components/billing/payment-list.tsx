@@ -2,11 +2,14 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, Paperclip, FileText } from "lucide-react";
 import { AmountInput } from "@/components/ui/amount-input";
 import { formatAmount } from "@/lib/money";
 import { formatDate } from "@/lib/format-date";
-import { addBillingPayment, updateBillingPayment, deleteBillingPayment } from "@/actions/billing-payments.actions";
+import {
+  addBillingPayment, updateBillingPayment, deleteBillingPayment,
+  addPaymentReceipt, deletePaymentReceipt,
+} from "@/actions/billing-payments.actions";
 
 /**
  * Los abonos de un cobro.
@@ -19,6 +22,8 @@ import { addBillingPayment, updateBillingPayment, deleteBillingPayment } from "@
  * total, el cobro pasa a «Pagado» solo.
  */
 
+export type Soporte = { id: string; fileName: string | null; fileUrl: string | null };
+
 export type Abono = {
   id: string;
   amount: number;
@@ -26,6 +31,8 @@ export type Abono = {
   method: string | null;
   note: string | null;
   registeredBy: { name: string };
+  /** El comprobante del pago. Puede haber más de uno. */
+  soportes: Soporte[];
 };
 
 const inputStyle: React.CSSProperties = {
@@ -116,6 +123,34 @@ export function PaymentList({
     setImporte(new Intl.NumberFormat("es-CO").format(a.amount));
   }
 
+  async function adjuntar(pagoId: string, files: FileList | null) {
+    if (!files || files.length === 0) return;
+    setError(null);
+    setIsPending(true);
+    try {
+      const fd = new FormData();
+      Array.from(files).forEach((f) => fd.append("files", f));
+      const r = await addPaymentReceipt(pagoId, billingItemId, fd);
+      if (r?.error) return setError(r.error);
+      if (r?.warning) setError(r.warning);
+      router.refresh();
+    } finally {
+      setIsPending(false);
+    }
+  }
+
+  async function quitarSoporte(attachmentId: string, pagoId: string) {
+    setError(null);
+    setIsPending(true);
+    try {
+      const r = await deletePaymentReceipt(attachmentId, pagoId, billingItemId);
+      if (r?.error) return setError(r.error);
+      router.refresh();
+    } finally {
+      setIsPending(false);
+    }
+  }
+
   async function borrar(id: string) {
     setError(null);
     setIsPending(true);
@@ -200,6 +235,54 @@ export function PaymentList({
               {a.note && (
                 <span style={{ width: "100%", fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{a.note}</span>
               )}
+
+              <div style={{ width: "100%", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.4rem", marginTop: "0.15rem" }}>
+                {a.soportes.map((s) => (
+                  <span
+                    key={s.id}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: "0.3rem",
+                      fontSize: "0.7rem", padding: "0.15rem 0.45rem", borderRadius: "0.35rem",
+                      border: "1px solid var(--app-border)",
+                    }}
+                  >
+                    <FileText style={{ width: "0.65rem", height: "0.65rem", color: "var(--app-icon-color)" }} />
+                    <a
+                      href={s.fileUrl ?? "#"} target="_blank" rel="noopener noreferrer"
+                      style={{ color: "#fd1384", textDecoration: "none", maxWidth: "10rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                    >
+                      {s.fileName ?? "Comprobante"}
+                    </a>
+                    {canEdit && (
+                      <button
+                        type="button"
+                        onClick={() => quitarSoporte(s.id, a.id)}
+                        disabled={isPending}
+                        aria-label={`Quitar ${s.fileName ?? "comprobante"}`}
+                        style={{ background: "none", border: "none", padding: 0, color: "#dc2626", cursor: "pointer", display: "inline-flex" }}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </span>
+                ))}
+
+                {canEdit && (
+                  <label
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: "0.25rem",
+                      fontSize: "0.7rem", color: "var(--app-text-muted)", cursor: "pointer",
+                    }}
+                  >
+                    <Paperclip style={{ width: "0.65rem", height: "0.65rem" }} />
+                    {a.soportes.length === 0 ? "Adjuntar comprobante" : "Añadir otro"}
+                    <input
+                      type="file" multiple hidden
+                      onChange={(e) => { adjuntar(a.id, e.target.files); e.target.value = ""; }}
+                    />
+                  </label>
+                )}
+              </div>
             </div>
           ))}
         </div>

@@ -9,6 +9,32 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.87.0] — 2026-09-01
+
+### Cada abono lleva su comprobante
+
+Los soportes de pago colgaban del cobro entero. Con tres abonos eso son tres
+comprobantes en un mismo montón, sin saber cuál corresponde a cuál. Ahora cada
+abono tiene los suyos, adjuntos desde su propia línea.
+
+Los del cobro siguen donde estaban, en «Novedades y soportes», para lo que es
+del cobro y no de un pago concreto: el contrato, la orden de compra, la factura
+en PDF.
+
+No hicieron falta tablas nuevas. Los adjuntos viven desde la Fase 0 en una tabla
+compartida identificada por entidad e id; dar de alta una entidad ahí es añadir
+un valor al enum, que es para lo que se hizo así.
+
+### Sin dejar archivos huérfanos
+
+Las tablas compartidas no tienen clave foránea, así que la limpieza es a mano y
+había dos sitios donde hacerla: al quitar un abono se va su comprobante, y al
+borrar un cobro se van los de todos sus abonos —recogiendo sus identificadores
+**antes** de que los abonos desaparezcan, o no habría forma de encontrarlos
+después—.
+
+---
+
 ## [1.86.0] — 2026-09-01
 
 ### Los abonos se pueden corregir

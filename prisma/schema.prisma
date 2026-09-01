@@ -165,6 +165,12 @@ enum EntityType {
   TASK
   PROJECT
   BILLING
+  /// Un abono concreto, para colgarle su comprobante de pago.
+  ///
+  /// Es entidad propia y no parte del cobro porque el soporte pertenece al
+  /// pago: con tres abonos, tres comprobantes, y hay que saber cuál es de
+  /// cuál. Todos juntos en el cobro sería un montón de PDF sin dueño.
+  BILLING_PAYMENT
 }
 
 // ─── Models ──────────────────────────────────────────────────────────────────
