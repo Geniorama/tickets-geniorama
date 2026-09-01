@@ -9,6 +9,38 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.89.0] — 2026-09-01
+
+### La ficha de un cobro deja de decir todo dos veces
+
+El formulario de edición vivía siempre abierto debajo del detalle, repitiendo
+el importe, el estado, las categorías, las fechas y las notas que ya estaban
+arriba. Dos sitios diciendo lo mismo en la misma pantalla, y media página de
+campos para quien solo venía a ver cuánto falta por cobrar.
+
+Ahora **se edita en su propia pantalla**, con un botón «Editar» en la cabecera,
+como ya se hacía con tickets y tareas. Al guardar se vuelve al cobro, en vez de
+quedarse en el formulario dejando la duda de si guardó.
+
+### Jerarquía
+
+La cabecera dice de un vistazo las tres cosas por las que se entra: qué es, en
+qué estado está y **cuánto falta por cobrar**, ahora en grande y a la derecha.
+
+Debajo, dos columnas desiguales en vez de dos mitades: a la izquierda y más
+ancho lo que se opera —el dinero, los abonos, las novedades—; a la derecha y
+más estrecho lo que se consulta —etiquetas, recordatorios y la ficha con las
+fechas—. Antes la columna izquierda se quedaba vacía a media página mientras la
+derecha seguía sola con un formulario larguísimo.
+
+### Arreglado
+
+- En el editor de líneas el concepto no cabía: se leía «Cobrc» donde decía
+  «Cobro prueba». Ahora ocupa el ancho que le queda libre, y en pantalla
+  estrecha la línea se apila en vez de comprimirse hasta ser ilegible.
+
+---
+
 ## [1.88.1] — 2026-09-01
 
 ### Cambiado

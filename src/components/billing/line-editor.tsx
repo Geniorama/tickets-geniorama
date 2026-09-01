@@ -75,11 +75,17 @@ export function LineEditor({
 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
         {filas.map((f, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 9rem 8rem 7.5rem 2rem", gap: "0.4rem", alignItems: "center" }}>
+          <div
+            key={i}
+            className="grid grid-cols-[1fr_auto] sm:grid-cols-[minmax(0,1fr)_8.5rem_9rem_7.5rem_1.75rem]"
+            style={{ gap: "0.4rem", alignItems: "center" }}
+          >
             <input
               value={f.concept}
               onChange={(e) => actualizar(i, { concept: e.target.value })}
               placeholder="Hosting — septiembre"
+              aria-label="Concepto de la línea"
+              className="col-span-2 sm:col-span-1"
               style={inputStyle}
             />
             <AmountInput

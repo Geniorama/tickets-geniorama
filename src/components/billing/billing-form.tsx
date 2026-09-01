@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import type { BillingStatus } from "@/generated/prisma";
 import { BILLING_STATUSES, BILLING_STATUS_LABELS, isInvoiced } from "@/lib/billing/status";
 import { createBillingItem, updateBillingItem } from "@/actions/billing.actions";
@@ -46,20 +47,21 @@ export function BillingForm({
   const [companyId, setCompanyId] = useState(fixedCompanyId ?? companies[0]?.id ?? "");
   const [status, setStatus] = useState<BillingStatus>(initial?.status ?? "BACKLOG");
   const [error, setError] = useState<string | null>(null);
-  const [guardado, setGuardado] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const editando = Boolean(initial);
 
   function handleSubmit(formData: FormData) {
     setError(null);
-    setGuardado(false);
     startTransition(async () => {
       const r = initial
         ? await updateBillingItem(initial.id, formData)
         : await createBillingItem(formData);
-      if (r?.error) setError(r.error);
-      else if (initial) setGuardado(true);
+      if (r?.error) return setError(r.error);
+      // Al editar se vuelve al cobro: el formulario vive ahora en su propia
+      // pantalla, y quedarse en él tras guardar deja la duda de si guardó.
+      if (initial) router.push(`/facturacion/${initial.id}`);
     });
   }
 
@@ -167,7 +169,6 @@ export function BillingForm({
       </div>
 
       {error && <p style={{ fontSize: "0.8125rem", color: "#b91c1c" }}>{error}</p>}
-      {guardado && !error && <p style={{ fontSize: "0.8125rem", color: "#16a34a" }}>Cambios guardados.</p>}
 
       <button
         type="submit"
