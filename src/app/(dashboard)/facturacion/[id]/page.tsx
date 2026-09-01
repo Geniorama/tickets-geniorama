@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { requireCan, can } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import {
-  BILLING_STATUS_COLORS, BILLING_STATUS_LABELS, pendiente,
+  BILLING_STATUS_COLORS, BILLING_STATUS_LABELS, pendiente, isInvoiced,
 } from "@/lib/billing/status";
 import { formatAmount } from "@/lib/money";
 import { getBillingFormData } from "@/lib/billing/form-data";
@@ -219,6 +219,7 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
               off={cobro.remindersOff}
               canEdit={canEdit}
               tieneVencimiento={cobro.invoiceDueDate !== null}
+              facturado={isInvoiced(cobro.status)}
               salidos={recordatorios.map((r) => ({
                 id: r.id,
                 channel: r.channel,

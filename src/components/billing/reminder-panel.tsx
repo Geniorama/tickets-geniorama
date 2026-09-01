@@ -32,12 +32,15 @@ export function ReminderPanel({
   salidos,
   canEdit,
   tieneVencimiento,
+  facturado,
 }: {
   billingItemId: string;
   off: boolean;
   salidos: Salido[];
   canEdit: boolean;
   tieneVencimiento: boolean;
+  /** Si la factura ya se emitió. Antes de eso no se reclama nada. */
+  facturado: boolean;
 }) {
   const [silenciado, setSilenciado] = useState(off);
   const [error, setError] = useState<string | null>(null);
@@ -93,6 +96,11 @@ export function ReminderPanel({
         {silenciado ? (
           <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", margin: 0 }}>
             No se le reclamará nada por este cobro hasta que se quite el silencio.
+          </p>
+        ) : !facturado ? (
+          <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", margin: 0 }}>
+            No se reclama nada hasta que la factura esté emitida. Al pasarlo a
+            «Facturado» aparecerá el campo «Vence el», y de ahí cuelgan las reglas.
           </p>
         ) : !tieneVencimiento ? (
           <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", margin: 0 }}>

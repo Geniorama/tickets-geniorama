@@ -16,6 +16,9 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 - En el editor de reglas no se podía teclear un número de días negativo: el
   campo convertía el guion en un cero y «-5» acababa siendo «05». Justo el caso
   de avisar *antes* del vencimiento, que era media función.
+- En un cobro todavía sin facturar, el panel de recordatorios mandaba a poner
+  una fecha en un campo que aún no existe. Ahora dice lo que pasa de verdad:
+  hasta que la factura no se emite, no se reclama nada.
 
 ---
 
