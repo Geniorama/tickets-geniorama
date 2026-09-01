@@ -66,10 +66,22 @@ INSERT INTO "checklists" ("id", "entity_type", "entity_id", "title", "position",
 SELECT "id", 'TASK'::"EntityType", "task_id", "title", "position", "created_by_id", "created_at", "updated_at"
 FROM "task_checklists";
 
-INSERT INTO "checklist_items" ("id", "title", "is_checked", "position", "checklist_id", "created_by_id", "created_at", "updated_at")
-SELECT "id", "title", "is_checked", "position", "checklist_id", "created_by_id", "created_at", "updated_at"
-FROM "ticket_checklist_items";
+-- Los ítems vienen de dos tablas heredadas que nunca creó una migración, sino
+-- un `db push` de antes de usarlas. Existen en producción pero no en una base
+-- nueva: sin este guardia, el historial no puede levantar una desde cero. Los
+-- checklists de arriba sí los crea la migración anterior, así que esos van
+-- sueltos y como mucho copian cero filas.
+DO $$
+BEGIN
+  IF to_regclass('public.ticket_checklist_items') IS NOT NULL THEN
+    INSERT INTO "checklist_items" ("id", "title", "is_checked", "position", "checklist_id", "created_by_id", "created_at", "updated_at")
+    SELECT "id", "title", "is_checked", "position", "checklist_id", "created_by_id", "created_at", "updated_at"
+    FROM "ticket_checklist_items";
+  END IF;
 
-INSERT INTO "checklist_items" ("id", "title", "is_checked", "position", "checklist_id", "created_by_id", "created_at", "updated_at")
-SELECT "id", "title", "is_checked", "position", "checklist_id", "created_by_id", "created_at", "updated_at"
-FROM "task_checklist_items";
+  IF to_regclass('public.task_checklist_items') IS NOT NULL THEN
+    INSERT INTO "checklist_items" ("id", "title", "is_checked", "position", "checklist_id", "created_by_id", "created_at", "updated_at")
+    SELECT "id", "title", "is_checked", "position", "checklist_id", "created_by_id", "created_at", "updated_at"
+    FROM "task_checklist_items";
+  END IF;
+END $$;

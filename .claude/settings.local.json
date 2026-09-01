@@ -360,7 +360,24 @@
       "Bash(DATABASE_URL=postgresql://__CMDSUB_OUTPUT__@localhost:5432/geniorama_migtest?sslmode=disable npx prisma db push --schema=/tmp/basegen/schema.prisma --skip-generate --accept-data-loss --force-reset)",
       "Bash(psql -q \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c \"select count\\(*\\) as tablas from pg_tables where schemaname='public';\")",
       "Bash(DATABASE_URL=postgresql://__CMDSUB_OUTPUT__@localhost:5432/geniorama_migtest?sslmode=disable npx prisma db push --schema=/tmp/basegen/schema.prisma --accept-data-loss)",
-      "Bash(env -u ZEPTOMAIL_TOKEN -u ZEPTOMAIL_FROM -u CRON_SECRET DATABASE_URL=postgresql://__CMDSUB_OUTPUT__@localhost:5432/geniorama_migtest?sslmode=disable npx tsx ./tmp-cron-test.ts)"
+      "Bash(env -u ZEPTOMAIL_TOKEN -u ZEPTOMAIL_FROM -u CRON_SECRET DATABASE_URL=postgresql://__CMDSUB_OUTPUT__@localhost:5432/geniorama_migtest?sslmode=disable npx tsx ./tmp-cron-test.ts)",
+      "Bash(dropdb --force geniorama_fresh)",
+      "Bash(createdb geniorama_fresh)",
+      "Bash(DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_fresh?sslmode=disable\" npx prisma migrate deploy)",
+      "Bash(psql -tAq \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c \"select tablename from pg_tables where schemaname='public' and tablename<>'_prisma_migrations' order by 1;\"})",
+      "Bash(dropdb --force geniorama_target)",
+      "Bash(createdb geniorama_target)",
+      "Bash(DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_target?sslmode=disable\" npx prisma db push --accept-data-loss)",
+      "Bash(psql -tAq \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_target\" -c \"select indexdef from pg_indexes where tablename in \\('_TaskReviewers','_TicketReviewers'\\);\")",
+      "Bash(psql -tAq postgresql://__CMDSUB_OUTPUT__@localhost:5432/geniorama_target -c ' *)",
+      "Bash(DATABASE_URL=postgresql://__CMDSUB_OUTPUT__@localhost:5432/geniorama_shadow?sslmode=disable npx prisma migrate diff --from-migrations prisma/migrations --to-schema prisma/schema.prisma --exit-code)",
+      "Bash(echo \"código de salida: $?\")",
+      "Bash(dropdb --force geniorama_shadow)",
+      "Bash(createdb geniorama_shadow)",
+      "Bash(echo \"── código de salida: $? \\(0 = sin diferencias, 2 = hay deriva\\) ──\")",
+      "Bash(DATABASE_URL=__TRACKED_VAR__/geniorama_fresh?sslmode=disable npx prisma migrate deploy)",
+      "Bash(psql -q __TRACKED_VAR__/geniorama_fresh -c 'DELETE FROM _prisma_migrations WHERE migration_name='\\\\''20260805000000_baseline_tablas_previas_a_migraciones'\\\\'';')",
+      "Bash(psql -tAq __TRACKED_VAR__/geniorama_fresh -c 'select 44-count\\(*\\) from _prisma_migrations;')"
     ]
   }
 }

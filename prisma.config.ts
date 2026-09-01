@@ -13,5 +13,9 @@ export default defineConfig({
   },
   datasource: {
     url: process.env["DATABASE_URL"],
+    // Base de usar y tirar donde Prisma reproduce el historial para compararlo
+    // con el esquema. Solo la usan `migrate diff` y `migrate dev`; en el
+    // servidor no está definida y no hace falta.
+    shadowDatabaseUrl: process.env["SHADOW_DATABASE_URL"],
   },
 });

@@ -1,0 +1,91 @@
+# Que el historial de migraciones siga pudiendo levantar una base desde cero.
+#
+# Durante meses no pudo, y nadie se enteró: el esquema se había ido creando con
+# `prisma db push`, que sincroniza contra la base sin dejar constancia de cómo
+# se llegó ahí. Producción funcionaba porque su base venía de aquella época; una
+# base nueva era imposible de construir. Eso solo se descubre el día que hace
+# falta —montar un entorno de pruebas, recuperarse de un desastre—, que es el
+# peor día para descubrirlo.
+#
+# Esto lo comprueba en cada cambio, y son dos preguntas distintas:
+#
+#   1. ¿Corre el historial entero sobre una base vacía?
+#   2. ¿Lo que resulta es exactamente el esquema de `schema.prisma`?
+#
+# La segunda es la que pilla el `db push` a escondidas: si alguien añade una
+# columna al esquema y la empuja sin escribir la migración, aquí salta.
+
+name: Migraciones
+
+on:
+  push:
+    paths:
+      - "prisma/**"
+      - ".github/workflows/migraciones.yml"
+  pull_request:
+    paths:
+      - "prisma/**"
+  workflow_dispatch:
+
+jobs:
+  desde-cero:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: desde_cero
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/desde_cero
+      SHADOW_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sombra
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Crear la base de sombra
+        run: |
+          PGPASSWORD=postgres createdb -h localhost -U postgres sombra
+
+      - name: 1. El historial corre sobre una base vacía
+        run: npx prisma migrate deploy
+
+      - name: 2. El resultado coincide con schema.prisma
+        run: |
+          # --exit-code: 0 si no hay diferencias, 2 si las hay.
+          npx prisma migrate diff \
+            --from-migrations prisma/migrations \
+            --to-schema prisma/schema.prisma \
+            --exit-code > diferencias.txt 2>&1 && estado=0 || estado=$?
+
+          cat diferencias.txt
+
+          # Excepción conocida y única: el índice único parcial de
+          # `billing_reminders`, que impide reenviar un recordatorio ya
+          # entregado. Es `... WHERE status = 'SENT'`, y el lenguaje de esquema
+          # de Prisma no sabe expresar un índice parcial, así que aparece aquí
+          # para siempre. Si el fichero solo dice eso, no hay deriva.
+          otras=$(grep -vE "billing_reminders|rule_id, billing_item_id, channel|^\s*$|^\[\*\]" diferencias.txt || true)
+
+          if [ "$estado" = "2" ] && [ -n "$otras" ]; then
+            echo "::error::El historial ya no reproduce schema.prisma. Casi siempre es un cambio empujado con 'prisma db push' sin escribir su migración."
+            exit 1
+          fi
+
+          echo "### Migraciones" >> "$GITHUB_STEP_SUMMARY"
+          echo "El historial levanta una base desde cero y coincide con el esquema." >> "$GITHUB_STEP_SUMMARY"

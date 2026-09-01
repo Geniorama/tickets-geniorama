@@ -109,11 +109,25 @@ INSERT INTO "comment_attachments" ("id", "type", "url", "name", "storage_path", 
 SELECT "id", "type", "url", "name", "storage_path", "comment_id", "created_at"
 FROM "task_comment_attachments";
 
+-- Condicionado: estas tablas heredadas nunca las creó una migración —vienen del
+-- `db push` anterior a adoptarlas— y se borran en 20260813120000. Existen en
+-- producción, donde esto se aplicó en su día; en una base nueva no, y sin el
+-- guardia el historial no podía levantar una desde cero.
 -- Reacciones
-INSERT INTO "comment_reactions" ("comment_id", "user_id", "type", "created_at")
-SELECT "comment_id", "user_id", "type", "created_at"
-FROM "ticket_comment_reactions";
+DO $$
+BEGIN
+  IF to_regclass('public.ticket_comment_reactions') IS NOT NULL THEN
+    INSERT INTO "comment_reactions" ("comment_id", "user_id", "type", "created_at")
+    SELECT "comment_id", "user_id", "type", "created_at"
+    FROM "ticket_comment_reactions";
+  END IF;
+END $$;
 
-INSERT INTO "comment_reactions" ("comment_id", "user_id", "type", "created_at")
-SELECT "comment_id", "user_id", "type", "created_at"
-FROM "task_comment_reactions";
+DO $$
+BEGIN
+  IF to_regclass('public.task_comment_reactions') IS NOT NULL THEN
+    INSERT INTO "comment_reactions" ("comment_id", "user_id", "type", "created_at")
+    SELECT "comment_id", "user_id", "type", "created_at"
+    FROM "task_comment_reactions";
+  END IF;
+END $$;

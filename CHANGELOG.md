@@ -9,6 +9,42 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.82.2] — 2026-08-31
+
+### El historial de migraciones vuelve a poder construir la base desde cero
+
+Durante meses no podía, y no se notaba. El proyecto empezó usando
+`prisma db push`, que sincroniza el esquema contra la base sin dejar constancia
+de cómo se llegó ahí; cuando después se adoptaron las migraciones, todo lo
+creado hasta entonces quedó fuera del historial. Producción funcionaba porque su
+base venía de aquella época, pero una base nueva era imposible de levantar:
+`prisma migrate deploy` fallaba al tocar una tabla que, según los ficheros, no
+existía.
+
+Da igual mientras solo haya una base y nadie la pierda. Deja de dar igual el día
+que haya que montar un entorno de pruebas o recuperarse de un desastre — que es
+el peor día para enterarse.
+
+Faltaban **siete tablas** (`app_settings`, `notifications`, `project_members`,
+`recurring_task_templates`, `user_webhooks` y las dos de revisores), **dos tipos
+enumerados**, **once columnas** repartidas por `users`, `projects`, `tickets` y
+`tareas`, y un valor de `TicketStatus`. Se recrean en una migración nueva que
+solo actúa sobre lo que no está: en producción no hace absolutamente nada.
+
+Aparte, ocho tablas heredadas que se usaron y luego se borraron —las de
+checklists, reacciones, plantillas y bóveda anteriores al núcleo compartido—
+tenían migraciones de datos que daban por hecho que existían. Ahora van
+condicionadas: si no hay tabla heredada, no hay nada que migrar.
+
+### Un guardián para que no se repita
+
+Un workflow nuevo comprueba en cada cambio de `prisma/` que el historial corre
+sobre una base vacía **y** que lo que produce coincide con `schema.prisma`. Esa
+segunda comprobación es la que pilla el `db push` a escondidas: si alguien toca
+el esquema sin escribir su migración, salta ahí y no seis meses después.
+
+---
+
 ## [1.82.1] — 2026-08-31
 
 ### Arreglado

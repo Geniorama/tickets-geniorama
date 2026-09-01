@@ -55,28 +55,47 @@ ALTER TABLE "vault_links" ADD CONSTRAINT "vault_links_vault_entry_id_fkey" FOREI
 -- Backfill
 -- ─────────────────────────────────────────────────────────────────────────────
 
+-- Condicionado: `ticket_templates`, `task_templates` y `ticket_vault_entries`
+-- vienen del `db push` anterior a usar migraciones y se borran en
+-- 20260813120000. En una base nueva no existen y no hay nada que copiar.
+
 -- Plantillas de ticket: sin estimación de horas.
-INSERT INTO "templates" (
-    "id", "entity_type", "name", "title", "description", "priority", "category",
-    "estimated_hours", "checklist", "created_by_id", "created_at", "updated_at"
-)
-SELECT "id", 'TICKET'::"EntityType", "name", "title", "description", "priority", "category",
-       NULL, "checklist", "created_by_id", "created_at", "updated_at"
-FROM "ticket_templates";
+DO $$
+BEGIN
+  IF to_regclass('public.ticket_templates') IS NOT NULL THEN
+    INSERT INTO "templates" (
+        "id", "entity_type", "name", "title", "description", "priority", "category",
+        "estimated_hours", "checklist", "created_by_id", "created_at", "updated_at"
+    )
+    SELECT "id", 'TICKET'::"EntityType", "name", "title", "description", "priority", "category",
+           NULL, "checklist", "created_by_id", "created_at", "updated_at"
+    FROM "ticket_templates";
+  END IF;
+END $$;
 
 -- Plantillas de tarea.
-INSERT INTO "templates" (
-    "id", "entity_type", "name", "title", "description", "priority", "category",
-    "estimated_hours", "checklist", "created_by_id", "created_at", "updated_at"
-)
-SELECT "id", 'TASK'::"EntityType", "name", "title", "description", "priority", "category",
-       "estimated_hours", "checklist", "created_by_id", "created_at", "updated_at"
-FROM "task_templates";
+DO $$
+BEGIN
+  IF to_regclass('public.task_templates') IS NOT NULL THEN
+    INSERT INTO "templates" (
+        "id", "entity_type", "name", "title", "description", "priority", "category",
+        "estimated_hours", "checklist", "created_by_id", "created_at", "updated_at"
+    )
+    SELECT "id", 'TASK'::"EntityType", "name", "title", "description", "priority", "category",
+           "estimated_hours", "checklist", "created_by_id", "created_at", "updated_at"
+    FROM "task_templates";
+  END IF;
+END $$;
 
 -- Vínculos de bóveda.
-INSERT INTO "vault_links" ("entity_type", "entity_id", "vault_entry_id", "added_at")
-SELECT 'TICKET'::"EntityType", "ticket_id", "vault_entry_id", "added_at"
-FROM "ticket_vault_entries";
+DO $$
+BEGIN
+  IF to_regclass('public.ticket_vault_entries') IS NOT NULL THEN
+    INSERT INTO "vault_links" ("entity_type", "entity_id", "vault_entry_id", "added_at")
+    SELECT 'TICKET'::"EntityType", "ticket_id", "vault_entry_id", "added_at"
+    FROM "ticket_vault_entries";
+  END IF;
+END $$;
 
 INSERT INTO "vault_links" ("entity_type", "entity_id", "vault_entry_id", "added_at")
 SELECT 'PROJECT'::"EntityType", "project_id", "vault_entry_id", "added_at"

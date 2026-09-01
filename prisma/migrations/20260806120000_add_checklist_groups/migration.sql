@@ -55,78 +55,108 @@ ALTER TABLE "task_checklists" ADD CONSTRAINT "task_checklists_created_by_id_fkey
 
 -- Backfill: un checklist "Checklist" por cada ticket/tarea que ya tenga ítems.
 -- El autor y la fecha se heredan del ítem más antiguo del grupo.
-INSERT INTO "ticket_checklists" ("id", "title", "position", "ticket_id", "created_by_id", "created_at", "updated_at")
-SELECT gen_random_uuid()::text, 'Checklist', 0, i."ticket_id",
-       (ARRAY_AGG(i."created_by_id" ORDER BY i."created_at"))[1],
-       MIN(i."created_at"), CURRENT_TIMESTAMP
-FROM "ticket_checklist_items" i
-GROUP BY i."ticket_id";
+--
+-- Va condicionado a que la tabla exista, y esa condición se añadió después.
+-- `ticket_checklist_items` y `task_checklist_items` nunca las creó una
+-- migración: nacieron de un `prisma db push` de cuando el proyecto todavía no
+-- usaba migraciones. En la base de producción están —de ahí que esto se
+-- aplicara sin problema en su día—, pero en una base nueva no existen, y sin
+-- el guardia este fichero reventaba y el historial no podía levantar una base
+-- desde cero. Si no hay tabla heredada no hay nada que migrar, que es
+-- exactamente lo que dice el `IF`.
+DO $$
+BEGIN
+  IF to_regclass('public.ticket_checklist_items') IS NOT NULL THEN
+    INSERT INTO "ticket_checklists" ("id", "title", "position", "ticket_id", "created_by_id", "created_at", "updated_at")
+    SELECT gen_random_uuid()::text, 'Checklist', 0, i."ticket_id",
+           (ARRAY_AGG(i."created_by_id" ORDER BY i."created_at"))[1],
+           MIN(i."created_at"), CURRENT_TIMESTAMP
+    FROM "ticket_checklist_items" i
+    GROUP BY i."ticket_id";
 
-INSERT INTO "task_checklists" ("id", "title", "position", "task_id", "created_by_id", "created_at", "updated_at")
-SELECT gen_random_uuid()::text, 'Checklist', 0, i."task_id",
-       (ARRAY_AGG(i."created_by_id" ORDER BY i."created_at"))[1],
-       MIN(i."created_at"), CURRENT_TIMESTAMP
-FROM "task_checklist_items" i
-GROUP BY i."task_id";
+    -- Los ítems pasan a colgar del checklist.
+    ALTER TABLE "ticket_checklist_items" ADD COLUMN "checklist_id" TEXT;
+    UPDATE "ticket_checklist_items" i
+    SET "checklist_id" = c."id"
+    FROM "ticket_checklists" c
+    WHERE c."ticket_id" = i."ticket_id";
+    ALTER TABLE "ticket_checklist_items" ALTER COLUMN "checklist_id" SET NOT NULL;
+    ALTER TABLE "ticket_checklist_items" DROP CONSTRAINT IF EXISTS "ticket_checklist_items_ticket_id_fkey";
+    ALTER TABLE "ticket_checklist_items" DROP COLUMN "ticket_id";
 
--- AlterTable: los ítems pasan a colgar del checklist
-ALTER TABLE "ticket_checklist_items" ADD COLUMN "checklist_id" TEXT;
-UPDATE "ticket_checklist_items" i
-SET "checklist_id" = c."id"
-FROM "ticket_checklists" c
-WHERE c."ticket_id" = i."ticket_id";
-ALTER TABLE "ticket_checklist_items" ALTER COLUMN "checklist_id" SET NOT NULL;
-ALTER TABLE "ticket_checklist_items" DROP CONSTRAINT IF EXISTS "ticket_checklist_items_ticket_id_fkey";
-ALTER TABLE "ticket_checklist_items" DROP COLUMN "ticket_id";
+    CREATE INDEX "ticket_checklist_items_checklist_id_idx" ON "ticket_checklist_items"("checklist_id");
+    ALTER TABLE "ticket_checklist_items" ADD CONSTRAINT "ticket_checklist_items_checklist_id_fkey" FOREIGN KEY ("checklist_id") REFERENCES "ticket_checklists"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
 
-ALTER TABLE "task_checklist_items" ADD COLUMN "checklist_id" TEXT;
-UPDATE "task_checklist_items" i
-SET "checklist_id" = c."id"
-FROM "task_checklists" c
-WHERE c."task_id" = i."task_id";
-ALTER TABLE "task_checklist_items" ALTER COLUMN "checklist_id" SET NOT NULL;
-ALTER TABLE "task_checklist_items" DROP CONSTRAINT IF EXISTS "task_checklist_items_task_id_fkey";
-ALTER TABLE "task_checklist_items" DROP COLUMN "task_id";
+  IF to_regclass('public.task_checklist_items') IS NOT NULL THEN
+    INSERT INTO "task_checklists" ("id", "title", "position", "task_id", "created_by_id", "created_at", "updated_at")
+    SELECT gen_random_uuid()::text, 'Checklist', 0, i."task_id",
+           (ARRAY_AGG(i."created_by_id" ORDER BY i."created_at"))[1],
+           MIN(i."created_at"), CURRENT_TIMESTAMP
+    FROM "task_checklist_items" i
+    GROUP BY i."task_id";
 
--- CreateIndex
-CREATE INDEX "ticket_checklist_items_checklist_id_idx" ON "ticket_checklist_items"("checklist_id");
+    ALTER TABLE "task_checklist_items" ADD COLUMN "checklist_id" TEXT;
+    UPDATE "task_checklist_items" i
+    SET "checklist_id" = c."id"
+    FROM "task_checklists" c
+    WHERE c."task_id" = i."task_id";
+    ALTER TABLE "task_checklist_items" ALTER COLUMN "checklist_id" SET NOT NULL;
+    ALTER TABLE "task_checklist_items" DROP CONSTRAINT IF EXISTS "task_checklist_items_task_id_fkey";
+    ALTER TABLE "task_checklist_items" DROP COLUMN "task_id";
 
--- CreateIndex
-CREATE INDEX "task_checklist_items_checklist_id_idx" ON "task_checklist_items"("checklist_id");
+    CREATE INDEX "task_checklist_items_checklist_id_idx" ON "task_checklist_items"("checklist_id");
+    ALTER TABLE "task_checklist_items" ADD CONSTRAINT "task_checklist_items_checklist_id_fkey" FOREIGN KEY ("checklist_id") REFERENCES "task_checklists"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  END IF;
+END $$;
 
--- AddForeignKey
-ALTER TABLE "ticket_checklist_items" ADD CONSTRAINT "ticket_checklist_items_checklist_id_fkey" FOREIGN KEY ("checklist_id") REFERENCES "ticket_checklists"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+-- AlterTable: el checklist de las plantillas pasa de text[] a jsonb agrupado.
+--
+-- Condicionado por lo mismo que el bloque de arriba: `task_templates` y
+-- `ticket_templates` nunca las creó una migración —vienen del `db push`
+-- original— y se borran en 20260813120000. En una base nueva no existen y no
+-- hay nada que convertir.
+DO $$
+BEGIN
+  IF to_regclass('public.task_templates') IS NOT NULL THEN
+    ALTER TABLE "task_templates" ADD COLUMN "checklist_groups" JSONB NOT NULL DEFAULT '[]';
+    UPDATE "task_templates"
+    SET "checklist_groups" = CASE
+      WHEN COALESCE(array_length("checklist", 1), 0) > 0
+        THEN jsonb_build_array(jsonb_build_object('title', 'Checklist', 'items', to_jsonb("checklist")))
+      ELSE '[]'::jsonb
+    END;
+    ALTER TABLE "task_templates" DROP COLUMN "checklist";
+    ALTER TABLE "task_templates" RENAME COLUMN "checklist_groups" TO "checklist";
+  END IF;
+END $$;
 
--- AddForeignKey
-ALTER TABLE "task_checklist_items" ADD CONSTRAINT "task_checklist_items_checklist_id_fkey" FOREIGN KEY ("checklist_id") REFERENCES "task_checklists"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  IF to_regclass('public.ticket_templates') IS NOT NULL THEN
+    ALTER TABLE "ticket_templates" ADD COLUMN "checklist_groups" JSONB NOT NULL DEFAULT '[]';
+    UPDATE "ticket_templates"
+    SET "checklist_groups" = CASE
+      WHEN COALESCE(array_length("checklist", 1), 0) > 0
+        THEN jsonb_build_array(jsonb_build_object('title', 'Checklist', 'items', to_jsonb("checklist")))
+      ELSE '[]'::jsonb
+    END;
+    ALTER TABLE "ticket_templates" DROP COLUMN "checklist";
+    ALTER TABLE "ticket_templates" RENAME COLUMN "checklist_groups" TO "checklist";
+  END IF;
+END $$;
 
--- AlterTable: el checklist de las plantillas pasa de text[] a jsonb agrupado
-ALTER TABLE "task_templates" ADD COLUMN "checklist_groups" JSONB NOT NULL DEFAULT '[]';
-UPDATE "task_templates"
-SET "checklist_groups" = CASE
-  WHEN COALESCE(array_length("checklist", 1), 0) > 0
-    THEN jsonb_build_array(jsonb_build_object('title', 'Checklist', 'items', to_jsonb("checklist")))
-  ELSE '[]'::jsonb
-END;
-ALTER TABLE "task_templates" DROP COLUMN "checklist";
-ALTER TABLE "task_templates" RENAME COLUMN "checklist_groups" TO "checklist";
-
-ALTER TABLE "ticket_templates" ADD COLUMN "checklist_groups" JSONB NOT NULL DEFAULT '[]';
-UPDATE "ticket_templates"
-SET "checklist_groups" = CASE
-  WHEN COALESCE(array_length("checklist", 1), 0) > 0
-    THEN jsonb_build_array(jsonb_build_object('title', 'Checklist', 'items', to_jsonb("checklist")))
-  ELSE '[]'::jsonb
-END;
-ALTER TABLE "ticket_templates" DROP COLUMN "checklist";
-ALTER TABLE "ticket_templates" RENAME COLUMN "checklist_groups" TO "checklist";
-
-ALTER TABLE "recurring_task_templates" ADD COLUMN "checklist_groups" JSONB NOT NULL DEFAULT '[]';
-UPDATE "recurring_task_templates"
-SET "checklist_groups" = CASE
-  WHEN COALESCE(array_length("checklist", 1), 0) > 0
-    THEN jsonb_build_array(jsonb_build_object('title', 'Checklist', 'items', to_jsonb("checklist")))
-  ELSE '[]'::jsonb
-END;
-ALTER TABLE "recurring_task_templates" DROP COLUMN "checklist";
-ALTER TABLE "recurring_task_templates" RENAME COLUMN "checklist_groups" TO "checklist";
+DO $$
+BEGIN
+  IF to_regclass('public.recurring_task_templates') IS NOT NULL THEN
+    ALTER TABLE "recurring_task_templates" ADD COLUMN "checklist_groups" JSONB NOT NULL DEFAULT '[]';
+    UPDATE "recurring_task_templates"
+    SET "checklist_groups" = CASE
+      WHEN COALESCE(array_length("checklist", 1), 0) > 0
+        THEN jsonb_build_array(jsonb_build_object('title', 'Checklist', 'items', to_jsonb("checklist")))
+      ELSE '[]'::jsonb
+    END;
+    ALTER TABLE "recurring_task_templates" DROP COLUMN "checklist";
+    ALTER TABLE "recurring_task_templates" RENAME COLUMN "checklist_groups" TO "checklist";
+  END IF;
+END $$;
