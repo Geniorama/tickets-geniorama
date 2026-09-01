@@ -7,7 +7,7 @@ import {
   useDroppable, useDraggable, type DragEndEvent, type DragStartEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Building2, CalendarClock, Hash } from "lucide-react";
+import { GripVertical, Building2, CalendarClock, Hash, Paperclip } from "lucide-react";
 import type { BillingStatus } from "@/generated/prisma";
 import {
   BILLING_STATUS_COLORS, BILLING_STATUS_DESCRIPTIONS, BILLING_STATUS_LABELS, pendiente,
@@ -27,6 +27,9 @@ export type BoardItem = {
   invoiceNumber: string | null;
   company: { id: string; name: string };
   owner: { name: string } | null;
+  labels: { id: string; name: string; color: string }[];
+  /** Cuántos soportes/novedades tiene: se ve sin abrir la tarjeta. */
+  notes: number;
 };
 
 function ItemCard({ item, isDragging = false }: { item: BoardItem; isDragging?: boolean }) {
@@ -42,6 +45,23 @@ function ItemCard({ item, isDragging = false }: { item: BoardItem; isDragging?: 
         opacity: isDragging ? 0.4 : 1,
       }}
     >
+      {item.labels.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginBottom: "0.4rem", paddingRight: "1.25rem" }}>
+          {item.labels.map((l) => (
+            <span
+              key={l.id}
+              style={{
+                fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.02em",
+                padding: "0.1rem 0.4rem", borderRadius: "9999px",
+                backgroundColor: `${l.color}22`, color: l.color,
+              }}
+            >
+              {l.name}
+            </span>
+          ))}
+        </div>
+      )}
+
       <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", lineHeight: 1.35, paddingRight: "1.25rem" }}>
         {item.concept}
       </p>
@@ -75,6 +95,14 @@ function ItemCard({ item, isDragging = false }: { item: BoardItem; isDragging?: 
           </span>
         )}
         {item.owner && <span>Responsable: {item.owner.name}</span>}
+        {/* Saber que hay un soporte adjunto sin tener que abrir la tarjeta es
+            media respuesta a «¿ya pagaron?». */}
+        {item.notes > 0 && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+            <Paperclip style={{ width: "0.75rem", height: "0.75rem", flexShrink: 0 }} />
+            {item.notes} {item.notes === 1 ? "novedad" : "novedades"}
+          </span>
+        )}
       </div>
     </div>
   );

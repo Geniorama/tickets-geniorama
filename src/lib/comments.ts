@@ -28,7 +28,9 @@ export function extractMentionIds(body: string): string[] {
 
 /** Forma que esperan los componentes de UI compartidos. */
 export const commentInclude = {
-  author: { select: { name: true, role: true } },
+  // `id` para poder decidir en la interfaz quién borra lo suyo sin
+  // adivinar por el nombre, que se repite.
+  author: { select: { id: true, name: true, role: true } },
   reactions: { select: { type: true, userId: true } },
   attachments: {
     select: { type: true, url: true, name: true },

@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireCan } from "@/lib/access/can";
+import { deleteCommentsFor } from "@/lib/comments";
+import { deleteAttachmentsFor } from "@/lib/attachments";
 import type { BillingStatus } from "@/generated/prisma";
 import { BILLING_STATUSES, isInvoiced } from "@/lib/billing/status";
 import { moveBillingStatus, sellosPara } from "@/lib/billing/move";
@@ -187,7 +189,13 @@ export async function deleteBillingItem(id: string) {
   const cobro = await prisma.billingItem.findUnique({ where: { id }, select: { id: true } });
   if (!cobro) return { error: "Cobro no encontrado" };
 
-  await prisma.billingItem.delete({ where: { id } });
+  // Novedades y soportes polimórficos: sin cascada en la base, se borran aquí.
+  // Mismo criterio que tareas y tickets.
+  await prisma.$transaction(async (tx) => {
+    await deleteCommentsFor("BILLING", id, tx);
+    await deleteAttachmentsFor("BILLING", id, tx);
+    await tx.billingItem.delete({ where: { id } });
+  });
 
   revalidatePath("/facturacion");
   redirect("/facturacion");

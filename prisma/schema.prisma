@@ -164,6 +164,7 @@ enum EntityType {
   TICKET
   TASK
   PROJECT
+  BILLING
 }
 
 // ─── Models ──────────────────────────────────────────────────────────────────
@@ -1071,12 +1072,34 @@ model BillingItem {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  lines BillingLine[]
+  lines  BillingLine[]
+  labels BillingLabel[] @relation("BillingItemLabels")
 
   @@index([status])
   @@index([companyId])
   @@index([dueDate])
   @@map("billing_items")
+}
+
+/// Una etiqueta de facturación: «Por revisar», «Por cobrar»…
+///
+/// Son las etiquetas del tablero anterior, y se guardan como filas y no como
+/// un enum porque quien lleva la facturación necesita crear una nueva sin
+/// esperar a un despliegue. Un cobro puede llevar varias a la vez: son una
+/// dimensión aparte de la columna en la que está.
+model BillingLabel {
+  id    String @id @default(cuid())
+  name  String @unique
+  /// Color en hexadecimal, como en las demás insignias de la app.
+  color String @default("#64748b")
+  /// Para ordenarlas a gusto en el selector.
+  position Int  @default(0)
+
+  items BillingItem[] @relation("BillingItemLabels")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("billing_labels")
 }
 
 /// Una línea de un cobro: un concepto con su base y su impuesto.

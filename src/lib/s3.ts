@@ -8,6 +8,7 @@ const COMMENT_FOLDERS: Record<EntityType, string> = {
   TICKET:  "tickets",
   TASK:    "tasks",
   PROJECT: "projects",
+  BILLING: "facturacion",
 };
 
 const r2 = new S3Client({

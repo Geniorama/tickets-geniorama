@@ -32,10 +32,33 @@ export default async function BillingPage({
         dueDate: true, invoiceNumber: true,
         company: { select: { id: true, name: true } },
         owner: { select: { name: true } },
+        labels: { select: { id: true, name: true, color: true } },
       },
     }),
     prisma.billingItem.count({ where: { status: "PAGADO" } }),
   ]);
+
+  // Novedades y soportes viven en las tablas compartidas: dos consultas
+  // agrupadas en vez de una por tarjeta.
+  const ids = items.map((i) => i.id);
+  const [porComentarios, porAdjuntos] = await Promise.all([
+    prisma.comment.groupBy({
+      by: ["entityId"],
+      where: { entityType: "BILLING", entityId: { in: ids } },
+      _count: { _all: true },
+    }),
+    prisma.attachment.groupBy({
+      by: ["entityId"],
+      where: { entityType: "BILLING", entityId: { in: ids } },
+      _count: { _all: true },
+    }),
+  ]);
+  const novedades = new Map<string, number>();
+  for (const g of [...porComentarios, ...porAdjuntos]) {
+    novedades.set(g.entityId, (novedades.get(g.entityId) ?? 0) + g._count._all);
+  }
+
+  const conNovedades = items.map((i) => ({ ...i, notes: novedades.get(i.id) ?? 0 }));
 
   const abiertos = items.filter((i) => i.status !== "PAGADO");
   // La cifra que importa: lo que falta por entrar, no lo facturado.
@@ -93,7 +116,7 @@ export default async function BillingPage({
         </div>
       </div>
 
-      <BillingBoard items={items as BoardItem[]} statuses={statuses} canEdit={canEdit} />
+      <BillingBoard items={conNovedades as BoardItem[]} statuses={statuses} canEdit={canEdit} />
     </div>
   );
 }

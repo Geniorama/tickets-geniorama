@@ -10,6 +10,11 @@ import { BillingForm } from "@/components/billing/billing-form";
 import { BackButton } from "@/components/ui/back-button";
 import { formatDate } from "@/lib/format-date";
 import { describirImpuesto } from "@/lib/billing/totals";
+import { listComments } from "@/lib/comments";
+import { listAttachments } from "@/lib/attachments";
+import { isAdmin } from "@/lib/roles";
+import { BillingNotes } from "@/components/billing/billing-notes";
+import { LabelPicker } from "@/components/billing/label-picker";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -38,6 +43,7 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
         select: { id: true, concept: true, amount: true, taxRate: true },
       },
       companyId: true, ownerId: true,
+      labels: { select: { id: true, name: true, color: true } },
       company: { select: { id: true, name: true } },
       owner: { select: { name: true } },
       createdBy: { select: { name: true } },
@@ -46,7 +52,15 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
 
   if (!cobro) notFound();
 
-  const { companies, owners } = canEdit ? await getBillingFormData() : { companies: [], owners: [] };
+  const canManage = await can(session.user, "FACTURACION", "gestionar");
+
+  // Comentarios y adjuntos viven en las tablas compartidas del núcleo.
+  const [{ companies, owners }, comments, attachments, etiquetas] = await Promise.all([
+    canEdit ? getBillingFormData() : Promise.resolve({ companies: [], owners: [] }),
+    listComments({ entityType: "BILLING", entityId: id, includeInternal: true }),
+    listAttachments("BILLING", id),
+    prisma.billingLabel.findMany({ orderBy: { position: "asc" }, select: { id: true, name: true, color: true } }),
+  ]);
   const color = BILLING_STATUS_COLORS[cobro.status];
   const falta = pendiente(cobro.amount, cobro.paidAmount);
 
@@ -70,6 +84,17 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
           >
             {BILLING_STATUS_LABELS[cobro.status]}
           </span>
+          {cobro.labels.map((l) => (
+            <span
+              key={l.id}
+              style={{
+                fontSize: "0.6875rem", fontWeight: 600, padding: "0.2rem 0.55rem",
+                borderRadius: "9999px", backgroundColor: `${l.color}22`, color: l.color,
+              }}
+            >
+              {l.name}
+            </span>
+          ))}
         </div>
         <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginTop: "0.3rem" }}>
           {[
@@ -139,8 +164,43 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
           )}
         </div>
 
+        <BillingNotes
+          billingItemId={cobro.id}
+          comments={comments.map((c) => ({
+            id: c.id,
+            body: c.body,
+            createdAt: c.createdAt,
+            author: { id: c.author.id, name: c.author.name },
+          }))}
+          attachments={attachments.map((a) => ({
+            id: a.id,
+            fileName: a.fileName,
+            fileUrl: a.fileUrl,
+            createdAt: a.createdAt,
+            uploadedBy: a.uploadedBy ? { name: a.uploadedBy.name } : null,
+          }))}
+          canEdit={canEdit}
+          currentUserId={session.user.id}
+          isAdmin={isAdmin(session.user.role)}
+        />
+
         {canEdit && (
-          <div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <div
+              style={{
+                backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)",
+                borderRadius: "0.75rem", padding: "1.25rem",
+              }}
+            >
+              <LabelPicker
+                billingItemId={cobro.id}
+                todas={etiquetas}
+                puestas={cobro.labels.map((l) => l.id)}
+                canEdit={canEdit}
+                canCreate={canManage}
+              />
+            </div>
+
             <h2 style={{ fontSize: "0.9375rem", fontWeight: 600, color: "var(--app-body-text)", marginBottom: "0.6rem" }}>
               Datos del cobro
             </h2>

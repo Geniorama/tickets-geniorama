@@ -336,7 +336,14 @@
       "Bash(perl -0pi -e 's/\"version\": \"1\\\\.78\\\\.2\"/\"version\": \"1.79.0\"/' package.json)",
       "Bash(DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest?sslmode=disable\" npx tsx ./tmp-totals-test.ts)",
       "Bash(perl -0pi -e 's/\"version\": \"1\\\\.79\\\\.0\"/\"version\": \"1.80.0\"/' package.json)",
-      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.80\\\\.0\"/\"version\": \"1.80.1\"/' package.json)"
+      "Bash(perl -0pi -e 's/\"version\": \"1\\\\.80\\\\.0\"/\"version\": \"1.80.1\"/' package.json)",
+      "Bash(psql -q \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c 'TRUNCATE \"Comment\",\"Attachment\",\"BillingItem\",\"Ticket\",\"User\",\"Company\" CASCADE;')",
+      "Bash(DATABASE_URL=\"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest?sslmode=disable\" npx tsx ./tmp-notes-test.ts)",
+      "Bash(psql \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c 'TRUNCATE \"Comment\",\"Attachment\",\"BillingItem\",\"Ticket\",\"User\",\"Company\" CASCADE;')",
+      "Bash(psql \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c \"\\\\dn\")",
+      "Bash(psql \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c \"select table_schema, count\\(*\\) from information_schema.tables where table_type='BASE TABLE' group by 1;\")",
+      "Bash(psql \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c \"select tablename from pg_tables where schemaname='public' order by 1;\")",
+      "Bash(psql \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c 'TRUNCATE comments, attachments, billing_items, tickets, users, companies CASCADE;')"
     ]
   }
 }

@@ -9,6 +9,43 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.81.0] — 2026-08-31
+
+### Novedades, soportes y etiquetas en los cobros
+
+Cada cobro tiene ahora un hilo donde dejar el comprobante de pago y lo que haya
+pasado —«el cliente pidió plazo», «rebotó la transferencia»—. Texto y archivos
+van juntos y no en dos pestañas: un soporte casi siempre viene con una frase que
+lo explica, y separarlos obliga a contar la historia dos veces. En el tablero
+cada tarjeta indica cuántas novedades tiene, para saber dónde mirar sin abrir.
+
+No hicieron falta tablas nuevas. Comentarios y adjuntos viven desde la Fase 0 en
+tablas compartidas identificadas por entidad e id; dar de alta un módulo ahí es
+añadir un valor al enum, que es justo para lo que se hizo así.
+
+Cada quien borra sus propias novedades; un administrador, cualquiera. Y todo va
+acotado al cobro: un id suelto no puede tocar el hilo de otro, ni el de un
+ticket, ni aunque coincida el identificador.
+
+### Etiquetas
+
+Vuelven las etiquetas que se usaban en Trello: **Por revisar** y **Por cobrar**
+ya vienen puestas, y quien gestione facturación puede crear más sin esperar un
+despliegue —si crearlas costara uno, acabarían metidas en el título del cobro—.
+
+Son una dimensión aparte de la columna, no otra columna: un cobro «Facturado»
+puede estar a la vez «Por revisar», así que se marcan varias. Se ven en la
+tarjeta del tablero y en el detalle.
+
+### Arreglado
+
+- Borrar un cobro dejaba huérfanos sus comentarios y adjuntos. Las tablas
+  compartidas no tienen clave foránea y hay que limpiarlas a mano, como ya se
+  hacía en tareas y tickets.
+
+
+---
+
 ## [1.80.1] — 2026-08-31
 
 ### Los importes se escriben con separadores de miles
