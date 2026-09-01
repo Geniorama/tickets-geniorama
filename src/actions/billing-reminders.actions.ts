@@ -144,3 +144,31 @@ export async function setRemindersOff(billingItemId: string, off: boolean) {
   revalidatePath(`/facturacion/${billingItemId}`);
   return { success: true };
 }
+
+/**
+ * Los correos de facturación de un cliente.
+ *
+ * Pide CRM y no Facturación: el dato vive en la ficha del cliente y lo suele
+ * saber quien lleva la cuenta, no quien persigue el cobro. Se valida el formato
+ * aquí porque una dirección mal escrita no falla al guardarla, sino semanas
+ * después, en un envío que nadie mira.
+ */
+export async function setBillingEmails(companyId: string, correos: string[]) {
+  await requireCan("CRM", "editar");
+
+  const limpios = [...new Set(correos.map((c) => c.trim().toLowerCase()).filter(Boolean))];
+  if (limpios.length > 10) return { error: "Como mucho 10 correos de facturación" };
+
+  const malo = limpios.find((c) => !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(c));
+  if (malo) return { error: `«${malo}» no parece un correo válido` };
+
+  const { count } = await prisma.company.updateMany({
+    where: { id: companyId },
+    data: { billingEmails: limpios },
+  });
+  if (count === 0) return { error: "Empresa no encontrada" };
+
+  revalidatePath(`/crm/${companyId}`);
+  revalidatePath("/facturacion");
+  return { success: true };
+}

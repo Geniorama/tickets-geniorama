@@ -219,18 +219,34 @@ export async function sendPasswordResetEmail(to: Recipient, resetUrl: string) {
 /**
  * El recordatorio de cobro.
  *
- * El cuerpo lo escribe una persona en la regla, así que aquí solo se enmarca.
+ * Sale desde administración y no desde el `noreply` del resto de la app: esto
+ * lo recibe un cliente al que se le está pidiendo dinero, y el mensaje invita a
+ * responder. Un remitente que no lee a nadie convierte esa invitación en una
+ * mentira. Por lo mismo lleva `Reply-To`: la respuesta llega a una persona.
+ *
+ * El cuerpo lo escribe quien redacta la regla, así que aquí solo se enmarca.
  * Sin botones ni enlaces: no hay adónde mandar a un cliente —Facturación no es
  * suya— y un correo sobre dinero se lee mejor pareciéndose a uno escrito a
  * mano que a una notificación del sistema.
  */
+const FACTURACION_FROM = {
+  address: process.env.ZEPTOMAIL_FROM_BILLING ?? "administrativo@geniorama.co",
+  name: "Geniorama",
+};
+
 export async function sendBillingReminderEmail(
-  to: Recipient,
+  destinatarios: { name: string; emails: string[] },
   mensaje: { asunto: string; cuerpo: string },
 ) {
   await client.sendMail({
-    from: FROM,
-    to: [{ email_address: { address: to.email, name: to.name } }],
+    from: FACTURACION_FROM,
+    // Todos en el «para» y no en copia oculta: son los buzones de facturación
+    // de la misma empresa y deben verse entre ellos, como en cualquier hilo
+    // que ya tuvieran sobre esa factura.
+    to: destinatarios.emails.map((address) => ({
+      email_address: { address, name: destinatarios.name },
+    })),
+    reply_to: [{ address: FACTURACION_FROM.address, name: FACTURACION_FROM.name }],
     subject: mensaje.asunto,
     htmlbody: `
       <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; color: #1f2937;">

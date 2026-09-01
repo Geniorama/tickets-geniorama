@@ -16,6 +16,7 @@ import { isAdmin } from "@/lib/roles";
 import { BillingNotes } from "@/components/billing/billing-notes";
 import { LabelPicker } from "@/components/billing/label-picker";
 import { ReminderPanel } from "@/components/billing/reminder-panel";
+import { destinatarioDe } from "@/lib/billing/reminders/plan";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -46,7 +47,17 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
       },
       companyId: true, ownerId: true,
       labels: { select: { id: true, name: true, color: true } },
-      company: { select: { id: true, name: true } },
+      company: {
+        select: {
+          id: true, name: true, billingEmails: true,
+          contacts: {
+            select: {
+              id: true, firstName: true, lastName: true, email: true,
+              phone: true, isPrimary: true, isActive: true,
+            },
+          },
+        },
+      },
       owner: { select: { name: true } },
       createdBy: { select: { name: true } },
     },
@@ -63,6 +74,14 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
     listAttachments("BILLING", id),
     prisma.billingLabel.findMany({ orderBy: { position: "asc" }, select: { id: true, name: true, color: true } }),
   ]);
+
+  // A quién le llegaría hoy. Se calcula aquí para poder enseñarlo antes de que
+  // salga: enterarse del destinatario por el registro de envíos es tarde.
+  const quien = destinatarioDe({
+    nombre: cobro.company.name,
+    billingEmails: cobro.company.billingEmails,
+    contactos: cobro.company.contacts,
+  });
 
   const recordatorios = await prisma.billingReminder.findMany({
     where: { billingItemId: id },
@@ -220,6 +239,12 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
               canEdit={canEdit}
               tieneVencimiento={cobro.invoiceDueDate !== null}
               facturado={isInvoiced(cobro.status)}
+              destino={
+                "destinatario" in quien
+                  ? { emails: quien.destinatario.emails, origen: quien.destinatario.origen }
+                  : { motivo: quien.motivo }
+              }
+              empresaId={cobro.company.id}
               salidos={recordatorios.map((r) => ({
                 id: r.id,
                 channel: r.channel,

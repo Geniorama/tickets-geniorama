@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { ACCOUNT_STAGE_COLORS, ACCOUNT_STAGE_LABELS } from "@/lib/crm/accounts";
 import { DEAL_STAGE_COLORS, DEAL_STAGE_LABELS, formatAmount, isClosedStage } from "@/lib/crm/deals";
 import { ContactList } from "@/components/crm/contact-list";
+import { BillingEmails } from "@/components/crm/billing-emails";
 import { StageSelector } from "@/components/crm/stage-selector";
 import { ActivityTimeline, type TimelineActivity } from "@/components/crm/activity-timeline";
 import { BackButton } from "@/components/ui/back-button";
@@ -29,6 +30,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
     select: {
       id: true, name: true, stage: true, source: true, taxId: true,
       owner: { select: { name: true } },
+      billingEmails: true,
       contacts: {
         where: { isActive: true },
         orderBy: [{ isPrimary: "desc" }, { lastName: "asc" }, { firstName: "asc" }],
@@ -169,6 +171,16 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
           contacts={account.contacts}
           canEdit={canEdit}
           canInvite={canInvite}
+        />
+
+        <BillingEmails
+          companyId={account.id}
+          iniciales={account.billingEmails}
+          contactoPrincipal={(() => {
+            const p = account.contacts.find((c) => c.isPrimary);
+            return p ? `${[p.firstName, p.lastName].filter(Boolean).join(" ")} <${p.email}>` : null;
+          })()}
+          canEdit={canEdit}
         />
 
         {/* Qué tiene ya esta cuenta en el resto de la app */}

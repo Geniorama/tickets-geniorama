@@ -377,7 +377,10 @@
       "Bash(echo \"── código de salida: $? \\(0 = sin diferencias, 2 = hay deriva\\) ──\")",
       "Bash(DATABASE_URL=__TRACKED_VAR__/geniorama_fresh?sslmode=disable npx prisma migrate deploy)",
       "Bash(psql -q __TRACKED_VAR__/geniorama_fresh -c 'DELETE FROM _prisma_migrations WHERE migration_name='\\\\''20260805000000_baseline_tablas_previas_a_migraciones'\\\\'';')",
-      "Bash(psql -tAq __TRACKED_VAR__/geniorama_fresh -c 'select 44-count\\(*\\) from _prisma_migrations;')"
+      "Bash(psql -tAq __TRACKED_VAR__/geniorama_fresh -c 'select 44-count\\(*\\) from _prisma_migrations;')",
+      "Bash(awk '/^model Company /,/^}/' prisma/schema.prisma)",
+      "Bash(dropdb --force geniorama_migtest)",
+      "Bash(psql -tAq \"postgresql://$\\(whoami\\)@localhost:5432/geniorama_migtest\" -c \"select column_name||' '||data_type||' default '||coalesce\\(column_default,'—'\\) from information_schema.columns where table_name='companies' and column_name='billing_emails';\")"
     ]
   }
 }

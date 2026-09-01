@@ -37,11 +37,14 @@ const falta = (vars: string[]) => vars.filter((v) => !process.env[v]);
 const email: Canal = {
   requiere: ["ZEPTOMAIL_TOKEN", "ZEPTOMAIL_FROM"],
   async enviar(a, m) {
+    // El destinatario se registra tal cual salió, con todos los buzones: meses
+    // después, la pregunta es «¿a quién se le dijo esto?».
+    const aQuien = a.emails.join(", ");
     try {
-      await sendBillingReminderEmail({ name: a.nombre, email: a.email }, m);
-      return { status: "SENT", recipient: a.email };
+      await sendBillingReminderEmail({ name: a.nombre, emails: a.emails }, m);
+      return { status: "SENT", recipient: aQuien };
     } catch (e) {
-      return { status: "FAILED", recipient: a.email, error: (e as Error).message };
+      return { status: "FAILED", recipient: aQuien, error: (e as Error).message };
     }
   },
 };
@@ -93,7 +96,7 @@ export async function enviarPor(
   if (channel === "EMAIL" && !canalDisponible("EMAIL")) {
     return {
       status: "SKIPPED",
-      recipient: a.email,
+      recipient: a.emails.join(", "),
       error: `Falta configurar en el servidor: ${loQueFalta("EMAIL").join(", ")}`,
     };
   }

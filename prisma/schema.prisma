@@ -185,6 +185,18 @@ model Company {
   /// De dónde salió: referido, web, evento…
   source          String?
 
+  // ── Facturación ────────────────────────────────────────────────────────────
+  /// A dónde se le reclaman los cobros.
+  ///
+  /// Suele ser un buzón genérico —`facturacion@cliente.com`— y no una persona,
+  /// por eso son correos sueltos y no contactos del CRM: obligar a crear un
+  /// contacto para un buzón sin nombre ensucia la agenda.
+  ///
+  /// Si está vacío se cae al contacto principal de la cuenta. Si tiene algo,
+  /// manda esto y el contacto no se usa: quien lo rellena está diciendo
+  /// explícitamente a dónde van las facturas.
+  billingEmails   String[]    @default([]) @map("billing_emails")
+
   createdAt       DateTime    @default(now()) @map("created_at")
   updatedAt       DateTime    @updatedAt @map("updated_at")
 

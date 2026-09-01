@@ -9,6 +9,42 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.83.0] — 2026-09-01
+
+### Correos de facturación por cliente
+
+Los recordatorios de cobro iban al contacto principal del CRM, y eso no encaja
+con cómo funcionan las empresas: el buzón que paga facturas suele ser
+`facturacion@cliente.com` o el correo de su contador, no una persona de la
+agenda. Ahora cada cliente tiene sus **correos de facturación** —pueden ser
+varios— en su ficha del CRM.
+
+Si están puestos, mandan ellos y el contacto no se usa: quien los rellena está
+diciendo explícitamente a dónde van las facturas. Si están vacíos, se sigue
+cayendo al contacto principal, igual que hasta ahora. Un efecto secundario útil:
+con buzón puesto deja de importar que la cuenta tenga varios contactos sin
+principal marcado, que era el caso en que antes no salía nada.
+
+Cuando el destinatario es un buzón, `{{contacto}}` pasa a ser el nombre de la
+empresa: «Hola Acme S.A.S.» en vez de saludar por su nombre de pila a un buzón
+que no tiene ninguno.
+
+### Se ve a quién le va a llegar
+
+Cada cobro muestra ahora, antes de que salga nada, a qué correos le llegaría y
+si vienen del buzón de facturación o del contacto principal —y si no le llegaría
+a nadie, por qué y dónde arreglarlo—. La pregunta «¿esto a quién le llega?» se
+hace antes del primer envío, no después.
+
+### El remitente
+
+Los recordatorios salen desde **administrativo@geniorama.co**, con `Reply-To` al
+mismo buzón, en vez del `noreply` del resto de la aplicación. El mensaje invita
+a responder y un remitente que no lee a nadie convertía esa invitación en una
+mentira. El resto de correos de la app no cambian.
+
+---
+
 ## [1.82.2] — 2026-08-31
 
 ### El historial de migraciones vuelve a poder construir la base desde cero

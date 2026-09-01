@@ -111,34 +111,71 @@ export type ContactoPosible = {
   isActive: boolean;
 };
 
-export type Destinatario = { contactId: string; nombre: string; email: string; phone: string | null };
+export type Destinatario = {
+  /** A dónde va. Puede ser más de uno si la empresa tiene buzón de facturación. */
+  emails: string[];
+  /** Con qué nombre se le habla: la persona, o la empresa si es un buzón. */
+  nombre: string;
+  /** Para SMS y WhatsApp. Un buzón de correo no tiene teléfono. */
+  phone: string | null;
+  /** De dónde salió, para poder explicarlo en pantalla. */
+  origen: "facturacion" | "contacto";
+};
+
+export type Cuenta = {
+  nombre: string;
+  /** Los buzones de facturación de la empresa. Ver `Company.billingEmails`. */
+  billingEmails: string[];
+  contactos: ContactoPosible[];
+};
 
 /**
  * A quién se le reclama.
  *
- * El contacto principal de la empresa. Si no hay ninguno marcado y hay varios
- * activos, **no se manda nada**: es preferible que alguien entre y marque el
- * principal a escribirle a cinco personas de la misma empresa sobre una deuda.
- * Con un solo contacto activo no hay ambigüedad y se usa ese.
+ * Manda el buzón de facturación de la empresa si lo tiene: quien lo rellenó
+ * está diciendo explícitamente a dónde van las facturas, y eso gana sobre
+ * cualquier deducción nuestra. Suele ser `facturacion@cliente.com`, un sitio
+ * donde no hay una persona sino un departamento.
+ *
+ * Sin buzón se cae al contacto principal de la cuenta. Y si no hay principal
+ * pero hay varios contactos activos, **no se manda nada**: es preferible que
+ * alguien entre y lo marque a escribirle a cinco personas de la misma empresa
+ * sobre una deuda. Con un solo contacto activo no hay ambigüedad.
  */
-export function destinatarioDe(
-  contactos: ContactoPosible[],
-): { destinatario: Destinatario } | { motivo: string } {
-  const activos = contactos.filter((c) => c.isActive && c.email.trim() !== "");
-  if (activos.length === 0) return { motivo: "La empresa no tiene contactos activos con correo" };
+export function destinatarioDe(cuenta: Cuenta): { destinatario: Destinatario } | { motivo: string } {
+  const buzones = cuenta.billingEmails.map((e) => e.trim()).filter(Boolean);
+  if (buzones.length > 0) {
+    return {
+      destinatario: {
+        emails: buzones,
+        // Un buzón genérico no tiene nombre de pila; se le habla a la empresa.
+        nombre: cuenta.nombre,
+        // Si además hay contacto principal con teléfono, sirve para SMS.
+        phone: cuenta.contactos.find((c) => c.isActive && c.isPrimary)?.phone ?? null,
+        origen: "facturacion",
+      },
+    };
+  }
+
+  const activos = cuenta.contactos.filter((c) => c.isActive && c.email.trim() !== "");
+  if (activos.length === 0) {
+    return { motivo: "La empresa no tiene buzón de facturación ni contactos activos con correo" };
+  }
 
   const principal = activos.find((c) => c.isPrimary);
   const elegido = principal ?? (activos.length === 1 ? activos[0] : null);
   if (!elegido) {
-    return { motivo: "Hay varios contactos y ninguno marcado como principal" };
+    return {
+      motivo: "Hay varios contactos y ninguno marcado como principal. Pon un correo de facturación en la empresa o marca el contacto principal",
+    };
   }
 
   return {
     destinatario: {
-      contactId: elegido.id,
+      emails: [elegido.email],
       nombre: [elegido.firstName, elegido.lastName].filter(Boolean).join(" "),
-      email: elegido.email,
       phone: elegido.phone,
+      origen: "contacto",
     },
   };
 }

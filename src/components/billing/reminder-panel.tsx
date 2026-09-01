@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { BellOff, Bell } from "lucide-react";
 import type { ReminderChannel, ReminderStatus } from "@/generated/prisma";
@@ -33,6 +34,8 @@ export function ReminderPanel({
   canEdit,
   tieneVencimiento,
   facturado,
+  destino,
+  empresaId,
 }: {
   billingItemId: string;
   off: boolean;
@@ -41,6 +44,9 @@ export function ReminderPanel({
   tieneVencimiento: boolean;
   /** Si la factura ya se emitió. Antes de eso no se reclama nada. */
   facturado: boolean;
+  /** A quién le llegaría hoy, o por qué no le llegaría a nadie. */
+  destino: { emails: string[]; origen: "facturacion" | "contacto" } | { motivo: string };
+  empresaId: string;
 }) {
   const [silenciado, setSilenciado] = useState(off);
   const [error, setError] = useState<string | null>(null);
@@ -91,6 +97,33 @@ export function ReminderPanel({
       </div>
 
       {error && <p style={{ fontSize: "0.75rem", color: "#b91c1c", marginTop: "0.5rem" }}>{error}</p>}
+
+      {/* A quién le llega, siempre a la vista. La pregunta «¿y esto a quién le
+          va a llegar?» se hace antes del primer envío, no después. */}
+      <div
+        style={{
+          marginTop: "0.85rem", paddingBottom: "0.85rem",
+          borderBottom: "1px solid var(--app-border)", fontSize: "0.8125rem",
+        }}
+      >
+        {"motivo" in destino ? (
+          <p style={{ margin: 0, color: "#b45309" }}>
+            No saldría: {destino.motivo}.{" "}
+            <Link href={`/crm/${empresaId}`} style={{ color: "#fd1384", textDecoration: "none" }}>
+              Arreglarlo en la ficha del cliente
+            </Link>
+          </p>
+        ) : (
+          <p style={{ margin: 0, color: "var(--app-text-muted)" }}>
+            Le llegaría a{" "}
+            <span style={{ color: "var(--app-body-text)" }}>{destino.emails.join(", ")}</span>
+            {destino.origen === "contacto" && " (contacto principal)"}.{" "}
+            <Link href={`/crm/${empresaId}`} style={{ color: "#fd1384", textDecoration: "none" }}>
+              Cambiar
+            </Link>
+          </p>
+        )}
+      </div>
 
       <div style={{ marginTop: "0.85rem" }}>
         {silenciado ? (

@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
       company: {
         select: {
           name: true,
+          billingEmails: true,
           contacts: {
             select: {
               id: true, firstName: true, lastName: true, email: true,
@@ -90,7 +91,11 @@ export async function POST(req: NextRequest) {
     const cobro = porCobro.get(envio.cobroId)!;
     const regla = porRegla.get(envio.reglaId)!;
 
-    const quien = destinatarioDe(cobro.company.contacts);
+    const quien = destinatarioDe({
+      nombre: cobro.company.name,
+      billingEmails: cobro.company.billingEmails,
+      contactos: cobro.company.contacts,
+    });
     if ("motivo" in quien) {
       // No se apunta como enviado: en cuanto alguien marque el contacto
       // principal, el recordatorio saldrá solo al día siguiente.
@@ -101,7 +106,11 @@ export async function POST(req: NextRequest) {
 
     const datos = {
       empresa: cobro.company.name,
-      contacto: quien.destinatario.nombre.split(" ")[0],
+      // Con un buzón de facturación no hay nombre de pila: `nombre` ya es el de
+      // la empresa y partirlo por el espacio la dejaría a medias.
+      contacto: quien.destinatario.origen === "contacto"
+        ? quien.destinatario.nombre.split(" ")[0]
+        : quien.destinatario.nombre,
       concepto: cobro.concept,
       total: cobro.amount,
       pendiente: pendiente(cobro.amount, cobro.paidAmount),
