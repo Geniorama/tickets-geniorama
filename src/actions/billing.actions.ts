@@ -207,13 +207,13 @@ export async function updateBillingItem(id: string, formData: FormData) {
 /**
  * Mueve un cobro de estado. Es lo que se hace arrastrando en el tablero.
  *
- * `abono` solo lo manda quien suelta la tarjeta en «Abonado»: es la única
- * transición que necesita un dato más, porque hay que decir cuánto entró.
+ * Ya no recibe un importe: soltar en «Abonado» abre el formulario de abonos,
+ * que es donde se dice cuánto entró y cuándo. Aquí solo se mueve la tarjeta.
  */
-export async function setBillingStatus(id: string, status: BillingStatus, abono?: number | null) {
-  await requireCan("FACTURACION", "editar");
+export async function setBillingStatus(id: string, status: BillingStatus) {
+  const session = await requireCan("FACTURACION", "editar");
 
-  const r = await moveBillingStatus(id, status, abono);
+  const r = await moveBillingStatus(id, status, session.user);
   if (!r.ok) return { error: r.error };
 
   revalidatePath("/facturacion");

@@ -8,7 +8,8 @@
 
 import { prisma } from "@/lib/prisma";
 import type { BillingStatus } from "@/generated/prisma";
-import { BILLING_STATUSES, isInvoiced } from "@/lib/billing/status";
+import { BILLING_STATUSES, BILLING_STATUS_LABELS, isInvoiced } from "@/lib/billing/status";
+import { recalcularPagos } from "@/lib/billing/payments";
 
 export type Sellos = {
   paidAmount: number;
@@ -31,14 +32,16 @@ export type Sellos = {
 export function sellosPara(
   status: BillingStatus,
   actual: { amount: number; paidAmount: number; invoicedAt: Date | null; paidAt: Date | null },
-  opciones: { abono?: number | null; ahora?: Date } = {},
+  opciones: { ahora?: Date } = {},
 ): Sellos {
   const ahora = opciones.ahora ?? new Date();
 
   if (status === "PAGADO") {
     return {
       // Pagado es pagado: lo abonado iguala al importe, sin dejar céntimos
-      // sueltos que después aparecen como saldo pendiente.
+      // sueltos que después aparecen como saldo pendiente. Quien mueve la
+      // tarjeta aquí genera además el abono que cubre lo que faltaba, para que
+      // la lista de pagos y esta cifra digan lo mismo.
       paidAmount: actual.amount,
       invoicedAt: actual.invoicedAt ?? ahora,
       paidAt: actual.paidAt ?? ahora,
@@ -46,11 +49,11 @@ export function sellosPara(
   }
 
   if (status === "ABONADO") {
-    // Sin monto se conserva lo que ya hubiera. Nunca más que el total: eso
-    // sería un pago completo, no un abono.
-    const bruto = opciones.abono ?? actual.paidAmount;
+    // Ya no se escribe un importe aquí: lo abonado es la suma de los abonos y
+    // solo lo toca `recalcularPagos`. Este estado se limita a conservar lo que
+    // haya.
     return {
-      paidAmount: Math.min(Math.max(0, bruto), actual.amount),
+      paidAmount: actual.paidAmount,
       invoicedAt: actual.invoicedAt ?? ahora,
       paidAt: null,
     };
@@ -66,18 +69,55 @@ export function sellosPara(
 
 export type MoveResult = { ok: true } | { ok: false; error: string };
 
+/**
+ * Mueve un cobro de columna.
+ *
+ * Con abonos registrados, mover hacia atrás dejaría huérfanos unos pagos que
+ * el cobro dice no tener. Antes esto ponía `paidAmount` a cero y el dinero
+ * desaparecía en silencio; ahora se para y se explica, porque borrar el rastro
+ * de un pago no es mover una tarjeta.
+ *
+ * Al soltar en «Pagado» se apunta el abono que faltaba: si alguien afirma que
+ * está cobrado, ese dinero entró y tiene que constar como tal.
+ */
 export async function moveBillingStatus(
   id: string,
   status: BillingStatus,
-  abono?: number | null,
+  actor: { id: string },
 ): Promise<MoveResult> {
   if (!BILLING_STATUSES.includes(status)) return { ok: false, error: "Estado no válido" };
 
   const actual = await prisma.billingItem.findUnique({
     where: { id },
-    select: { amount: true, paidAmount: true, invoicedAt: true, paidAt: true, invoiceNumber: true },
+    select: {
+      amount: true, paidAmount: true, invoicedAt: true, paidAt: true, invoiceNumber: true,
+      _count: { select: { payments: true } },
+    },
   });
   if (!actual) return { ok: false, error: "Cobro no encontrado" };
+
+  const tienePagos = actual._count.payments > 0;
+
+  if (tienePagos && status !== "PAGADO" && status !== "ABONADO") {
+    return {
+      ok: false,
+      error: `Este cobro tiene ${actual._count.payments} ${actual._count.payments === 1 ? "abono registrado" : "abonos registrados"}. Quítalos antes de devolverlo a «${BILLING_STATUS_LABELS[status]}».`,
+    };
+  }
+
+  // Soltar en «Pagado» con saldo pendiente: se registra ese saldo como abono.
+  if (status === "PAGADO") {
+    const falta = Math.max(0, Math.round(actual.amount) - Math.round(actual.paidAmount));
+    if (falta > 0) {
+      await prisma.billingPayment.create({
+        data: {
+          billingItemId: id, amount: falta, paidOn: new Date(),
+          note: "Registrado al marcar el cobro como pagado.",
+          registeredById: actor.id,
+        },
+      });
+    }
+  }
 
   await prisma.billingItem.update({
     where: { id },
@@ -85,9 +125,12 @@ export async function moveBillingStatus(
       status,
       // Al volver antes de «Facturado», el número de factura deja de aplicar.
       invoiceNumber: isInvoiced(status) ? actual.invoiceNumber : null,
-      ...sellosPara(status, actual, { abono }),
+      ...sellosPara(status, actual),
     },
   });
+
+  // Deja `paidAmount`, el estado y las fechas cuadrados con la lista de abonos.
+  if (isInvoiced(status)) await recalcularPagos(id);
 
   return { ok: true };
 }

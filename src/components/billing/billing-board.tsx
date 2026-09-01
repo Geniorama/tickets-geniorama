@@ -13,7 +13,9 @@ import {
   BILLING_STATUS_COLORS, BILLING_STATUS_DESCRIPTIONS, BILLING_STATUS_LABELS, pendiente,
 } from "@/lib/billing/status";
 import { formatAmount, parseAmount } from "@/lib/money";
+import { useRouter } from "next/navigation";
 import { setBillingStatus } from "@/actions/billing.actions";
+import { addBillingPayment } from "@/actions/billing-payments.actions";
 import { formatDate } from "@/lib/format-date";
 import { AmountInput } from "@/components/ui/amount-input";
 
@@ -229,19 +231,27 @@ export function BillingBoard({
   const [overColumn, setOverColumn] = useState<BillingStatus | null>(null);
   const [pidiendoAbono, setPidiendoAbono] = useState<BoardItem | null>(null);
   const [abono, setAbono] = useState("");
+  const [fechaAbono, setFechaAbono] = useState("");
+  const [errorAbono, setErrorAbono] = useState<string | null>(null);
+  // Un error al mover se veía como una tarjeta que vuelve sola a su sitio, sin
+  // decir por qué. Con abonos de por medio hay motivos reales para negarse.
+  const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+  const router = useRouter();
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const activo = activeId ? items.find((i) => i.id === activeId) ?? null : null;
 
-  function mover(item: BoardItem, destino: BillingStatus, monto?: number | null) {
+  function mover(item: BoardItem, destino: BillingStatus) {
     const anterior = item.status;
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: destino } : i)));
 
+    setError(null);
     startTransition(async () => {
-      const r = await setBillingStatus(item.id, destino, monto);
+      const r = await setBillingStatus(item.id, destino);
       if (r?.error) {
         setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: anterior } : i)));
+        setError(r.error);
       }
     });
   }
@@ -259,6 +269,9 @@ export function BillingBoard({
       // Cuánto entró no se puede adivinar: se pregunta antes de mover.
       setPidiendoAbono(item);
       setAbono("");
+      setErrorAbono(null);
+      // Por defecto, hoy: es cuando se apunta la inmensa mayoría de los pagos.
+      setFechaAbono(new Date().toLocaleDateString("en-CA"));
       return;
     }
     mover(item, destino);
@@ -266,6 +279,26 @@ export function BillingBoard({
 
   return (
     <>
+      {error && (
+        <div
+          role="alert"
+          style={{
+            display: "flex", alignItems: "flex-start", gap: "0.6rem",
+            backgroundColor: "#dc262614", border: "1px solid #dc262655",
+            borderRadius: "0.75rem", padding: "0.75rem 1rem", marginBottom: "1rem",
+            fontSize: "0.8125rem", color: "var(--app-nav-text)",
+          }}
+        >
+          <span style={{ flex: 1 }}>{error}</span>
+          <button
+            type="button" onClick={() => setError(null)} aria-label="Cerrar aviso"
+            style={{ background: "none", border: "none", padding: 0, color: "var(--app-text-muted)", cursor: "pointer" }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <DndContext
         id="billing-board"
         sensors={sensors}
@@ -326,7 +359,8 @@ export function BillingBoard({
                 ¿Cuánto abonaron?
               </h2>
               <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
-                {pidiendoAbono.concept} · total {formatAmount(pidiendoAbono.amount)}
+                {pidiendoAbono.concept} · faltan {formatAmount(pendiente(pidiendoAbono.amount, pidiendoAbono.paidAmount))}
+                {pidiendoAbono.paidAmount > 0 && ` de ${formatAmount(pidiendoAbono.amount)}`}
               </p>
             </div>
 
@@ -343,14 +377,46 @@ export function BillingBoard({
               }}
             />
 
+            <div>
+              <label htmlFor="fechaAbono" style={{ display: "block", fontSize: "0.75rem", color: "var(--app-text-muted)", marginBottom: "0.2rem" }}>
+                Cuándo entró
+              </label>
+              <input
+                id="fechaAbono" type="date" value={fechaAbono}
+                onChange={(e) => setFechaAbono(e.target.value)}
+                style={{
+                  width: "100%", padding: "0.5rem 0.7rem", fontSize: "0.875rem",
+                  borderRadius: "0.5rem", border: "1px solid var(--app-border)",
+                  backgroundColor: "var(--app-bg)", color: "var(--app-body-text)",
+                }}
+              />
+            </div>
+
+            {errorAbono && (
+              <p style={{ fontSize: "0.8125rem", color: "#b91c1c", margin: 0 }}>{errorAbono}</p>
+            )}
+
             <div style={{ display: "flex", gap: "0.5rem" }}>
               <button
                 type="button"
                 onClick={() => {
                   const monto = parseAmount(abono);
-                  if (monto === null || monto <= 0) return;
-                  mover(pidiendoAbono, "ABONADO", monto);
+                  if (monto === null || monto <= 0) return setErrorAbono("Escribe cuánto entró");
+                  if (!fechaAbono) return setErrorAbono("Falta la fecha del abono");
+
+                  const item = pidiendoAbono;
                   setPidiendoAbono(null);
+                  setErrorAbono(null);
+                  startTransition(async () => {
+                    const fd = new FormData();
+                    fd.set("amount", String(monto));
+                    fd.set("paidOn", fechaAbono);
+                    const r = await addBillingPayment(item.id, fd);
+                    if (r?.error) return setError(r.error);
+                    // El estado lo decide el dinero: con esto puede quedar en
+                    // «Abonado» o saltar a «Pagado» si cubre el total.
+                    router.refresh();
+                  });
                 }}
                 style={{
                   backgroundColor: "#f59e0b", color: "#fff", border: "none",

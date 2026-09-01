@@ -405,6 +405,7 @@ model User {
   billingOwned      BillingItem[] @relation("BillingOwner")
   billingCreated    BillingItem[] @relation("BillingCreatedBy")
   billingRules      BillingReminderRule[] @relation("BillingRuleCreatedBy")
+  billingPayments   BillingPayment[] @relation("BillingPaymentRegisteredBy")
 
   ownedAccounts   Company[] @relation("AccountOwner")
   contactProfile  Contact?  @relation("ContactUser")
@@ -1060,7 +1061,11 @@ model BillingItem {
   subtotal   Float @default(0)
   /// Lo que aporta el IVA. Cero si todo va exento.
   taxAmount  Float @default(0) @map("tax_amount")
-  /// Lo que ya entró. Igual a `amount` cuando está pagado.
+  /// Lo que ya entró: la suma de los abonos.
+  ///
+  /// Guardado y no calculado al vuelo por lo mismo que `amount`: el tablero
+  /// suma columnas enteras. A cambio, **solo se escribe desde
+  /// `recalcularPagos`**, nunca a mano.
   paidAmount Float @default(0) @map("paid_amount")
 
   companyId String  @map("company_id")
@@ -1098,6 +1103,7 @@ model BillingItem {
   lines     BillingLine[]
   labels    BillingLabel[] @relation("BillingItemLabels")
   reminders BillingReminder[]
+  payments  BillingPayment[]
 
   @@index([status])
   @@index([companyId])
@@ -1250,6 +1256,37 @@ model BillingLine {
   @@index([billingItemId, position])
   @@index([categoryId])
   @@map("billing_lines")
+}
+
+/// Un abono: dinero que entró a cuenta de un cobro.
+///
+/// Son una lista y no un número porque casi ningún cliente paga de una vez:
+/// un anticipo, un segundo pago al entregar, el saldo a treinta días. Con un
+/// solo campo, el segundo abono no cabía en ninguna parte y había que
+/// machacar el primero —perdiendo cuándo entró y cuánto fue—.
+model BillingPayment {
+  id     String @id @default(cuid())
+  /// Cuánto entró. Siempre positivo.
+  amount Float
+  /// Cuándo entró de verdad, que rara vez es cuándo se apuntó.
+  paidOn DateTime @map("paid_on")
+  /// Cómo llegó: «Transferencia Bancolombia», «Efectivo», «PSE»… Texto libre
+  /// a propósito: la lista real cambia de un cliente a otro y no vale la pena
+  /// una migración cada vez.
+  method String?
+  note   String?
+
+  billingItemId String      @map("billing_item_id")
+  billingItem   BillingItem @relation(fields: [billingItemId], references: [id], onDelete: Cascade)
+
+  /// Quién lo apuntó. No se borra el rastro de quién tocó dinero.
+  registeredById String @map("registered_by_id")
+  registeredBy   User   @relation("BillingPaymentRegisteredBy", fields: [registeredById], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([billingItemId, paidOn])
+  @@map("billing_payments")
 }
 
 /// Cómo cataloga contabilidad lo que se vende.

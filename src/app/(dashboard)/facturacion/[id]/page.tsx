@@ -16,6 +16,7 @@ import { isAdmin } from "@/lib/roles";
 import { BillingNotes } from "@/components/billing/billing-notes";
 import { LabelPicker } from "@/components/billing/label-picker";
 import { ReminderPanel } from "@/components/billing/reminder-panel";
+import { PaymentList } from "@/components/billing/payment-list";
 import { destinatarioDe } from "@/lib/billing/reminders/plan";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -41,6 +42,13 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
       taxAmount: true, paidAmount: true,
       dueDate: true, invoiceDueDate: true, invoiceNumber: true, invoicedAt: true, paidAt: true, notes: true,
       remindersOff: true,
+      payments: {
+        orderBy: { paidOn: "desc" },
+        select: {
+          id: true, amount: true, paidOn: true, method: true, note: true,
+          registeredBy: { select: { name: true } },
+        },
+      },
       lines: {
         orderBy: { position: "asc" },
         select: { id: true, concept: true, amount: true, taxRate: true, categoryId: true, category: { select: { name: true, color: true } } },
@@ -237,6 +245,16 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
             </p>
           )}
         </div>
+
+        <PaymentList
+          billingItemId={cobro.id}
+          abonos={cobro.payments}
+          total={cobro.amount}
+          cobrado={cobro.paidAmount}
+          facturado={isInvoiced(cobro.status)}
+          canEdit={canEdit}
+          canManage={canManage}
+        />
 
         <BillingNotes
           billingItemId={cobro.id}

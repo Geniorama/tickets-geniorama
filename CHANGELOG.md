@@ -9,6 +9,46 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.85.0] — 2026-09-01
+
+### Los abonos pasan de ser un número a ser una lista
+
+Se podía registrar **un** abono y ahí se acababa. Casi ningún cliente paga de
+una vez —un anticipo, otro al entregar, el saldo a treinta días—, y el segundo
+pago no cabía en ninguna parte: había que machacar el primero, perdiendo cuándo
+entró y cuánto fue. Y como el tablero ignora que sueltes una tarjeta en la
+columna donde ya está, en la práctica ni eso se podía.
+
+Ahora cada abono se apunta con su importe, su fecha, cómo llegó y una nota, y
+queda la lista completa en la ficha del cobro. Los abonos ya registrados se
+conservaron: lo que hubiera cobrado se convirtió en su primer abono, con la
+mejor fecha disponible.
+
+### El estado lo decide el dinero, no al revés
+
+Antes se arrastraba la tarjeta a «Abonado» y eso escribía un importe. Ahora se
+apunta el dinero y la columna se coloca sola: al cubrir el total, el cobro pasa
+a **Pagado** sin que nadie tenga que acordarse de moverlo; al quitar un abono,
+retrocede. La fecha de pago es la del último abono, no la del día en que se
+apuntó.
+
+Soltar una tarjeta en «Pagado» con saldo pendiente registra ese saldo como un
+abono más, para que la lista y la cifra digan lo mismo.
+
+### Ya no se borra dinero en silencio
+
+Devolver a «Facturado» un cobro con abonos ponía lo cobrado a cero sin avisar.
+Ahora se niega y explica cuántos abonos estorban. De paso, el tablero **muestra
+por qué** se niega a mover una tarjeta: hasta ahora la tarjeta volvía sola a su
+sitio y nadie sabía la razón.
+
+### Quién y cuándo
+
+Cada abono guarda quién lo apuntó. Quitarlo pide permiso de gestión, como
+borrar el cobro entero: cambia lo cobrado y puede mover el cobro de columna.
+
+---
+
 ## [1.84.0] — 2026-09-01
 
 ### Categorías: qué se vendió, no solo cuánto
