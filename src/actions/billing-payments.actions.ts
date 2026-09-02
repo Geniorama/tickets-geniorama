@@ -8,6 +8,40 @@ import { prisma } from "@/lib/prisma";
 import { isAdmin } from "@/lib/roles";
 import { addFileAttachments, deleteAttachment } from "@/lib/attachments";
 import { registrarPago, actualizarPago, borrarPago } from "@/lib/billing/payments";
+import { formatAmount } from "@/lib/money";
+import { diffFields, recordActivity } from "@/lib/activity/record";
+import { entityLabel } from "@/lib/activity/label";
+
+/**
+ * Los abonos se registran en el historial **del cobro**, no en el suyo.
+ *
+ * Un abono no tiene ficha que abrir: se lee dentro de su cobro, y ahí es donde
+ * hace falta ver que alguien corrigió un importe de 300.000 a 500.000. Colgarlo
+ * de `BILLING_PAYMENT` lo escondería justo de quien lo busca.
+ */
+async function apuntar(
+  billingItemId: string,
+  action: string,
+  actor: { id: string; name?: string | null },
+  extra: { note?: string; changes?: Record<string, { from: unknown; to: unknown }> } = {},
+) {
+  recordActivity({
+    entityType: "BILLING",
+    entityId: billingItemId,
+    action,
+    label: await entityLabel("BILLING", billingItemId),
+    changes: extra.changes ?? null,
+    meta: extra.note ? { note: extra.note } : null,
+    actor,
+  });
+}
+
+/** El abono en una línea: «$300.000 · 12/03/2026 · Transferencia». */
+function resumen(pago: { amount: number; paidOn: Date; method?: string | null }): string {
+  const partes = [formatAmount(pago.amount) ?? String(pago.amount), pago.paidOn.toLocaleDateString("es-CO")];
+  if (pago.method) partes.push(pago.method);
+  return partes.join(" · ");
+}
 
 /**
  * Los abonos de un cobro.
@@ -43,6 +77,10 @@ export async function addBillingPayment(billingItemId: string, formData: FormDat
   const r = await registrarPago(billingItemId, parsed.data, session.user.id);
   if (!r.ok) return { error: r.error };
 
+  await apuntar(billingItemId, "billing.payment_added", session.user, {
+    note: resumen(parsed.data),
+  });
+
   refrescar(billingItemId);
   return { success: true };
 }
@@ -71,13 +109,28 @@ export async function updateBillingPayment(
   billingItemId: string,
   formData: FormData,
 ) {
-  await requireCan("FACTURACION", "editar");
+  const session = await requireCan("FACTURACION", "editar");
 
   const parsed = leerPago(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  // La foto previa se toma antes de corregir: corregir un importe ya guardado
+  // es exactamente lo que hay que poder auditar después.
+  const antes = await prisma.billingPayment.findFirst({
+    where: { id: pagoId, billingItemId },
+    select: { amount: true, paidOn: true, method: true },
+  });
+
   const r = await actualizarPago(pagoId, billingItemId, parsed.data);
   if (!r.ok) return { error: r.error };
+
+  await apuntar(billingItemId, "billing.payment_updated", session.user, {
+    changes: diffFields("BILLING_PAYMENT", antes, {
+      amount: parsed.data.amount,
+      paidAt: parsed.data.paidOn,
+      method: parsed.data.method ?? null,
+    }, ["amount", "paidAt", "method"]),
+  });
 
   refrescar(billingItemId);
   return { success: true };
@@ -86,10 +139,21 @@ export async function updateBillingPayment(
 export async function deleteBillingPayment(pagoId: string, billingItemId: string) {
   // Quitar un abono cambia lo cobrado y puede devolver el cobro a «Facturado»:
   // pide GESTOR, como borrar el cobro entero.
-  await requireCan("FACTURACION", "gestionar");
+  const session = await requireCan("FACTURACION", "gestionar");
+
+  // Qué se va, antes de que se vaya: sin esto el historial diría que alguien
+  // borró un abono, pero no cuál.
+  const antes = await prisma.billingPayment.findFirst({
+    where: { id: pagoId, billingItemId },
+    select: { amount: true, paidOn: true, method: true },
+  });
 
   const r = await borrarPago(pagoId, billingItemId);
   if (!r.ok) return { error: r.error };
+
+  await apuntar(billingItemId, "billing.payment_deleted", session.user, {
+    note: antes ? resumen(antes) : undefined,
+  });
 
   refrescar(billingItemId);
   return { success: true };
@@ -132,6 +196,10 @@ export async function addPaymentReceipt(
     uploadedById: session.user.id,
   });
 
+  await apuntar(billingItemId, "billing.receipt_added", session.user, {
+    note: files.map((f) => f.name).join(", "),
+  });
+
   refrescar(billingItemId);
   return errors.length > 0 ? { success: true, warning: errors.join(" · ") } : { success: true };
 }
@@ -150,6 +218,8 @@ export async function deletePaymentReceipt(
     { entityType: "BILLING_PAYMENT", entityId: pagoId },
     { id: session.user.id, isAdmin: isAdmin(session.user.role) },
   );
+
+  if (!r.error) await apuntar(billingItemId, "billing.receipt_deleted", session.user);
 
   refrescar(billingItemId);
   return r.error ? { error: r.error } : { success: true };

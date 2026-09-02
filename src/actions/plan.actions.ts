@@ -5,6 +5,7 @@ import { requireCan } from "@/lib/access/can";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { recordActivity } from "@/lib/activity/record";
 
 const planSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -44,7 +45,7 @@ function parsePlanFormData(formData: FormData) {
 }
 
 export async function createPlan(formData: FormData) {
-  await requireCan("ADMIN");
+  const session = await requireCan("ADMIN");
 
   const type = formData.get("type") as string;
   const raw = parsePlanFormData(formData);
@@ -60,12 +61,21 @@ export async function createPlan(formData: FormData) {
 
   const { startedAt, expiresAt, ...rest } = parsed.data;
 
-  await prisma.plan.create({
+  const plan = await prisma.plan.create({
     data: {
       ...rest,
       startedAt: new Date(startedAt),
       expiresAt: expiresAt ? new Date(expiresAt) : null,
     },
+    select: { id: true, name: true },
+  });
+
+  recordActivity({
+    entityType: "PLAN",
+    entityId: plan.id,
+    action: "plan.created",
+    label: plan.name,
+    actor: session.user,
   });
 
   revalidatePath("/admin/plans");
@@ -73,7 +83,7 @@ export async function createPlan(formData: FormData) {
 }
 
 export async function updatePlan(planId: string, formData: FormData) {
-  await requireCan("ADMIN");
+  const session = await requireCan("ADMIN");
 
   const type = formData.get("type") as string;
   const raw = parsePlanFormData(formData);
@@ -102,17 +112,39 @@ export async function updatePlan(planId: string, formData: FormData) {
     },
   });
 
+  recordActivity({
+    entityType: "PLAN",
+    entityId: planId,
+    action: "plan.updated",
+    label: rest.name,
+    // Un plan es todo condiciones —horas, duración, vigencia— y compararlas
+    // campo a campo llenaría el historial de ruido. Basta con saber quién lo
+    // tocó y cuándo: la ficha guarda el estado actual.
+    force: true,
+    actor: session.user,
+  });
+
   revalidatePath("/admin/plans");
   revalidatePath(`/admin/plans/${planId}/edit`);
   return { success: true };
 }
 
 export async function togglePlanActive(planId: string, isActive: boolean) {
-  await requireCan("ADMIN");
+  const session = await requireCan("ADMIN");
 
-  await prisma.plan.update({
+  const plan = await prisma.plan.update({
     where: { id: planId },
     data: { isActive },
+    select: { name: true },
+  });
+
+  recordActivity({
+    entityType: "PLAN",
+    entityId: planId,
+    action: "plan.updated",
+    label: plan.name,
+    changes: { isActive: { from: !isActive, to: isActive } },
+    actor: session.user,
   });
 
   revalidatePath("/admin/plans");
@@ -120,7 +152,9 @@ export async function togglePlanActive(planId: string, isActive: boolean) {
 }
 
 export async function deletePlan(planId: string) {
-  await requireCan("ADMIN");
+  const session = await requireCan("ADMIN");
+
+  const plan = await prisma.plan.findUnique({ where: { id: planId }, select: { name: true } });
 
   // Nullify planId on tickets linked to this plan before deleting
   await prisma.ticket.updateMany({
@@ -129,6 +163,14 @@ export async function deletePlan(planId: string) {
   });
 
   await prisma.plan.delete({ where: { id: planId } });
+
+  recordActivity({
+    entityType: "PLAN",
+    entityId: planId,
+    action: "plan.deleted",
+    label: plan?.name ?? null,
+    actor: session.user,
+  });
 
   revalidatePath("/admin/plans");
   redirect("/admin/plans");

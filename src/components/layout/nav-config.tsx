@@ -3,6 +3,7 @@ import {
   BarChart3, FolderKanban, ListTodo, TrendingUp, Server as ServerIcon, Globe,
   KeyRound, Plug, Sparkles, Repeat, Webhook, LayoutList, LayoutTemplate, Bot,
   CalendarClock, Wrench, Briefcase, ShieldCheck, Handshake, Target, Receipt,
+  History,
 } from "lucide-react";
 import type { AppKey, Role } from "@/generated/prisma";
 
@@ -76,6 +77,7 @@ export const APP_SECTIONS: Record<AppKey, NavSection[]> = {
     { href: "/admin/plans",         label: "Planes",        icon: BookOpen, requires: "gestionar" },
     { href: "/admin/estadisticas",  label: "Productividad", icon: TrendingUp, requires: "gestionar" },
     { href: "/admin/integraciones", label: "Integraciones del equipo", icon: Plug, requires: "gestionar" },
+    { href: "/admin/actividad",     label: "Actividad",     icon: History, requires: "gestionar" },
   ],
   CRM: [
     { href: "/crm", label: "Cuentas", icon: Handshake, isRoot: true, requires: "ver" },
@@ -107,7 +109,7 @@ const EXTRA_PREFIXES: Partial<Record<AppKey, string[]>> = {
   TICKETS:   ["/tickets", "/reportes"],
   INFRAESTRUCTURA: ["/admin/sitios", "/admin/servicios"],
   PORTAL:    ["/mis-empresas", "/mis-planes", "/mis-servicios"],
-  ADMIN:     ["/admin/users", "/admin/companies", "/admin/plans", "/admin/estadisticas", "/admin/integraciones"],
+  ADMIN:     ["/admin/users", "/admin/companies", "/admin/plans", "/admin/estadisticas", "/admin/integraciones", "/admin/actividad"],
   CRM:       ["/crm"],
   FACTURACION: ["/facturacion"],
 };

@@ -14,6 +14,8 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { recordActivity } from "@/lib/activity/record";
+import { PLATFORM_SCOPE } from "@/lib/activity/catalog";
 import { prisma } from "@/lib/prisma";
 import { requireCan } from "@/lib/access/can";
 import { generateToken } from "@/lib/api/keys";
@@ -129,6 +131,23 @@ export async function createApiKey(input: {
     return { error: "No se pudo crear la llave" };
   }
 
+  // El prefijo identifica la llave sin revelarla; el token completo no vuelve a
+  // aparecer en ningún sitio, y menos en una bitácora.
+  const dueno = await prisma.user
+    .findUnique({ where: { id: parsed.data.userId }, select: { name: true } })
+    .catch(() => null);
+
+  recordActivity({
+    entityType: "INTEGRATION",
+    entityId: PLATFORM_SCOPE,
+    action: "integration.key_created",
+    label: parsed.data.label,
+    meta: {
+      note: displayPrefix(prefix) + " · escribe como " + (dueno?.name ?? "un usuario") + " · " + scopes.join(", "),
+    },
+    actor: session.user,
+  });
+
   revalidatePath("/admin/integraciones");
   return { token, prefix: displayPrefix(prefix) };
 }
@@ -141,15 +160,46 @@ export async function createApiKey(input: {
  * filtración—; borrada, esa pista desaparece.
  */
 export async function revokeApiKey(keyId: string): Promise<{ error?: string }> {
-  await requireCan("ADMIN", "gestionar");
-  await prisma.apiKey.update({ where: { id: keyId }, data: { isActive: false } }).catch(() => null);
+  const session = await requireCan("ADMIN", "gestionar");
+  const llave = await prisma.apiKey
+    .update({ where: { id: keyId }, data: { isActive: false }, select: { label: true, prefix: true } })
+    .catch(() => null);
+
+  if (llave) {
+    recordActivity({
+      entityType: "INTEGRATION",
+      entityId: PLATFORM_SCOPE,
+      action: "integration.key_revoked",
+      label: llave.label,
+      meta: { note: displayPrefix(llave.prefix) + " · revocada, la fila se conserva" },
+      actor: session.user,
+    });
+  }
+
   revalidatePath("/admin/integraciones");
   return {};
 }
 
 export async function deleteApiKey(keyId: string): Promise<{ error?: string }> {
-  await requireCan("ADMIN", "gestionar");
+  const session = await requireCan("ADMIN", "gestionar");
+
+  const llave = await prisma.apiKey
+    .findUnique({ where: { id: keyId }, select: { label: true, prefix: true } })
+    .catch(() => null);
+
   await prisma.apiKey.delete({ where: { id: keyId } }).catch(() => null);
+
+  if (llave) {
+    recordActivity({
+      entityType: "INTEGRATION",
+      entityId: PLATFORM_SCOPE,
+      action: "integration.key_revoked",
+      label: llave.label,
+      meta: { note: displayPrefix(llave.prefix) + " · borrada del todo" },
+      actor: session.user,
+    });
+  }
+
   revalidatePath("/admin/integraciones");
   return {};
 }

@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { recordActivity } from "@/lib/activity/record";
+import { entityLabel } from "@/lib/activity/label";
 import { prisma } from "@/lib/prisma";
 import { requireCan } from "@/lib/access/can";
 import { isAdmin } from "@/lib/roles";
@@ -63,6 +65,15 @@ export async function addBillingComment(billingItemId: string, formData: FormDat
     errores = r.errors;
   }
 
+  recordActivity({
+    entityType: ENTIDAD,
+    entityId: billingItemId,
+    action: body ? "comment.created" : "attachment.added",
+    label: await entityLabel(ENTIDAD, billingItemId),
+    meta: files.length > 0 ? { note: files.map((file) => file.name).join(", ") } : null,
+    actor: session.user,
+  });
+
   revalidatePath(`/facturacion/${billingItemId}`);
   return errores.length > 0 ? { success: true, warning: errores.join(" · ") } : { success: true };
 }
@@ -78,6 +89,14 @@ export async function deleteBillingComment(commentId: string, billingItemId: str
 
   const { count } = await prisma.comment.deleteMany({ where: donde });
   if (count === 0) return { error: "No se pudo eliminar ese comentario" };
+
+  recordActivity({
+    entityType: ENTIDAD,
+    entityId: billingItemId,
+    action: "comment.deleted",
+    label: await entityLabel(ENTIDAD, billingItemId),
+    actor: session.user,
+  });
 
   revalidatePath(`/facturacion/${billingItemId}`);
   return { success: true };
@@ -99,6 +118,15 @@ export async function addBillingAttachments(billingItemId: string, formData: For
     uploadedById: session.user.id,
   });
 
+  recordActivity({
+    entityType: ENTIDAD,
+    entityId: billingItemId,
+    action: "attachment.added",
+    label: await entityLabel(ENTIDAD, billingItemId),
+    meta: { note: files.map((file) => file.name).join(", ") },
+    actor: session.user,
+  });
+
   revalidatePath(`/facturacion/${billingItemId}`);
   return errors.length > 0 ? { success: true, warning: errors.join(" · ") } : { success: true };
 }
@@ -112,6 +140,16 @@ export async function deleteBillingAttachment(attachmentId: string, billingItemI
     { id: session.user.id, isAdmin: isAdmin(session.user.role) },
   );
 
+  if (!r.error) {
+    recordActivity({
+      entityType: ENTIDAD,
+      entityId: billingItemId,
+      action: "attachment.removed",
+      label: await entityLabel(ENTIDAD, billingItemId),
+      actor: session.user,
+    });
+  }
+
   revalidatePath(`/facturacion/${billingItemId}`);
   return r.error ? { error: r.error } : { success: true };
 }
@@ -119,15 +157,37 @@ export async function deleteBillingAttachment(attachmentId: string, billingItemI
 // ─── Etiquetas ───────────────────────────────────────────────────────────────
 
 export async function setBillingLabels(billingItemId: string, labelIds: string[]) {
-  await requireCan("FACTURACION", "editar");
+  const session = await requireCan("FACTURACION", "editar");
 
   if (!(await existe(billingItemId))) return { error: "Cobro no encontrado" };
 
-  await prisma.billingItem.update({
+  // Los nombres, no los ids: dentro de un mes «cmx8f… → cmy2k…» no le dice nada
+  // a nadie, y las etiquetas se renombran menos de lo que se reasignan.
+  const antes = await prisma.billingItem.findUnique({
+    where: { id: billingItemId },
+    select: { concept: true, labels: { select: { name: true } } },
+  });
+
+  const cobro = await prisma.billingItem.update({
     where: { id: billingItemId },
     // `set` reemplaza el conjunto entero: es lo que quiere decir marcar y
     // desmarcar casillas, y evita tener que calcular qué se añadió y qué no.
     data: { labels: { set: labelIds.map((id) => ({ id })) } },
+    select: { labels: { select: { name: true } } },
+  });
+
+  recordActivity({
+    entityType: ENTIDAD,
+    entityId: billingItemId,
+    action: "billing.labels_changed",
+    label: await entityLabel(ENTIDAD, billingItemId),
+    changes: {
+      labels: {
+        from: antes?.labels.map((l) => l.name) ?? [],
+        to: cobro.labels.map((l) => l.name),
+      },
+    },
+    actor: session.user,
   });
 
   revalidatePath("/facturacion");

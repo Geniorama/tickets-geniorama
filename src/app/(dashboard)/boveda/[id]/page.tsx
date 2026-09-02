@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/vault-crypto";
+import { recordActivity } from "@/lib/activity/record";
 import { BackButton } from "@/components/ui/back-button";
 import { VaultPasswordReveal } from "@/components/vault/vault-password-reveal";
 import { VaultShareManager } from "@/components/vault/vault-share-manager";
@@ -38,6 +39,18 @@ export default async function VaultEntryPage({ params }: { params: Promise<{ id:
   });
 
   if (!entry) notFound();
+
+  // Quién miró una credencial es lo que de verdad se le pregunta al historial
+  // de la bóveda —más que quién la editó—, y se registra aquí porque aquí es
+  // donde el secreto sale descifrado hacia el navegador. Que abrir la ficha
+  // dos veces deje dos entradas no es un defecto: son dos consultas.
+  recordActivity({
+    entityType: "VAULT_ENTRY",
+    entityId: entry.id,
+    action: "vault.revealed",
+    label: entry.title,
+    actor: session.user,
+  });
 
   const decryptedPassword = decrypt(entry.password);
   const isOwner = entry.createdById === session.user.id;

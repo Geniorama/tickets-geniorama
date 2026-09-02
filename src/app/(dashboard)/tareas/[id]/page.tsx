@@ -3,6 +3,7 @@ import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { TaskDetail } from "@/components/projects/task-detail";
+import { ActivityPanel } from "@/components/ui/activity-panel";
 import { BackButton } from "@/components/ui/back-button";
 import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
 import { listComments } from "@/lib/comments";
@@ -88,6 +89,7 @@ export default async function GlobalTaskPage({
             canDelete={admin}
           />
         }
+        activitySlot={<ActivityPanel entityType="TASK" entityId={taskId} />}
         checklistItemCount={checklists.reduce((n, c) => n + c.items.length, 0)}
       />
     </div>

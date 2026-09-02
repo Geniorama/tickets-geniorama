@@ -12,6 +12,8 @@
 import crypto from "node:crypto";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { recordActivity } from "@/lib/activity/record";
+import { PLATFORM_SCOPE } from "@/lib/activity/catalog";
 import { prisma } from "@/lib/prisma";
 import { requireCan } from "@/lib/access/can";
 import { allowedEventsFor, HOOK_EVENT_KEYS } from "@/lib/hooks/events";
@@ -155,7 +157,7 @@ export async function createHook(input: {
   }
 
   try {
-    await prisma.hook.create({
+    const creado = await prisma.hook.create({
       data: {
         label: parsed.data.label,
         url: parsed.data.url,
@@ -167,6 +169,20 @@ export async function createHook(input: {
         projectId,
         createdById: session.user.id,
       },
+      select: { id: true },
+    });
+
+    recordActivity({
+      entityType: "INTEGRATION",
+      entityId: PLATFORM_SCOPE,
+      action: "integration.hook_created",
+      label: parsed.data.label,
+      // La URL sí; el secreto no sale de la base ni siquiera para el historial.
+      meta: {
+        note: parsed.data.url + " · " + events.length + (events.length === 1 ? " evento" : " eventos"),
+        hookId: creado.id,
+      },
+      actor: session.user,
     });
   } catch {
     return { error: "No se pudo crear el hook" };
@@ -182,10 +198,11 @@ export async function updateHook(
 ): Promise<{ error?: string }> {
   const hook = await prisma.hook.findUnique({
     where: { id: hookId },
-    select: { scope: true, projectId: true },
+    select: { scope: true, projectId: true, label: true, url: true, events: true },
   });
   if (!hook) return { error: "El hook ya no existe" };
   const path = await authorize(hook.scope, hook.projectId);
+  const session = await requireCan(hook.scope === "PROJECT" ? "PROYECTOS" : "ADMIN", "gestionar");
 
   const parsed = hookSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -196,6 +213,22 @@ export async function updateHook(
   await prisma.hook.update({
     where: { id: hookId },
     data: { label: parsed.data.label, url: parsed.data.url, events },
+  });
+
+  recordActivity({
+    entityType: "INTEGRATION",
+    entityId: PLATFORM_SCOPE,
+    action: "integration.hook_updated",
+    label: parsed.data.label,
+    changes: {
+      ...(hook.url !== parsed.data.url ? { url: { from: hook.url, to: parsed.data.url } } : {}),
+      ...(hook.events.join() !== events.join() ? { events: { from: hook.events, to: events } } : {}),
+    },
+    // A diferencia de una ficha, aquí se deja constancia aunque no cambie nada
+    // visible: tocar una integración y que no pase nada también se mira.
+    force: true,
+    meta: { hookId },
+    actor: session.user,
   });
 
   revalidatePath(path);
@@ -218,12 +251,22 @@ export async function toggleHook(hookId: string, isActive: boolean): Promise<{ e
 export async function deleteHook(hookId: string): Promise<{ error?: string }> {
   const hook = await prisma.hook.findUnique({
     where: { id: hookId },
-    select: { scope: true, projectId: true },
+    select: { scope: true, projectId: true, label: true },
   });
   if (!hook) return { error: "El hook ya no existe" };
   const path = await authorize(hook.scope, hook.projectId);
+  const session = await requireCan(hook.scope === "PROJECT" ? "PROYECTOS" : "ADMIN", "gestionar");
 
   await prisma.hook.delete({ where: { id: hookId } });
+
+  recordActivity({
+    entityType: "INTEGRATION",
+    entityId: PLATFORM_SCOPE,
+    action: "integration.hook_deleted",
+    label: hook.label,
+    actor: session.user,
+  });
+
   revalidatePath(path);
   return {};
 }

@@ -24,6 +24,7 @@ import {
 import { copyChecklists, createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
 import { deleteTimeEntriesFor, startTimer, stopRunningForEntity } from "@/lib/time-entries";
 import { emitDeletedHook, emitTaskHook } from "@/lib/hooks/dispatch";
+import { diffFields } from "@/lib/activity/record";
 import { taskPayload } from "@/lib/hooks/payload";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
@@ -393,7 +394,13 @@ export async function updateTask(taskId: string, projectId: string | null, formD
 
   const oldTask = await prisma.task.findUnique({
     where: { id: taskId },
-    select: { assignedToId: true, createdById: true, title: true, status: true, startDate: true, dueDate: true },
+    select: {
+      assignedToId: true, createdById: true, title: true, status: true, startDate: true, dueDate: true,
+      // Para el historial: sin la foto previa de estos, «editó la tarea» no
+      // puede decir qué editó.
+      priority: true, category: true, estimatedHours: true,
+      reviewers: { select: { name: true } },
+    },
   });
 
   // Revisores: si quedan vacíos, por defecto el creador de la tarea
@@ -529,7 +536,31 @@ export async function updateTask(taskId: string, projectId: string | null, formD
       changes: { assignedToId: { from: oldTask?.assignedToId ?? null, to: newAssigneeId } },
     });
   }
-  emitTaskHook("task.updated", taskId, { actor: session.user, ...hookScope });
+  // El resto de campos, para que el historial diga qué se editó. Estado y
+  // responsable ya salieron en sus propios eventos; si no cambió nada más, la
+  // entrada se descarta sola.
+  const newReviewers = await prisma.user
+    .findMany({ where: { id: { in: reviewerIds } }, select: { name: true } })
+    .then((rows) => rows.map((u) => u.name))
+    .catch(() => [] as string[]);
+
+  emitTaskHook("task.updated", taskId, {
+    actor: session.user,
+    ...hookScope,
+    changes: diffFields(
+      "TASK",
+      { ...oldTask, reviewers: oldTask?.reviewers.map((r) => r.name) ?? [] },
+      {
+        title: parsed.data.title,
+        priority: parsed.data.priority,
+        category: parsed.data.category ?? null,
+        startDate: newStartDate,
+        dueDate: newDueDate,
+        estimatedHours: combineEstimatedTime(parsed.data.estimatedHours, parsed.data.estimatedMinutes),
+        reviewers: newReviewers,
+      },
+    ),
+  });
 
   if (projectId) revalidatePath(`/proyectos/${projectId}`);
   revalidatePath(taskUrl);
@@ -665,6 +696,7 @@ export async function deleteTask(taskId: string, projectId: string | null) {
       actor: session.user,
       projectId,
       projectIsPrivate: project?.isPrivate ?? false,
+      entity: { type: "TASK", id: taskId, label: snapshot.title },
     });
   }
   if (projectId) {

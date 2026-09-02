@@ -171,6 +171,25 @@ enum EntityType {
   /// pago: con tres abonos, tres comprobantes, y hay que saber cuál es de
   /// cuál. Todos juntos en el cobro sería un montón de PDF sin dueño.
   BILLING_PAYMENT
+
+  // Los siguientes entraron con el historial de acciones. Hoy solo los usa
+  // `activity_log`, pero viven aquí y no en un enum aparte porque responden la
+  // misma pregunta —«¿de qué ficha es este registro?»— y el día que una cuenta
+  // del CRM admita adjuntos, el valor ya está puesto.
+  COMPANY
+  CONTACT
+  DEAL
+  USER
+  VAULT_ENTRY
+  SITE
+  PLAN
+  SERVICE
+  /// La pantalla de integraciones como un todo: hooks, llaves de API, Xubio.
+  /// Un hook suelto no es una ficha que nadie abra, y su historial se entiende
+  /// mejor junto al de sus vecinos.
+  INTEGRATION
+  /// Ajustes globales de la plataforma.
+  SETTINGS
 }
 
 // ─── Models ──────────────────────────────────────────────────────────────────
@@ -426,6 +445,9 @@ model User {
   ownedDeals      Deal[]    @relation("DealOwner")
   createdDeals    Deal[]    @relation("DealCreatedBy")
   crmActivities   CrmActivity[] @relation("CrmActivityCreatedBy")
+
+  // Historial de acciones
+  activityLog ActivityLog[] @relation("ActivityActor")
 
   @@map("users")
 }
@@ -861,6 +883,66 @@ model TimeEntry {
   // El contador flotante busca la entrada abierta del usuario en cada carga.
   @@index([userId, stoppedAt])
   @@map("time_entries")
+}
+
+// Historial de acciones, polimórfico como el resto del núcleo.
+//
+// Responde dos preguntas con la misma tabla: «¿qué le ha pasado a esta ficha?»
+// —el panel que se lee dentro de un ticket, un cobro o una cuenta— y «¿qué ha
+// hecho la plataforma hoy?», el listado de /admin/actividad. De ahí que haya
+// índice por entidad y también por fecha suelta.
+//
+// No lleva clave foránea sobre `entityId`, igual que comentarios y adjuntos.
+// Pero aquí la consecuencia se busca a propósito: **el historial sobrevive a la
+// entidad**. Si borrar un cobro se llevara por delante el registro de quién lo
+// borró, el historial no serviría para lo único que de verdad se le pide. Por
+// eso no existe un `deleteActivityFor()`: nada lo limpia al borrar una ficha.
+//
+// El vocabulario de `action` es el mismo del catálogo de hooks —`recurso.acción`
+// en inglés y en pasado—, extendido en src/lib/activity/catalog.ts con lo que no
+// sale hacia afuera (facturación y administración).
+model ActivityLog {
+  id String @id @default(cuid())
+
+  entityType EntityType @map("entity_type")
+  entityId   String     @map("entity_id")
+
+  /// `recurso.acción`, p. ej. «ticket.status_changed». El catálogo la traduce.
+  action String
+
+  /// Cómo se llamaba la ficha cuando ocurrió. Sin esto, el listado global de
+  /// algo ya borrado dice «ticket cmxk9…» y nadie recuerda cuál era.
+  entityLabel String? @map("entity_label")
+
+  /// Campos que cambiaron: `{ campo: { from, to } }`. Solo los que el catálogo
+  /// declara importantes; la descripción entera no cabe aquí ni hace falta.
+  changes Json?
+
+  /// Lo que no es un cambio de campo pero da contexto: el importe del abono, el
+  /// nombre del archivo, el motivo de la baja.
+  meta Json?
+
+  /// Null cuando actuó la plataforma sola: tareas recurrentes, recordatorios,
+  /// la poda nocturna.
+  actorId String? @map("actor_id")
+
+  /// El nombre congelado en el momento del hecho. La relación con `users` es
+  /// para filtrar y enlazar; esto es para que la frase siga teniendo autor
+  /// cuando la persona ya no esté en la plataforma.
+  actorName String? @map("actor_name")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  actor User? @relation("ActivityActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  // El panel de una ficha.
+  @@index([entityType, entityId, createdAt(sort: Desc)])
+  // El listado global y su filtro por módulo.
+  @@index([createdAt(sort: Desc)])
+  @@index([entityType, createdAt(sort: Desc)])
+  // «Qué hizo esta persona» — se usa desde el filtro y desde el perfil.
+  @@index([actorId, createdAt(sort: Desc)])
+  @@map("activity_log")
 }
 
 // Plantillas polimórficas.

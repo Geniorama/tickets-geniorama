@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireCan, can } from "@/lib/access/can";
+import { ActivityPanel } from "@/components/ui/activity-panel";
 import { prisma } from "@/lib/prisma";
 import { DEAL_STAGE_COLORS, DEAL_STAGE_LABELS, formatAmount, isClosedStage } from "@/lib/crm/deals";
 import { getDealFormData } from "@/lib/crm/form-data";
@@ -155,6 +156,13 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
             </div>
           )
         )}
+
+        <ActivityPanel
+          entityType="DEAL"
+          entityId={deal.id}
+          title="Historial"
+          emptyLabel="Todavía no se ha movido nada en esta oportunidad."
+        />
       </div>
     </div>
   );

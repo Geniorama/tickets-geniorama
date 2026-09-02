@@ -5,6 +5,7 @@ import { requireCan } from "@/lib/access/can";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { recordActivity, recordUpdate } from "@/lib/activity/record";
 import { getRequiredSession } from "@/lib/auth-helpers";
 
 const serviceSchema = z.object({
@@ -37,7 +38,7 @@ export async function createService(formData: FormData) {
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  await prisma.service.create({
+  const servicio = await prisma.service.create({
     data: {
       name:        parsed.data.name,
       type:        parsed.data.type,
@@ -50,6 +51,15 @@ export async function createService(formData: FormData) {
       companyId:   parsed.data.companyId,
       createdById: session.user.id,
     },
+    select: { id: true },
+  });
+
+  recordActivity({
+    entityType: "SERVICE",
+    entityId: servicio.id,
+    action: "service.created",
+    label: parsed.data.name,
+    actor: session.user,
   });
 
   revalidatePath("/admin/servicios");
@@ -58,7 +68,7 @@ export async function createService(formData: FormData) {
 }
 
 export async function updateService(serviceId: string, formData: FormData) {
-  await requireCan("INFRAESTRUCTURA", "editar");
+  const session = await requireCan("INFRAESTRUCTURA", "editar");
 
   const parsed = serviceSchema.safeParse({
     name:        formData.get("name"),
@@ -73,6 +83,11 @@ export async function updateService(serviceId: string, formData: FormData) {
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const antes = await prisma.service.findUnique({
+    where: { id: serviceId },
+    select: { name: true, dueDate: true, isActive: true },
+  });
 
   await prisma.service.update({
     where: { id: serviceId },
@@ -89,14 +104,46 @@ export async function updateService(serviceId: string, formData: FormData) {
     },
   });
 
+  recordUpdate({
+    entityType: "SERVICE",
+    entityId: serviceId,
+    action: "service.updated",
+    label: parsed.data.name,
+    before: antes,
+    after: {
+      name: parsed.data.name,
+      // La fecha de renovación es lo que más se mira de un servicio: moverla
+      // cambia cuándo salta el aviso de vencimiento.
+      dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
+      isActive: parsed.data.isActive,
+    },
+    extraFields: ["name", "dueDate", "isActive"],
+    actor: session.user,
+  });
+
   revalidatePath("/admin/servicios");
   revalidatePath("/mis-servicios");
   redirect("/admin/servicios");
 }
 
 export async function deleteService(serviceId: string) {
-  await requireCan("INFRAESTRUCTURA", "editar");
+  const session = await requireCan("INFRAESTRUCTURA", "editar");
+
+  const servicio = await prisma.service.findUnique({
+    where: { id: serviceId },
+    select: { name: true },
+  });
+
   await prisma.service.delete({ where: { id: serviceId } });
+
+  recordActivity({
+    entityType: "SERVICE",
+    entityId: serviceId,
+    action: "service.deleted",
+    label: servicio?.name ?? null,
+    actor: session.user,
+  });
+
   revalidatePath("/admin/servicios");
   revalidatePath("/mis-servicios");
   redirect("/admin/servicios");

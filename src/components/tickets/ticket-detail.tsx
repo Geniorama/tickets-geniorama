@@ -72,6 +72,7 @@ export function TicketDetail({
   availableVaultEntries = [],
   collaborators = [],
   checklistSlot,
+  activitySlot,
   checklistItemCount = 0,
 }: {
   ticket: TicketWithDetails;
@@ -81,6 +82,8 @@ export function TicketDetail({
   availableVaultEntries?: VaultEntry[];
   collaborators?: { id: string; name: string }[];
   checklistSlot?: React.ReactNode;
+  /** El historial de la ficha. Llega resuelto desde el servidor y solo para staff. */
+  activitySlot?: React.ReactNode;
   /** Ítems de checklist del ticket; habilita la opción de copiarlos al duplicar. */
   checklistItemCount?: number;
 }) {
@@ -416,6 +419,8 @@ export function TicketDetail({
 
             <CommentForm ticketId={ticket.id} isStaff={staff} />
           </div>
+
+          {activitySlot}
         </div>
       </div>
     </div>

@@ -8,6 +8,8 @@
 
 import { prisma } from "@/lib/prisma";
 import type { BillingStatus } from "@/generated/prisma";
+import { recordActivity } from "@/lib/activity/record";
+import { entityLabel } from "@/lib/activity/label";
 import { BILLING_STATUSES, BILLING_STATUS_LABELS, isInvoiced } from "@/lib/billing/status";
 import { recalcularPagos } from "@/lib/billing/payments";
 
@@ -83,7 +85,7 @@ export type MoveResult = { ok: true } | { ok: false; error: string };
 export async function moveBillingStatus(
   id: string,
   status: BillingStatus,
-  actor: { id: string },
+  actor: { id: string; name?: string | null },
 ): Promise<MoveResult> {
   if (!BILLING_STATUSES.includes(status)) return { ok: false, error: "Estado no válido" };
 
@@ -91,6 +93,9 @@ export async function moveBillingStatus(
     where: { id },
     select: {
       amount: true, paidAmount: true, invoicedAt: true, paidAt: true, invoiceNumber: true,
+      // El estado previo es lo que el historial necesita para decir de dónde
+      // salió la tarjeta.
+      status: true,
       _count: { select: { payments: true } },
     },
   });
@@ -131,6 +136,20 @@ export async function moveBillingStatus(
 
   // Deja `paidAmount`, el estado y las fechas cuadrados con la lista de abonos.
   if (isInvoiced(status)) await recalcularPagos(id);
+
+  // El historial se escribe aquí y no en la Server Action porque este es el
+  // único camino por el que un cobro cambia de columna: el tablero, la ficha y
+  // lo que venga después pasan todos por aquí.
+  if (actual.status !== status) {
+    recordActivity({
+      entityType: "BILLING",
+      entityId: id,
+      action: "billing.status_changed",
+      label: await entityLabel("BILLING", id),
+      changes: { status: { from: actual.status, to: status } },
+      actor,
+    });
+  }
 
   return { ok: true };
 }

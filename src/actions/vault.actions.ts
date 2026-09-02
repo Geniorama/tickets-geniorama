@@ -8,6 +8,7 @@ import { linkVaultEntry, unlinkVaultEntry } from "@/lib/vault-links";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { encrypt } from "@/lib/vault-crypto";
 import { notify } from "@/lib/notify";
+import { recordActivity, recordUpdate } from "@/lib/activity/record";
 
 const vaultSchema = z.object({
   title:     z.string().min(1, "El título es requerido").max(200),
@@ -50,6 +51,14 @@ export async function createVaultEntry(formData: FormData) {
     },
   });
 
+  recordActivity({
+    entityType: "VAULT_ENTRY",
+    entityId: entry.id,
+    action: "vault.created",
+    label: entry.title,
+    actor: session.user,
+  });
+
   revalidatePath("/boveda");
   redirect(`/boveda/${entry.id}`);
 }
@@ -88,6 +97,21 @@ export async function updateVaultEntry(entryId: string, formData: FormData) {
     },
   });
 
+  // La contraseña nunca entra en el historial, ni siquiera cifrada: se dice
+  // que cambió y basta. Comparar los cifrados tampoco serviría —el mismo
+  // secreto cifrado dos veces da textos distintos—, así que se compara lo que
+  // se puede: el resto de la ficha.
+  recordUpdate({
+    entityType: "VAULT_ENTRY",
+    entityId: entryId,
+    action: "vault.updated",
+    label: parsed.data.title,
+    before: { name: entry.title, url: entry.url },
+    after: { name: parsed.data.title, url: parsed.data.url || null },
+    extraFields: ["name", "url"],
+    actor: session.user,
+  });
+
   revalidatePath("/boveda");
   revalidatePath(`/boveda/${entryId}`);
   redirect(`/boveda/${entryId}`);
@@ -101,6 +125,15 @@ export async function deleteVaultEntry(entryId: string) {
   if (entry.createdById !== session.user.id) return { error: "Sin permiso" };
 
   await prisma.vaultEntry.delete({ where: { id: entryId } });
+
+  recordActivity({
+    entityType: "VAULT_ENTRY",
+    entityId: entryId,
+    action: "vault.deleted",
+    label: entry.title,
+    actor: session.user,
+  });
+
   revalidatePath("/boveda");
   return { success: true };
 }
@@ -136,6 +169,20 @@ export async function addVaultShare(entryId: string, userId: string) {
       `/boveda/${entryId}`,
       true
     );
+  }
+
+  if (!existing) {
+    const destinatario = await prisma.user
+      .findUnique({ where: { id: userId }, select: { name: true } })
+      .catch(() => null);
+    recordActivity({
+      entityType: "VAULT_ENTRY",
+      entityId: entryId,
+      action: "vault.shared",
+      label: entry.title,
+      meta: { note: `Se la compartió a ${destinatario?.name ?? "alguien"}.` },
+      actor: session.user,
+    });
   }
 
   revalidatePath(`/boveda/${entryId}`);
@@ -207,9 +254,23 @@ export async function removeVaultShare(entryId: string, userId: string) {
   if (!entry) return { error: "Entrada no encontrada" };
   if (entry.createdById !== session.user.id) return { error: "Sin permiso" };
 
-  await prisma.vaultShare.deleteMany({
+  const { count } = await prisma.vaultShare.deleteMany({
     where: { vaultEntryId: entryId, userId },
   });
+
+  if (count > 0) {
+    const destinatario = await prisma.user
+      .findUnique({ where: { id: userId }, select: { name: true } })
+      .catch(() => null);
+    recordActivity({
+      entityType: "VAULT_ENTRY",
+      entityId: entryId,
+      action: "vault.shared",
+      label: entry.title,
+      meta: { note: `Le quitó el acceso a ${destinatario?.name ?? "alguien"}.` },
+      actor: session.user,
+    });
+  }
 
   revalidatePath(`/boveda/${entryId}`);
   return { success: true };

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { FolderKanban, Ticket as TicketIcon, Plus } from "lucide-react";
 import { requireCan, can } from "@/lib/access/can";
+import { ActivityPanel } from "@/components/ui/activity-panel";
 import { prisma } from "@/lib/prisma";
 import { ACCOUNT_STAGE_COLORS, ACCOUNT_STAGE_LABELS } from "@/lib/crm/accounts";
 import { DEAL_STAGE_COLORS, DEAL_STAGE_LABELS, formatAmount, isClosedStage } from "@/lib/crm/deals";
@@ -218,6 +219,18 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
             contacts={account.contacts.map((c) => ({ id: c.id, name: fullName(c) }))}
             deals={abiertas.map((d) => ({ id: d.id, title: d.title }))}
             canEdit={canEdit}
+          />
+        </div>
+
+        {/* Lo de arriba es lo que el equipo apunta; esto es lo que la
+            plataforma registra sola. Son dos lecturas distintas y por eso no se
+            mezclan en una sola lista. */}
+        <div className="lg:col-span-2">
+          <ActivityPanel
+            entityType="COMPANY"
+            entityId={account.id}
+            title="Historial de cambios"
+            emptyLabel="Todavía no se ha modificado nada en esta cuenta."
           />
         </div>
       </div>

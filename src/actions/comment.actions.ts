@@ -14,6 +14,8 @@ import {
   type NewAttachment,
 } from "@/lib/comments";
 import { emitCommentHook } from "@/lib/hooks/dispatch";
+import { recordActivity } from "@/lib/activity/record";
+import { entityLabel } from "@/lib/activity/label";
 
 const addCommentSchema = z.object({
   body: z.string().min(1, "El comentario no puede estar vacío"),
@@ -79,6 +81,18 @@ export async function addComment(ticketId: string, formData: FormData) {
   // Las notas internas las descarta el propio despachador; aquí se avisa igual
   // para no tener dos criterios distintos sobre qué es interno.
   emitCommentHook(comment.id, { actor: session.user });
+
+  // El historial guarda que se comentó, no lo que se dijo: el hilo está ahí
+  // mismo y copiarlo aquí sería tener el mismo texto en dos sitios que después
+  // se pueden contradecir —uno se edita, el otro no—.
+  recordActivity({
+    entityType: "TICKET",
+    entityId: ticketId,
+    action: "comment.created",
+    label: await entityLabel("TICKET", ticketId),
+    meta: parsed.data.isInternal ? { note: "Nota interna del equipo." } : null,
+    actor: session.user,
+  });
 
   // Notificar a usuarios mencionados
   const mentionedIds = extractMentionIds(parsed.data.body).filter(

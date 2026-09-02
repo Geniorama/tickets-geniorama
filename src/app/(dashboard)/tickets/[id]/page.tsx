@@ -6,6 +6,7 @@ import { linkedTo, notLinkedTo } from "@/lib/vault-links";
 import { TicketDetail } from "@/components/tickets/ticket-detail";
 import { BackButton } from "@/components/ui/back-button";
 import { TicketChecklistPanel } from "@/components/ui/checklist-panel";
+import { ActivityPanel } from "@/components/ui/activity-panel";
 import { CollaboratorSchedulingCard } from "@/components/collaborator/collaborator-scheduling-card";
 import { getClientActivePlan } from "@/lib/plans.server";
 import { listComments } from "@/lib/comments";
@@ -131,6 +132,7 @@ export default async function TicketPage({
             canDelete={admin}
           />
         }
+        activitySlot={<ActivityPanel entityType="TICKET" entityId={ticketId} />}
         checklistItemCount={checklists.reduce((n, c) => n + c.items.length, 0)}
       />
       {supportSchedulingAvailable && (

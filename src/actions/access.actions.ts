@@ -5,6 +5,7 @@ import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import type { AccessLevel, AppKey } from "@/generated/prisma";
 import { APP_BY_KEY, LEVEL_ORDER } from "@/lib/access/apps";
+import { recordActivity } from "@/lib/activity/record";
 
 /**
  * Asigna un perfil y, opcionalmente, excepciones por módulo.
@@ -23,7 +24,7 @@ export async function updateUserAccess(
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { role: true },
+    select: { role: true, name: true },
   });
   if (!user) return { error: "Usuario no encontrado" };
 
@@ -70,6 +71,32 @@ export async function updateUserAccess(
         data: entries.map(([app, level]) => ({ userId, app, level })),
       });
     }
+  });
+
+  // Los permisos se guardan enteros de una vez, así que el historial guarda la
+  // concesión resultante y no campo a campo: «TICKETS: GESTOR, CRM: LECTURA».
+  // Es lo que hay que poder leer meses después para saber qué se le dio a quién.
+  const antesNiveles = await prisma.appAccess
+    .findMany({ where: { userId }, select: { app: true, level: true } })
+    .catch(() => []);
+  const resumir = (rows: { app: string; level: string }[]) =>
+    rows
+      .filter((r) => r.level !== "SIN_ACCESO")
+      .map((r) => `${r.app}: ${r.level}`)
+      .sort();
+
+  recordActivity({
+    entityType: "USER",
+    entityId: userId,
+    action: "user.access_changed",
+    label: user.name,
+    changes: {
+      access: {
+        from: resumir(antesNiveles),
+        to: resumir(entries.map(([app, level]) => ({ app, level }))),
+      },
+    },
+    actor: session.user,
   });
 
   revalidatePath(`/admin/users/${userId}`);

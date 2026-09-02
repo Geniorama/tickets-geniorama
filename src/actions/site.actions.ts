@@ -5,6 +5,7 @@ import { requireCan } from "@/lib/access/can";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { recordActivity, recordUpdate } from "@/lib/activity/record";
 
 const siteSchema = z.object({
   name: z.string().min(1, "El nombre es requerido").max(200),
@@ -16,7 +17,7 @@ const siteSchema = z.object({
 });
 
 export async function createSite(formData: FormData) {
-  await requireCan("INFRAESTRUCTURA", "crear");
+  const session = await requireCan("INFRAESTRUCTURA", "crear");
 
   const parsed = siteSchema.safeParse({
     name: formData.get("name"),
@@ -29,7 +30,7 @@ export async function createSite(formData: FormData) {
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  await prisma.site.create({
+  const site = await prisma.site.create({
     data: {
       name: parsed.data.name,
       domain: parsed.data.domain,
@@ -38,6 +39,16 @@ export async function createSite(formData: FormData) {
       architecture: parsed.data.architecture ?? null,
       isActive: parsed.data.isActive,
     },
+    select: { id: true },
+  });
+
+  recordActivity({
+    entityType: "SITE",
+    entityId: site.id,
+    action: "site.created",
+    label: parsed.data.name,
+    meta: { note: parsed.data.domain },
+    actor: session.user,
   });
 
   revalidatePath("/admin/sitios");
@@ -45,7 +56,7 @@ export async function createSite(formData: FormData) {
 }
 
 export async function updateSite(siteId: string, formData: FormData) {
-  await requireCan("INFRAESTRUCTURA", "editar");
+  const session = await requireCan("INFRAESTRUCTURA", "editar");
 
   const parsed = siteSchema.safeParse({
     name: formData.get("name"),
@@ -57,6 +68,11 @@ export async function updateSite(siteId: string, formData: FormData) {
   });
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+
+  const antes = await prisma.site.findUnique({
+    where: { id: siteId },
+    select: { name: true, domain: true, isActive: true },
+  });
 
   await prisma.site.update({
     where: { id: siteId },
@@ -70,13 +86,41 @@ export async function updateSite(siteId: string, formData: FormData) {
     },
   });
 
+  recordUpdate({
+    entityType: "SITE",
+    entityId: siteId,
+    action: "site.updated",
+    label: parsed.data.name,
+    before: antes,
+    after: {
+      name: parsed.data.name,
+      domain: parsed.data.domain,
+      isActive: parsed.data.isActive,
+    },
+    extraFields: ["name", "domain", "isActive"],
+    actor: session.user,
+  });
+
   revalidatePath("/admin/sitios");
   redirect("/admin/sitios");
 }
 
 export async function deleteSite(siteId: string) {
-  await requireCan("INFRAESTRUCTURA", "editar");
+  const session = await requireCan("INFRAESTRUCTURA", "editar");
+
+  // El nombre antes de que se vaya: después no hay sitio que consultar.
+  const site = await prisma.site.findUnique({ where: { id: siteId }, select: { name: true } });
+
   await prisma.site.delete({ where: { id: siteId } });
+
+  recordActivity({
+    entityType: "SITE",
+    entityId: siteId,
+    action: "site.deleted",
+    label: site?.name ?? null,
+    actor: session.user,
+  });
+
   revalidatePath("/admin/sitios");
   return { success: true };
 }

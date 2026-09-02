@@ -10,6 +10,7 @@ import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { generateInvitationToken } from "@/actions/invitation.actions";
 import { sendInvitationEmail } from "@/lib/email";
+import { recordActivity, recordUpdate } from "@/lib/activity/record";
 
 const BASE_URL = process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -27,7 +28,7 @@ const createUserSchema = z.object({
 });
 
 export async function createUser(formData: FormData) {
-  await requireCan("ADMIN");
+  const session = await requireCan("ADMIN");
 
   const companyIds = (formData.getAll("companyIds") as string[]).filter(Boolean);
 
@@ -79,6 +80,15 @@ export async function createUser(formData: FormData) {
     },
   });
 
+  recordActivity({
+    entityType: "USER",
+    entityId: user.id,
+    action: "user.created",
+    label: user.name,
+    meta: { note: `${user.email} · ${user.role}` },
+    actor: session.user,
+  });
+
   // Enviar email de invitación
   try {
     const token = await generateInvitationToken(user.id);
@@ -96,7 +106,7 @@ export async function createUser(formData: FormData) {
 }
 
 export async function updateUser(userId: string, formData: FormData) {
-  await requireCan("ADMIN");
+  const session = await requireCan("ADMIN");
 
   const companyIds = (formData.getAll("companyIds") as string[]).filter(Boolean);
 
@@ -160,7 +170,44 @@ export async function updateUser(userId: string, formData: FormData) {
     updateData.passwordHash = await bcrypt.hash(parsed.data.password, 12);
   }
 
+  const antes = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { name: true, email: true, role: true, isActive: true },
+  });
+
   await prisma.user.update({ where: { id: userId }, data: updateData });
+
+  // El rol se registra aparte del resto: cambiar de COLABORADOR a
+  // ADMINISTRADOR no es «editar un usuario», es dar permisos, y quien audita
+  // filtra por eso.
+  if (antes && antes.role !== parsed.data.role) {
+    recordActivity({
+      entityType: "USER",
+      entityId: userId,
+      action: "user.role_changed",
+      label: parsed.data.name,
+      changes: { role: { from: antes.role, to: parsed.data.role } },
+      actor: session.user,
+    });
+  }
+  recordUpdate({
+    entityType: "USER",
+    entityId: userId,
+    action: "user.updated",
+    label: parsed.data.name,
+    before: antes,
+    after: {
+      name: parsed.data.name,
+      email: parsed.data.email,
+      isActive: parsed.data.isActive,
+    },
+    // La contraseña no se compara —no se guarda en claro— pero que alguien la
+    // haya cambiado desde administración sí se dice.
+    meta: parsed.data.password && parsed.data.password.length >= 8
+      ? { note: "Se le puso una contraseña nueva desde administración." }
+      : null,
+    actor: session.user,
+  });
 
   revalidatePath("/admin/users");
   revalidatePath(`/admin/users/${userId}/edit`);
@@ -169,11 +216,20 @@ export async function updateUser(userId: string, formData: FormData) {
 }
 
 export async function toggleUserActive(userId: string, isActive: boolean) {
-  await requireCan("ADMIN");
+  const session = await requireCan("ADMIN");
 
-  await prisma.user.update({
+  const user = await prisma.user.update({
     where: { id: userId },
     data: { isActive },
+    select: { name: true },
+  });
+
+  recordActivity({
+    entityType: "USER",
+    entityId: userId,
+    action: isActive ? "user.activated" : "user.deactivated",
+    label: user.name,
+    actor: session.user,
   });
 
   revalidatePath("/admin/users");
@@ -189,13 +245,21 @@ export async function deleteUser(userId: string) {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true },
+    select: { id: true, name: true, email: true },
   });
 
   if (!user) return { error: "Usuario no encontrado." };
 
   try {
     await prisma.user.delete({ where: { id: userId } });
+    recordActivity({
+      entityType: "USER",
+      entityId: userId,
+      action: "user.deleted",
+      label: user.name,
+      meta: { note: user.email },
+      actor: session.user,
+    });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
       return {

@@ -1,6 +1,10 @@
 /**
  * Envío de eventos a los hooks suscritos.
  *
+ * Desde el historial de acciones, los atajos del final del archivo hacen dos
+ * cosas con el mismo hecho: lo guardan en `activity_log` y lo cuentan a los
+ * hooks. Ver la nota de la sección «Atajos por recurso» para el porqué.
+ *
  * Reglas que se sostienen desde aquí:
  *
  *   · **Nunca lanza.** Un destino caído no puede tumbar la acción que lo
@@ -16,6 +20,9 @@
 
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import type { EntityType } from "@/generated/prisma";
+import { recordActivity } from "@/lib/activity/record";
+import { entityLabel } from "@/lib/activity/label";
 import type { HookEvent } from "@/lib/hooks/events";
 import {
   APP_URL,
@@ -249,12 +256,48 @@ export async function emitHook(input: EmitInput): Promise<void> {
 //
 // Las acciones de la plataforma llaman a estos y no a `emitHook` directamente:
 // una línea por evento, sin repetir en cada sitio cómo se arma un payload.
+//
+// Desde el historial de acciones, un atajo hace dos cosas con el mismo hecho:
+// lo **guarda hacia adentro** en `activity_log` y lo **cuenta hacia afuera** a
+// los hooks suscritos. Están juntos porque el sitio que provoca las dos es el
+// mismo, y separarlos garantizaría que tarde o temprano una acción emita sin
+// registrar. Lo que no tiene hooks —facturación, administración— llama a
+// `recordActivity()` por su cuenta.
+//
+// El historial no depende de que haya suscriptores: `emitHook` se corta pronto
+// si nadie escucha, y por eso el registro va antes y aparte.
+
+/** Guarda el hecho en el historial resolviendo el nombre de la ficha. */
+function logToHistory(
+  entityType: EntityType,
+  entityId: string,
+  event: string,
+  opts: { actor?: HookActor; changes?: HookChanges },
+): void {
+  // Una edición sin campos vigilados la descartaría `recordActivity` de todas
+  // formas; cortar aquí ahorra además ir a buscar un nombre que no se va a
+  // usar, y esa consulta la pagaría cada guardado de cada ficha.
+  const vacio = !opts.changes || Object.keys(opts.changes).length === 0;
+  if (vacio && event.endsWith(".updated")) return;
+
+  void (async () => {
+    recordActivity({
+      entityType,
+      entityId,
+      action: event,
+      label: await entityLabel(entityType, entityId),
+      changes: opts.changes,
+      actor: opts.actor,
+    });
+  })();
+}
 
 export function emitTicketHook(
   event: HookEvent,
   ticketId: string,
   opts: { actor?: HookActor; changes?: HookChanges } = {},
 ): void {
+  logToHistory("TICKET", ticketId, event, opts);
   void emitHook({ event, actor: opts.actor, changes: opts.changes, load: () => ticketPayload(ticketId) });
 }
 
@@ -263,6 +306,7 @@ export function emitTaskHook(
   taskId: string,
   opts: { actor?: HookActor; changes?: HookChanges; projectId?: string | null; projectIsPrivate?: boolean } = {},
 ): void {
+  logToHistory("TASK", taskId, event, opts);
   void (async () => {
     let projectId = opts.projectId ?? null;
     let isPrivate = opts.projectIsPrivate;
@@ -291,6 +335,7 @@ export function emitProjectHook(
   projectId: string,
   opts: { actor?: HookActor; changes?: HookChanges; isPrivate?: boolean; data?: unknown } = {},
 ): void {
+  logToHistory("PROJECT", projectId, event, opts);
   void emitHook({
     event,
     projectId,
@@ -344,6 +389,7 @@ export function emitAccountHook(
   accountId: string,
   opts: { actor?: HookActor; changes?: HookChanges } = {},
 ): void {
+  logToHistory("COMPANY", accountId, event, opts);
   void emitHook({ event, actor: opts.actor, changes: opts.changes, load: () => accountPayload(accountId) });
 }
 
@@ -352,6 +398,7 @@ export function emitContactHook(
   contactId: string,
   opts: { actor?: HookActor; changes?: HookChanges } = {},
 ): void {
+  logToHistory("CONTACT", contactId, event, opts);
   void emitHook({ event, actor: opts.actor, changes: opts.changes, load: () => contactPayload(contactId) });
 }
 
@@ -360,10 +407,29 @@ export function emitDealHook(
   dealId: string,
   opts: { actor?: HookActor; changes?: HookChanges } = {},
 ): void {
+  logToHistory("DEAL", dealId, event, opts);
   void emitHook({ event, actor: opts.actor, changes: opts.changes, load: () => dealPayload(dealId) });
 }
 
 export function emitActivityHook(activityId: string, opts: { actor?: HookActor } = {}): void {
+  // Una interacción del CRM se registra sobre su cuenta y no sobre sí misma:
+  // nadie abre la ficha de una llamada, se lee en el historial de la empresa.
+  void (async () => {
+    const row = await prisma.crmActivity
+      .findUnique({ where: { id: activityId }, select: { companyId: true, summary: true, type: true } })
+      .catch(() => null);
+    if (row) {
+      recordActivity({
+        entityType: "COMPANY",
+        entityId: row.companyId,
+        action: "activity.logged",
+        label: await entityLabel("COMPANY", row.companyId),
+        meta: { note: row.summary },
+        actor: opts.actor,
+      });
+    }
+  })();
+
   void emitHook({ event: "activity.logged", actor: opts.actor, load: () => activityPayload(activityId) });
 }
 
@@ -390,12 +456,33 @@ export function emitDealStageHooks(
   if (to === "PERDIDA") emitDealHook("deal.lost", dealId, { actor: opts.actor });
 }
 
-/** Eventos de borrado: la entidad ya no existe, así que el payload viaja hecho. */
+/**
+ * Eventos de borrado: la entidad ya no existe, así que el payload viaja hecho.
+ *
+ * Para el historial hay que decir aparte qué se borró (`entity`), porque el
+ * nombre ya no se puede ir a buscar: es el único caso donde el registro no
+ * puede resolver la ficha por su cuenta, y justo el que más se consulta.
+ */
 export function emitDeletedHook(
   event: HookEvent,
   data: unknown,
-  opts: { actor?: HookActor; projectId?: string | null; projectIsPrivate?: boolean } = {},
+  opts: {
+    actor?: HookActor;
+    projectId?: string | null;
+    projectIsPrivate?: boolean;
+    entity?: { type: EntityType; id: string; label?: string | null };
+  } = {},
 ): void {
+  if (opts.entity) {
+    recordActivity({
+      entityType: opts.entity.type,
+      entityId: opts.entity.id,
+      action: event,
+      label: opts.entity.label ?? null,
+      actor: opts.actor,
+    });
+  }
+
   void emitHook({
     event,
     data,

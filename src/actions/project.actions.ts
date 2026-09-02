@@ -13,6 +13,7 @@ import { deleteVaultLinksFor } from "@/lib/vault-links";
 import { deleteTimeEntriesFor } from "@/lib/time-entries";
 import { emitDeletedHook, emitProjectHook } from "@/lib/hooks/dispatch";
 import { projectPayload } from "@/lib/hooks/payload";
+import { diffFields, recordActivity } from "@/lib/activity/record";
 
 const projectSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -89,9 +90,11 @@ export async function updateProject(projectId: string, formData: FormData) {
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  // Se lee todo lo que el historial vigila, no solo el estado: sin la foto
+  // previa completa, «editó el proyecto» no puede decir qué editó.
   const before = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { status: true },
+    select: { status: true, name: true, startDate: true, dueDate: true, isPrivate: true },
   });
 
   await prisma.$transaction(async (tx) => {
@@ -127,6 +130,14 @@ export async function updateProject(projectId: string, formData: FormData) {
   emitProjectHook("project.updated", projectId, {
     actor: session.user,
     isPrivate: parsed.data.isPrivate,
+    // El estado ya salió en su propio evento; aquí van el resto de campos. Si
+    // no cambió ninguno, el historial descarta la entrada por su cuenta.
+    changes: diffFields("PROJECT", before, {
+      name: parsed.data.name,
+      startDate: parsed.data.startDate ? new Date(parsed.data.startDate) : null,
+      dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
+      isPrivate: parsed.data.isPrivate,
+    }),
   });
 
   revalidatePath("/proyectos");
@@ -163,7 +174,21 @@ export async function deleteProject(projectId: string) {
   // el aviso solo puede salir por los de organización — y por eso un proyecto
   // privado no lo manda: su nombre no debe aparecer en un canal general.
   if (snapshot && !snapshot.isPrivate) {
-    emitDeletedHook("project.deleted", snapshot, { actor: session.user });
+    emitDeletedHook("project.deleted", snapshot, {
+      actor: session.user,
+      entity: { type: "PROJECT", id: projectId, label: snapshot.name },
+    });
+  } else if (snapshot) {
+    // El proyecto privado no sale hacia afuera, pero sí queda en el historial:
+    // «quién borró aquello» es una pregunta interna, y precisamente en lo
+    // privado es donde más se hace.
+    recordActivity({
+      entityType: "PROJECT",
+      entityId: projectId,
+      action: "project.deleted",
+      label: snapshot.name,
+      actor: session.user,
+    });
   }
 
   revalidatePath("/proyectos");

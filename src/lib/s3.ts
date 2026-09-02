@@ -4,7 +4,11 @@ import type { EntityType } from "@/generated/prisma";
 
 // Carpeta en R2 por tipo de entidad. Las rutas coinciden con las que ya se
 // venían usando, para no invalidar los archivos existentes.
-const COMMENT_FOLDERS: Record<EntityType, string> = {
+//
+// Parcial: `EntityType` incluye tipos que existen solo para el historial de
+// acciones (usuarios, sitios, integraciones) y que no reciben archivos. Los que
+// falten caen en `otros` en vez de construir una ruta con «undefined» dentro.
+const COMMENT_FOLDERS: Partial<Record<EntityType, string>> = {
   TICKET:  "tickets",
   TASK:    "tasks",
   PROJECT: "projects",
@@ -134,7 +138,7 @@ export async function uploadCommentFile(
   entityId: string
 ): Promise<{ storagePath: string; fileUrl: string }> {
   const ext = file.name.split(".").pop();
-  const folder = COMMENT_FOLDERS[entityType];
+  const folder = COMMENT_FOLDERS[entityType] ?? "otros";
   const storagePath = `${folder}/${entityId}/comments/${crypto.randomUUID()}.${ext}`;
 
   await putObject(storagePath, file);

@@ -12,6 +12,7 @@ import {
   emitDealStageHooks, emitDeletedHook,
 } from "@/lib/hooks/dispatch";
 import { contactPayload, dealPayload } from "@/lib/hooks/payload";
+import { diffFields } from "@/lib/activity/record";
 import { generateInvitationToken } from "@/actions/invitation.actions";
 import { sendInvitationEmail } from "@/lib/email";
 import { grantPortalAccess } from "@/lib/crm/portal-access";
@@ -78,9 +79,11 @@ export async function updateAccount(accountId: string, formData: FormData) {
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
+  // Se lee todo lo que el historial vigila, no solo la etapa: sin la foto
+  // previa completa, «editó la empresa» no puede decir qué editó.
   const antes = await prisma.company.findUnique({
     where: { id: accountId },
-    select: { stage: true },
+    select: { stage: true, name: true, taxId: true, source: true, ownerId: true },
   });
   if (!antes) return { error: "Cuenta no encontrada" };
 
@@ -95,7 +98,17 @@ export async function updateAccount(accountId: string, formData: FormData) {
     },
   });
 
-  emitAccountHook("account.updated", accountId, { actor: session.user });
+  emitAccountHook("account.updated", accountId, {
+    actor: session.user,
+    // La etapa sale en su propio evento; si no cambió nada más, el historial
+    // descarta la entrada por su cuenta.
+    changes: diffFields("COMPANY", antes, {
+      name: parsed.data.name.trim(),
+      taxId: parsed.data.taxId?.trim() || null,
+      source: parsed.data.source?.trim() || null,
+      ownerId: parsed.data.ownerId || null,
+    }),
+  });
   // Que un lead pase a cliente es lo que quiere enganchar quien integra, y
   // desde este formulario también puede ocurrir.
   if (antes.stage !== parsed.data.stage) {
@@ -234,6 +247,12 @@ export async function updateContact(contactId: string, accountId: string, formDa
   const telefono = resolverTelefono(parsed.data.phone, parsed.data.phoneDial);
   if (!telefono.ok) return { error: telefono.error };
 
+  // La foto previa, para que el historial pueda decir qué se editó.
+  const antesContacto = await prisma.contact.findFirst({
+    where: { id: contactId, companyId: accountId },
+    select: { firstName: true, lastName: true, email: true, isPrimary: true },
+  });
+
   await prisma.$transaction(async (tx) => {
     if (parsed.data.isPrimary) {
       await tx.contact.updateMany({ where: { companyId: accountId }, data: { isPrimary: false } });
@@ -253,7 +272,20 @@ export async function updateContact(contactId: string, accountId: string, formDa
     });
   });
 
-  emitContactHook("contact.updated", contactId, { actor: session.user });
+  emitContactHook("contact.updated", contactId, {
+    actor: session.user,
+    changes: diffFields(
+      "CONTACT",
+      antesContacto
+        ? { ...antesContacto, name: [antesContacto.firstName, antesContacto.lastName].filter(Boolean).join(" ") }
+        : null,
+      {
+        name: [parsed.data.firstName.trim(), parsed.data.lastName?.trim()].filter(Boolean).join(" "),
+        email: parsed.data.email.trim().toLowerCase(),
+        isPrimary: parsed.data.isPrimary,
+      },
+    ),
+  });
 
   revalidatePath(`/crm/${accountId}`);
   return { success: true };
@@ -270,7 +302,10 @@ export async function deleteContact(contactId: string, accountId: string) {
   // Solo se avisa si de verdad se borró algo suyo: un id de otra cuenta no
   // borra nada y tampoco debe generar un evento.
   if (count > 0 && payload) {
-    emitDeletedHook("contact.deleted", payload, { actor: session.user });
+    emitDeletedHook("contact.deleted", payload, {
+      actor: session.user,
+      entity: { type: "CONTACT", id: contactId, label: payload.name },
+    });
   }
 
   revalidatePath(`/crm/${accountId}`);
@@ -407,9 +442,13 @@ export async function updateDeal(dealId: string, formData: FormData) {
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   const d = parsed.data;
 
+  // Se lee todo lo que el historial vigila, no solo la etapa.
   const current = await prisma.deal.findUnique({
     where: { id: dealId },
-    select: { stage: true, closedAt: true, companyId: true },
+    select: {
+      stage: true, closedAt: true, companyId: true,
+      title: true, amount: true, expectedCloseAt: true, ownerId: true,
+    },
   });
   if (!current) return { error: "Oportunidad no encontrada" };
 
@@ -433,7 +472,16 @@ export async function updateDeal(dealId: string, formData: FormData) {
     },
   });
 
-  emitDealHook("deal.updated", dealId, { actor: session.user });
+  emitDealHook("deal.updated", dealId, {
+    actor: session.user,
+    // La etapa sale en su propio evento; el resto va aquí.
+    changes: diffFields("DEAL", current, {
+      title: d.title.trim(),
+      amount: d.amount,
+      expectedCloseAt: d.expectedCloseAt,
+      ownerId: d.ownerId || null,
+    }),
+  });
   emitDealStageHooks(dealId, current.stage, d.stage, { actor: session.user });
 
   revalidatePath("/crm/oportunidades");
@@ -490,7 +538,12 @@ export async function deleteDeal(dealId: string) {
   // Sus actividades caen con ella por `onDelete: Cascade`.
   await prisma.deal.delete({ where: { id: dealId } });
 
-  if (payload) emitDeletedHook("deal.deleted", payload, { actor: session.user });
+  if (payload) {
+    emitDeletedHook("deal.deleted", payload, {
+      actor: session.user,
+      entity: { type: "DEAL", id: dealId, label: payload.title },
+    });
+  }
 
   revalidatePath("/crm/oportunidades");
   revalidatePath(`/crm/${deal.companyId}`);

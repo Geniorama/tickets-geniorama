@@ -20,6 +20,7 @@ import { copyChecklists, createChecklistGroups, deleteChecklistsFor } from "@/li
 import { deleteTimeEntriesFor, stopRunningForEntity } from "@/lib/time-entries";
 import { deleteVaultLinksFor } from "@/lib/vault-links";
 import { emitDeletedHook, emitTicketHook } from "@/lib/hooks/dispatch";
+import { diffFields } from "@/lib/activity/record";
 import { ticketPayload } from "@/lib/hooks/payload";
 
 const APP_URL = process.env.AUTH_URL ?? "http://localhost:3000";
@@ -472,6 +473,11 @@ export async function updateTicket(ticketId: string, formData: FormData) {
       clientId: true,
       createdById: true,
       status: true,
+      // Para el historial: sin la foto previa de estos, «editó el ticket» no
+      // puede decir qué editó.
+      priority: true,
+      category: true,
+      reviewers: { select: { name: true } },
       client: { select: { name: true, email: true } },
     },
   });
@@ -546,7 +552,29 @@ export async function updateTicket(ticketId: string, formData: FormData) {
       },
     });
   }
-  emitTicketHook("ticket.updated", ticketId, { actor: session.user });
+
+  // El resto de campos, para que el historial diga qué se editó. Estado y
+  // responsable ya salieron en sus propios eventos y no se repiten aquí; si no
+  // cambió nada más, la entrada se descarta sola.
+  const newReviewers = await prisma.user
+    .findMany({ where: { id: { in: reviewerIds } }, select: { name: true } })
+    .then((rows) => rows.map((u) => u.name))
+    .catch(() => [] as string[]);
+
+  emitTicketHook("ticket.updated", ticketId, {
+    actor: session.user,
+    changes: diffFields(
+      "TICKET",
+      { ...oldTicket, reviewers: oldTicket?.reviewers.map((r) => r.name) ?? [] },
+      {
+        title: parsed.data.title,
+        priority: parsed.data.priority,
+        category: parsed.data.category ?? null,
+        dueDate: newDueDate,
+        reviewers: newReviewers,
+      },
+    ),
+  });
 
   revalidatePath(`/tickets/${ticketId}`);
   revalidatePath(`/tickets/${ticketId}/edit`);
@@ -585,6 +613,8 @@ export async function configureTicket(ticketId: string, formData: FormData) {
       clientId: true,
       createdById: true,
       status: true,
+      // Para el historial: la prioridad también se toca aquí.
+      priority: true,
       client: { select: { name: true, email: true } },
     },
   });
@@ -655,7 +685,10 @@ export async function configureTicket(ticketId: string, formData: FormData) {
       changes: { assignedToId: { from: ticket?.assignedToId ?? null, to: assignedToId } },
     });
   }
-  emitTicketHook("ticket.updated", ticketId, { actor: session.user });
+  emitTicketHook("ticket.updated", ticketId, {
+    actor: session.user,
+    changes: diffFields("TICKET", ticket, { priority, dueDate: newDueDate }),
+  });
 
   revalidatePath(`/tickets/${ticketId}`);
   revalidatePath("/tickets");
@@ -680,7 +713,12 @@ export async function deleteTicket(ticketId: string) {
     await tx.ticket.delete({ where: { id: ticketId } });
   });
 
-  if (snapshot) emitDeletedHook("ticket.deleted", snapshot, { actor: session.user });
+  if (snapshot) {
+    emitDeletedHook("ticket.deleted", snapshot, {
+      actor: session.user,
+      entity: { type: "TICKET", id: ticketId, label: snapshot.title },
+    });
+  }
 
   revalidatePath("/tickets");
   redirect("/tickets");

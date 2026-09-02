@@ -15,6 +15,8 @@ import {
   type NewAttachment,
 } from "@/lib/comments";
 import { emitCommentHook } from "@/lib/hooks/dispatch";
+import { recordActivity } from "@/lib/activity/record";
+import { entityLabel } from "@/lib/activity/label";
 
 const commentSchema = z.object({
   body: z.string().min(1, "El comentario no puede estar vacío"),
@@ -73,6 +75,17 @@ export async function addTaskComment(
   });
 
   emitCommentHook(comment.id, { actor: session.user });
+
+  // El historial guarda que se comentó, no lo que se dijo: el hilo está ahí
+  // mismo, y tener el mismo texto en dos sitios acaba con los dos diciendo
+  // cosas distintas en cuanto alguien edita uno.
+  recordActivity({
+    entityType: "TASK",
+    entityId: taskId,
+    action: "comment.created",
+    label: await entityLabel("TASK", taskId),
+    actor: session.user,
+  });
 
   // Obtener tarea con info del proyecto para determinar privacidad
   const task = await prisma.task.findUnique({

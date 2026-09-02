@@ -5,7 +5,8 @@ import { canClientAccessTask } from "@/lib/task-access";
 import { prisma } from "@/lib/prisma";
 import { linkedTo, notLinkedTo } from "@/lib/vault-links";
 import { TaskDetail } from "@/components/projects/task-detail";
-import { BackButton } from "@/components/ui/back-button";
+import { BackButton } from "@/components/ui/back-button";
+import { ActivityPanel } from "@/components/ui/activity-panel";
 import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
 import { ProjectVaultPanel } from "@/components/vault/project-vault-panel";
 import { ProjectAttachmentsPanel } from "@/components/projects/project-attachments-panel";
@@ -131,6 +132,7 @@ export default async function TaskPage({
             readOnly={client}
           />
         }
+        activitySlot={<ActivityPanel entityType="TASK" entityId={taskId} />}
         checklistItemCount={checklists.reduce((n, c) => n + c.items.length, 0)}
       />
 

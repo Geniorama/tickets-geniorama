@@ -5,6 +5,7 @@ import { getClientAccessibleTaskIds } from "@/lib/task-access";
 import { prisma } from "@/lib/prisma";
 import { linkedTo, notLinkedTo } from "@/lib/vault-links";
 import { ProjectDetail } from "@/components/projects/project-detail";
+import { ActivityPanel } from "@/components/ui/activity-panel";
 import { BackButton } from "@/components/ui/back-button";
 import { CollaboratorSchedulingCard } from "@/components/collaborator/collaborator-scheduling-card";
 import { withCommentCounts } from "@/lib/comments";
@@ -141,6 +142,9 @@ export default async function ProjectPage({
         linkedVaultEntries={linkedVaultEntries}
         availableVaultEntries={availableVaultEntries}
       />
+      <div style={{ marginTop: "1.5rem" }}>
+        <ActivityPanel entityType="PROJECT" entityId={projectId} />
+      </div>
       <div style={{ marginTop: "1.5rem" }}>
         <CollaboratorSchedulingCard
           userId={project.managerId}

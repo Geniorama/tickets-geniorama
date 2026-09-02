@@ -5,6 +5,7 @@ import {
   BILLING_STATUS_COLORS, BILLING_STATUS_LABELS, pendiente, isInvoiced,
 } from "@/lib/billing/status";
 import { formatAmount } from "@/lib/money";
+import { ActivityPanel } from "@/components/ui/activity-panel";
 import { BackButton } from "@/components/ui/back-button";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
@@ -377,6 +378,15 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
               </p>
             )}
           </div>
+
+          {/* El historial va en la columna estrecha, debajo de la ficha: se
+              consulta cuando algo no cuadra, no mientras se cuadra. */}
+          <ActivityPanel
+            entityType="BILLING"
+            entityId={cobro.id}
+            title="Historial del cobro"
+            emptyLabel="Todavía no se ha movido nada en este cobro."
+          />
         </div>
       </div>
     </div>

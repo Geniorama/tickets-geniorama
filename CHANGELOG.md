@@ -9,6 +9,57 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.90.0] — 2026-09-02
+
+### Historial de acciones en todo
+
+Hasta ahora, cuando alguien preguntaba «¿quién cambió esto?» no había dónde
+mirar. La plataforma sabía contar lo que pasaba **hacia afuera** —los hooks
+llevan meses avisando a n8n y compañía— pero no guardaba nada **hacia adentro**.
+
+Ahora cada ficha tiene su **Historial**: quién hizo qué, cuándo, y de qué a qué.
+
+- **Tickets, tareas y proyectos** — creación, cambios de estado, reasignaciones,
+  ediciones, comentarios y borrados.
+- **Facturación** — el módulo que no registraba nada. Cobros creados y editados,
+  cambios de estado, abonos apuntados, **corregidos** y eliminados, comprobantes
+  y etiquetas. Corregir un importe de $300.000 a $500.000 deja constancia de las
+  dos cifras y de quién lo hizo.
+- **CRM** — cuentas, contactos y oportunidades: etapas, valores, responsables.
+- **Administración** — usuarios creados y desactivados, cambios de rol y de
+  permisos, sitios, planes, servicios, hooks, llaves de API y ajustes.
+- **Bóveda** — además de crear y editar, se registra **quién consultó una
+  credencial**, que es lo que de verdad se le pregunta a una bóveda.
+
+### Una pantalla para verlo todo junto
+
+**Administración → Actividad** reúne el historial de la plataforma entera, con
+filtros por módulo, acción, persona, fechas y nombre de la ficha. Los filtros
+van en la URL, así que un hallazgo se comparte pegando el enlace.
+
+### Lo que el historial no guarda
+
+- **Contraseñas y secretos.** De la bóveda se registra que cambió, no a qué. De
+  los ajustes, la clave que se tocó y ni una letra del valor. Una bitácora que
+  copia secretos es una filtración con fecha.
+- **El texto de los comentarios.** El hilo está en la misma ficha; tenerlo dos
+  veces acaba con los dos diciendo cosas distintas.
+- **Las descripciones enteras.** Que cambiaron sí; el texto no.
+
+### Decisiones
+
+- **Solo para el staff.** El cliente ve el hilo de comentarios, no la
+  trastienda: reasignaciones internas y correcciones de importes generan
+  preguntas que no le tocan.
+- **Nadie lo edita ni lo borra**, tampoco un administrador. Una bitácora que se
+  puede retocar no sirve para lo que se le pide.
+- **Sobrevive a la ficha.** Borrar un cobro no se lleva el registro de quién lo
+  borró — que es justo lo que se va a buscar después.
+- **Una edición que no cambió nada no deja rastro**, para que el historial no se
+  llene de «editó el ticket» cada vez que alguien mueve una tarjeta.
+
+---
+
 ## [1.89.0] — 2026-09-01
 
 ### La ficha de un cobro deja de decir todo dos veces

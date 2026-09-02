@@ -47,6 +47,7 @@ export function TaskDetail({
   totalComments = task.comments.length,
   projects = [],
   checklistSlot,
+  activitySlot,
   checklistItemCount = 0,
   canOpenProject = true,
 }: {
@@ -55,6 +56,8 @@ export function TaskDetail({
   totalComments?: number;
   projects?: { id: string; name: string }[];
   checklistSlot?: React.ReactNode;
+  /** El historial de la ficha. Llega resuelto desde el servidor y solo para staff. */
+  activitySlot?: React.ReactNode;
   /** Ítems de checklist de la tarea; habilita la opción de copiarlos al duplicar. */
   checklistItemCount?: number;
   /** false cuando el usuario llega a la tarea pero no puede abrir el proyecto
@@ -517,6 +520,9 @@ export function TaskDetail({
 
           {/* Checklist */}
           {checklistSlot}
+
+          {/* Historial */}
+          {activitySlot}
 
           {/* Attachments */}
           {task.attachments.length > 0 && (

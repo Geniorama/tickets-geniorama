@@ -8,10 +8,12 @@ import { requireCan } from "@/lib/access/can";
 import { deleteCommentsFor } from "@/lib/comments";
 import { deleteAttachmentsFor } from "@/lib/attachments";
 import type { BillingStatus } from "@/generated/prisma";
-import { BILLING_STATUSES, isInvoiced } from "@/lib/billing/status";
+import { BILLING_STATUSES, BILLING_STATUS_LABELS, isInvoiced } from "@/lib/billing/status";
 import { moveBillingStatus, sellosPara } from "@/lib/billing/move";
-import { parseAmount } from "@/lib/money";
+import { formatAmount, parseAmount } from "@/lib/money";
 import { calcularTotales } from "@/lib/billing/totals";
+import { recordActivity, recordUpdate } from "@/lib/activity/record";
+import { entityLabel } from "@/lib/activity/label";
 
 const estados = BILLING_STATUSES as [BillingStatus, ...BillingStatus[]];
 
@@ -146,12 +148,21 @@ export async function createBillingItem(formData: FormData) {
     select: { id: true },
   });
 
+  recordActivity({
+    entityType: "BILLING",
+    entityId: cobro.id,
+    action: "billing.created",
+    label: await entityLabel("BILLING", cobro.id),
+    meta: { note: `${formatAmount(totales.total) ?? totales.total} · ${BILLING_STATUS_LABELS[d.status]}` },
+    actor: session.user,
+  });
+
   revalidatePath("/facturacion");
   redirect(`/facturacion/${cobro.id}`);
 }
 
 export async function updateBillingItem(id: string, formData: FormData) {
-  await requireCan("FACTURACION", "editar");
+  const session = await requireCan("FACTURACION", "editar");
 
   const parsed = leer(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
@@ -159,7 +170,11 @@ export async function updateBillingItem(id: string, formData: FormData) {
 
   const actual = await prisma.billingItem.findUnique({
     where: { id },
-    select: { amount: true, paidAmount: true, invoicedAt: true, paidAt: true },
+    select: {
+      amount: true, paidAmount: true, invoicedAt: true, paidAt: true,
+      // Lo que el historial vigila, para poder decir qué se editó.
+      concept: true, status: true, dueDate: true, ownerId: true,
+    },
   });
   if (!actual) return { error: "Cobro no encontrado" };
 
@@ -199,6 +214,35 @@ export async function updateBillingItem(id: string, formData: FormData) {
     },
   });
 
+  // Cambiar de estado desde el formulario cuenta igual que arrastrar la
+  // tarjeta: es el mismo hecho y se registra con la misma acción, para que
+  // filtrar por «cambió el estado» los encuentre todos.
+  const etiqueta = await entityLabel("BILLING", id);
+  if (actual.status !== d.status) {
+    recordActivity({
+      entityType: "BILLING",
+      entityId: id,
+      action: "billing.status_changed",
+      label: etiqueta,
+      changes: { status: { from: actual.status, to: d.status } },
+      actor: session.user,
+    });
+  }
+  recordUpdate({
+    entityType: "BILLING",
+    entityId: id,
+    action: "billing.updated",
+    label: etiqueta,
+    before: actual,
+    after: {
+      concept: d.concept.trim(),
+      amount: totales.total,
+      dueDate: d.dueDate,
+      ownerId: d.ownerId || null,
+    },
+    actor: session.user,
+  });
+
   revalidatePath("/facturacion");
   revalidatePath(`/facturacion/${id}`);
   return { success: true };
@@ -223,10 +267,14 @@ export async function setBillingStatus(id: string, status: BillingStatus) {
 
 export async function deleteBillingItem(id: string) {
   // Borrar un cobro borra el rastro de un dinero: pide GESTOR.
-  await requireCan("FACTURACION", "gestionar");
+  const session = await requireCan("FACTURACION", "gestionar");
 
   const cobro = await prisma.billingItem.findUnique({ where: { id }, select: { id: true } });
   if (!cobro) return { error: "Cobro no encontrado" };
+
+  // El nombre se toma antes de borrar: después no hay cobro que consultar, y
+  // «quién borró el cobro de Acme» es justo lo que se le pregunta al historial.
+  const etiqueta = await entityLabel("BILLING", id);
 
   // Los abonos sí caen por clave foránea, pero sus comprobantes no: viven en la
   // tabla compartida. Hay que recogerlos antes de que desaparezcan los abonos,
@@ -243,6 +291,17 @@ export async function deleteBillingItem(id: string) {
     await deleteAttachmentsFor("BILLING", id, tx);
     await deleteAttachmentsFor("BILLING_PAYMENT", abonos.map((a) => a.id), tx);
     await tx.billingItem.delete({ where: { id } });
+  });
+
+  recordActivity({
+    entityType: "BILLING",
+    entityId: id,
+    action: "billing.deleted",
+    label: etiqueta,
+    meta: abonos.length > 0
+      ? { note: `Se fueron con él ${abonos.length} ${abonos.length === 1 ? "abono" : "abonos"}.` }
+      : null,
+    actor: session.user,
   });
 
   revalidatePath("/facturacion");
