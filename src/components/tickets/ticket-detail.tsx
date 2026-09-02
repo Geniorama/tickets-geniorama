@@ -3,7 +3,7 @@
 import { useTransition, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { formatDateTimeLong, formatDateTime, formatDate } from "@/lib/format-date";
-import { Pencil, Trash2, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Globe, ChevronDown, MoreVertical, Eye } from "lucide-react";
+import { Pencil, Trash2, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Globe, ChevronDown, MoreVertical, Eye, Repeat } from "lucide-react";
 import type { Session } from "next-auth";
 // `CommentRecord` es el comentario compartido del núcleo (tabla `comments`),
 // con alias para no chocar con el tipo global `Comment` del DOM.
@@ -74,6 +74,7 @@ export function TicketDetail({
   checklistSlot,
   activitySlot,
   checklistItemCount = 0,
+  canManage = false,
 }: {
   ticket: TicketWithDetails;
   session: Session;
@@ -84,6 +85,8 @@ export function TicketDetail({
   checklistSlot?: React.ReactNode;
   /** El historial de la ficha. Llega resuelto desde el servidor y solo para staff. */
   activitySlot?: React.ReactNode;
+  /** Puede gestionar tickets: habilita programar este como recurrente. */
+  canManage?: boolean;
   /** Ítems de checklist del ticket; habilita la opción de copiarlos al duplicar. */
   checklistItemCount?: number;
 }) {
@@ -209,6 +212,23 @@ export function TicketDetail({
                           checklistItemCount={checklistItemCount}
                           className="flex w-full items-center gap-2 px-3 py-2 text-sm disabled:opacity-50"
                         />
+                        {/* Convertir en recurrente lleva al alta con los datos
+                            de este ticket ya puestos. No crea nada por sí solo:
+                            de un clic no debe salir una programación que abra
+                            tickets cada mes sin que nadie revise el patrón. */}
+                        {canManage && (
+                          <Link
+                            href={`/admin/tickets-recurrentes/new?desde=${ticket.id}`}
+                            onClick={() => setShowMenu(false)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm"
+                            style={{ color: "var(--dropdown-text)" }}
+                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--dropdown-hover-bg)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+                          >
+                            <Repeat className="w-3.5 h-3.5" />
+                            Hacer recurrente
+                          </Link>
+                        )}
                         <button
                           onClick={() => { setShowMenu(false); handleDeleteTicket(); }}
                           disabled={isPending}

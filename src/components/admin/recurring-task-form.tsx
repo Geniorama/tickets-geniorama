@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarClock, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { DraftChecklist } from "@/components/ui/draft-checklist";
 import type { ChecklistGroup } from "@/lib/checklist";
 import {
@@ -11,12 +11,7 @@ import {
   deleteRecurringTemplate,
   runRecurringNow,
 } from "@/actions/recurring-task.actions";
-import {
-  computeNextRunAt,
-  describeRecurrence,
-  serializeDaysOfWeek,
-  type RecurrencePattern,
-} from "@/lib/recurrence";
+import { RecurrenceFields } from "@/components/ui/recurrence-fields";
 import { TASK_CATEGORY_GROUPS, TASK_CATEGORIES } from "@/lib/task-categories";
 import { splitEstimatedHours, combineEstimatedTime } from "@/lib/estimated-time";
 
@@ -53,17 +48,6 @@ export type RecurringFormData = {
   dueDateOffsetDays: number;
   isActive: boolean;
 };
-
-const DAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-
-const PREVIEW_COUNT = 5;
-
-const previewDateFmt = new Intl.DateTimeFormat("es-CO", {
-  weekday: "short",
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -156,54 +140,6 @@ export function RecurringTaskForm({
       checklist: tpl.checklist.map((g) => ({ title: g.title, items: [...g.items] })),
     }));
   }
-
-  function toggleDay(d: number) {
-    setData((s) => ({
-      ...s,
-      daysOfWeek: s.daysOfWeek.includes(d) ? s.daysOfWeek.filter((x) => x !== d) : [...s.daysOfWeek, d],
-    }));
-  }
-
-  // Vista previa de las próximas tareas que generará esta plantilla. Reproduce
-  // la lógica real del runner: la 1ª ocurrencia es la fecha de inicio (el action
-  // setea nextRunAt = startDate) y de ahí se encadena computeNextRunAt.
-  const preview = useMemo(() => {
-    const interval = Number.isNaN(data.interval) || data.interval < 1 ? 1 : data.interval;
-    const offset = Number.isNaN(data.dueDateOffsetDays) || data.dueDateOffsetDays < 0 ? 0 : data.dueDateOffsetDays;
-    const pattern: RecurrencePattern = {
-      frequency: data.frequency,
-      interval,
-      daysOfWeek:
-        data.frequency === "SEMANAL" && data.daysOfWeek.length > 0
-          ? serializeDaysOfWeek(data.daysOfWeek)
-          : null,
-      dayOfMonth: data.frequency === "MENSUAL" ? data.dayOfMonth : null,
-    };
-    const label = describeRecurrence(pattern);
-
-    const start = data.startDate ? new Date(`${data.startDate}T00:00:00`) : null;
-    if (!start || Number.isNaN(start.getTime())) return { label, dates: [] as Date[] };
-
-    // El `endDate` solo aplica cuando no hay offset de vencimiento (igual que en buildFormData).
-    const end = offset === 0 && data.endDate ? new Date(`${data.endDate}T00:00:00`) : null;
-
-    const dates: Date[] = [];
-    let cursor = start;
-    for (let i = 0; i < PREVIEW_COUNT; i++) {
-      if (end && cursor.getTime() > end.getTime()) break;
-      dates.push(cursor);
-      cursor = computeNextRunAt(cursor, pattern);
-    }
-    return { label, dates };
-  }, [
-    data.frequency,
-    data.interval,
-    data.daysOfWeek,
-    data.dayOfMonth,
-    data.startDate,
-    data.endDate,
-    data.dueDateOffsetDays,
-  ]);
 
   function buildFormData(): FormData {
     const fd = new FormData();
@@ -455,181 +391,11 @@ export function RecurringTaskForm({
           Patrón de repetición
         </h3>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.875rem" }}>
-          <div>
-            <label style={labelStyle}>Frecuencia</label>
-            <select value={data.frequency} onChange={(e) => update("frequency", e.target.value as RecurringFormData["frequency"])} style={inputStyle}>
-              <option value="DIARIA">Días</option>
-              <option value="SEMANAL">Semanas</option>
-              <option value="MENSUAL">Meses</option>
-            </select>
-          </div>
-          <div>
-            <label style={labelStyle}>Cada</label>
-            <input
-              type="number"
-              min={1}
-              max={365}
-              value={Number.isNaN(data.interval) ? "" : data.interval}
-              onChange={(e) => {
-                const v = e.target.value;
-                update("interval", v === "" ? NaN : parseInt(v, 10));
-              }}
-              onBlur={(e) => {
-                const n = parseInt(e.target.value, 10);
-                if (Number.isNaN(n) || n < 1) update("interval", 1);
-              }}
-              style={inputStyle}
-            />
-          </div>
-        </div>
-
-        {data.frequency === "SEMANAL" && (
-          <div style={{ marginBottom: "0.875rem" }}>
-            <label style={labelStyle}>Días de la semana (opcional)</label>
-            <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap" }}>
-              {DAY_LABELS.map((lbl, i) => {
-                const active = data.daysOfWeek.includes(i);
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => toggleDay(i)}
-                    style={{
-                      padding: "0.375rem 0.75rem",
-                      borderRadius: "9999px",
-                      border: `1px solid ${active ? "#fd1384" : "var(--app-border)"}`,
-                      backgroundColor: active ? "rgba(253,19,132,0.15)" : "var(--app-content-bg)",
-                      color: active ? "#fd1384" : "var(--app-body-text)",
-                      fontSize: "0.75rem",
-                      fontWeight: 500,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {lbl}
-                  </button>
-                );
-              })}
-            </div>
-            <p style={{ fontSize: "0.6875rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
-              Si no seleccionas días, se generará el mismo día de la semana del inicio.
-            </p>
-          </div>
-        )}
-
-        {data.frequency === "MENSUAL" && (
-          <div style={{ marginBottom: "0.875rem" }}>
-            <label style={labelStyle}>Día del mes</label>
-            <select
-              value={data.dayOfMonth === null ? "" : String(data.dayOfMonth)}
-              onChange={(e) => update("dayOfMonth", e.target.value === "" ? null : parseInt(e.target.value, 10))}
-              style={inputStyle}
-            >
-              <option value="">Mismo día del inicio</option>
-              {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                <option key={d} value={d}>Día {d}</option>
-              ))}
-              <option value="-1">Último día del mes</option>
-            </select>
-          </div>
-        )}
-
-        {(() => {
-          const hasOffset = typeof data.dueDateOffsetDays === "number" && !Number.isNaN(data.dueDateOffsetDays) && data.dueDateOffsetDays > 0;
-          return (
-            <div style={{ display: "grid", gridTemplateColumns: hasOffset ? "1fr" : "1fr 1fr", gap: "0.75rem" }}>
-              <div>
-                <label style={labelStyle}>Fecha de inicio</label>
-                <input
-                  type="date"
-                  value={data.startDate}
-                  onChange={(e) => update("startDate", e.target.value)}
-                  required
-                  style={inputStyle}
-                />
-              </div>
-              {!hasOffset && (
-                <div>
-                  <label style={labelStyle}>Fecha de fin (opcional)</label>
-                  <input
-                    type="date"
-                    value={data.endDate ?? ""}
-                    onChange={(e) => update("endDate", e.target.value || null)}
-                    style={inputStyle}
-                  />
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.875rem", fontSize: "0.875rem", color: "var(--app-body-text)", cursor: "pointer" }}>
-          <input
-            type="checkbox"
-            checked={data.isActive}
-            onChange={(e) => update("isActive", e.target.checked)}
-          />
-          Plantilla activa (genera tareas automáticamente)
-        </label>
-
-        {/* Vista previa de las próximas tareas que se generarán */}
-        <div
-          style={{
-            marginTop: "1.25rem",
-            border: "1px dashed var(--app-border)",
-            borderRadius: "0.5rem",
-            padding: "0.875rem 1rem",
-            backgroundColor: "var(--app-content-bg)",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.375rem" }}>
-            <CalendarClock style={{ width: "1rem", height: "1rem", color: "#fd1384" }} />
-            <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-body-text)" }}>
-              Próximas tareas a crear
-            </span>
-          </div>
-          {preview.label && (
-            <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", margin: "0 0 0.625rem" }}>
-              {preview.label}
-            </p>
-          )}
-          {preview.dates.length === 0 ? (
-            <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", margin: 0 }}>
-              Define una fecha de inicio válida para ver la programación.
-            </p>
-          ) : (
-            <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "0.375rem" }}>
-              {preview.dates.map((d, i) => (
-                <li
-                  key={i}
-                  style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", color: "var(--app-body-text)" }}
-                >
-                  <span
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      width: "1.25rem",
-                      height: "1.25rem",
-                      borderRadius: "9999px",
-                      backgroundColor: "rgba(253,19,132,0.12)",
-                      color: "#fd1384",
-                      fontSize: "0.6875rem",
-                      fontWeight: 600,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {i + 1}
-                  </span>
-                  <span style={{ textTransform: "capitalize" }}>{previewDateFmt.format(d)}</span>
-                </li>
-              ))}
-            </ol>
-          )}
-          <p style={{ fontSize: "0.6875rem", color: "var(--app-text-muted)", margin: "0.625rem 0 0" }}>
-            Se muestran las próximas {PREVIEW_COUNT}. La generación automática requiere que la plantilla esté activa.
-          </p>
-        </div>
+        <RecurrenceFields
+          value={data}
+          onChange={(patch) => setData((s) => ({ ...s, ...patch }))}
+          noun="tareas"
+        />
       </div>
 
       {success && (

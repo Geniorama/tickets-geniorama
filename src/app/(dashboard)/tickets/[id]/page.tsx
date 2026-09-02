@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
+import { can } from "@/lib/access/can";
 import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { linkedTo, notLinkedTo } from "@/lib/vault-links";
@@ -30,6 +31,8 @@ export default async function TicketPage({
   const { id: userId, role } = session.user;
   const staff = isStaff(role);
   const admin = isAdmin(role);
+  // Programar un ticket como recurrente es gestionar el módulo, no solo verlo.
+  const canManage = await can(session.user, "TICKETS", "gestionar");
 
   const ticket = await prisma.ticket.findUnique({
     where: { id: ticketId },
@@ -133,6 +136,7 @@ export default async function TicketPage({
           />
         }
         activitySlot={<ActivityPanel entityType="TICKET" entityId={ticketId} />}
+        canManage={canManage}
         checklistItemCount={checklists.reduce((n, c) => n + c.items.length, 0)}
       />
       {supportSchedulingAvailable && (

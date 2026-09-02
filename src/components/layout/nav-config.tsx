@@ -53,6 +53,7 @@ export const APP_SECTIONS: Record<AppKey, NavSection[]> = {
   TICKETS: [
     { href: "/tickets",             label: "Tickets",     icon: Ticket,         isRoot: true },
     { href: "/tickets/plantillas",  label: "Plantillas de ticket", icon: LayoutTemplate, roles: STAFF },
+    { href: "/admin/tickets-recurrentes", label: "Recurrentes", icon: Repeat, roles: STAFF, requires: "gestionar" },
     { href: "/reportes",            label: "Reportes de tickets", icon: BarChart3 },
   ],
   PROYECTOS: [
@@ -106,7 +107,7 @@ export const ALWAYS_VISIBLE: NavSection[] = [
 /** Rutas que pertenecen a un módulo pero no son sección propia del menú. */
 const EXTRA_PREFIXES: Partial<Record<AppKey, string[]>> = {
   PROYECTOS: ["/proyectos", "/tareas", "/admin/tareas-recurrentes"],
-  TICKETS:   ["/tickets", "/reportes"],
+  TICKETS:   ["/tickets", "/reportes", "/admin/tickets-recurrentes"],
   INFRAESTRUCTURA: ["/admin/sitios", "/admin/servicios"],
   PORTAL:    ["/mis-empresas", "/mis-planes", "/mis-servicios"],
   ADMIN:     ["/admin/users", "/admin/companies", "/admin/plans", "/admin/estadisticas", "/admin/integraciones", "/admin/actividad"],

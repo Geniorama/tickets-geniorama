@@ -449,6 +449,11 @@ model User {
   // Historial de acciones
   activityLog ActivityLog[] @relation("ActivityActor")
 
+  // Tickets recurrentes
+  recurringTicketsCreated  RecurringTicketTemplate[] @relation("RecurringTicketCreatedBy")
+  recurringTicketsAssigned RecurringTicketTemplate[] @relation("RecurringTicketAssignedTo")
+  recurringTicketsAsClient RecurringTicketTemplate[] @relation("RecurringTicketClient")
+
   @@map("users")
 }
 
@@ -470,6 +475,12 @@ model Ticket {
   prefix String?
   number Int     @default(0)
 
+  /// De qué recurrencia salió, si no lo abrió una persona.
+  ///
+  /// `SetNull` y no cascada: borrar la programación de un mantenimiento no
+  /// puede llevarse los tickets que ya se atendieron y facturaron.
+  recurringTemplateId String? @map("recurring_template_id")
+
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   dueDate   DateTime? @map("due_date")
@@ -481,7 +492,66 @@ model Ticket {
   plan       Plan?  @relation(fields: [planId], references: [id])
   site       Site?  @relation(fields: [siteId], references: [id])
 
+  recurringTemplate RecurringTicketTemplate? @relation("RecurringTicketGenerated", fields: [recurringTemplateId], references: [id], onDelete: SetNull)
+
+  @@index([recurringTemplateId])
   @@map("tickets")
+}
+
+/// Un ticket que se abre solo cada cierto tiempo.
+///
+/// Es el espejo de `RecurringTaskTemplate` y no una generalización de aquel: la
+/// cadencia se repite —son diez columnas estables que no han cambiado desde que
+/// se escribieron— pero lo que se programa no se parece. Una tarea recurrente
+/// necesita proyecto y responsable; un ticket recurrente necesita cliente, plan
+/// y sitio, porque un ticket consume horas de un paquete contratado. Fundirlos
+/// dejaría media docena de columnas siempre vacías y ninguna clave foránea de
+/// verdad. Lo que sí se comparte es la lógica, en `src/lib/recurrence.ts`.
+model RecurringTicketTemplate {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  priority    Priority @default(MEDIA)
+  category    String?
+  /// Checklists en borrador: `[{ title, items: string[] }]` (ver src/lib/checklist.ts)
+  checklist   Json     @default("[]")
+
+  clientId     String? @map("client_id")
+  planId       String? @map("plan_id")
+  siteId       String? @map("site_id")
+  assignedToId String? @map("assigned_to_id")
+  /// Revisores, por id. Array y no tabla de unión: es una lista corta que se
+  /// copia entera al ticket generado y sobre la que nadie consulta al revés.
+  reviewerIds  String[] @default([]) @map("reviewer_ids")
+
+  createdById String @map("created_by_id")
+
+  frequency  RecurrenceFrequency
+  interval   Int                 @default(1)
+  daysOfWeek String?             @map("days_of_week")
+  dayOfMonth Int?                @map("day_of_month")
+
+  startDate DateTime  @map("start_date")
+  endDate   DateTime? @map("end_date")
+  nextRunAt DateTime  @map("next_run_at")
+  lastRunAt DateTime? @map("last_run_at")
+  isActive  Boolean   @default(true) @map("is_active")
+
+  dueDateOffsetDays Int @default(0) @map("due_date_offset_days")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  client           User?    @relation("RecurringTicketClient", fields: [clientId], references: [id], onDelete: SetNull)
+  plan             Plan?    @relation("RecurringTicketPlan", fields: [planId], references: [id], onDelete: SetNull)
+  site             Site?    @relation("RecurringTicketSite", fields: [siteId], references: [id], onDelete: SetNull)
+  assignedTo       User?    @relation("RecurringTicketAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy        User     @relation("RecurringTicketCreatedBy", fields: [createdById], references: [id])
+  generatedTickets Ticket[] @relation("RecurringTicketGenerated")
+
+  // El barrido diario busca exactamente por aquí.
+  @@index([isActive, nextRunAt])
+  @@map("recurring_ticket_templates")
 }
 
 model Plan {
@@ -498,6 +568,7 @@ model Plan {
   company   Company @relation(fields: [companyId], references: [id])
 
   tickets Ticket[]
+  recurringTickets RecurringTicketTemplate[] @relation("RecurringTicketPlan")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -1096,6 +1167,7 @@ model Site {
   company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
   tickets      Ticket[]
   vaultEntries VaultEntry[]
+  recurringTickets RecurringTicketTemplate[] @relation("RecurringTicketSite")
 
   @@map("sites")
 }

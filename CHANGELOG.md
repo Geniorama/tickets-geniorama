@@ -9,6 +9,60 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.91.0] — 2026-09-02
+
+### Tickets recurrentes
+
+Los mantenimientos mensuales y las revisiones periódicas se abrían a mano, uno
+a uno, hasta que a alguien se le pasaba. Las tareas llevaban tiempo pudiendo
+repetirse solas; los tickets no.
+
+Ahora **Tickets → Recurrentes** programa un ticket para que se abra cada cierto
+tiempo: diario, semanal (con días concretos) o mensual (día fijo o el último del
+mes). El ticket que sale es **un ticket normal** —mismo código, mismo
+consecutivo, mismos avisos al equipo y al cliente, mismo evento hacia los
+hooks—: si se apartara en algo, la recurrencia dejaría de ser «lo mismo pero
+solo», que es justo lo que se le pide.
+
+Cada recurrencia lleva su cliente, su plan y su sitio. **El plan importa**: sin
+él las horas no se descuentan de ningún paquete y el cliente no ve el
+mantenimiento en lo que tiene contratado.
+
+### Convertir un ticket que ya se repite
+
+En el menú de cualquier ticket, **«Hacer recurrente»** abre el alta con sus
+datos ya puestos: título, descripción, cliente, plan, sitio, responsable y
+revisores. No crea nada por sí solo —de un clic no debe salir algo que abra
+tickets cada mes sin que nadie mire el patrón—, y el checklist no se hereda,
+porque el del ticket original ya está medio marcado.
+
+### El patrón de repetición, ahora compartido
+
+Los siete campos de cadencia y su vista previa vivían dentro del formulario de
+tareas recurrentes. Se han sacado a un control compartido: dos copias acabarían
+discrepando justo en lo que nadie vuelve a comprobar —qué pasa el día 31 en un
+mes de 30, o si la fecha de fin sigue aplicando cuando hay plazo de
+vencimiento—. El formulario de tareas pasó de 722 a 488 líneas sin cambiar de
+aspecto.
+
+### Detalles
+
+- **Botón «Generar ahora»** para probar una programación recién escrita sin
+  esperar al día siguiente. No altera la cadencia: la próxima fecha la marca el
+  calendario previsto, no el momento en que se ejecutó.
+- La ficha de cada recurrencia lista **los últimos tickets que abrió**, que es
+  la comprobación que se hace al entrar.
+- **Borrar una recurrencia no se lleva los tickets** que ya generó: siguen ahí,
+  con su historial y sus horas.
+- Un revisor dado de baja **se omite** en vez de romper la programación.
+- El barrido diario corre a las 06:00 de Colombia, en el mismo workflow que las
+  tareas recurrentes pero en su propio paso: que un mantenimiento falle no deja
+  sin generar las tareas del día, ni al revés.
+- Programar, pausar, reanudar y borrar recurrencias queda en el historial de
+  acciones.
+
+---
+
 ## [1.90.0] — 2026-09-02
 
 ### Historial de acciones en todo

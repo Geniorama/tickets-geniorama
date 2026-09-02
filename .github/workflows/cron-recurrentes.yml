@@ -1,4 +1,4 @@
-# Genera las tareas recurrentes, una vez al día.
+# Genera lo recurrente —tareas y tickets—, una vez al día.
 #
 # El endpoint existe desde hace meses, pero nadie lo llamaba: se escribió
 # esperando un «cron runner» externo (en su día, Vercel Cron) y al mudarse la
@@ -8,7 +8,7 @@
 # Va aquí y no en el crontab del servidor porque este repositorio ya despliega
 # desde Actions: un solo sitio donde mirar cuándo corrió y qué contestó.
 
-name: Tareas recurrentes
+name: Recurrentes
 
 on:
   schedule:
@@ -22,7 +22,7 @@ jobs:
   generar:
     runs-on: ubuntu-latest
     steps:
-      - name: Barrer plantillas vencidas
+      - name: Barrer tareas recurrentes vencidas
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
@@ -48,6 +48,36 @@ jobs:
 
           # Deja el resumen a la vista en la pestaña del workflow.
           echo "### Tareas recurrentes" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          echo "$cuerpo" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # Los tickets van en su propio paso y con `if: always()`: que un
+      # mantenimiento falle no puede dejar sin generar las tareas del día, ni al
+      # revés. Son dos barridos independientes que comparten horario.
+      - name: Barrer tickets recurrentes vencidos
+        if: always()
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          respuesta=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            --max-time 60 \
+            https://app.geniorama.co/api/cron/recurring-tickets)
+
+          codigo=$(echo "$respuesta" | tail -n1)
+          cuerpo=$(echo "$respuesta" | sed '$d')
+
+          echo "HTTP $codigo"
+          echo "$cuerpo"
+
+          if [ "$codigo" != "200" ]; then
+            echo "::error::El barrido de tickets devolvió HTTP $codigo. Si es 401, falta el secreto CRON_SECRET o no coincide con el del servidor."
+            exit 1
+          fi
+
+          echo "### Tickets recurrentes" >> "$GITHUB_STEP_SUMMARY"
           echo '```json' >> "$GITHUB_STEP_SUMMARY"
           echo "$cuerpo" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
