@@ -123,7 +123,9 @@ export function TicketDetail({
 
   function handleDeleteTicket() {
     if (!confirm(`¿Eliminar el ticket "${ticket.title}"? Esta acción no se puede deshacer.`)) return;
-    startTransition(() => deleteTicket(ticket.id));
+    startTransition(async () => {
+      await deleteTicket(ticket.id);
+    });
   }
 
   function handlePublish() {

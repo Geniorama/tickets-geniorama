@@ -695,7 +695,14 @@ export async function configureTicket(ticketId: string, formData: FormData) {
   return { success: true };
 }
 
-export async function deleteTicket(ticketId: string) {
+/**
+ * Borra un ticket.
+ *
+ * `volverAlListado` distingue quién llama: desde la ficha hay que salir de una
+ * página que ya no existe; desde el tablero no, y redirigir allí además tiraría
+ * los filtros que lleve puestos la URL.
+ */
+export async function deleteTicket(ticketId: string, volverAlListado = true) {
   const session = await requireCan("TICKETS", "gestionar");
 
   // El retrato se toma antes de borrar: después no hay ticket que consultar y
@@ -721,7 +728,8 @@ export async function deleteTicket(ticketId: string) {
   }
 
   revalidatePath("/tickets");
-  redirect("/tickets");
+  if (volverAlListado) redirect("/tickets");
+  return { ok: true as const };
 }
 
 export async function duplicateTicket(ticketId: string, includeChecklists = false) {

@@ -1,6 +1,6 @@
 {
   "name": "geniorama-tickets",
-  "version": "1.91.0",
+  "version": "1.92.0",
   "private": true,
   "scripts": {
     "predev": "node scripts/copy-swagger-ui.mjs",

@@ -1,4 +1,5 @@
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
+import { can } from "@/lib/access/can";
 import { getClientActivePlan } from "@/lib/plans.server";
 import { prisma } from "@/lib/prisma";
 import { TicketList } from "@/components/tickets/ticket-list";
@@ -36,6 +37,9 @@ export default async function TicketsPage({
   const { id, role } = session.user;
   const params = await searchParams;
   const staff = isStaff(role);
+  // Borrar desde el tablero pide la misma capacidad que borrar desde la ficha,
+  // para que el botón salga exactamente a quien el servidor va a dejar borrar.
+  const canDelete = await can(session.user, "TICKETS", "gestionar");
 
   // Los clientes solo pueden crear tickets con un plan activo; aún sin plan
   // conservan acceso de lectura a sus tickets antiguos.
@@ -227,7 +231,7 @@ export default async function TicketsPage({
       </div>
 
       {view === "kanban" ? (
-        <TicketKanban tickets={tickets} />
+        <TicketKanban tickets={tickets} canDelete={canDelete} />
       ) : (
         <TicketList tickets={tickets} role={role} sortBy={sortBy} sortDir={sortDir} />
       )}

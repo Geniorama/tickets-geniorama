@@ -9,6 +9,40 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.92.0] — 2026-09-02
+
+### Eliminar tarjetas desde los tableros
+
+Quitar un ticket obligaba a abrirlo, buscar el menú y volver al tablero. Y un
+**cobro no se podía borrar en absoluto**: la acción existía en el servidor desde
+que se hizo el módulo, pero no había ningún botón que la llamara.
+
+Ahora las tarjetas de **Tickets** y de **Facturación** llevan una papelera junto
+al asa de arrastrar, que aparece al pasar por encima. Pide confirmación diciendo
+qué se borra por su nombre, y la tarjeta desaparece del tablero sin recargar la
+página ni perder los filtros que lleve la URL.
+
+### Quién puede
+
+La papelera sale a quien tenga **Gestor** en el módulo —la misma capacidad que
+ya exigía borrar desde la ficha—, así que el botón aparece exactamente a quien
+el servidor va a dejar borrar. Nadie ve un botón que luego le rechaza.
+
+### Avisos antes de borrar
+
+- Un **cobro con abonos** avisa del importe ya registrado: mover esa tarjeta
+  hacia atrás está prohibido justamente por eso, y borrarla se lo lleva todo por
+  delante. El diálogo dice cuánto.
+- Un **ticket** avisa de que se van con él comentarios, adjuntos, checklists y
+  tiempo registrado.
+- Si el servidor se niega, el motivo se ve en el propio diálogo. Antes, un
+  borrado rechazado se habría visto como una tarjeta que sigue ahí sin explicar
+  por qué.
+
+Quien borra queda en el historial de acciones, como siempre.
+
+---
+
 ## [1.91.0] — 2026-09-02
 
 ### Tickets recurrentes

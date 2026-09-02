@@ -265,7 +265,14 @@ export async function setBillingStatus(id: string, status: BillingStatus) {
   return { success: true };
 }
 
-export async function deleteBillingItem(id: string) {
+/**
+ * Borra un cobro.
+ *
+ * `volverAlListado` distingue quién llama: desde la ficha hay que salir de una
+ * página que ya no existe; desde el tablero no, y redirigir allí además tiraría
+ * los filtros que lleve puestos la URL.
+ */
+export async function deleteBillingItem(id: string, volverAlListado = true) {
   // Borrar un cobro borra el rastro de un dinero: pide GESTOR.
   const session = await requireCan("FACTURACION", "gestionar");
 
@@ -305,5 +312,6 @@ export async function deleteBillingItem(id: string) {
   });
 
   revalidatePath("/facturacion");
-  redirect("/facturacion");
+  if (volverAlListado) redirect("/facturacion");
+  return { ok: true as const };
 }

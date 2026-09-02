@@ -14,7 +14,8 @@ import {
 } from "@/lib/billing/status";
 import { formatAmount, parseAmount } from "@/lib/money";
 import { useRouter } from "next/navigation";
-import { setBillingStatus } from "@/actions/billing.actions";
+import { setBillingStatus, deleteBillingItem } from "@/actions/billing.actions";
+import { CardDeleteButton } from "@/components/ui/card-delete-button";
 import { addBillingPayment } from "@/actions/billing-payments.actions";
 import { formatDate } from "@/lib/format-date";
 import { AmountInput } from "@/components/ui/amount-input";
@@ -110,7 +111,14 @@ function ItemCard({ item, isDragging = false }: { item: BoardItem; isDragging?: 
   );
 }
 
-function DraggableItem({ item, canEdit }: { item: BoardItem; canEdit: boolean }) {
+function DraggableItem({
+  item, canEdit, canDelete, onDeleted,
+}: {
+  item: BoardItem;
+  canEdit: boolean;
+  canDelete: boolean;
+  onDeleted: (id: string) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: item.id, disabled: !canEdit,
   });
@@ -118,19 +126,45 @@ function DraggableItem({ item, canEdit }: { item: BoardItem; canEdit: boolean })
 
   return (
     <div ref={setNodeRef} style={{ ...style, position: "relative" }}>
-      {canEdit && (
-        <div
-          {...listeners}
-          {...attributes}
-          style={{
-            position: "absolute", top: "0.5rem", right: "0.5rem", zIndex: 20,
-            cursor: "grab", padding: "0.125rem", borderRadius: "0.25rem",
-            color: "var(--app-text-muted)",
-          }}
-        >
-          <GripVertical style={{ width: "1rem", height: "1rem" }} />
-        </div>
-      )}
+      {/* El asa y la papelera comparten esquina: las dos van por encima del
+          enlace que cubre la tarjeta. */}
+      <div
+        style={{
+          position: "absolute", top: "0.5rem", right: "0.5rem", zIndex: 20,
+          display: "flex", alignItems: "center", gap: "0.15rem",
+        }}
+      >
+        {canDelete && (
+          <CardDeleteButton
+            title={`el cobro «${item.concept}»`}
+            // Con dinero ya registrado se dice el importe: mover una tarjeta
+            // con abonos hacia atrás está prohibido justamente por esto, y
+            // borrarla se lo lleva todo por delante sin más aviso que este.
+            message={
+              item.paidAmount > 0
+                ? `Este cobro de ${item.company.name} tiene ${formatAmount(item.paidAmount)} ya registrados en abonos. Se eliminarán también, con sus comprobantes. No se puede deshacer.`
+                : `Se eliminará el cobro de ${item.company.name}, con sus novedades y soportes. No se puede deshacer.`
+            }
+            onDelete={async () => {
+              const r = await deleteBillingItem(item.id, false);
+              if (r && "error" in r && typeof r.error === "string") return { error: r.error };
+              onDeleted(item.id);
+            }}
+          />
+        )}
+        {canEdit && (
+          <div
+            {...listeners}
+            {...attributes}
+            style={{
+              cursor: "grab", padding: "0.125rem", borderRadius: "0.25rem",
+              color: "var(--app-text-muted)",
+            }}
+          >
+            <GripVertical style={{ width: "1rem", height: "1rem" }} />
+          </div>
+        )}
+      </div>
       <Link href={`/facturacion/${item.id}`} style={{ display: "block", textDecoration: "none" }}>
         <ItemCard item={item} isDragging={isDragging} />
       </Link>
@@ -139,9 +173,14 @@ function DraggableItem({ item, canEdit }: { item: BoardItem; canEdit: boolean })
 }
 
 function Columna({
-  status, items, canEdit, isOver,
+  status, items, canEdit, canDelete, isOver, onDeleted,
 }: {
-  status: BillingStatus; items: BoardItem[]; canEdit: boolean; isOver: boolean;
+  status: BillingStatus;
+  items: BoardItem[];
+  canEdit: boolean;
+  canDelete: boolean;
+  isOver: boolean;
+  onDeleted: (id: string) => void;
 }) {
   const { setNodeRef } = useDroppable({ id: status });
   const color = BILLING_STATUS_COLORS[status];
@@ -195,7 +234,15 @@ function Columna({
             Vacía
           </p>
         ) : (
-          items.map((i) => <DraggableItem key={i.id} item={i} canEdit={canEdit} />)
+          items.map((i) => (
+            <DraggableItem
+              key={i.id}
+              item={i}
+              canEdit={canEdit}
+              canDelete={canDelete}
+              onDeleted={onDeleted}
+            />
+          ))
         )}
       </div>
     </div>
@@ -212,10 +259,13 @@ export function BillingBoard({
   items: initialItems,
   statuses,
   canEdit,
+  canDelete = false,
 }: {
   items: BoardItem[];
   statuses: BillingStatus[];
   canEdit: boolean;
+  /** Borrar un cobro se lleva el rastro de un dinero: pide GESTOR, no EDITAR. */
+  canDelete?: boolean;
 }) {
   const [items, setItems] = useState(initialItems);
 
@@ -241,6 +291,14 @@ export function BillingBoard({
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const activo = activeId ? items.find((i) => i.id === activeId) ?? null : null;
+
+  /** Saca del tablero lo que el servidor ya borró. */
+  function quitar(id: string) {
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    // Los totales por columna los calcula el servidor: sin esto, la cabecera
+    // seguiría sumando un cobro que ya no está.
+    router.refresh();
+  }
 
   function mover(item: BoardItem, destino: BillingStatus) {
     const anterior = item.status;
@@ -320,7 +378,9 @@ export function BillingBoard({
               status={s}
               items={items.filter((i) => i.status === s)}
               canEdit={canEdit}
+              canDelete={canDelete}
               isOver={overColumn === s}
+              onDeleted={quitar}
             />
           ))}
         </div>

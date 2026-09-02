@@ -154,7 +154,7 @@ export default async function BillingPage({
         </div>
       </div>
 
-      <BillingBoard items={conNovedades as BoardItem[]} statuses={statuses} canEdit={canEdit} />
+      <BillingBoard items={conNovedades as BoardItem[]} statuses={statuses} canEdit={canEdit} canDelete={canManage} />
     </div>
   );
 }

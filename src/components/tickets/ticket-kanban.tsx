@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   DragOverlay,
@@ -18,7 +19,8 @@ import { Circle, Clock, Eye, CheckCircle2, GripVertical, Inbox } from "lucide-re
 import type { Ticket, TicketStatus, Priority } from "@/generated/prisma";
 import { PriorityBadge } from "./ticket-status-badge";
 import { formatDateTime } from "@/lib/format-date";
-import { updateTicketStatus } from "@/actions/ticket.actions";
+import { updateTicketStatus, deleteTicket } from "@/actions/ticket.actions";
+import { CardDeleteButton } from "@/components/ui/card-delete-button";
 import { ticketCode } from "@/lib/ticket-code";
 
 type TicketWithRelations = Ticket & {
@@ -126,7 +128,15 @@ function TicketCard({
 
 // ─── Draggable card ──────────────────────────────────────────────────────────
 
-function DraggableCard({ ticket }: { ticket: TicketWithRelations }) {
+function DraggableCard({
+  ticket,
+  canDelete,
+  onDeleted,
+}: {
+  ticket: TicketWithRelations;
+  canDelete: boolean;
+  onDeleted: (id: string) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({ id: ticket.id });
 
@@ -143,12 +153,27 @@ function DraggableCard({ ticket }: { ticket: TicketWithRelations }) {
         tabIndex={-1}
         aria-label={ticket.title}
       />
-      <div
-        {...listeners}
-        {...attributes}
-        className="absolute top-2 right-2 z-20 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-gray-400 hover:text-gray-600"
-      >
-        <GripVertical className="w-4 h-4" />
+      {/* El asa y la papelera comparten esquina, las dos por encima del enlace
+          que cubre la tarjeta entera. */}
+      <div className="absolute top-2 right-2 z-20 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        {canDelete && (
+          <CardDeleteButton
+            title={`el ticket «${ticket.title}»`}
+            message="Se eliminará con sus comentarios, adjuntos, checklists y tiempo registrado. No se puede deshacer."
+            onDelete={async () => {
+              const r = await deleteTicket(ticket.id, false);
+              if (r && "error" in r && typeof r.error === "string") return { error: r.error };
+              onDeleted(ticket.id);
+            }}
+          />
+        )}
+        <div
+          {...listeners}
+          {...attributes}
+          className="cursor-grab active:cursor-grabbing p-0.5 rounded text-gray-400 hover:text-gray-600"
+        >
+          <GripVertical className="w-4 h-4" />
+        </div>
       </div>
       <Link
         href={`/tickets/${ticket.id}`}
@@ -167,10 +192,14 @@ function KanbanColumn({
   col,
   tickets,
   isOver,
+  canDelete,
+  onDeleted,
 }: {
   col: (typeof columns)[number];
   tickets: TicketWithRelations[];
   isOver: boolean;
+  canDelete: boolean;
+  onDeleted: (id: string) => void;
 }) {
   const { setNodeRef } = useDroppable({ id: col.status });
   const Icon = col.icon;
@@ -199,7 +228,12 @@ function KanbanColumn({
           <p className="text-xs text-gray-300 text-center py-6">Sin tickets</p>
         ) : (
           tickets.map((ticket) => (
-            <DraggableCard key={ticket.id} ticket={ticket} />
+            <DraggableCard
+              key={ticket.id}
+              ticket={ticket}
+              canDelete={canDelete}
+              onDeleted={onDeleted}
+            />
           ))
         )}
       </div>
@@ -209,7 +243,14 @@ function KanbanColumn({
 
 // ─── Board ───────────────────────────────────────────────────────────────────
 
-export function TicketKanban({ tickets: initialTickets }: { tickets: TicketWithRelations[] }) {
+export function TicketKanban({
+  tickets: initialTickets,
+  canDelete = false,
+}: {
+  tickets: TicketWithRelations[];
+  /** Borrar un ticket se lleva su historial y sus horas: pide GESTOR. */
+  canDelete?: boolean;
+}) {
   const [tickets, setTickets] = useState(initialTickets);
 
   /*
@@ -229,6 +270,15 @@ export function TicketKanban({ tickets: initialTickets }: { tickets: TicketWithR
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overColumn, setOverColumn] = useState<TicketStatus | null>(null);
   const [, startTransition] = useTransition();
+  const router = useRouter();
+
+  /** Saca del tablero lo que el servidor ya borró. */
+  function quitar(id: string) {
+    setTickets((prev) => prev.filter((t) => t.id !== id));
+    // Los contadores de cada columna vienen del servidor: sin esto seguirían
+    // contando un ticket que ya no está.
+    router.refresh();
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -292,6 +342,8 @@ export function TicketKanban({ tickets: initialTickets }: { tickets: TicketWithR
             col={col}
             tickets={grouped[col.status]}
             isOver={overColumn === col.status}
+            canDelete={canDelete}
+            onDeleted={quitar}
           />
         ))}
       </div>
