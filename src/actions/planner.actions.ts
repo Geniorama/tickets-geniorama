@@ -3,6 +3,7 @@
 import { Type } from "@google/genai";
 import { can } from "@/lib/access/can";
 import { runStructuredJson, providerConfigError, isValidProvider, type AiProvider } from "@/lib/ai";
+import { extractDocument, type AiDocumentFile } from "@/lib/ai-documents";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
@@ -19,7 +20,7 @@ const PRIORITY_VALUES: Priority[] = ["BAJA", "MEDIA", "ALTA", "CRITICA"];
 
 export type { AiProvider } from "@/lib/ai";
 
-export type PlannerFile = { name: string; mimeType: string; dataBase64: string };
+export type PlannerFile = AiDocumentFile;
 
 export type PlanTask = {
   titulo: string;
@@ -121,36 +122,6 @@ export async function getPlannerOptions(): Promise<PlannerOptions | { error: str
   };
 }
 
-// ─── Extracción de texto de archivos ───────────────────────────────────────────
-
-async function extractFile(
-  file: PlannerFile
-): Promise<{ text?: string; pdfBase64?: string; error?: string }> {
-  const buf = Buffer.from(file.dataBase64, "base64");
-  const lower = file.name.toLowerCase();
-
-  if (file.mimeType === "application/pdf" || lower.endsWith(".pdf")) {
-    return { pdfBase64: file.dataBase64 };
-  }
-  if (
-    lower.endsWith(".docx") ||
-    file.mimeType.includes("officedocument.wordprocessing") ||
-    file.mimeType === "application/msword"
-  ) {
-    try {
-      const mammoth = await import("mammoth");
-      const extract = mammoth.extractRawText ?? mammoth.default?.extractRawText;
-      const res = await extract({ buffer: buf });
-      return { text: res.value };
-    } catch (err) {
-      console.error("mammoth error:", err);
-      return { error: "No se pudo leer el archivo de Word." };
-    }
-  }
-  // txt / md / otros → texto plano
-  return { text: buf.toString("utf8") };
-}
-
 // ─── Esquema de salida estructurada ────────────────────────────────────────────
 
 const planResponseSchema = {
@@ -217,7 +188,7 @@ export async function generatePlan(input: {
   let docText = (input.text ?? "").trim();
   let pdfBase64: string | undefined;
   if (input.file) {
-    const extracted = await extractFile(input.file);
+    const extracted = await extractDocument(input.file);
     if (extracted.error) return { error: extracted.error };
     if (extracted.pdfBase64) pdfBase64 = extracted.pdfBase64;
     if (extracted.text) docText = `${docText}\n\n${extracted.text}`.trim();

@@ -9,6 +9,36 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.95.0] — 2026-09-08
+
+### Los tickets también se planifican con IA
+
+Un cliente escribe un correo con cinco cosas rotas, o la reunión deja un acta
+con ocho pendientes. Abrirlos era teclear el mismo formulario cinco u ocho
+veces, y por eso solían acabar todos apretados dentro de un único ticket que
+nadie sabía cuándo dar por cerrado.
+
+El listado de **Tickets** tiene ahora **Planificar con IA**, el mismo gesto que
+ya existía en Proyectos y Tareas: se pega el texto —o se sube el PDF, el Word o
+el TXT, hasta 7 MB— y la IA devuelve **un ticket por problema independiente**,
+con título, descripción, prioridad, categoría, sitio afectado, responsable
+sugerido, fecha límite y el checklist de resolución.
+
+### Nada se crea sin revisarlo
+
+Lo que devuelve el modelo es una propuesta, no un alta: cada ticket se puede
+editar entero o dejar fuera antes de pulsar el botón. Y las sugerencias se
+validan contra la base de datos —responsable, sitio y cliente que no existan se
+caen a «sin asignar» en vez de colarse—, así que la IA no puede inventarse un
+encargado ni llevarse un ticket a la empresa equivocada.
+
+El cliente lo fija quien planifica, o lo reconoce la IA del propio documento; de
+él salen el prefijo del código y los sitios que se ofrecen, igual que en el alta
+normal. Los tickets creados avisan por Chat uno a uno, notifican a su
+responsable y quedan en el historial como cualquier otro.
+
+---
+
 ## [1.94.0] — 2026-09-03
 
 ### La Bóveda, al abrir el ticket

@@ -6,6 +6,7 @@ import { TicketList } from "@/components/tickets/ticket-list";
 import { TicketFilters } from "@/components/tickets/ticket-filters";
 import { TicketKanban } from "@/components/tickets/ticket-kanban";
 import { ViewToggle } from "@/components/tickets/view-toggle";
+import { TicketPlannerLauncher } from "@/components/tickets/ticket-planner";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { fromZonedTime } from "date-fns-tz";
@@ -194,6 +195,7 @@ export default async function TicketsPage({
         <h1 data-tour-id="page-title" className="text-2xl font-bold text-gray-900">Tickets</h1>
         <div className="flex items-center gap-2 sm:gap-3" data-tour-id="page-primary-action">
           {staff && <ViewToggle current={view} />}
+          {staff && <TicketPlannerLauncher />}
           {canCreateTicket ? (
             <Link
               href="/tickets/new"
