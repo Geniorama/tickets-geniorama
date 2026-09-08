@@ -9,6 +9,27 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.93.1] — 2026-09-03
+
+### El historial ya no llega con treinta movimientos puestos
+
+El panel de historial —el mismo en tickets, tareas, proyectos, cobros, cuentas
+y oportunidades— traía las últimas **30** entradas cada vez que se abría una
+ficha. Es una consulta y un pintado de treinta registros que casi nadie mira:
+lo que se viene a ver es la ficha, y del historial casi siempre basta con lo
+último que pasó.
+
+Ahora enseña las **6 últimas** y, si hay más, el botón *Ver movimientos
+anteriores* que ya existía las trae bajo demanda. Ese botón sigue trayendo
+tandas de 30: quien lo pulsa ya no está echando un vistazo, está auditando, y
+hacerle dar quince clics para llegar a lo de hace dos meses sería peor que
+traer de más.
+
+La pantalla de **Administración → Actividad** no cambia: ahí el historial es lo
+que se viene a ver, y tiene sus filtros y sus páginas de 50.
+
+---
+
 ## [1.93.0] — 2026-09-03
 
 ### El archivo de facturación

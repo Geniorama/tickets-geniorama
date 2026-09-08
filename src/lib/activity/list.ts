@@ -34,7 +34,23 @@ export const activitySelect = {
 
 export type ActivityEntry = Prisma.ActivityLogGetPayload<{ select: typeof activitySelect }>;
 
-/** Cuántas entradas trae de una un panel de ficha. */
+/**
+ * Cuántas entradas enseña un panel de ficha nada más abrirla.
+ *
+ * Corta a propósito: el historial acompaña a la ficha, no es lo que se venía a
+ * ver, y traer treinta movimientos de un ticket viejo es cargar —y pintar— un
+ * montón de registros que casi nadie mira. Con seis se ve lo último que pasó,
+ * que es la pregunta del noventa por ciento de las veces.
+ */
+export const FIRST_PAGE_SIZE = 6;
+
+/**
+ * Cuántas trae cada «ver anteriores».
+ *
+ * Más que la primera tanda y no seis otra vez: quien pulsa ese botón ya no está
+ * echando un vistazo, está auditando, y hacerle dar quince clics para llegar a
+ * lo de hace dos meses sería peor que traer de más.
+ */
 export const PAGE_SIZE = 30;
 
 /**

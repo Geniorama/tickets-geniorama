@@ -9,7 +9,7 @@
 
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import type { EntityType } from "@/generated/prisma";
-import { listActivity, PAGE_SIZE } from "@/lib/activity/list";
+import { listActivity, FIRST_PAGE_SIZE } from "@/lib/activity/list";
 import { ActivityTimeline } from "@/components/ui/activity-timeline";
 
 export async function ActivityPanel({
@@ -27,10 +27,10 @@ export async function ActivityPanel({
   if (!isStaff(session.user.role)) return null;
 
   // Una de más para saber si hay página siguiente sin contar la tabla.
-  const rows = await listActivity({ entityType, entityId, take: PAGE_SIZE + 1 });
-  const hasMore = rows.length > PAGE_SIZE;
+  const rows = await listActivity({ entityType, entityId, take: FIRST_PAGE_SIZE + 1 });
+  const hasMore = rows.length > FIRST_PAGE_SIZE;
 
-  const initial = (hasMore ? rows.slice(0, PAGE_SIZE) : rows).map((row) => ({
+  const initial = (hasMore ? rows.slice(0, FIRST_PAGE_SIZE) : rows).map((row) => ({
     id: row.id,
     entityType: row.entityType,
     entityId: row.entityId,
