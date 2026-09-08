@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { linkVaultEntry, unlinkVaultEntry } from "@/lib/vault-links";
+import { linkVaultEntries, linkVaultEntry, unlinkVaultEntry } from "@/lib/vault-links";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { encrypt } from "@/lib/vault-crypto";
 import { notify } from "@/lib/notify";
@@ -219,15 +219,23 @@ export async function unlinkVaultFromProject(projectId: string, vaultEntryId: st
   return { success: true };
 }
 
-export async function linkVaultToTicket(ticketId: string, vaultEntryId: string) {
+/**
+ * Vincula uno o varios accesos al ticket.
+ *
+ * Admite una lista porque el selector de la ficha deja marcar varios: enlazar
+ * las credenciales de un sitio suele ser «el hosting, el WordPress y el correo»
+ * de una sentada, y hacerlo de uno en uno eran tres viajes al servidor.
+ */
+export async function linkVaultToTicket(ticketId: string, vaultEntryIds: string | string[]) {
   const session = await getRequiredSession();
 
-  const entry = await prisma.vaultEntry.findFirst({
-    where: { id: vaultEntryId, OR: [{ createdById: session.user.id }, { sharedWith: { some: { userId: session.user.id } } }] },
-  });
-  if (!entry) return { error: "Sin acceso a esta entrada de Bóveda" };
-
-  await linkVaultEntry({ entityType: "TICKET", entityId: ticketId }, vaultEntryId);
+  const pedidas = Array.isArray(vaultEntryIds) ? vaultEntryIds : [vaultEntryIds];
+  const vinculadas = await linkVaultEntries(
+    { entityType: "TICKET", entityId: ticketId },
+    pedidas,
+    session.user.id,
+  );
+  if (vinculadas === 0) return { error: "Sin acceso a esa entrada de Bóveda" };
 
   revalidatePath(`/tickets/${ticketId}`);
   return { success: true };

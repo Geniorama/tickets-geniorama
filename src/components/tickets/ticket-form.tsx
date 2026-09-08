@@ -7,6 +7,7 @@ import { DraftChecklist } from "@/components/ui/draft-checklist";
 import type { ChecklistGroup } from "@/lib/checklist";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { vaultOptionLabel } from "@/lib/vault-options";
 
 function formatFileSize(bytes: number) {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -17,6 +18,7 @@ interface Collaborator { id: string; name: string; role: string; }
 interface Client { id: string; name: string; companies: { id: string; name: string }[]; }
 interface Plan { id: string; name: string; type: string; companyId: string; company: { name: string }; }
 interface Site { id: string; name: string; domain: string; companyId: string; }
+interface VaultEntry { id: string; title: string; username: string | null; }
 
 interface TicketPrefill {
   title: string;
@@ -32,6 +34,7 @@ export function TicketForm({
   plans = [],
   sites = [],
   reviewerCandidates = [],
+  vaultEntries = [],
   canSetDueDate = false,
   canSaveDraft = false,
   prefill,
@@ -41,6 +44,8 @@ export function TicketForm({
   plans?: Plan[];
   sites?: Site[];
   reviewerCandidates?: { id: string; name: string }[];
+  /** Accesos de Bóveda que quien crea puede ver. Vacío para quien no es staff. */
+  vaultEntries?: VaultEntry[];
   canSetDueDate?: boolean;
   canSaveDraft?: boolean;
   prefill?: TicketPrefill;
@@ -49,6 +54,7 @@ export function TicketForm({
   const submitAsDraft = useRef(false);
   const [selectedClientId, setSelectedClientId] = useState("");
   const [reviewerIds, setReviewerIds] = useState<string[]>([]);
+  const [vaultEntryIds, setVaultEntryIds] = useState<string[]>([]);
   const [checklistItems, setChecklistItems] = useState<ChecklistGroup[]>(prefill?.checklist ?? []);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -350,6 +356,31 @@ export function TicketForm({
           {clients.length > 0 && !selectedClientId && (
             <p className="text-xs text-gray-400 mt-1">Selecciona un cliente para ver sus sitios.</p>
           )}
+        </div>
+      )}
+
+      {/* La Bóveda al crear y no solo en la ficha: quien abre un ticket de
+          «no entra al WordPress» ya tiene delante el acceso del que habla, y
+          obligarle a guardar y volver a entrar para vincularlo era la razón de
+          que casi ningún ticket lo llevara. */}
+      {vaultEntries.length > 0 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Accesos de Bóveda <span className="text-gray-400 font-normal">(opcional)</span>
+          </label>
+          <MultiSelect
+            options={vaultEntries.map((e) => ({ value: e.id, label: vaultOptionLabel(e) }))}
+            value={vaultEntryIds}
+            onChange={setVaultEntryIds}
+            placeholder="Sin accesos vinculados"
+            triggerClassName={inputClass}
+            searchable
+          />
+          <input type="hidden" name="vaultEntryIds" value={vaultEntryIds.join(",")} />
+          <p className="text-xs text-gray-400 mt-1">
+            Las credenciales que hacen falta para resolverlo. Solo las ve quien ya
+            tiene acceso a ellas en la Bóveda.
+          </p>
         </div>
       )}
 

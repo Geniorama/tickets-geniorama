@@ -22,6 +22,44 @@ export function notLinkedTo({ entityType, entityId }: Entity): Prisma.VaultEntry
   return { links: { none: { entityType, entityId } } };
 }
 
+/**
+ * Qué entradas puede ver alguien: las suyas y las que le compartieron.
+ *
+ * Vive aquí porque es la misma frontera en los tres sitios que la necesitan
+ * —la ficha, el alta y las acciones de vincular—, y tres copias de un filtro de
+ * acceso son tres sitios donde puede quedarse desactualizado uno.
+ */
+export function vaultAccessFilter(userId: string): Prisma.VaultEntryWhereInput {
+  return { OR: [{ createdById: userId }, { sharedWith: { some: { userId } } }] };
+}
+
+/**
+ * Vincula varias entradas de una, descartando las que quien lo pide no puede
+ * ver.
+ *
+ * Descarta en vez de fallar a propósito: los ids llegan de un formulario y lo
+ * que sobra es ruido, no un ataque que merezca tirar la operación entera —el
+ * ticket ya está creado cuando esto corre—. Devuelve cuántas quedaron.
+ */
+export async function linkVaultEntries(
+  entity: Entity,
+  vaultEntryIds: string[],
+  userId: string,
+): Promise<number> {
+  const pedidas = [...new Set(vaultEntryIds.filter(Boolean))];
+  if (pedidas.length === 0) return 0;
+
+  const permitidas = await prisma.vaultEntry.findMany({
+    where: { id: { in: pedidas }, ...vaultAccessFilter(userId) },
+    select: { id: true },
+  });
+
+  for (const entrada of permitidas) {
+    await linkVaultEntry(entity, entrada.id);
+  }
+  return permitidas.length;
+}
+
 export function linkVaultEntry(entity: Entity, vaultEntryId: string) {
   return prisma.vaultLink.upsert({
     where: {

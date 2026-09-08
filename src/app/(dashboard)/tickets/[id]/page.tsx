@@ -3,7 +3,7 @@ import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { can } from "@/lib/access/can";
 import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
-import { linkedTo, notLinkedTo } from "@/lib/vault-links";
+import { linkedTo, notLinkedTo, vaultAccessFilter } from "@/lib/vault-links";
 import { TicketDetail } from "@/components/tickets/ticket-detail";
 import { BackButton } from "@/components/ui/back-button";
 import { TicketChecklistPanel } from "@/components/ui/checklist-panel";
@@ -85,18 +85,19 @@ export default async function TicketPage({
     listTimeEntries({ entityType: "TICKET", entityId: ticketId }),
   ]);
 
-  // La Bóveda es visible solo para el creador y los usuarios con los que se comparte
-  const vaultAccessFilter = { OR: [{ createdById: userId }, { sharedWith: { some: { userId } } }] };
+  // La Bóveda es visible solo para el creador y los usuarios con los que se
+  // comparte. El filtro es el mismo que usa el alta del ticket.
+  const soloLoSuyo = vaultAccessFilter(userId);
 
   const [linkedVaultEntries, availableVaultEntries, collaborators] = await Promise.all([
     prisma.vaultEntry.findMany({
-      where: { ...linkedTo({ entityType: "TICKET", entityId: ticketId }), ...vaultAccessFilter },
+      where: { ...linkedTo({ entityType: "TICKET", entityId: ticketId }), ...soloLoSuyo },
       select: { id: true, title: true, username: true, url: true },
       orderBy: { title: "asc" },
     }),
     staff
       ? prisma.vaultEntry.findMany({
-          where: { ...notLinkedTo({ entityType: "TICKET", entityId: ticketId }), ...vaultAccessFilter },
+          where: { ...notLinkedTo({ entityType: "TICKET", entityId: ticketId }), ...soloLoSuyo },
           select: { id: true, title: true, username: true, url: true },
           orderBy: { title: "asc" },
         })

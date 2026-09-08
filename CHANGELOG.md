@@ -9,6 +9,34 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.94.0] — 2026-09-03
+
+### La Bóveda, al abrir el ticket
+
+Vincular un acceso solo se podía **después** de crear el ticket, entrando a la
+ficha. Quien abre un «no entra al WordPress» tiene delante el acceso del que
+habla justo en ese momento, y pedirle que guarde y vuelva a entrar era la razón
+de que casi ningún ticket llevara sus credenciales.
+
+Ahora el formulario de **Nuevo ticket** tiene su campo **Accesos de Bóveda**,
+con la misma frontera de siempre: solo staff, y solo las entradas que quien
+crea ya podía ver —las suyas y las que le compartieron—. Los ids que llegan del
+navegador se vuelven a comprobar en el servidor, así que marcar algo prestado
+no vincula nada.
+
+### El selector ya no desborda la tarjeta
+
+En la ficha, vincular era un `<select>` nativo, y el ancho de esos lo fija la
+opción más larga: un acceso con título y usuario largos estiraba la tarjeta
+entera y dejaba el botón «Vincular» fuera de la pantalla.
+
+Es ahora el mismo selector que ya usaban los revisores: **se escribe para
+buscar**, recorta con puntos suspensivos en vez de crecer, y **deja marcar
+varios de una vez** —enlazar credenciales suele ser «el hosting, el WordPress y
+el correo» de una sentada, y antes eran tres viajes al servidor—.
+
+---
+
 ## [1.93.1] — 2026-09-03
 
 ### El historial ya no llega con treinta movimientos puestos

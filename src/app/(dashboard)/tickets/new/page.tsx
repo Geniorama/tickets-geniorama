@@ -5,6 +5,7 @@ import { TicketForm } from "@/components/tickets/ticket-form";
 import { TemplatePicker } from "@/components/tasks/template-picker";
 import { getClientActivePlan } from "@/lib/plans.server";
 import { normalizeChecklistGroups } from "@/lib/checklist";
+import { vaultAccessFilter } from "@/lib/vault-links";
 
 export const metadata = { title: "Nuevo ticket" };
 
@@ -36,7 +37,7 @@ export default async function NewTicketPage({
     }
   }
 
-  const [collaborators, clients, plans, sites, reviewerCandidates, templates] = await Promise.all([
+  const [collaborators, clients, plans, sites, reviewerCandidates, templates, vaultEntries] = await Promise.all([
     admin
       ? prisma.user.findMany({
           where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
@@ -86,6 +87,15 @@ export default async function NewTicketPage({
     staff
       ? prisma.template.findMany({ where: { entityType: "TICKET" }, orderBy: { name: "asc" }, select: { id: true, name: true } })
       : Promise.resolve([]),
+    // Accesos de Bóveda: los que quien crea ya puede ver. Mismo filtro que la
+    // ficha, y solo staff, como allí.
+    staff
+      ? prisma.vaultEntry.findMany({
+          where: vaultAccessFilter(session.user.id),
+          orderBy: { title: "asc" },
+          select: { id: true, title: true, username: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   // Plantilla seleccionada para prellenar el formulario
@@ -114,6 +124,7 @@ export default async function NewTicketPage({
           plans={plans}
           sites={sites}
           reviewerCandidates={reviewerCandidates}
+          vaultEntries={vaultEntries}
           canSetDueDate={staff}
           canSaveDraft={staff}
           prefill={prefill}

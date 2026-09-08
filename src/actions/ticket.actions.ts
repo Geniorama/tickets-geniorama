@@ -18,7 +18,7 @@ import { deleteCommentsFor } from "@/lib/comments";
 import { addFileAttachments, deleteAttachmentsFor } from "@/lib/attachments";
 import { copyChecklists, createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
 import { deleteTimeEntriesFor, stopRunningForEntity } from "@/lib/time-entries";
-import { deleteVaultLinksFor } from "@/lib/vault-links";
+import { deleteVaultLinksFor, linkVaultEntries } from "@/lib/vault-links";
 import { emitDeletedHook, emitTicketHook } from "@/lib/hooks/dispatch";
 import { diffFields } from "@/lib/activity/record";
 import { ticketPayload } from "@/lib/hooks/payload";
@@ -160,6 +160,16 @@ export async function createTicket(formData: FormData) {
     parseChecklistGroups(formData.get("checklist")),
     session.user.id,
   );
+
+  // Accesos de Bóveda. Solo staff, como en la ficha, y `linkVaultEntries`
+  // descarta lo que quien crea no puede ver: los ids vienen del navegador.
+  if (isStaff(session.user.role)) {
+    await linkVaultEntries(
+      { entityType: "TICKET", entityId: ticket.id },
+      String(formData.get("vaultEntryIds") ?? "").split(",").map((s) => s.trim()).filter(Boolean),
+      session.user.id,
+    );
+  }
 
   // Resolver nombre del asignado para enriquecer notificaciones
   const assignee = ticket.assignedToId
