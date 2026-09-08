@@ -1,0 +1,12 @@
+-- El archivo de facturación: dónde va un cobro cuando ya no queda nada que
+-- hacer con él.
+--
+-- No es un estado del dinero —eso ya lo dice PAGADO— sino del trabajo. Sin él,
+-- la columna «Pagado» crece sin fin y deja de servir para ver lo que se acaba
+-- de cobrar.
+--
+-- En su propia migración: PostgreSQL deja añadir un valor a un enum dentro de
+-- una transacción, pero no **usarlo** en esa misma transacción. Separarlo evita
+-- que un día, al mover datos aquí en la misma migración, esto falle solo en
+-- producción.
+ALTER TYPE "BillingStatus" ADD VALUE 'ARCHIVADO';

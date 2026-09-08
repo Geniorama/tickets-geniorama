@@ -52,6 +52,14 @@ export function BillingForm({
 
   const editando = Boolean(initial);
 
+  // «Archivo» solo se ofrece si desde aquí se puede llegar: al archivo se va
+  // después de cobrar, y el servidor rechaza cualquier otro salto. Ofrecerlo
+  // igualmente sería enseñar una opción que devuelve un error.
+  const puedeArchivar = initial?.status === "PAGADO" || initial?.status === "ARCHIVADO";
+  const estadosOfrecidos = puedeArchivar
+    ? BILLING_STATUSES
+    : BILLING_STATUSES.filter((s) => s !== "ARCHIVADO");
+
   function handleSubmit(formData: FormData) {
     setError(null);
     startTransition(async () => {
@@ -109,7 +117,7 @@ export function BillingForm({
           id="status" name="status" value={status} style={inputStyle}
           onChange={(e) => setStatus(e.target.value as BillingStatus)}
         >
-          {BILLING_STATUSES.map((s) => (
+          {estadosOfrecidos.map((s) => (
             <option key={s} value={s}>{BILLING_STATUS_LABELS[s]}</option>
           ))}
         </select>

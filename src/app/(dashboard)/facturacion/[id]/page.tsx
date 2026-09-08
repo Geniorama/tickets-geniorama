@@ -213,7 +213,9 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
           <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem", marginBottom: "0.85rem" }}>
             {cobro.lines.map((l) => (
               <div key={l.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem" }}>
-                <span style={{ fontSize: "0.8125rem", color: "var(--app-nav-text)", minWidth: 0 }}>
+                {/* `pre-wrap`: un concepto puede venir en varios renglones, y
+                    sin esto se leerían todos pegados en uno. */}
+                <span style={{ fontSize: "0.8125rem", color: "var(--app-nav-text)", minWidth: 0, whiteSpace: "pre-wrap" }}>
                   {l.concept}
                   {l.category && (
                     <span

@@ -2,6 +2,7 @@ import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
 import { getAccessibleApps } from "@/lib/access/can";
 import { OPEN_STAGES } from "@/lib/crm/deals";
+import { CLOSED_BILLING_STATUSES } from "@/lib/billing/status";
 import { formatAmount } from "@/lib/money";
 import { ModuleGrid, type ModuleSummary } from "@/components/layout/module-grid";
 import { AttentionBar, type AttentionItem } from "@/components/dashboard/attention-bar";
@@ -136,7 +137,7 @@ export default async function DashboardPage() {
   // Lo que falta por cobrar. Solo se consulta si el módulo está concedido.
   const porCobrar = apps.includes("FACTURACION")
     ? await prisma.billingItem.aggregate({
-        where: { status: { not: "PAGADO" } },
+        where: { status: { notIn: CLOSED_BILLING_STATUSES } },
         _sum: { amount: true, paidAmount: true },
         _count: { _all: true },
       })

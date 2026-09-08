@@ -9,6 +9,50 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.93.0] — 2026-09-03
+
+### El archivo de facturación
+
+Un cobro pagado no desaparecía del trabajo: quedaba en «Pagado» junto a los de
+hace ocho meses, y para que esa columna no tapara el tablero estaba escondida
+detrás de un botón. El resultado era que **lo que se acababa de cobrar tampoco
+se veía**.
+
+Ahora hay una columna más al final, **Archivo**, y el tablero cambia de
+criterio: lo que se oculta por defecto es el archivo, no lo pagado. «Pagado» se
+ve siempre —es donde está lo recién cobrado, lo que todavía puede tener algo
+pendiente de contabilidad— y cuando ya no queda nada que hacer con un cobro, se
+arrastra al archivo y sale de la vista. **Ver archivo** lo trae de vuelta, con
+su número al lado.
+
+### Al archivo solo se llega pagando
+
+Arrastrar al archivo un cobro sin pagar registraría —como al soltar en
+«Pagado»— el abono que faltaba, y un cobro que nadie pagó pasaría a decir que
+entró el dinero. Así que el archivo solo acepta cobros que ya están en
+«Pagado», y lo dice cuando no: *«Pásalo primero a Pagado —o bórralo, si nunca
+se va a cobrar»*. La misma puerta rige desde el formulario de la ficha, que
+tampoco ofrece el estado si no se puede llegar a él.
+
+Archivar es reversible: se arrastra de vuelta y ya está. Y nada de lo que suma
+cambia —lo archivado sigue contando en «qué se vendió» y sigue fuera de «lo que
+falta por cobrar»—, porque ese dinero ya había entrado antes de archivarlo.
+
+### Conceptos con sitio para escribir
+
+El concepto de cada línea se escribía en una casilla estrecha de una sola
+línea, en un formulario de 36 rem: una frase de factura de verdad no cabía, y
+se escribía a ciegas viendo el final y no el principio.
+
+Ahora cada línea es un bloque: el concepto ocupa el ancho del formulario, es un
+campo que **crece solo con lo que se escribe** —y admite varios renglones—, y
+debajo van importe, categoría e impuesto. El formulario de alta pasa a tener el
+mismo ancho que el de edición, y el límite del concepto sube de 200 a 2.000
+caracteres. En la ficha del cobro los saltos de línea se respetan, así que lo
+escrito se lee como se escribió.
+
+---
+
 ## [1.92.0] — 2026-09-02
 
 ### Eliminar tarjetas desde los tableros

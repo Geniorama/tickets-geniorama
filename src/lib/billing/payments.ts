@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { BillingStatus } from "@/generated/prisma";
-import { isInvoiced } from "@/lib/billing/status";
+import { isClosed, isInvoiced } from "@/lib/billing/status";
 import { deleteAttachmentsFor } from "@/lib/attachments";
 
 /**
@@ -31,6 +31,9 @@ export function estadoSegunPagos(
   amount: number,
   totalPagado: number,
 ): BillingStatus {
+  // El archivo es una decisión de quien lleva la facturación, no del dinero:
+  // recalcular no puede sacar de ahí un cobro que alguien guardó a propósito.
+  if (status === "ARCHIVADO") return status;
   if (!isInvoiced(status)) return status;
   if (totalPagado <= 0) return "FACTURADO";
   // Mayor o igual, no igual: un cliente puede pagar de más por un ajuste o una
@@ -74,7 +77,7 @@ export async function recalcularPagos(billingItemId: string) {
       status,
       // La fecha de pago es la del último abono, no la de hoy: si se apunta en
       // octubre un pago que entró en septiembre, el cobro es de septiembre.
-      paidAt: status === "PAGADO" ? (pagos[0]?.paidOn ?? new Date()) : null,
+      paidAt: isClosed(status) ? (pagos[0]?.paidOn ?? new Date()) : null,
       // Apuntar un pago sobre algo sin fecha de emisión la deja puesta: si
       // entró dinero, la factura existía.
       invoicedAt: cobro.invoicedAt ?? (total > 0 ? new Date() : null),

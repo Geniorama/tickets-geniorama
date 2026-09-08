@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 import type { BillingStatus } from "@/generated/prisma";
 import { recordActivity } from "@/lib/activity/record";
 import { entityLabel } from "@/lib/activity/label";
-import { BILLING_STATUSES, BILLING_STATUS_LABELS, isInvoiced } from "@/lib/billing/status";
+import { BILLING_STATUSES, BILLING_STATUS_LABELS, isClosed, isInvoiced } from "@/lib/billing/status";
 import { recalcularPagos } from "@/lib/billing/payments";
 
 export type Sellos = {
@@ -38,7 +38,9 @@ export function sellosPara(
 ): Sellos {
   const ahora = opciones.ahora ?? new Date();
 
-  if (status === "PAGADO") {
+  // Archivado va con pagado: al archivo solo se llega con el cobro cerrado, y
+  // un cobro cerrado tiene el dinero completo y sus dos fechas puestas.
+  if (isClosed(status)) {
     return {
       // Pagado es pagado: lo abonado iguala al importe, sin dejar céntimos
       // sueltos que después aparecen como saldo pendiente. Quien mueve la
@@ -67,6 +69,23 @@ export function sellosPara(
 
   // Backlog y Por facturar: todavía no se emitió nada ni entró nada.
   return { paidAmount: 0, invoicedAt: null, paidAt: null };
+}
+
+/**
+ * Por qué no se puede archivar, o `null` si sí se puede.
+ *
+ * Al archivo solo se llega desde «Pagado». Archivar no es una forma de quitar
+ * de en medio lo que estorba: si se dejara archivar cualquier cosa, mover la
+ * tarjeta ahí registraría —como en «Pagado»— el abono que faltaba, y un cobro
+ * que nadie pagó pasaría a decir que entró el dinero.
+ *
+ * Vive aquí y no dentro de `moveBillingStatus` porque el formulario de la
+ * ficha también cambia de estado, y las dos puertas tienen que decir lo mismo.
+ */
+export function bloqueoDeArchivo(destino: BillingStatus, origen: BillingStatus): string | null {
+  if (destino !== "ARCHIVADO") return null;
+  if (origen === "ARCHIVADO" || origen === "PAGADO") return null;
+  return "Al archivo solo van cobros ya pagados. Pásalo primero a «Pagado» —o bórralo, si nunca se va a cobrar.";
 }
 
 export type MoveResult = { ok: true } | { ok: false; error: string };
@@ -101,17 +120,21 @@ export async function moveBillingStatus(
   });
   if (!actual) return { ok: false, error: "Cobro no encontrado" };
 
+  const bloqueo = bloqueoDeArchivo(status, actual.status);
+  if (bloqueo) return { ok: false, error: bloqueo };
+
   const tienePagos = actual._count.payments > 0;
 
-  if (tienePagos && status !== "PAGADO" && status !== "ABONADO") {
+  if (tienePagos && !isClosed(status) && status !== "ABONADO") {
     return {
       ok: false,
       error: `Este cobro tiene ${actual._count.payments} ${actual._count.payments === 1 ? "abono registrado" : "abonos registrados"}. Quítalos antes de devolverlo a «${BILLING_STATUS_LABELS[status]}».`,
     };
   }
 
-  // Soltar en «Pagado» con saldo pendiente: se registra ese saldo como abono.
-  if (status === "PAGADO") {
+  // Soltar en «Pagado» —o directamente en el archivo— con saldo pendiente: se
+  // registra ese saldo como abono.
+  if (isClosed(status)) {
     const falta = Math.max(0, Math.round(actual.amount) - Math.round(actual.paidAmount));
     if (falta > 0) {
       await prisma.billingPayment.create({

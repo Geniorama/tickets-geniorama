@@ -56,12 +56,18 @@ enum ActivityType {
 /// `ABONADO` es la razón de que un cobro tenga importe y no sea una tarea
 /// suelta: significa que entró parte del dinero, no todo. Sin un monto contra
 /// el que comparar, «abonado» no querría decir nada.
+///
+/// `ARCHIVADO` va después de `PAGADO` y no es un estado del dinero sino del
+/// trabajo: el cobro está cerrado y ya no queda nada que hacer con él. Existe
+/// para que «Pagado» no crezca sin fin y siga sirviendo para ver lo que se
+/// acaba de cobrar.
 enum BillingStatus {
   BACKLOG
   POR_FACTURAR
   FACTURADO
   ABONADO
   PAGADO
+  ARCHIVADO
 }
 
 enum PlanType {

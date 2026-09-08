@@ -17,7 +17,9 @@ export default async function NewBillingPage({
   const fija = empresa && companies.some((c) => c.id === empresa) ? empresa : undefined;
 
   return (
-    <div className="max-w-xl">
+    // Mismo ancho que la edición: los conceptos de una factura son largos y en
+    // una columna estrecha se escriben a ciegas.
+    <div style={{ maxWidth: "44rem" }}>
       <div className="mb-4">
         <BackButton fallback="/facturacion" />
       </div>

@@ -9,7 +9,7 @@ import { deleteCommentsFor } from "@/lib/comments";
 import { deleteAttachmentsFor } from "@/lib/attachments";
 import type { BillingStatus } from "@/generated/prisma";
 import { BILLING_STATUSES, BILLING_STATUS_LABELS, isInvoiced } from "@/lib/billing/status";
-import { moveBillingStatus, sellosPara } from "@/lib/billing/move";
+import { bloqueoDeArchivo, moveBillingStatus, sellosPara } from "@/lib/billing/move";
 import { formatAmount, parseAmount } from "@/lib/money";
 import { calcularTotales } from "@/lib/billing/totals";
 import { recordActivity, recordUpdate } from "@/lib/activity/record";
@@ -18,7 +18,9 @@ import { entityLabel } from "@/lib/activity/label";
 const estados = BILLING_STATUSES as [BillingStatus, ...BillingStatus[]];
 
 const lineaSchema = z.object({
-  concept: z.string().min(1, "Cada línea necesita un concepto").max(200),
+  // Holgado a propósito: el concepto de una línea es lo que verá el cliente en
+  // la factura, y ahí caben dos frases explicando qué se hizo.
+  concept: z.string().min(1, "Cada línea necesita un concepto").max(2000),
   amount:  z.number().positive("El importe de cada línea debe ser mayor que cero"),
   // Cero es exento. Se acota para que nadie mande un 900 % desde el cliente.
   taxRate: z.number().min(0).max(100),
@@ -111,6 +113,10 @@ export async function createBillingItem(formData: FormData) {
   const empresa = await prisma.company.findUnique({ where: { id: d.companyId }, select: { id: true } });
   if (!empresa) return { error: "Empresa no encontrada" };
 
+  // Un cobro no nace archivado: al archivo se llega después de cobrarlo.
+  const bloqueo = bloqueoDeArchivo(d.status, "BACKLOG");
+  if (bloqueo) return { error: bloqueo };
+
   // Los totales se calculan **siempre en el servidor**: lo que mande el
   // navegador es para pintar, no para guardar.
   const lineas = await conCategoriasValidas(d.lines);
@@ -177,6 +183,10 @@ export async function updateBillingItem(id: string, formData: FormData) {
     },
   });
   if (!actual) return { error: "Cobro no encontrado" };
+
+  // El archivo tiene la misma puerta desde aquí que desde el tablero.
+  const bloqueo = bloqueoDeArchivo(d.status, actual.status);
+  if (bloqueo) return { error: bloqueo };
 
   const lineas = await conCategoriasValidas(d.lines);
   const totales = calcularTotales(lineas);

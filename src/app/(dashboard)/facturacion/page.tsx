@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Plus, Bell, PieChart, Link2 } from "lucide-react";
 import { requireCan, can } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
-import { BILLING_STATUSES, OPEN_BILLING_STATUSES, pendiente } from "@/lib/billing/status";
+import { BILLING_STATUSES, BOARD_BILLING_STATUSES, isClosed, pendiente } from "@/lib/billing/status";
 import { formatAmount } from "@/lib/money";
 import { BillingBoard, type BoardItem } from "@/components/billing/billing-board";
 
@@ -11,20 +11,23 @@ export const metadata = { title: "Facturación" };
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ pagados?: string }>;
+  searchParams: Promise<{ archivo?: string }>;
 }) {
   const session = await requireCan("FACTURACION", "ver");
   const canEdit = await can(session.user, "FACTURACION", "editar");
   const canManage = await can(session.user, "FACTURACION", "gestionar");
-  const { pagados } = await searchParams;
+  const { archivo } = await searchParams;
 
-  // Lo pagado se acumula sin límite y en unos meses taparía lo que falta por
+  // El archivo se acumula sin límite y en unos meses taparía lo que falta por
   // cobrar, que es para lo que se mira este tablero. Mismo criterio que las
   // oportunidades cerradas del CRM.
-  const verPagados = pagados === "1";
-  const statuses = verPagados ? BILLING_STATUSES : OPEN_BILLING_STATUSES;
+  //
+  // Lo que se oculta es el archivo y no «lo pagado», como antes: si «Pagado»
+  // no se ve, no hay desde dónde arrastrar al archivo.
+  const verArchivo = archivo === "1";
+  const statuses = verArchivo ? BILLING_STATUSES : BOARD_BILLING_STATUSES;
 
-  const [items, pagadosOcultos] = await Promise.all([
+  const [items, archivadosOcultos] = await Promise.all([
     prisma.billingItem.findMany({
       where: { status: { in: statuses } },
       orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
@@ -36,7 +39,7 @@ export default async function BillingPage({
         labels: { select: { id: true, name: true, color: true } },
       },
     }),
-    prisma.billingItem.count({ where: { status: "PAGADO" } }),
+    prisma.billingItem.count({ where: { status: "ARCHIVADO" } }),
   ]);
 
   // Novedades y soportes viven en las tablas compartidas: dos consultas
@@ -61,7 +64,7 @@ export default async function BillingPage({
 
   const conNovedades = items.map((i) => ({ ...i, notes: novedades.get(i.id) ?? 0 }));
 
-  const abiertos = items.filter((i) => i.status !== "PAGADO");
+  const abiertos = items.filter((i) => !isClosed(i.status));
   // La cifra que importa: lo que falta por entrar, no lo facturado.
   const porCobrar = abiertos.reduce((s, i) => s + pendiente(i.amount, i.paidAmount), 0);
 
@@ -78,11 +81,11 @@ export default async function BillingPage({
               : `${abiertos.length} ${abiertos.length === 1 ? "cobro pendiente" : "cobros pendientes"}${
                   porCobrar > 0 ? ` · ${formatAmount(porCobrar)} por cobrar` : ""
                 }`}
-            {!verPagados && pagadosOcultos > 0 && (
+            {!verArchivo && archivadosOcultos > 0 && (
               <>
                 {" · "}
-                <Link href="/facturacion?pagados=1" style={{ color: "#fd1384", textDecoration: "none" }}>
-                  {pagadosOcultos} {pagadosOcultos === 1 ? "pagado oculto" : "pagados ocultos"}
+                <Link href="/facturacion?archivo=1" style={{ color: "#fd1384", textDecoration: "none" }}>
+                  {archivadosOcultos} en el archivo
                 </Link>
               </>
             )}
@@ -91,15 +94,15 @@ export default async function BillingPage({
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
           <Link
-            href={verPagados ? "/facturacion" : "/facturacion?pagados=1"}
+            href={verArchivo ? "/facturacion" : "/facturacion?archivo=1"}
             style={{
               fontSize: "0.8125rem", padding: "0.45rem 0.85rem", borderRadius: "0.5rem",
               border: "1px solid var(--app-border)", color: "var(--app-nav-text)", textDecoration: "none",
             }}
           >
-            {verPagados
-              ? "Ocultar pagados"
-              : `Ver pagados${pagadosOcultos > 0 ? ` (${pagadosOcultos})` : ""}`}
+            {verArchivo
+              ? "Ocultar archivo"
+              : `Ver archivo${archivadosOcultos > 0 ? ` (${archivadosOcultos})` : ""}`}
           </Link>
           <Link
             href="/facturacion/categorias"

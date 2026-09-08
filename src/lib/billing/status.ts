@@ -14,6 +14,7 @@ export const BILLING_STATUSES: BillingStatus[] = [
   "FACTURADO",
   "ABONADO",
   "PAGADO",
+  "ARCHIVADO",
 ];
 
 export const BILLING_STATUS_LABELS: Record<BillingStatus, string> = {
@@ -22,6 +23,7 @@ export const BILLING_STATUS_LABELS: Record<BillingStatus, string> = {
   FACTURADO:    "Facturado",
   ABONADO:      "Abonado",
   PAGADO:       "Pagado",
+  ARCHIVADO:    "Archivo",
 };
 
 export const BILLING_STATUS_DESCRIPTIONS: Record<BillingStatus, string> = {
@@ -29,7 +31,8 @@ export const BILLING_STATUS_DESCRIPTIONS: Record<BillingStatus, string> = {
   POR_FACTURAR: "Listo para emitir la factura.",
   FACTURADO:    "Factura emitida, pendiente de cobro.",
   ABONADO:      "Entró una parte del dinero, falta el resto.",
-  PAGADO:       "Cobrado por completo.",
+  PAGADO:       "Cobrado por completo. Sigue a la vista mientras haya algo que hacer con él.",
+  ARCHIVADO:    "Cerrado y guardado. Ya no queda nada que hacer con este cobro.",
 };
 
 /** De frío a cobrado. El abonado es ámbar: hay dinero, pero no todo. */
@@ -39,13 +42,32 @@ export const BILLING_STATUS_COLORS: Record<BillingStatus, string> = {
   FACTURADO:    "#8b5cf6",
   ABONADO:      "#f59e0b",
   PAGADO:       "#22c55e",
+  // Apagado a propósito: el archivo es lo que ya no reclama atención.
+  ARCHIVADO:    "#94a3b8",
 };
 
-/** Lo que sigue pendiente de cobrar: todo menos lo pagado. */
-export const OPEN_BILLING_STATUSES: BillingStatus[] = BILLING_STATUSES.filter((s) => s !== "PAGADO");
+/**
+ * Cobros terminados: el dinero entró y no hay nada que perseguir.
+ *
+ * `ARCHIVADO` está aquí y no solo `PAGADO` porque para todo lo que mira «qué
+ * falta por cobrar» —el tablero, el resumen del inicio— archivar no cambia
+ * nada: ese dinero ya había entrado.
+ */
+export const CLOSED_BILLING_STATUSES: BillingStatus[] = ["PAGADO", "ARCHIVADO"];
+
+export const isClosed = (s: BillingStatus) => CLOSED_BILLING_STATUSES.includes(s);
+
+/**
+ * Las columnas del tablero del día a día: todas menos el archivo.
+ *
+ * El archivo se deja fuera y no «lo pagado», que es lo que se ocultaba antes:
+ * si «Pagado» no se ve, no hay desde dónde arrastrar al archivo y este no
+ * serviría para nada.
+ */
+export const BOARD_BILLING_STATUSES: BillingStatus[] = BILLING_STATUSES.filter((s) => s !== "ARCHIVADO");
 
 /** Lo que ya se emitió y por tanto tiene número de factura y fecha. */
-export const INVOICED_STATUSES: BillingStatus[] = ["FACTURADO", "ABONADO", "PAGADO"];
+export const INVOICED_STATUSES: BillingStatus[] = ["FACTURADO", "ABONADO", "PAGADO", "ARCHIVADO"];
 
 export const isInvoiced = (s: BillingStatus) => INVOICED_STATUSES.includes(s);
 

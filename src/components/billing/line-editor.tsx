@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { calcularTotales, describirImpuesto, EXENTO, IVA_RATE, type LineaConCategoria } from "@/lib/billing/totals";
 import { formatAmount, parseAmount } from "@/lib/money";
@@ -23,6 +23,54 @@ const inputStyle: React.CSSProperties = {
   borderRadius: "0.5rem", border: "1px solid var(--app-border)",
   backgroundColor: "var(--app-bg)", color: "var(--app-body-text)",
 };
+
+/**
+ * El concepto de una línea, en un campo que crece con lo que se escribe.
+ *
+ * Era un `input` de una línea metido en una columna estrecha, y los conceptos
+ * de una factura rara vez caben ahí: se escribían a ciegas, viendo el final
+ * de la frase y no el principio. Ahora ocupa el ancho del formulario y se
+ * estira solo, así que lo escrito se lee entero sin desplazarse.
+ */
+function ConceptoInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  // La altura se recalcula en cada render y no solo al teclear: al cargar un
+  // cobro existente el texto ya viene puesto, y sin esto aparecería recortado.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      rows={2}
+      placeholder="Rediseño del sitio: maquetación de las ocho plantillas, migración de contenidos y puesta en producción."
+      aria-label="Concepto de la línea"
+      style={{
+        ...inputStyle,
+        // Sin asa de redimensionar: la altura la pone el efecto de arriba, y lo
+        // que se estirase a mano se perdería en la siguiente tecla.
+        resize: "none",
+        minHeight: "3.5rem",
+        lineHeight: 1.45,
+        overflow: "hidden",
+        fontFamily: "inherit",
+      }}
+    />
+  );
+}
 
 export function LineEditor({
   initial,
@@ -73,62 +121,73 @@ export function LineEditor({
         Conceptos
       </label>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+      {/* Cada línea es un bloque y no una fila: con conceptos de varios
+          renglones, una rejilla sola no deja ver dónde acaba una y empieza la
+          siguiente. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
         {filas.map((f, i) => (
           <div
             key={i}
-            className="grid grid-cols-[1fr_auto] sm:grid-cols-[minmax(0,1fr)_8.5rem_9rem_7.5rem_1.75rem]"
-            style={{ gap: "0.4rem", alignItems: "center" }}
+            style={{
+              border: "1px solid var(--app-border)", borderRadius: "0.6rem",
+              padding: "0.6rem", display: "flex", flexDirection: "column", gap: "0.4rem",
+            }}
           >
-            <input
-              value={f.concept}
-              onChange={(e) => actualizar(i, { concept: e.target.value })}
-              placeholder="Hosting — septiembre"
-              aria-label="Concepto de la línea"
-              className="col-span-2 sm:col-span-1"
-              style={inputStyle}
-            />
-            <AmountInput
-              value={f.amount}
-              onValueChange={(v) => actualizar(i, { amount: v })}
-              placeholder="1.200.000"
-              style={{ ...inputStyle, textAlign: "right", fontVariantNumeric: "tabular-nums" }}
-              ariaLabel="Importe de la línea"
-            />
-            <select
-              value={f.categoryId}
-              onChange={(e) => actualizar(i, { categoryId: e.target.value })}
-              style={inputStyle}
-              aria-label="Categoría de la línea"
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "0.4rem" }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <ConceptoInput
+                  value={f.concept}
+                  onChange={(v) => actualizar(i, { concept: v })}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setFilas((prev) => (prev.length === 1 ? prev : prev.filter((_, j) => j !== i)))}
+                disabled={filas.length === 1}
+                aria-label="Quitar línea"
+                title={filas.length === 1 ? "Un cobro necesita al menos una línea" : "Quitar"}
+                style={{
+                  background: "none", border: "none", padding: "0.45rem 0.2rem",
+                  color: filas.length === 1 ? "var(--app-border)" : "#dc2626",
+                  cursor: filas.length === 1 ? "not-allowed" : "pointer",
+                }}
+              >
+                <Trash2 style={{ width: "0.9rem", height: "0.9rem" }} />
+              </button>
+            </div>
+
+            <div
+              className="grid grid-cols-1 sm:grid-cols-[9rem_minmax(0,1fr)_8rem]"
+              style={{ gap: "0.4rem", alignItems: "center" }}
             >
-              <option value="">Sin categoría</option>
-              {categorias.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-            <select
-              value={f.taxRate}
-              onChange={(e) => actualizar(i, { taxRate: Number(e.target.value) })}
-              style={inputStyle}
-              aria-label="Impuesto de la línea"
-            >
-              <option value={EXENTO}>Exento</option>
-              <option value={IVA_RATE}>+{IVA_RATE}% IVA</option>
-            </select>
-            <button
-              type="button"
-              onClick={() => setFilas((prev) => (prev.length === 1 ? prev : prev.filter((_, j) => j !== i)))}
-              disabled={filas.length === 1}
-              aria-label="Quitar línea"
-              title={filas.length === 1 ? "Un cobro necesita al menos una línea" : "Quitar"}
-              style={{
-                background: "none", border: "none", padding: "0.2rem",
-                color: filas.length === 1 ? "var(--app-border)" : "#dc2626",
-                cursor: filas.length === 1 ? "not-allowed" : "pointer",
-              }}
-            >
-              <Trash2 style={{ width: "0.9rem", height: "0.9rem" }} />
-            </button>
+              <AmountInput
+                value={f.amount}
+                onValueChange={(v) => actualizar(i, { amount: v })}
+                placeholder="1.200.000"
+                style={{ ...inputStyle, textAlign: "right", fontVariantNumeric: "tabular-nums" }}
+                ariaLabel="Importe de la línea"
+              />
+              <select
+                value={f.categoryId}
+                onChange={(e) => actualizar(i, { categoryId: e.target.value })}
+                style={inputStyle}
+                aria-label="Categoría de la línea"
+              >
+                <option value="">Sin categoría</option>
+                {categorias.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <select
+                value={f.taxRate}
+                onChange={(e) => actualizar(i, { taxRate: Number(e.target.value) })}
+                style={inputStyle}
+                aria-label="Impuesto de la línea"
+              >
+                <option value={EXENTO}>Exento</option>
+                <option value={IVA_RATE}>+{IVA_RATE}% IVA</option>
+              </select>
+            </div>
           </div>
         ))}
       </div>

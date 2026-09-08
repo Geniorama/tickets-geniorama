@@ -10,7 +10,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Building2, CalendarClock, Hash, Paperclip } from "lucide-react";
 import type { BillingStatus } from "@/generated/prisma";
 import {
-  BILLING_STATUS_COLORS, BILLING_STATUS_DESCRIPTIONS, BILLING_STATUS_LABELS, pendiente,
+  BILLING_STATUS_COLORS, BILLING_STATUS_DESCRIPTIONS, BILLING_STATUS_LABELS, isClosed, pendiente,
 } from "@/lib/billing/status";
 import { formatAmount, parseAmount } from "@/lib/money";
 import { useRouter } from "next/navigation";
@@ -188,7 +188,7 @@ function Columna({
   // En las columnas de cobro lo que interesa es lo que falta por entrar, no lo
   // facturado: en «Abonado» sumar el total mentiría sobre la caja pendiente.
   const total = items.reduce(
-    (s, i) => s + (status === "PAGADO" ? i.amount : pendiente(i.amount, i.paidAmount)),
+    (s, i) => s + (isClosed(status) ? i.amount : pendiente(i.amount, i.paidAmount)),
     0,
   );
 
@@ -214,7 +214,7 @@ function Columna({
         {total > 0 && (
           <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", marginTop: "0.2rem", fontVariantNumeric: "tabular-nums" }}>
             {formatAmount(total)}
-            {status !== "PAGADO" && " por cobrar"}
+            {!isClosed(status) && " por cobrar"}
           </p>
         )}
       </div>
