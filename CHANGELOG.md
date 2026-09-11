@@ -9,6 +9,54 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.96.0] — 2026-09-11
+
+### El informe del proyecto cuenta lo que se hizo, no lo que se llama
+
+El informe de IA de un proyecto se construía con el título, el estado y las
+fechas de cada tarea. Con eso el modelo solo podía repetir la lista del tablero
+con otras palabras: «Diseño de la home — En progreso» no le dice a un cliente
+qué se avanzó esta semana.
+
+Ahora entran también **los comentarios de las tareas** —las notas internas no,
+que el informe es para el cliente—, que son donde el equipo cuenta de verdad
+qué hizo. Y con ellos entran **los entregables**: los adjuntos de la ficha, los
+de los comentarios y los enlaces que alguien pegó escribiendo. El informe los
+lista como enlaces pulsables, y también en el PDF y el DOCX, donde antes o se
+perdía la URL o salía el `[nombre](https://…)` en crudo.
+
+### Informes de una semana, para sprints cortos
+
+Pedir «solo del 7 al 9 de septiembre» en las instrucciones no funcionaba: el
+informe seguía contando las 120 tareas del proyecto. No era un problema de
+redactar mejor la orden — al modelo se le estaban pasando **todas** las tareas
+en el mismo mensaje, y no se puede pedir que ignore lo que tiene delante.
+
+El generador tiene ahora su propio **periodo**, con atajos para «esta semana»,
+«semana pasada» y «este mes». Las tareas se filtran **antes** de llegar a la
+IA: entran las que se cerraron dentro del rango, las que nacieron en él, las
+que lo cruzan con sus fechas y las que tuvieron movimiento —un comentario, un
+entregable—. El resto del proyecto no viaja, así que no hay nada que mencionar
+de más. El porcentaje de la cabecera pasa a ser el del periodo, y el periodo
+queda escrito en el PDF y el DOCX.
+
+Los bordes del rango son medianoche y 23:59 **de Bogotá**: con los de UTC, un
+comentario del viernes a las 20:00 se contaba del sábado y se caía del sprint.
+Para saber qué se cerró dentro se lee el historial de acciones, que guarda la
+fecha exacta del cierre.
+
+### Lo que se pide manda
+
+Las instrucciones adicionales viajaban al final del prompt, detrás de la
+estructura sugerida, y el modelo las trataba como una sugerencia más. Ahora van
+arriba y marcadas como prioritarias: si chocan con la estructura por defecto,
+gana lo que escribió quien pide el informe.
+
+Los borradores dejan de contarse. Una tarea que nadie ha publicado todavía no
+es trabajo que se le pueda enseñar a un cliente.
+
+---
+
 ## [1.95.0] — 2026-09-08
 
 ### Los tickets también se planifican con IA

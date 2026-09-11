@@ -14,6 +14,7 @@ function headerLines(header: ReportHeader): string[] {
   if (header.projectName) lines.push(`Proyecto: ${header.projectName}`);
   lines.push(`${header.itemCode ? `${header.itemCode} — ` : ""}${header.itemName}`);
   lines.push(`Fecha del informe: ${header.reportDate}`);
+  if (header.period) lines.push(`Periodo: ${header.period}`);
   if (header.projectManager) lines.push(`Responsable del proyecto: ${header.projectManager}`);
   if (header.responsible)    lines.push(`Responsable: ${header.responsible}`);
   if (header.client)         lines.push(`Cliente: ${header.client}`);
@@ -23,7 +24,12 @@ function headerLines(header: ReportHeader): string[] {
   return lines;
 }
 
-/** Strip markdown markers to produce plain text */
+/**
+ * Strip markdown markers to produce plain text.
+ *
+ * Los enlaces conservan la URL entre paréntesis: en un informe con entregables,
+ * quedarse solo con el texto del enlace es perder justo lo que se entrega.
+ */
 function mdToPlain(text: string): string {
   return text
     .replace(/^#{1,6}\s+/gm, "")
@@ -31,7 +37,7 @@ function mdToPlain(text: string): string {
     .replace(/\*(.+?)\*/g, "$1")
     .replace(/`(.+?)`/g, "$1")
     .replace(/^[-*]\s+/gm, "• ")
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, "$1 ($2)");
 }
 
 async function exportPDF(report: GeneratedReport) {
@@ -118,7 +124,33 @@ async function exportPDF(report: GeneratedReport) {
 }
 
 async function exportDOCX(report: GeneratedReport) {
-  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } = await import("docx");
+  const { Document, Packer, Paragraph, TextRun, ExternalHyperlink, HeadingLevel, AlignmentType, BorderStyle } =
+    await import("docx");
+
+  /**
+   * Negritas y enlaces de una línea. Sin esto los entregables llegaban al DOCX
+   * como `[nombre](https://…)` literal, que no se puede ni leer ni pulsar.
+   */
+  function inlineChildren(line: string) {
+    const children: (InstanceType<typeof TextRun> | InstanceType<typeof ExternalHyperlink>)[] = [];
+    for (const part of line.split(/(\*\*[^*]+\*\*|\[[^\]]+\]\([^)]+\))/g)) {
+      if (!part) continue;
+      const link = /^\[([^\]]+)\]\(([^)]+)\)$/.exec(part);
+      if (link) {
+        children.push(
+          new ExternalHyperlink({
+            link: link[2],
+            children: [new TextRun({ text: link[1], size: 22, color: "0563C1", underline: {} })],
+          }),
+        );
+      } else if (/^\*\*/.test(part)) {
+        children.push(new TextRun({ text: part.slice(2, -2), bold: true, size: 22 }));
+      } else {
+        children.push(new TextRun({ text: part, size: 22 }));
+      }
+    }
+    return children;
+  }
 
   const paragraphs: InstanceType<typeof Paragraph>[] = [];
 
@@ -172,23 +204,19 @@ async function exportDOCX(report: GeneratedReport) {
     } else if (/^[*-] /.test(line)) {
       paragraphs.push(
         new Paragraph({
-          text: line.slice(2),
+          children: inlineChildren(line.slice(2)),
           bullet: { level: 0 },
           spacing: { after: 80 },
         })
       );
     } else {
-      // Handle inline bold **text**
-      const runs: InstanceType<typeof TextRun>[] = [];
-      const parts = line.split(/(\*\*[^*]+\*\*)/g);
-      for (const part of parts) {
-        if (/^\*\*/.test(part)) {
-          runs.push(new TextRun({ text: part.slice(2, -2), bold: true, size: 22 }));
-        } else {
-          runs.push(new TextRun({ text: part, size: 22 }));
-        }
-      }
-      paragraphs.push(new Paragraph({ children: runs, spacing: { after: 100 }, alignment: AlignmentType.JUSTIFIED }));
+      paragraphs.push(
+        new Paragraph({
+          children: inlineChildren(line),
+          spacing: { after: 100 },
+          alignment: AlignmentType.JUSTIFIED,
+        })
+      );
     }
   }
 

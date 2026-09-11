@@ -6,12 +6,24 @@ import { taskCode, projectPrefix } from "@/lib/task-code";
 import { runTextCompletion, type AiProvider } from "@/lib/ai";
 import { listComments } from "@/lib/comments";
 import { listTimeEntries, totalElapsedMs } from "@/lib/time-entries";
+import {
+  parseReportPeriod,
+  isWithin,
+  plainCommentBody,
+  truncate,
+  linksInText,
+  dedupeDeliverables,
+  hostOf,
+  type Deliverable,
+} from "@/lib/reports";
 
 export interface ReportHeader {
   projectName?: string;
   itemName: string;
   itemCode?: string;
   reportDate: string;
+  /** Solo en los informes acotados a un rango: «7 al 9 de septiembre de 2026». */
+  period?: string;
   projectManager?: string;
   responsible?: string;
   client?: string;
@@ -159,9 +171,36 @@ const projectStatusLabel: Record<string, string> = {
   PAUSADO: "Pausado",
 };
 
+export interface ProjectReportOptions {
+  includeAssignees: boolean;
+  extraInstructions: string;
+  /** «YYYY-MM-DD», inclusive. Acota el informe a un periodo. */
+  from?: string;
+  /** «YYYY-MM-DD», inclusive. */
+  to?: string;
+  /** Pasar el hilo de comentarios (sin notas internas) como contexto. */
+  includeComments?: boolean;
+}
+
+/** Comentario visible para el cliente, reducido a lo que el informe usa. */
+type ReportComment = {
+  entityId: string;
+  body: string;
+  createdAt: Date;
+  attachmentUrl: string | null;
+  attachmentName: string | null;
+  author: { name: string };
+  attachments: { type: string; url: string; name: string | null }[];
+};
+
+/** Tope de tareas que se leen del proyecto antes de acotar por periodo. */
+const MAX_TASKS = 500;
+/** Tope de comentarios por tarea que entran al contexto. */
+const MAX_COMMENTS_PER_TASK = 12;
+
 export async function generateProjectReport(
   projectId: string,
-  options: { includeAssignees: boolean; extraInstructions: string },
+  options: ProjectReportOptions,
   provider: AiProvider = "gemini",
 ): Promise<{ error?: string; report?: GeneratedReport }> {
   const session = await getRequiredSession();
@@ -174,10 +213,10 @@ export async function generateProjectReport(
       manager: { select: { name: true } },
       createdBy: { select: { name: true } },
       tasks: {
-        take: 200,
-        include: {
-          assignedTo: { select: { name: true } },
-        },
+        // Un borrador no es trabajo que se le pueda contar al cliente.
+        where: { isDraft: false },
+        take: MAX_TASKS,
+        include: { assignedTo: { select: { name: true } } },
         orderBy: { createdAt: "asc" },
       },
     },
@@ -185,76 +224,244 @@ export async function generateProjectReport(
 
   if (!project) return { error: "Proyecto no encontrado" };
 
-  const totalTasks = project.tasks.length;
-  const completedTasks = project.tasks.filter((t) => t.status === "COMPLETADO").length;
-  const progressPct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+  const period = parseReportPeriod(options.from, options.to, project.startDate ?? project.createdAt);
+  const allTasks = project.tasks;
+  const taskIds = allTasks.map((t) => t.id);
+  const wantsComments = options.includeComments !== false;
+
+  // ── Contexto de las tareas ──────────────────────────────────────────────────
+  // Comentarios, adjuntos y cierres viven en las tablas compartidas: ninguno
+  // cuelga ya de la relación directa con `tasks`.
+
+  // Se leen incluso con los comentarios desactivados: con periodo, un
+  // comentario es la señal de que la tarea tuvo movimiento esa semana. Lo que
+  // la casilla decide es si su texto entra al informe, no si cuenta para el
+  // alcance.
+  const comments: ReportComment[] =
+    (wantsComments || period) && taskIds.length > 0
+      ? await prisma.comment.findMany({
+          where: {
+            entityType: "TASK",
+            entityId: { in: taskIds },
+            // El informe es para el cliente: las notas internas no salen.
+            isInternal: false,
+            ...(period ? { createdAt: { gte: period.from, lte: period.to } } : {}),
+          },
+          select: {
+            entityId: true,
+            body: true,
+            createdAt: true,
+            attachmentUrl: true,
+            attachmentName: true,
+            author: { select: { name: true } },
+            attachments: { select: { type: true, url: true, name: true } },
+          },
+          // Descendente y luego al revés: si un proyecto largo pasa del tope,
+          // lo que se pierde es lo viejo, no lo que se acaba de hacer.
+          orderBy: { createdAt: "desc" },
+          take: 800,
+        })
+      : [];
+
+  const commentsByTask = new Map<string, ReportComment[]>();
+  for (const c of comments.reverse()) {
+    const list = commentsByTask.get(c.entityId) ?? [];
+    list.push(c);
+    commentsByTask.set(c.entityId, list);
+  }
+
+  const attachments =
+    taskIds.length > 0
+      ? await prisma.attachment.findMany({
+          where: { entityType: "TASK", entityId: { in: taskIds } },
+          select: { entityId: true, fileName: true, fileUrl: true, createdAt: true },
+          orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+          take: 500,
+        })
+      : [];
+
+  type ReportAttachment = (typeof attachments)[number];
+  const attachmentsByTask = new Map<string, ReportAttachment[]>();
+  for (const a of attachments) {
+    const list = attachmentsByTask.get(a.entityId) ?? [];
+    list.push(a);
+    attachmentsByTask.set(a.entityId, list);
+  }
+
+  // Qué se cerró dentro del periodo. El historial lo sabe con exactitud;
+  // `updatedAt` es el recurso para lo completado antes de que existiera.
+  const closedInPeriod = new Set<string>();
+  if (period && taskIds.length > 0) {
+    const logs = await prisma.activityLog.findMany({
+      where: {
+        entityType: "TASK",
+        entityId: { in: taskIds },
+        action: "task.completed",
+        createdAt: { gte: period.from, lte: period.to },
+      },
+      select: { entityId: true },
+    });
+    for (const l of logs) closedInPeriod.add(l.entityId);
+    for (const t of allTasks) {
+      if (t.status === "COMPLETADO" && isWithin(t.updatedAt, period)) closedInPeriod.add(t.id);
+    }
+  }
+
+  // ── Alcance ─────────────────────────────────────────────────────────────────
+  // Una tarea entra en un informe de periodo si se cerró dentro, si nació
+  // dentro, si su ventana de trabajo lo cruza o si tuvo movimiento (un
+  // comentario, un entregable). Lo demás no existe para este informe.
+
+  const tasks = period
+    ? allTasks.filter((t) => {
+        if (closedInPeriod.has(t.id)) return true;
+        if (isWithin(t.createdAt, period)) return true;
+        if (isWithin(t.startDate, period) || isWithin(t.dueDate, period)) return true;
+        if (t.startDate && t.dueDate && t.startDate <= period.to && t.dueDate >= period.from) return true;
+        if ((commentsByTask.get(t.id)?.length ?? 0) > 0) return true;
+        return (attachmentsByTask.get(t.id) ?? []).some((a) => isWithin(a.createdAt, period));
+      })
+    : allTasks;
+
+  if (period && tasks.length === 0) {
+    return { error: `No hay tareas con actividad entre el ${period.label}.` };
+  }
+
   const prefix = projectPrefix(project.name);
+  const completed = period
+    ? tasks.filter((t) => closedInPeriod.has(t.id)).length
+    : tasks.filter((t) => t.status === "COMPLETADO").length;
 
   const header: ReportHeader = {
     itemName: project.name,
     itemCode: prefix,
     reportDate: today(),
+    period: period?.label,
     projectManager: project.manager?.name ?? "Sin responsable",
     client: project.company?.name,
     status: projectStatusLabel[project.status] ?? project.status,
-    progress: `${progressPct}% (${completedTasks}/${totalTasks} tareas completadas)`,
+    // Con periodo, el avance es el del periodo: un porcentaje global aquí es
+    // justo el dato que un informe de sprint no debe dar.
+    progress: period
+      ? `${completed} de ${tasks.length} tareas del periodo finalizadas`
+      : `${tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0}% (${completed}/${tasks.length} tareas completadas)`,
   };
 
-  // Build context
+  // ── Bloque de datos ─────────────────────────────────────────────────────────
+
   let ctx = `**Proyecto:** ${project.name}
-**Estado:** ${header.status}
-**Progreso:** ${header.progress}
-**Responsable:** ${header.projectManager}${project.company ? `\n**Empresa:** ${project.company.name}` : ""}
+**Estado del proyecto:** ${header.status}
+**Responsable:** ${header.projectManager}${project.company ? `\n**Empresa cliente:** ${project.company.name}` : ""}
 **Fecha de inicio:** ${project.startDate ? project.startDate.toLocaleDateString("es-CO") : "No definida"}
 **Fecha límite:** ${project.dueDate ? project.dueDate.toLocaleDateString("es-CO") : "No definida"}
-**Creado el:** ${project.createdAt.toLocaleDateString("es-CO")}
 
 **Descripción:**
 ${project.description}`;
 
-  // Task summary by status
   const byStatus: Record<string, number> = {};
-  for (const t of project.tasks) {
-    byStatus[t.status] = (byStatus[t.status] ?? 0) + 1;
-  }
+  for (const t of tasks) byStatus[t.status] = (byStatus[t.status] ?? 0) + 1;
   const statusSummary = Object.entries(byStatus)
     .map(([s, n]) => `${statusLabel[s] ?? s}: ${n}`)
     .join(", ");
-  if (totalTasks > 0) {
-    ctx += `\n\n**Resumen de tareas (${totalTasks} en total):** ${statusSummary}`;
-  }
 
-  // Task list with dates (and optionally assignees)
-  if (project.tasks.length > 0) {
-    ctx += `\n\n**Listado de tareas:**`;
-    for (const t of project.tasks) {
-      const code = t.number > 0 ? taskCode(project.name, t.number) : "";
-      const assignee = options.includeAssignees && t.assignedTo ? ` — Encargado: ${t.assignedTo.name}` : "";
-      const start = t.startDate ? ` | Inicio: ${t.startDate.toLocaleDateString("es-CO")}` : "";
-      const due = t.dueDate ? ` | Vence: ${t.dueDate.toLocaleDateString("es-CO")}` : "";
-      const st = statusLabel[t.status] ?? t.status;
-      ctx += `\n- ${code ? `[${code}] ` : ""}${t.title} — ${st}${start}${due}${assignee}`;
+  ctx += period
+    ? `\n\n**Tareas del periodo ${period.label} (${tasks.length} en total — son TODAS las que existen para este informe):** ${statusSummary}`
+    : `\n\n**Resumen de tareas (${tasks.length} en total):** ${statusSummary}`;
+
+  const allDeliverables: Deliverable[] = [];
+
+  ctx += `\n\n**Detalle de las tareas:**`;
+  for (const t of tasks) {
+    const code = t.number > 0 ? taskCode(project.name, t.number) : "";
+    const assignee = options.includeAssignees && t.assignedTo ? ` | Encargado: ${t.assignedTo.name}` : "";
+    const start = t.startDate ? ` | Inicio: ${t.startDate.toLocaleDateString("es-CO")}` : "";
+    const due = t.dueDate ? ` | Vence: ${t.dueDate.toLocaleDateString("es-CO")}` : "";
+    const closed = period && closedInPeriod.has(t.id) ? " | FINALIZADA EN EL PERIODO" : "";
+    const st = statusLabel[t.status] ?? t.status;
+
+    ctx += `\n\n- ${code ? `[${code}] ` : ""}${t.title} — ${st}${start}${due}${assignee}${closed}`;
+    if (t.description) ctx += `\n  Descripción: ${truncate(t.description, 400)}`;
+
+    // Entregables de la tarea: adjuntos de la ficha, adjuntos de los
+    // comentarios y los enlaces que alguien pegó escribiendo.
+    const taskComments = wantsComments
+      ? (commentsByTask.get(t.id) ?? []).slice(-MAX_COMMENTS_PER_TASK)
+      : [];
+    const deliverables = dedupeDeliverables([
+      ...(attachmentsByTask.get(t.id) ?? []).map((a) => ({ name: a.fileName, url: a.fileUrl })),
+      ...taskComments.flatMap((c) => [
+        ...c.attachments.map((a) => ({ name: a.name ?? hostOf(a.url), url: a.url })),
+        ...(c.attachmentUrl ? [{ name: c.attachmentName ?? hostOf(c.attachmentUrl), url: c.attachmentUrl }] : []),
+        ...linksInText(c.body).map((url) => ({ name: hostOf(url), url })),
+      ]),
+    ]);
+
+    if (taskComments.length > 0) {
+      ctx += `\n  Comentarios del equipo:`;
+      for (const c of taskComments) {
+        ctx += `\n    · ${c.createdAt.toLocaleDateString("es-CO")} — ${c.author.name}: ${truncate(plainCommentBody(c.body), 500)}`;
+      }
+    }
+
+    if (deliverables.length > 0) {
+      ctx += `\n  Entregables de la tarea:`;
+      for (const d of deliverables) ctx += `\n    · ${d.name} → ${d.url}`;
+      allDeliverables.push(...deliverables);
     }
   }
 
-  const extraBlock = options.extraInstructions.trim()
-    ? `\n\nInstrucciones adicionales del solicitante:\n${options.extraInstructions.trim()}`
+  // ── Prompt ──────────────────────────────────────────────────────────────────
+  // El orden importa: primero lo que no se puede romper, al final el
+  // recordatorio. Las instrucciones del solicitante iban antes al fondo del
+  // prompt, donde el modelo las trataba como una sugerencia más.
+
+  const scopeBlock = period
+    ? `## ALCANCE OBLIGATORIO — LÉELO ANTES QUE NADA
+Este informe cubre EXCLUSIVAMENTE el periodo del ${period.label}.
+El bloque de datos ya viene filtrado: las ${tasks.length} tareas que aparecen ahí son las únicas que existen para este informe.
+
+Reglas que no puedes romper:
+- No menciones, enumeres, resumas ni cuentes ninguna tarea que no esté en el bloque de datos.
+- No des el total de tareas del proyecto, ni un porcentaje de avance global, ni hables de lo que quedó fuera del periodo. No tienes ese dato y no debes estimarlo.
+- Todo conteo, porcentaje y comparación se calcula solo sobre esas ${tasks.length} tareas.
+- Las marcadas como «FINALIZADA EN EL PERIODO» son las que se cerraron dentro del rango: son el resultado del periodo.
+- No inventes tareas, fechas, entregables ni avances que no estén en los datos.
+
+`
     : "";
 
+  const extraBlock = options.extraInstructions.trim()
+    ? `## INSTRUCCIONES DEL SOLICITANTE — PRIORIDAD MÁXIMA
+Mandan sobre la estructura sugerida de más abajo. Si algo se contradice, gana esto:
+${options.extraInstructions.trim()}
+
+`
+    : "";
+
+  const deliverablesSection =
+    allDeliverables.length > 0
+      ? `\n5. **Entregables** — lista los archivos y enlaces entregados en formato markdown [nombre](url), agrupados por tarea. Copia las URL tal cual aparecen en los datos, sin modificarlas ni inventar ninguna.`
+      : `\n5. **Entregables** — indica que en este ${period ? "periodo" : "proyecto"} no se registraron entregables adjuntos.`;
+
   const prompt = `Eres un asistente profesional de gestión de proyectos en la agencia Geniorama.
-Genera un informe ejecutivo detallado sobre el siguiente proyecto.
+Redactas un informe de avance DIRIGIDO AL CLIENTE: tono profesional y cercano, enfocado en el progreso y en el valor entregado. Nada de jerga interna, discusiones del equipo ni detalles técnicos que el cliente no necesite.
 
-El informe debe incluir:
-1. **Resumen ejecutivo** — descripción general del proyecto y su propósito
-2. **Estado y avance** — análisis del porcentaje de avance y estado actual con base en las tareas
-3. **Cronograma** — análisis de fechas clave (inicio, vencimiento, tareas próximas a vencer o vencidas)
-4. **Desglose de tareas** — análisis de las tareas por estado y prioridad${options.includeAssignees ? ", incluyendo los encargados" : ""}
-5. **Conclusiones y próximos pasos** — recomendaciones concretas para avanzar el proyecto
+${scopeBlock}${extraBlock}## ESTRUCTURA SUGERIDA
+1. **Resumen ejecutivo** — qué se trabajó${period ? ` entre el ${period.label}` : " en el proyecto"} y qué significa para el cliente
+2. **Avance y resultados** — lo que se completó, apoyado en los comentarios del equipo
+3. **Trabajo en curso** — lo que quedó abierto y en qué punto está
+4. **Cronología** — los hitos con sus fechas, para dar trazabilidad${deliverablesSection}
+6. **Conclusiones y próximos pasos** — recomendaciones concretas
 
-Redacta en español formal, de forma clara y estructurada. Usa markdown.${extraBlock}
+Los comentarios del equipo son la fuente para explicar QUÉ se hizo realmente en cada tarea: úsalos, no te quedes en el título y el estado.
+Redacta en español, en markdown, de forma clara y estructurada.
 
 ---
-${ctx}`;
+DATOS DEL INFORME
+---
+${ctx}
+---
+${period ? `RECORDATORIO FINAL: el informe habla únicamente del ${period.label} y de las ${tasks.length} tareas listadas arriba. Cualquier otra tarea del proyecto queda fuera.` : ""}`;
 
   try {
     const body = await callAi(prompt, provider);
@@ -263,6 +470,7 @@ ${ctx}`;
     return { error: "Error al generar el informe con IA." };
   }
 }
+
 
 // ─── Ticket ───────────────────────────────────────────────────────────────────
 
