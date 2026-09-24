@@ -9,6 +9,40 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.102.0] — 2026-09-24
+
+### Herramientas de IA para clientes, según su plan
+
+El diagnóstico y los informes con IA eran solo del equipo. Ahora un cliente
+también puede usarlos en sus fichas si su plan lo incluye:
+
+- **En el plan**, una casilla nueva: **Herramientas de IA**, desactivada por
+  defecto. El listado de planes marca con «IA» los que la tienen.
+- **El cliente con IA en su plan** ve el panel **Herramientas IA**: el
+  diagnóstico y el informe en sus tickets, el informe en las tareas que puede
+  abrir y el informe del proyecto. Sin selector de proveedor: usa OpenAI.
+- **El cliente sin IA en su plan** ve el panel bloqueado, con qué ofrece y la
+  invitación a contactar con su agente para activarlo.
+
+**Lo que ve la IA cuando pregunta un cliente.** Lo que entra al prompt puede
+salir citado en la respuesta, así que se recorta a lo que el cliente ya ve en
+pantalla:
+
+- El diagnóstico **no** recibe la documentación ni la arquitectura del sitio.
+- El informe de tarea **no** recibe las notas internas ni el desglose de horas
+  por persona; solo el total.
+- Los informes de ticket y de proyecto ya dejaban fuera las notas internas.
+
+**Control en el servidor.** Cada acción de IA comprueba dos cosas antes de
+llamar al modelo: que el plan vigente del cliente incluya la función y que el
+cliente pueda ver esa ficha concreta (las mismas reglas que las páginas). La
+regla de acceso de un cliente a un proyecto, que solo vivía dentro de su
+página, pasa a `lib/project-access.ts` para que página y acción usen la misma.
+
+El equipo sigue teniendo las herramientas siempre, con su selector
+OpenAI/Gemini. La migración añade una columna con `false` por defecto: ningún
+cliente gana acceso hasta que se active en su plan.
+
 ## [1.101.0] — 2026-09-24
 
 ### El proyecto, con el mismo orden que el ticket y la tarea

@@ -11,12 +11,20 @@ export async function getClientActivePlan(userId: string) {
   return (await getClientActivePlans(userId))[0] ?? null;
 }
 
+/** Funciones que un plan habilita a los clientes de su empresa. */
+export type PlanFeature = "prioritySupport" | "aiTools";
+
 /**
- * ¿Puede el cliente usar los links de agendamiento prioritarios? Basta con que
- * uno de sus planes vigentes —activo, sin caducar y con horas— lo incluya.
+ * ¿Tiene el cliente esta función? Basta con que uno de sus planes vigentes
+ * —activo, sin caducar y con horas— la incluya.
  */
+export async function clientHasPlanFeature(userId: string, feature: PlanFeature): Promise<boolean> {
+  return (await getClientActivePlans(userId)).some((p) => p[feature]);
+}
+
+/** ¿Puede el cliente usar los links de agendamiento prioritarios? */
 export async function clientHasPrioritySupport(userId: string): Promise<boolean> {
-  return (await getClientActivePlans(userId)).some((p) => p.prioritySupport);
+  return clientHasPlanFeature(userId, "prioritySupport");
 }
 
 /** Todos los planes vigentes del cliente, en el orden en que se evalúan. */
@@ -38,6 +46,7 @@ async function getClientActivePlans(userId: string) {
               expiresAt: true,
               isActive: true,
               prioritySupport: true,
+              aiTools: true,
             },
           },
         },

@@ -8,7 +8,8 @@ import { ProjectDetail } from "@/components/projects/project-detail";
 import { ActivityPanel } from "@/components/ui/activity-panel";
 import { BackButton } from "@/components/ui/back-button";
 import { CollaboratorSchedulingCard } from "@/components/collaborator/collaborator-scheduling-card";
-import { clientHasPrioritySupport } from "@/lib/plans.server";
+import { clientHasPrioritySupport, clientHasPlanFeature } from "@/lib/plans.server";
+import { canClientAccessProject } from "@/lib/project-access";
 import { withCommentCounts } from "@/lib/comments";
 import { listAttachments } from "@/lib/attachments";
 
@@ -105,14 +106,9 @@ export default async function ProjectPage({
       project.tasks.some((t) => t.assignedToId === userId);
     if (!hasAccess) notFound();
   } else {
-    // CLIENTE proyecto público: debe pertenecer a la empresa del proyecto
-    if (!project.companyId) notFound();
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { companies: { select: { id: true } } },
-    });
-    const companyIds = (user?.companies ?? []).map((c) => c.id);
-    if (!companyIds.includes(project.companyId)) notFound();
+    // CLIENTE proyecto público: debe pertenecer a la empresa del proyecto.
+    // Misma regla que usa el informe con IA (lib/project-access).
+    if (!(await canClientAccessProject(projectId, userId))) notFound();
   }
 
   // El cliente enlaza al detalle solo de las tareas donde lo involucraron
@@ -145,6 +141,7 @@ export default async function ProjectPage({
         accessibleTaskIds={accessibleTaskIds}
         linkedVaultEntries={linkedVaultEntries}
         availableVaultEntries={availableVaultEntries}
+        clientAiTools={isClient && (await clientHasPlanFeature(userId, "aiTools"))}
         activitySlot={<ActivityPanel entityType="PROJECT" entityId={projectId} />}
         schedulingSlot={
           <CollaboratorSchedulingCard

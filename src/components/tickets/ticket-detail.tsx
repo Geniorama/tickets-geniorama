@@ -34,7 +34,7 @@ import { summarizeTime } from "@/lib/time-summary";
 import { toggleTicketCommentReaction } from "@/actions/reaction.actions";
 import type { ReactionType } from "@/generated/prisma";
 import { ReportGenerator } from "@/components/ui/report-generator";
-import { AiToolsPanel } from "@/components/ui/ai-tools-panel";
+import { AiToolsPanel, AiToolsLocked } from "@/components/ui/ai-tools-panel";
 import { generateTicketReport } from "@/actions/report.actions";
 
 type TicketWithDetails = Ticket & {
@@ -80,6 +80,7 @@ export function TicketDetail({
   checklistItemCount = 0,
   checklistCheckedCount = 0,
   schedulingSlot,
+  clientAiTools = false,
   canManage = false,
 }: {
   ticket: TicketWithDetails;
@@ -99,6 +100,8 @@ export function TicketDetail({
   checklistCheckedCount?: number;
   /** Agendar una llamada con el agente. Llega del servidor; puede no renderizar nada. */
   schedulingSlot?: React.ReactNode;
+  /** Cliente cuyo plan incluye las herramientas de IA. Al equipo no le aplica. */
+  clientAiTools?: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -433,8 +436,9 @@ export function TicketDetail({
 
         {/* ── Right column ── */}
         <div className="space-y-6">
-          {staff && (
-            <AiToolsPanel>
+          {/* Herramientas IA: el equipo siempre; el cliente, si su plan las incluye */}
+          {staff || clientAiTools ? (
+            <AiToolsPanel showProviderToggle={staff}>
               {(provider, busy) => (
                 <>
                   <TicketAiAssistant ticketId={ticket.id} provider={provider} onBusy={busy} />
@@ -448,6 +452,8 @@ export function TicketDetail({
                 </>
               )}
             </AiToolsPanel>
+          ) : (
+            <AiToolsLocked tools={["Diagnóstico", "informe"]} />
           )}
 
           {/* Junto a la conversación: es la otra forma de hablar con el agente */}

@@ -572,6 +572,9 @@ model Plan {
   // Habilita a los clientes de la empresa los links de agendamiento marcados
   // como prioritarios. Sin él, esos links se les muestran bloqueados.
   prioritySupport Boolean @default(false) @map("priority_support")
+  // Habilita a los clientes de la empresa las herramientas de IA de sus fichas
+  // (diagnóstico e informes). El equipo las tiene siempre.
+  aiTools Boolean @default(false) @map("ai_tools")
 
   companyId String  @map("company_id")
   company   Company @relation(fields: [companyId], references: [id])

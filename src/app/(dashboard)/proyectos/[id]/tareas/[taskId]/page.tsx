@@ -15,6 +15,7 @@ import { listAttachments } from "@/lib/attachments";
 import { listChecklists } from "@/lib/checklists";
 import { listTimeEntries } from "@/lib/time-entries";
 import type { InfoTab } from "@/components/ui/info-tabs";
+import { clientHasPlanFeature } from "@/lib/plans.server";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const { taskId } = await params;
@@ -169,6 +170,7 @@ export default async function TaskPage({
         checklistItemCount={checklists.reduce((n, c) => n + c.items.length, 0)}
         checklistCheckedCount={checklists.reduce((n, c) => n + c.items.filter((i) => i.isChecked).length, 0)}
         projectTabs={projectTabs}
+        clientAiTools={client && (await clientHasPlanFeature(userId, "aiTools"))}
       />
     </div>
   );

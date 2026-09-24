@@ -1,7 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
+import { getRequiredSession } from "@/lib/auth-helpers";
+import { authorizeAiTool } from "@/lib/ai-access";
 import { taskCode, projectPrefix } from "@/lib/task-code";
 import {
   runTextCompletion,
@@ -70,7 +71,9 @@ async function callAi(prompt: string, provider: AiProvider): Promise<string> {
 
 export async function generateTaskReport(taskId: string, provider: AiProvider = DEFAULT_AI_PROVIDER): Promise<{ error?: string; report?: GeneratedReport }> {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  // Equipo, o cliente con IA en su plan y acceso a esta ficha
+  const access = await authorizeAiTool(session.user, { type: "TASK", id: taskId });
+  if ("error" in access) return { error: access.error };
   provider = resolveProvider(provider);
   const cfgErr = providerConfigError(provider);
   if (cfgErr) return { error: cfgErr };
@@ -92,9 +95,10 @@ export async function generateTaskReport(taskId: string, provider: AiProvider = 
 
   if (!task) return { error: "Tarea no encontrada" };
 
-  // Los comentarios viven en la tabla compartida, fuera de la relación.
+  // Los comentarios viven en la tabla compartida, fuera de la relación. Las
+  // notas internas solo entran cuando el informe lo pide el equipo.
   const comments = (
-    await listComments({ entityType: "TASK", entityId: taskId, includeInternal: true })
+    await listComments({ entityType: "TASK", entityId: taskId, includeInternal: !access.client })
   ).slice(0, 100);
 
   // El tiempo vive en la tabla compartida, fuera de la relación.
@@ -138,11 +142,14 @@ ${task.description}`;
   if (timeEntries.length > 0) {
     const totalMinutes = Math.round(totalElapsedMs(timeEntries) / 60000);
     ctx += `\n\n**Tiempo registrado:** ${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
-    ctx += `\n**Entradas de tiempo:**`;
-    for (const e of timeEntries) {
-      if (!e.stoppedAt) continue;
-      const mins = Math.round((e.stoppedAt.getTime() - e.startedAt.getTime()) / 60000);
-      ctx += `\n- ${e.startedAt.toLocaleDateString("es-CO")} — ${e.user.name}: ${Math.floor(mins / 60)}h ${mins % 60}m`;
+    // El desglose por persona es del equipo; al cliente le basta el total
+    if (!access.client) {
+      ctx += `\n**Entradas de tiempo:**`;
+      for (const e of timeEntries) {
+        if (!e.stoppedAt) continue;
+        const mins = Math.round((e.stoppedAt.getTime() - e.startedAt.getTime()) / 60000);
+        ctx += `\n- ${e.startedAt.toLocaleDateString("es-CO")} — ${e.user.name}: ${Math.floor(mins / 60)}h ${mins % 60}m`;
+      }
     }
   }
 
@@ -213,7 +220,9 @@ export async function generateProjectReport(
   provider: AiProvider = DEFAULT_AI_PROVIDER,
 ): Promise<{ error?: string; report?: GeneratedReport }> {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  // Equipo, o cliente con IA en su plan y acceso a esta ficha
+  const access = await authorizeAiTool(session.user, { type: "PROJECT", id: projectId });
+  if ("error" in access) return { error: access.error };
   provider = resolveProvider(provider);
   const cfgErr = providerConfigError(provider);
   if (cfgErr) return { error: cfgErr };
@@ -488,7 +497,9 @@ ${period ? `RECORDATORIO FINAL: el informe habla únicamente del ${period.label}
 
 export async function generateTicketReport(ticketId: string, provider: AiProvider = DEFAULT_AI_PROVIDER): Promise<{ error?: string; report?: GeneratedReport }> {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  // Equipo, o cliente con IA en su plan y acceso a esta ficha
+  const access = await authorizeAiTool(session.user, { type: "TICKET", id: ticketId });
+  if ("error" in access) return { error: access.error };
   provider = resolveProvider(provider);
   const cfgErr = providerConfigError(provider);
   if (cfgErr) return { error: cfgErr };

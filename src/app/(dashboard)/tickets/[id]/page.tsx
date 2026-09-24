@@ -9,7 +9,7 @@ import { BackButton } from "@/components/ui/back-button";
 import { TicketChecklistPanel } from "@/components/ui/checklist-panel";
 import { ActivityPanel } from "@/components/ui/activity-panel";
 import { CollaboratorSchedulingCard } from "@/components/collaborator/collaborator-scheduling-card";
-import { getClientActivePlan, clientHasPrioritySupport } from "@/lib/plans.server";
+import { getClientActivePlan, clientHasPrioritySupport, clientHasPlanFeature } from "@/lib/plans.server";
 import { listComments } from "@/lib/comments";
 import { listAttachments } from "@/lib/attachments";
 import { listChecklists } from "@/lib/checklists";
@@ -116,6 +116,7 @@ export default async function TicketPage({
     ? true
     : (await getClientActivePlan(userId)) !== null;
   const priorityUnlocked = staff || (await clientHasPrioritySupport(userId));
+  const clientAiTools = !staff && (await clientHasPlanFeature(userId, "aiTools"));
 
   return (
     <div>
@@ -141,6 +142,7 @@ export default async function TicketPage({
         canManage={canManage}
         checklistItemCount={checklists.reduce((n, c) => n + c.items.length, 0)}
         checklistCheckedCount={checklists.reduce((n, c) => n + c.items.filter((i) => i.isChecked).length, 0)}
+        clientAiTools={clientAiTools}
         schedulingSlot={
           supportSchedulingAvailable ? (
             <CollaboratorSchedulingCard

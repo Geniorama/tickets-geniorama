@@ -78,7 +78,14 @@ const checkboxLabelStyle: React.CSSProperties = {
   userSelect: "none",
 };
 
-export function ProjectReportGenerator({ projectId }: { projectId: string }) {
+export function ProjectReportGenerator({
+  projectId,
+  showProviderToggle = true,
+}: {
+  projectId: string;
+  /** El cliente no elige proveedor: usa el principal. */
+  showProviderToggle?: boolean;
+}) {
   const [includeAssignees, setIncludeAssignees] = useState(true);
   const [includeComments, setIncludeComments] = useState(true);
   const [extraInstructions, setExtraInstructions] = useState("");
@@ -91,7 +98,7 @@ export function ProjectReportGenerator({ projectId }: { projectId: string }) {
   }
 
   return (
-    <AiToolsPanel>
+    <AiToolsPanel showProviderToggle={showProviderToggle}>
       {(provider, busy) => (
         <ReportGenerator
           label="Informe del proyecto"

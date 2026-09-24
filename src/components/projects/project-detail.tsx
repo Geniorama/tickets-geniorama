@@ -16,6 +16,7 @@ import { ProjectAttachmentsPanel } from "@/components/projects/project-attachmen
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { ProjectReportGenerator } from "@/components/projects/project-report-generator";
 import { InfoTabs, type InfoTab } from "@/components/ui/info-tabs";
+import { AiToolsLocked } from "@/components/ui/ai-tools-panel";
 
 type TaskWithRelations = Task & {
   assignedTo: { name: string } | null;
@@ -56,6 +57,7 @@ export function ProjectDetail({
   availableVaultEntries = [],
   activitySlot,
   schedulingSlot,
+  clientAiTools = false,
 }: {
   project: ProjectWithDetails;
   view: ViewType;
@@ -70,6 +72,8 @@ export function ProjectDetail({
   activitySlot?: React.ReactNode;
   /** Agendar con el responsable. Llega del servidor; puede no renderizar nada. */
   schedulingSlot?: React.ReactNode;
+  /** Cliente cuyo plan incluye las herramientas de IA. Al equipo no le aplica. */
+  clientAiTools?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -377,8 +381,14 @@ export function ProjectDetail({
         <InfoTabs tabs={infoTabs} />
 
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-          {/* Herramientas IA — solo staff/admin */}
-          {(isStaff || isAdmin) && <ProjectReportGenerator projectId={project.id} />}
+          {/* Herramientas IA — el equipo siempre; el cliente, si su plan las incluye */}
+          {isStaff || isAdmin ? (
+            <ProjectReportGenerator projectId={project.id} />
+          ) : clientAiTools ? (
+            <ProjectReportGenerator projectId={project.id} showProviderToggle={false} />
+          ) : (
+            <AiToolsLocked tools={["Informe del proyecto"]} />
+          )}
           {schedulingSlot}
           {activitySlot}
         </div>

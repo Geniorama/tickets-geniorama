@@ -1,7 +1,8 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
+import { getRequiredSession } from "@/lib/auth-helpers";
+import { authorizeAiTool } from "@/lib/ai-access";
 import {
   type AiProvider,
   resolveProvider,
@@ -16,7 +17,9 @@ export async function getTicketDiagnosis(
   provider: AiProvider = DEFAULT_AI_PROVIDER
 ) {
   const session = await getRequiredSession();
-  if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  // Equipo, o cliente con IA en su plan y acceso a este ticket
+  const access = await authorizeAiTool(session.user, { type: "TICKET", id: ticketId });
+  if ("error" in access) return { error: access.error };
 
   provider = resolveProvider(provider);
   const cfgErr = providerConfigError(provider);
@@ -67,10 +70,12 @@ ${ticket.description}
 
   if (ticket.site) {
     prompt += `\n---\n**Sitio/app afectado:** ${ticket.site.name} (${ticket.site.domain})\n`;
-    if (ticket.site.documentation) {
+    // La documentación y la arquitectura del sitio son internas: en la ficha
+    // solo las ve el equipo, y lo que entra al prompt puede salir citado.
+    if (!access.client && ticket.site.documentation) {
       prompt += `\n**Documentación del sitio:**\n${ticket.site.documentation}\n`;
     }
-    if (ticket.site.architecture) {
+    if (!access.client && ticket.site.architecture) {
       prompt += `\n**Arquitectura:**\n${ticket.site.architecture}\n`;
     }
   }

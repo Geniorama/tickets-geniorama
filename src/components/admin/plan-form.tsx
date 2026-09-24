@@ -174,6 +174,20 @@ export function PlanForm({ companies }: { companies: Company[] }) {
         </span>
       </label>
 
+      <label className="flex items-start gap-3 rounded-lg border border-gray-200 px-3 py-3 cursor-pointer">
+        <input
+          type="checkbox"
+          name="aiTools"
+          className="mt-0.5 text-indigo-600"
+        />
+        <span>
+          <span className="block text-sm font-medium text-gray-700">Herramientas de IA</span>
+          <span className="block text-xs text-gray-500 mt-0.5">
+            Los clientes de la empresa podrán pedir el diagnóstico y los informes con IA de sus tickets, tareas y proyectos. Sin esto, las ven bloqueadas con la invitación a activarlas.
+          </span>
+        </span>
+      </label>
+
       {error && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
           {error}
