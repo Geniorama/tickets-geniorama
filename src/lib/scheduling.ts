@@ -8,6 +8,8 @@ export interface SchedulingLinkData {
   description: string | null;
   url: string;
   category: SchedulingCategory;
+  /** Solo para clientes con soporte prioritario en su plan. */
+  isPriority: boolean;
 }
 
 export const SCHEDULING_CATEGORIES: SchedulingCategory[] = ["PROYECTOS", "SOPORTE"];
@@ -23,3 +25,13 @@ export const SCHEDULING_CATEGORY_SECTION: Record<SchedulingCategory, string> = {
   PROYECTOS: "Gestión de proyectos",
   SOPORTE: "Soporte",
 };
+
+/**
+ * Deja los links listos para quien mira: si no puede usar los prioritarios, se
+ * les quita la URL. La tarjeta ya no la pinta, pero así ni siquiera sale del
+ * servidor.
+ */
+export function linksForViewer<T extends SchedulingLinkData>(links: T[], priorityUnlocked: boolean): T[] {
+  if (priorityUnlocked) return links;
+  return links.map((l) => (l.isPriority ? { ...l, url: "" } : l));
+}

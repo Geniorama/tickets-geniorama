@@ -9,6 +9,31 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.100.0] — 2026-09-24
+
+### Agendamiento prioritario según el plan
+
+Hasta ahora cualquier cliente con un plan activo veía y podía usar todos los
+links de agendamiento del equipo. No había forma de reservar una franja —una
+llamada urgente, una revisión con el responsable— para quienes pagan por ese
+nivel de atención.
+
+- **En el plan**, una casilla nueva: **Soporte prioritario**, al crearlo y al
+  editarlo. El listado de planes marca con «Prioritario» los que lo incluyen.
+- **En los links de agendamiento**, administradores y colaboradores pueden
+  marcar cada link como **Prioritario** desde su perfil (o el admin, desde la
+  edición del usuario). Se ve con su etiqueta en la lista.
+- **El cliente** cuyo plan vigente incluye soporte prioritario agenda en esos
+  links con normalidad. El que no, **los ve pero bloqueados**: candado, borde
+  punteado y la invitación a ponerse en contacto con su agente para elevar su
+  plan. La URL de un link bloqueado no llega al navegador.
+
+Aplica en `/agendar` y en las tarjetas de agendamiento del ticket y del
+proyecto. El equipo siempre ve y usa todos los links.
+
+Los planes y links existentes quedan sin prioridad: nadie pierde acceso a lo
+que ya usaba. La migración solo añade dos columnas con valor por defecto.
+
 ## [1.99.0] — 2026-09-24
 
 ### OpenAI pasa a ser el proveedor principal de IA

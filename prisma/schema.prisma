@@ -569,6 +569,9 @@ model Plan {
   startedAt    DateTime  @default(now()) @map("started_at")
   expiresAt    DateTime? @map("expires_at")
   isActive     Boolean   @default(true) @map("is_active")
+  // Habilita a los clientes de la empresa los links de agendamiento marcados
+  // como prioritarios. Sin él, esos links se les muestran bloqueados.
+  prioritySupport Boolean @default(false) @map("priority_support")
 
   companyId String  @map("company_id")
   company   Company @relation(fields: [companyId], references: [id])
@@ -592,6 +595,8 @@ model SchedulingLink {
   url         String
   category    SchedulingLinkCategory
   position    Int                    @default(0)
+  // Solo lo pueden usar clientes con un plan de soporte prioritario vigente
+  isPriority  Boolean                @default(false) @map("is_priority")
 
   userId String @map("user_id")
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

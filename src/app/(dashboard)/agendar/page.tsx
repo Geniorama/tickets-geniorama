@@ -1,8 +1,8 @@
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
-import { getClientActivePlan } from "@/lib/plans.server";
+import { getClientActivePlan, clientHasPrioritySupport } from "@/lib/plans.server";
 import { SchedulingCard } from "@/components/collaborator/scheduling-card";
-import type { SchedulingLinkData, SchedulingCategory } from "@/lib/scheduling";
+import { linksForViewer, type SchedulingLinkData, type SchedulingCategory } from "@/lib/scheduling";
 import { CalendarClock, Lock } from "lucide-react";
 
 export const metadata = { title: "Agendar" };
@@ -23,11 +23,13 @@ function Section({
   description,
   people,
   category,
+  priorityUnlocked,
 }: {
   title: string;
   description: string;
   people: Collaborator[];
   category: SchedulingCategory;
+  priorityUnlocked: boolean;
 }) {
   return (
     <section style={{ marginBottom: "2.5rem" }}>
@@ -52,7 +54,8 @@ function Section({
               cargo={p.cargo}
               bio={p.bio}
               avatarUrl={p.avatarUrl}
-              links={p.schedulingLinks.filter((l) => l.category === category)}
+              links={linksForViewer(p.schedulingLinks.filter((l) => l.category === category), priorityUnlocked)}
+              priorityUnlocked={priorityUnlocked}
             />
           ))}
         </div>
@@ -67,6 +70,8 @@ export default async function AgendarPage() {
   // El agendamiento de soporte para clientes requiere un paquete (plan) activo.
   const isClient = session.user.role === "CLIENTE";
   const supportAvailable = !isClient || (await getClientActivePlan(session.user.id)) !== null;
+  // Los links prioritarios, solo con un plan que incluya soporte prioritario
+  const priorityUnlocked = !isClient || (await clientHasPrioritySupport(session.user.id));
 
   const collaboratorsRaw = await prisma.user.findMany({
     where: {
@@ -82,7 +87,7 @@ export default async function AgendarPage() {
       isProjectManager: true,
       isSupportAgent: true,
       schedulingLinks: {
-        select: { id: true, title: true, description: true, url: true, category: true },
+        select: { id: true, title: true, description: true, url: true, category: true, isPriority: true },
         orderBy: [{ category: "asc" }, { position: "asc" }],
       },
     },
@@ -108,6 +113,7 @@ export default async function AgendarPage() {
         description="Para temas relacionados con proyectos y tareas."
         people={managers}
         category="PROYECTOS"
+        priorityUnlocked={priorityUnlocked}
       />
 
       {supportAvailable ? (
@@ -116,6 +122,7 @@ export default async function AgendarPage() {
           description="Para temas relacionados con tickets y soporte."
           people={agents}
           category="SOPORTE"
+          priorityUnlocked={priorityUnlocked}
         />
       ) : (
         <section style={{ marginBottom: "2.5rem" }}>

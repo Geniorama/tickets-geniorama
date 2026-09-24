@@ -1,7 +1,7 @@
 import { CalendarClock } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { SchedulingCard } from "./scheduling-card";
-import type { SchedulingLinkData, SchedulingCategory } from "@/lib/scheduling";
+import { linksForViewer, type SchedulingLinkData, type SchedulingCategory } from "@/lib/scheduling";
 
 // Tarjeta de agendamiento embebida en el detalle de proyecto (gestor) o de ticket
 // (agente). Consulta al usuario y solo se muestra si está activo, tiene la designación
@@ -10,10 +10,13 @@ export async function CollaboratorSchedulingCard({
   userId,
   category,
   heading,
+  priorityUnlocked,
 }: {
   userId: string | null | undefined;
   category: SchedulingCategory;
   heading: string;
+  /** ¿Puede quien mira usar los links prioritarios? (staff siempre; cliente según su plan) */
+  priorityUnlocked: boolean;
 }) {
   if (!userId) return null;
 
@@ -29,7 +32,7 @@ export async function CollaboratorSchedulingCard({
       isSupportAgent: true,
       schedulingLinks: {
         where: { category },
-        select: { id: true, title: true, description: true, url: true, category: true },
+        select: { id: true, title: true, description: true, url: true, category: true, isPriority: true },
         orderBy: { position: "asc" },
       },
     },
@@ -73,7 +76,8 @@ export async function CollaboratorSchedulingCard({
         cargo={user.cargo}
         bio={user.bio}
         avatarUrl={user.avatarUrl}
-        links={user.schedulingLinks as SchedulingLinkData[]}
+        links={linksForViewer(user.schedulingLinks as SchedulingLinkData[], priorityUnlocked)}
+        priorityUnlocked={priorityUnlocked}
         compact
         bare
       />

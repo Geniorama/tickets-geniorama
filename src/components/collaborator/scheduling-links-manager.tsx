@@ -8,6 +8,7 @@ import {
   updateSchedulingLink,
   deleteSchedulingLink,
 } from "@/actions/collaborator.actions";
+import { PriorityTag } from "@/components/collaborator/scheduling-card";
 import {
   SCHEDULING_CATEGORIES,
   SCHEDULING_CATEGORY_LABELS,
@@ -40,6 +41,7 @@ interface FormValues {
   description: string;
   url: string;
   category: SchedulingCategory;
+  isPriority: boolean;
 }
 
 function LinkForm({
@@ -113,6 +115,21 @@ function LinkForm({
         />
       </div>
 
+      <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", cursor: "pointer" }}>
+        <input
+          type="checkbox"
+          checked={values.isPriority}
+          onChange={(e) => setValues((v) => ({ ...v, isPriority: e.target.checked }))}
+          style={{ marginTop: "0.2rem", accentColor: "#fd1384" }}
+        />
+        <span>
+          <span style={{ display: "block", fontSize: "0.8125rem", fontWeight: 500, color: "var(--app-body-text)" }}>Prioritario</span>
+          <span style={{ display: "block", fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
+            Solo lo pueden usar los clientes cuyo plan incluye soporte prioritario. Los demás lo ven bloqueado, con la invitación a elevar su plan.
+          </span>
+        </span>
+      </label>
+
       {error && <p style={{ fontSize: "0.75rem", color: "#b91c1c", margin: 0 }}>{error}</p>}
 
       <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
@@ -156,6 +173,7 @@ export function SchedulingLinksManager({
     fd.set("description", values.description);
     fd.set("url", values.url);
     fd.set("category", values.category);
+    fd.set("isPriority", String(values.isPriority));
     return fd;
   }
 
@@ -208,7 +226,7 @@ export function SchedulingLinksManager({
                   editingId === link.id ? (
                     <li key={link.id}>
                       <LinkForm
-                        initial={{ title: link.title, description: link.description ?? "", url: link.url, category: link.category }}
+                        initial={{ title: link.title, description: link.description ?? "", url: link.url, category: link.category, isPriority: link.isPriority }}
                         onSubmit={(v) => handleUpdate(link.id, v)}
                         onCancel={() => { setEditingId(null); setError(null); }}
                         submitLabel="Guardar cambios"
@@ -223,7 +241,10 @@ export function SchedulingLinksManager({
                     >
                       <CalendarClock style={{ width: "0.9375rem", height: "0.9375rem", color: "var(--app-text-muted)", flexShrink: 0, marginTop: "0.125rem" }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-body-text)", margin: 0 }}>{link.title}</p>
+                        <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-body-text)", margin: 0, display: "flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap" }}>
+                          {link.title}
+                          {link.isPriority && <PriorityTag />}
+                        </p>
                         {link.description && (
                           <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", margin: "0.125rem 0 0" }}>{link.description}</p>
                         )}
@@ -249,7 +270,7 @@ export function SchedulingLinksManager({
 
       {adding ? (
         <LinkForm
-          initial={{ title: "", description: "", url: "", category: "PROYECTOS" }}
+          initial={{ title: "", description: "", url: "", category: "PROYECTOS", isPriority: false }}
           onSubmit={handleCreate}
           onCancel={() => { setAdding(false); setError(null); }}
           submitLabel="Agregar link"

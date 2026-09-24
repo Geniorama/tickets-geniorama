@@ -8,6 +8,7 @@ import { ProjectDetail } from "@/components/projects/project-detail";
 import { ActivityPanel } from "@/components/ui/activity-panel";
 import { BackButton } from "@/components/ui/back-button";
 import { CollaboratorSchedulingCard } from "@/components/collaborator/collaborator-scheduling-card";
+import { clientHasPrioritySupport } from "@/lib/plans.server";
 import { withCommentCounts } from "@/lib/comments";
 import { listAttachments } from "@/lib/attachments";
 
@@ -127,6 +128,9 @@ export default async function ProjectPage({
     listAttachments("PROJECT", projectId),
   ]);
 
+  // Los links prioritarios del responsable, solo con soporte prioritario en el plan
+  const priorityUnlocked = !isClient || (await clientHasPrioritySupport(userId));
+
   return (
     <div style={{ padding: "1.5rem" }}>
       <div style={{ marginBottom: "1rem" }}>
@@ -150,6 +154,7 @@ export default async function ProjectPage({
           userId={project.managerId}
           category="PROYECTOS"
           heading="Agenda una llamada con el responsable del proyecto"
+          priorityUnlocked={priorityUnlocked}
         />
       </div>
     </div>

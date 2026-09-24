@@ -53,6 +53,7 @@ export default async function PlansPage({
       startedAt: true,
       expiresAt: true,
       isActive: true,
+      prioritySupport: true,
       company: { select: { name: true } },
     },
   });
@@ -90,6 +91,7 @@ export default async function PlansPage({
       usedHours,
       expiryDate: expiry,
       isActive: plan.isActive,
+      prioritySupport: plan.prioritySupport,
       statusBadge,
       company: plan.company,
     };

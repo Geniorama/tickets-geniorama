@@ -15,6 +15,7 @@ const planSchema = z.object({
   durationDays: z.coerce.number().int().positive().optional(),
   startedAt: z.string().min(1),
   expiresAt: z.string().optional(),
+  prioritySupport: z.boolean(),
 });
 
 function parsePlanFormData(formData: FormData) {
@@ -26,6 +27,8 @@ function parsePlanFormData(formData: FormData) {
     type,
     companyId: formData.get("companyId"),
     startedAt: formData.get("startedAt"),
+    // Casilla: solo llega en el formulario si está marcada
+    prioritySupport: formData.get("prioritySupport") === "on",
   };
 
   if (type === "BOLSA_HORAS") {

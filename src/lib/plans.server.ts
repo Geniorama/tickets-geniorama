@@ -8,6 +8,19 @@ import { getPlanUsedHours } from "@/lib/time-entries";
 
 /** Returns the first active plan for a client user (checks expiry + hours) */
 export async function getClientActivePlan(userId: string) {
+  return (await getClientActivePlans(userId))[0] ?? null;
+}
+
+/**
+ * ¿Puede el cliente usar los links de agendamiento prioritarios? Basta con que
+ * uno de sus planes vigentes —activo, sin caducar y con horas— lo incluya.
+ */
+export async function clientHasPrioritySupport(userId: string): Promise<boolean> {
+  return (await getClientActivePlans(userId)).some((p) => p.prioritySupport);
+}
+
+/** Todos los planes vigentes del cliente, en el orden en que se evalúan. */
+async function getClientActivePlans(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -24,6 +37,7 @@ export async function getClientActivePlan(userId: string) {
               startedAt: true,
               expiresAt: true,
               isActive: true,
+              prioritySupport: true,
             },
           },
         },
@@ -31,9 +45,10 @@ export async function getClientActivePlan(userId: string) {
     },
   });
 
-  if (!user) return null;
+  if (!user) return [];
 
   const allPlans = user.companies.flatMap((c) => c.plans);
+  const valid: typeof allPlans = [];
 
   for (const plan of allPlans) {
     if (isPlanExpired(plan)) continue;
@@ -41,8 +56,8 @@ export async function getClientActivePlan(userId: string) {
       const used = await getPlanUsedHours(plan.id);
       if (used >= plan.totalHours) continue;
     }
-    return plan;
+    valid.push(plan);
   }
 
-  return null;
+  return valid;
 }

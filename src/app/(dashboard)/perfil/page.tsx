@@ -29,7 +29,7 @@ export default async function PerfilPage() {
       isProjectManager: true,
       isSupportAgent: true,
       schedulingLinks: {
-        select: { id: true, title: true, description: true, url: true, category: true },
+        select: { id: true, title: true, description: true, url: true, category: true, isPriority: true },
         orderBy: [{ category: "asc" }, { position: "asc" }],
       },
     },

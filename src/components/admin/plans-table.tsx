@@ -13,9 +13,22 @@ type PlanRow = {
   usedHours: number;
   expiryDate: Date | null;
   isActive: boolean;
+  prioritySupport: boolean;
   statusBadge: { label: string; bg: string; color: string };
   company: { name: string };
 };
+
+/** El plan incluye agendamiento prioritario. */
+function PriorityBadge() {
+  return (
+    <span
+      title="Incluye soporte prioritario: sus clientes pueden agendar en los links prioritarios"
+      style={{ fontSize: "0.6875rem", fontWeight: 600, padding: "0.1rem 0.5rem", borderRadius: "9999px", backgroundColor: "rgba(253,19,132,0.12)", color: "#fd1384" }}
+    >
+      Prioritario
+    </span>
+  );
+}
 
 export function PlansTable({
   plans,
@@ -52,7 +65,7 @@ export function PlansTable({
         {plans.map((plan) => (
           <li key={plan.id} style={{ padding: "0.875rem 1rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.25rem" }}>
-              <span style={{ fontWeight: 600, color: "var(--app-body-text)", fontSize: "0.9375rem" }}>{plan.name}</span>
+              <span style={{ fontWeight: 600, color: "var(--app-body-text)", fontSize: "0.9375rem", display: "inline-flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap" }}>{plan.name} {plan.prioritySupport && <PriorityBadge />}</span>
               <span style={{ fontSize: "0.75rem", fontWeight: 600, padding: "0.2rem 0.6rem", borderRadius: "9999px", backgroundColor: plan.statusBadge.bg, color: plan.statusBadge.color, flexShrink: 0 }}>
                 {plan.statusBadge.label}
               </span>
@@ -101,7 +114,7 @@ export function PlansTable({
               <tr key={plan.id} style={{ borderBottom: "1px solid var(--app-border)" }}>
                 <td style={{ padding: "0.75rem 1rem", fontWeight: 500, color: "var(--app-body-text)" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", alignItems: "flex-start" }}>
-                    <span>{plan.name}</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap" }}>{plan.name} {plan.prioritySupport && <PriorityBadge />}</span>
                     <CopyId value={plan.id} />
                   </div>
                 </td>

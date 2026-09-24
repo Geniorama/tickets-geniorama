@@ -43,6 +43,7 @@ const linkSchema = z.object({
   description: z.string().max(500).optional(),
   url: z.string().url("URL inválida"),
   category: z.enum(["PROYECTOS", "SOPORTE"]),
+  isPriority: z.boolean(),
 });
 
 // Devuelve el userId objetivo si la sesión puede gestionarlo (dueño o admin) y es staff.
@@ -70,6 +71,7 @@ export async function createSchedulingLink(targetUserId: string, formData: FormD
     description: formData.get("description") || undefined,
     url: formData.get("url"),
     category: formData.get("category"),
+    isPriority: formData.get("isPriority") === "true",
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -84,6 +86,7 @@ export async function createSchedulingLink(targetUserId: string, formData: FormD
       description: parsed.data.description ?? null,
       url: parsed.data.url,
       category: parsed.data.category,
+      isPriority: parsed.data.isPriority,
       position: count,
     },
   });
@@ -107,6 +110,7 @@ export async function updateSchedulingLink(linkId: string, formData: FormData): 
     description: formData.get("description") || undefined,
     url: formData.get("url"),
     category: formData.get("category"),
+    isPriority: formData.get("isPriority") === "true",
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
@@ -117,6 +121,7 @@ export async function updateSchedulingLink(linkId: string, formData: FormData): 
       description: parsed.data.description ?? null,
       url: parsed.data.url,
       category: parsed.data.category,
+      isPriority: parsed.data.isPriority,
     },
   });
 

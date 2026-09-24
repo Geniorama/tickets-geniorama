@@ -34,7 +34,7 @@ export default async function EditUserPage({
         profileId: true,
         appAccess: { select: { app: true, level: true } },
         schedulingLinks: {
-          select: { id: true, title: true, description: true, url: true, category: true },
+          select: { id: true, title: true, description: true, url: true, category: true, isPriority: true },
           orderBy: [{ category: "asc" }, { position: "asc" }],
         },
       },

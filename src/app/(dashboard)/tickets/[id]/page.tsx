@@ -9,7 +9,7 @@ import { BackButton } from "@/components/ui/back-button";
 import { TicketChecklistPanel } from "@/components/ui/checklist-panel";
 import { ActivityPanel } from "@/components/ui/activity-panel";
 import { CollaboratorSchedulingCard } from "@/components/collaborator/collaborator-scheduling-card";
-import { getClientActivePlan } from "@/lib/plans.server";
+import { getClientActivePlan, clientHasPrioritySupport } from "@/lib/plans.server";
 import { listComments } from "@/lib/comments";
 import { listAttachments } from "@/lib/attachments";
 import { listChecklists } from "@/lib/checklists";
@@ -115,6 +115,7 @@ export default async function TicketPage({
   const supportSchedulingAvailable = staff
     ? true
     : (await getClientActivePlan(userId)) !== null;
+  const priorityUnlocked = staff || (await clientHasPrioritySupport(userId));
 
   return (
     <div>
@@ -146,6 +147,7 @@ export default async function TicketPage({
               userId={ticket.assignedToId}
               category="SOPORTE"
               heading="Agenda una llamada con el agente de soporte"
+              priorityUnlocked={priorityUnlocked}
             />
           ) : null
         }
