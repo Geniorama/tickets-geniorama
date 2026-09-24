@@ -140,16 +140,16 @@ export default async function TicketPage({
         canManage={canManage}
         checklistItemCount={checklists.reduce((n, c) => n + c.items.length, 0)}
         checklistCheckedCount={checklists.reduce((n, c) => n + c.items.filter((i) => i.isChecked).length, 0)}
+        schedulingSlot={
+          supportSchedulingAvailable ? (
+            <CollaboratorSchedulingCard
+              userId={ticket.assignedToId}
+              category="SOPORTE"
+              heading="Agenda una llamada con el agente de soporte"
+            />
+          ) : null
+        }
       />
-      {supportSchedulingAvailable && (
-        <div className="mt-6">
-          <CollaboratorSchedulingCard
-            userId={ticket.assignedToId}
-            category="SOPORTE"
-            heading="Agenda una llamada con el agente de soporte"
-          />
-        </div>
-      )}
     </div>
   );
 }

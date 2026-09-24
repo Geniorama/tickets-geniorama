@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.98.1] — 2026-09-24
+
+### Corregido
+
+- **El agendamiento ya no queda suelto al pie de la ficha.** La tarjeta para
+  agendar una llamada con el agente estaba fuera de la cuadrícula del ticket,
+  debajo de todo, con un ancho fijo y el título flotando por encima: no parecía
+  parte de la página. Ahora es una tarjeta como las demás —marco, icono y
+  título dentro— y en el ticket va en la columna de la conversación, encima de
+  los comentarios. En el proyecto usa el mismo marco y ocupa el ancho completo,
+  como el historial que tiene encima.
+
 ## [1.98.0] — 2026-09-24
 
 ### Toda la información de la ficha, en un solo panel

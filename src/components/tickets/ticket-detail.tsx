@@ -78,6 +78,7 @@ export function TicketDetail({
   activitySlot,
   checklistItemCount = 0,
   checklistCheckedCount = 0,
+  schedulingSlot,
   canManage = false,
 }: {
   ticket: TicketWithDetails;
@@ -95,6 +96,8 @@ export function TicketDetail({
   checklistItemCount?: number;
   /** Ítems marcados, para el resumen de la pestaña Checklist. */
   checklistCheckedCount?: number;
+  /** Agendar una llamada con el agente. Llega del servidor; puede no renderizar nada. */
+  schedulingSlot?: React.ReactNode;
 }) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -437,6 +440,9 @@ export function TicketDetail({
               generateFn={(provider) => generateTicketReport(ticket.id, provider)}
             />
           )}
+
+          {/* Junto a la conversación: es la otra forma de hablar con el agente */}
+          {schedulingSlot}
 
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="text-base font-semibold text-gray-800 mb-4">

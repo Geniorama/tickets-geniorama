@@ -12,6 +12,7 @@ export function SchedulingCard({
   links,
   avatarUrl,
   compact = false,
+  bare = false,
 }: {
   name: string;
   cargo?: string | null;
@@ -19,15 +20,21 @@ export function SchedulingCard({
   links: SchedulingLinkData[];
   avatarUrl?: string | null;
   compact?: boolean;
+  /** Sin tarjeta propia: para ir dentro de otra que ya pone el marco y el título. */
+  bare?: boolean;
 }) {
   const initial = name.trim().charAt(0).toUpperCase() || "?";
   return (
     <div
       style={{
-        backgroundColor: "var(--app-card-bg)",
-        border: "1px solid var(--app-border)",
-        borderRadius: "0.75rem",
-        padding: compact ? "1rem" : "1.25rem",
+        ...(bare
+          ? {}
+          : {
+              backgroundColor: "var(--app-card-bg)",
+              border: "1px solid var(--app-border)",
+              borderRadius: "0.75rem",
+              padding: compact ? "1rem" : "1.25rem",
+            }),
         display: "flex",
         flexDirection: "column",
         gap: "0.75rem",

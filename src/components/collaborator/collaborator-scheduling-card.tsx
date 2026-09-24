@@ -1,3 +1,4 @@
+import { CalendarClock } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { SchedulingCard } from "./scheduling-card";
 import type { SchedulingLinkData, SchedulingCategory } from "@/lib/scheduling";
@@ -42,11 +43,31 @@ export async function CollaboratorSchedulingCard({
   // No mostrar una tarjeta vacía
   if (!user.bio && user.schedulingLinks.length === 0) return null;
 
+  // Una tarjeta más de la ficha: mismo marco y cabecera que las demás, para que
+  // no parezca un bloque suelto al pie de la página.
   return (
-    <div style={{ maxWidth: "24rem" }}>
-      <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-text-muted)", marginBottom: "0.5rem" }}>
+    <section
+      style={{
+        backgroundColor: "var(--app-card-bg)",
+        border: "1px solid var(--app-border)",
+        borderRadius: "0.75rem",
+        padding: "1.25rem 1.5rem",
+      }}
+    >
+      <h2
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          fontSize: "0.9375rem",
+          fontWeight: 600,
+          color: "var(--app-body-text)",
+          margin: "0 0 1rem",
+        }}
+      >
+        <CalendarClock style={{ width: "1rem", height: "1rem", color: "#fd1384", flexShrink: 0 }} />
         {heading}
-      </p>
+      </h2>
       <SchedulingCard
         name={user.name}
         cargo={user.cargo}
@@ -54,7 +75,8 @@ export async function CollaboratorSchedulingCard({
         avatarUrl={user.avatarUrl}
         links={user.schedulingLinks as SchedulingLinkData[]}
         compact
+        bare
       />
-    </div>
+    </section>
   );
 }
