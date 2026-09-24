@@ -4,7 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import {
   type AiProvider,
-  isValidProvider,
+  resolveProvider,
+  DEFAULT_AI_PROVIDER,
   providerConfigError,
   runTextCompletion,
 } from "@/lib/ai";
@@ -12,12 +13,12 @@ import { listComments } from "@/lib/comments";
 
 export async function getTicketDiagnosis(
   ticketId: string,
-  provider: AiProvider = "gemini"
+  provider: AiProvider = DEFAULT_AI_PROVIDER
 ) {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
-  if (!isValidProvider(provider)) provider = "gemini";
+  provider = resolveProvider(provider);
   const cfgErr = providerConfigError(provider);
   if (cfgErr) return { error: cfgErr };
 

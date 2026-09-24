@@ -12,7 +12,7 @@ import { Type } from "@google/genai";
 import { can } from "@/lib/access/can";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import {
-  isValidProvider,
+  resolveProvider,
   providerConfigError,
   runStructuredJson,
   type AiProvider,
@@ -135,7 +135,7 @@ export async function generateTemplateDraft(input: {
   const userPrompt = (input.prompt ?? "").trim().slice(0, MAX_PROMPT_LENGTH);
   if (!userPrompt) return { error: "Describe qué plantilla necesitas." };
 
-  const provider: AiProvider = isValidProvider(input.provider) ? input.provider : "gemini";
+  const provider: AiProvider = resolveProvider(input.provider);
   const cfgErr = providerConfigError(provider);
   if (cfgErr) return { error: cfgErr };
 

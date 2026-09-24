@@ -19,7 +19,7 @@ import {
   type TicketPlannerOptions, type GeneratedTicketPlan, type TicketPlannerFile,
 } from "@/actions/ticket-planner.actions";
 import { ProviderToggle } from "@/components/assistant/provider-toggle";
-import type { AiProvider } from "@/lib/ai";
+import { DEFAULT_AI_PROVIDER, type AiProvider } from "@/lib/ai-provider";
 import type { Priority } from "@/generated/prisma";
 
 const PRIORITIES: { value: Priority; label: string }[] = [
@@ -74,7 +74,7 @@ function TicketPlannerModal({ onClose }: { onClose: () => void }) {
   const [options, setOptions] = useState<TicketPlannerOptions | null>(null);
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [provider, setProvider] = useState<AiProvider>("gemini");
+  const [provider, setProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
   const [clientId, setClientId] = useState("");
   const [planId, setPlanId] = useState("");
   const [error, setError] = useState<string | null>(null);

@@ -11,7 +11,7 @@ import {
   type PlannerOptions, type GeneratedPlan, type PlannerFile,
 } from "@/actions/planner.actions";
 import { ProviderToggle } from "@/components/assistant/provider-toggle";
-import type { AiProvider } from "@/lib/ai";
+import { DEFAULT_AI_PROVIDER, type AiProvider } from "@/lib/ai-provider";
 import type { Priority } from "@/generated/prisma";
 
 const PRIORITIES: { value: Priority; label: string }[] = [
@@ -107,7 +107,7 @@ function PlannerModal({
   const [projectId, setProjectId] = useState(presetProjectId ?? "");
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
-  const [provider, setProvider] = useState<AiProvider>("gemini");
+  const [provider, setProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 

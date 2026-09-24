@@ -22,6 +22,7 @@ import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import type { ReactionEntry } from "@/components/ui/comment-reactions";
 import type { CommentAttachment } from "@/components/ui/comment-attachments-input";
 import { ReportGenerator } from "@/components/ui/report-generator";
+import { AiToolsPanel } from "@/components/ui/ai-tools-panel";
 import { generateTaskReport } from "@/actions/report.actions";
 import { InfoTabs, InfoTabEmpty, type InfoTab } from "@/components/ui/info-tabs";
 import { summarizeTime } from "@/lib/time-summary";
@@ -590,12 +591,19 @@ export function TaskDetail({
 
         {/* ── Right column ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-          {/* Informe IA */}
+          {/* Herramientas IA — mismo panel que en el ticket */}
           {staff && (
-            <ReportGenerator
-              label="Informe IA"
-              generateFn={(provider) => generateTaskReport(task.id, provider)}
-            />
+            <AiToolsPanel>
+              {(provider, busy) => (
+                <ReportGenerator
+                  label="Informe"
+                  description="Resumen formal de la tarea, exportable a PDF o DOCX."
+                  provider={provider}
+                  onBusy={busy}
+                  generateFn={(p) => generateTaskReport(task.id, p)}
+                />
+              )}
+            </AiToolsPanel>
           )}
 
           {/* Comments */}

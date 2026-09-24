@@ -34,6 +34,7 @@ import { summarizeTime } from "@/lib/time-summary";
 import { toggleTicketCommentReaction } from "@/actions/reaction.actions";
 import type { ReactionType } from "@/generated/prisma";
 import { ReportGenerator } from "@/components/ui/report-generator";
+import { AiToolsPanel } from "@/components/ui/ai-tools-panel";
 import { generateTicketReport } from "@/actions/report.actions";
 
 type TicketWithDetails = Ticket & {
@@ -432,13 +433,21 @@ export function TicketDetail({
 
         {/* ── Right column ── */}
         <div className="space-y-6">
-          {staff && <TicketAiAssistant ticketId={ticket.id} />}
-
           {staff && (
-            <ReportGenerator
-              label="Informe IA"
-              generateFn={(provider) => generateTicketReport(ticket.id, provider)}
-            />
+            <AiToolsPanel>
+              {(provider, busy) => (
+                <>
+                  <TicketAiAssistant ticketId={ticket.id} provider={provider} onBusy={busy} />
+                  <ReportGenerator
+                    label="Informe"
+                    description="Resumen formal del ticket, exportable a PDF o DOCX."
+                    provider={provider}
+                    onBusy={busy}
+                    generateFn={(p) => generateTicketReport(ticket.id, p)}
+                  />
+                </>
+              )}
+            </AiToolsPanel>
           )}
 
           {/* Junto a la conversación: es la otra forma de hablar con el agente */}

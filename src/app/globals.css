@@ -410,3 +410,9 @@ textarea::placeholder {
   box-shadow: none !important;
   margin-top: 0 !important;
 }
+
+/* ── Panel de herramientas IA (AiToolsPanel) ──
+   Una línea entre herramientas, no alrededor de cada una. */
+.ai-tools-list > * + * {
+  border-top: 1px solid var(--app-border);
+}

@@ -9,6 +9,43 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.99.0] — 2026-09-24
+
+### OpenAI pasa a ser el proveedor principal de IA
+
+Todas las herramientas de IA arrancan ahora con **OpenAI**: diagnóstico,
+informes, planificadores de tickets y tareas, asistente y generador de
+plantillas. Gemini sigue disponible en el selector para quien quiera usarlo, y
+el selector muestra OpenAI primero.
+
+El predeterminado estaba repetido en más de doce sitios —cada componente y
+cada acción decía `"gemini"` por su cuenta—. Ahora vive en uno solo,
+`src/lib/ai-provider.ts` (`DEFAULT_AI_PROVIDER`), así que cambiarlo otra vez es
+cambiar una línea.
+
+**Requiere `OPENAI_API_KEY` en el servidor.** Sin ella, las herramientas avisan
+«OpenAI no está configurado» y se puede elegir Gemini en el selector.
+
+### Las herramientas de IA, en un solo panel
+
+En el ticket, el diagnóstico y el informe eran dos tarjetas distintas: una con
+fondo blanco fijo y borde índigo, la otra con los colores del tema, y cada una
+con su propio selector de proveedor. Parecían dos añadidos sueltos.
+
+Ahora hay un panel **Herramientas IA** con un único selector OpenAI/Gemini
+arriba y una fila por herramienta, todas con la misma forma: icono, nombre,
+qué hace y su botón. El selector se bloquea mientras una herramienta trabaja,
+para que el resultado no quede atribuido al proveedor que no lo generó. El
+diagnóstico ofrece «Ver último» para volver a abrir el resultado tras cerrarlo.
+
+El mismo panel está en la tarea y en el proyecto, con su informe.
+
+### Corregido
+
+- **Los informes avisan si falta la clave del proveedor.** Eran las únicas
+  acciones de IA que no lo comprobaban: una clave ausente acababa en un
+  genérico «Error al generar el informe con IA».
+
 ## [1.98.1] — 2026-09-24
 
 ### Corregido

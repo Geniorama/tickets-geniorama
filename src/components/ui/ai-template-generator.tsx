@@ -8,7 +8,7 @@ import {
   type TemplateDraft,
   type TemplateKind,
 } from "@/actions/template-ai.actions";
-import type { AiProvider } from "@/lib/ai";
+import { DEFAULT_AI_PROVIDER, type AiProvider } from "@/lib/ai-provider";
 
 /**
  * Panel que va encima del formulario de plantillas: se describe en una frase lo
@@ -36,7 +36,7 @@ export function AiTemplateGenerator({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   const [prompt, setPrompt] = useState("");
-  const [provider, setProvider] = useState<AiProvider>("gemini");
+  const [provider, setProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [isPending, startTransition] = useTransition();

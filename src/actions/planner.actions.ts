@@ -2,7 +2,7 @@
 
 import { Type } from "@google/genai";
 import { can } from "@/lib/access/can";
-import { runStructuredJson, providerConfigError, isValidProvider, type AiProvider } from "@/lib/ai";
+import { runStructuredJson, providerConfigError, resolveProvider, type AiProvider } from "@/lib/ai";
 import { extractDocument, type AiDocumentFile } from "@/lib/ai-documents";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -180,7 +180,7 @@ export async function generatePlan(input: {
     return { error: "Solo los administradores pueden crear proyectos." };
   }
 
-  const provider: AiProvider = isValidProvider(input.provider) ? input.provider : "gemini";
+  const provider: AiProvider = resolveProvider(input.provider);
   const cfgErr = providerConfigError(provider);
   if (cfgErr) return { error: cfgErr };
 

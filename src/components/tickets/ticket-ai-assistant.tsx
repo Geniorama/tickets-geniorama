@@ -1,20 +1,33 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { Sparkles, RotateCcw, AlertCircle, X, Minus, Maximize2 } from "lucide-react";
+import { Sparkles, RotateCcw, AlertCircle, X, Minus, Maximize2, Stethoscope } from "lucide-react";
+import { AiToolHeader, aiButtonStyle, useAiToolBusy } from "@/components/ui/ai-tools-panel";
 import { createPortal } from "react-dom";
 import { getTicketDiagnosis } from "@/actions/ai.actions";
 import { MarkdownText } from "@/components/ui/markdown-text";
 import { ProviderToggle } from "@/components/assistant/provider-toggle";
-import type { AiProvider } from "@/lib/ai";
+import { DEFAULT_AI_PROVIDER, type AiProvider } from "@/lib/ai-provider";
 
-export function TicketAiAssistant({ ticketId }: { ticketId: string }) {
+export function TicketAiAssistant({
+  ticketId,
+  provider: controlledProvider,
+  onBusy,
+}: {
+  ticketId: string;
+  /** Dentro de `AiToolsPanel`: el panel elige el proveedor y pone la tarjeta. */
+  provider?: AiProvider;
+  onBusy?: (pending: boolean) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [provider, setProvider] = useState<AiProvider>("gemini");
+  const [ownProvider, setOwnProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
   const [isPending, startTransition] = useTransition();
+  const embedded = controlledProvider !== undefined;
+  const provider = controlledProvider ?? ownProvider;
+  useAiToolBusy(isPending, onBusy);
 
   function requestDiagnosis() {
     setError(null);
@@ -34,32 +47,45 @@ export function TicketAiAssistant({ ticketId }: { ticketId: string }) {
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-indigo-200 px-6 py-4 flex items-center justify-between gap-4">
-        <span className="flex items-center gap-2 text-base font-semibold text-gray-800">
-          <Sparkles className="w-4 h-4 text-indigo-500 shrink-0" />
-          Asistente IA
-        </span>
-        <div className="flex items-center gap-2">
-        <ProviderToggle value={provider} onChange={setProvider} disabled={isPending} />
-        <button
-          type="button"
-          onClick={requestDiagnosis}
-          disabled={isPending}
-          className="inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-700 disabled:opacity-60 transition-colors"
-        >
-          {isPending ? (
+      <div
+        style={
+          embedded
+            ? undefined
+            : { backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.75rem" }
+        }
+      >
+        <AiToolHeader
+          icon={<Stethoscope style={{ width: "1rem", height: "1rem" }} />}
+          title="Diagnóstico"
+          description="Qué está pasando, posibles causas y pasos para resolverlo."
+          actions={
             <>
-              <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Analizando...
+              {!embedded && <ProviderToggle value={provider} onChange={setOwnProvider} disabled={isPending} />}
+              {result && !open && (
+                <button
+                  type="button"
+                  onClick={() => { setOpen(true); setMinimized(false); }}
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: "0.8125rem", fontWeight: 500, color: "#6366f1" }}
+                >
+                  Ver último
+                </button>
+              )}
+              <button type="button" onClick={requestDiagnosis} disabled={isPending} style={aiButtonStyle(isPending)}>
+                {isPending ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Analizando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles style={{ width: "0.875rem", height: "0.875rem" }} />
+                    {result ? "Nuevo diagnóstico" : "Solicitar diagnóstico"}
+                  </>
+                )}
+              </button>
             </>
-          ) : (
-            <>
-              <Sparkles className="w-3.5 h-3.5" />
-              {result ? "Nuevo diagnóstico" : "Solicitar diagnóstico"}
-            </>
-          )}
-        </button>
-        </div>
+          }
+        />
       </div>
 
       {open && createPortal(

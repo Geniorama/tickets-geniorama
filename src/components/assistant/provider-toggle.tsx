@@ -1,13 +1,8 @@
 "use client";
 
-import type { AiProvider } from "@/lib/ai";
+import { AI_PROVIDERS as OPTIONS, type AiProvider } from "@/lib/ai-provider";
 
-const OPTIONS: { value: AiProvider; label: string }[] = [
-  { value: "gemini", label: "Gemini" },
-  { value: "openai", label: "OpenAI" },
-];
-
-/** Selector compacto del proveedor de IA (Gemini / OpenAI). */
+/** Selector compacto del proveedor de IA (OpenAI / Gemini). OpenAI, el principal, va primero. */
 export function ProviderToggle({
   value,
   onChange,

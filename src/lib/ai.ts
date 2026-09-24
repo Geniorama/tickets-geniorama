@@ -3,14 +3,16 @@ import OpenAI from "openai";
 
 // ─── Proveedores ────────────────────────────────────────────────────────────
 
-export type AiProvider = "gemini" | "openai";
+import type { AiProvider } from "@/lib/ai-provider";
+export {
+  type AiProvider,
+  DEFAULT_AI_PROVIDER,
+  isValidProvider,
+  resolveProvider,
+} from "@/lib/ai-provider";
 
 export const GEMINI_MODEL = "gemini-2.5-flash";
 export const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
-
-export function isValidProvider(p: unknown): p is AiProvider {
-  return p === "gemini" || p === "openai";
-}
 
 /** Devuelve un mensaje de error si el proveedor no está configurado, o null. */
 export function providerConfigError(provider: AiProvider): string | null {

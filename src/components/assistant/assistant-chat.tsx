@@ -10,7 +10,7 @@ import {
 } from "@/actions/assistant.actions";
 import { MarkdownText } from "@/components/ui/markdown-text";
 import { ProviderToggle } from "@/components/assistant/provider-toggle";
-import type { AiProvider } from "@/lib/ai";
+import { DEFAULT_AI_PROVIDER, alternateProvider, providerLabel, type AiProvider } from "@/lib/ai-provider";
 
 type ActionState = "idle" | "running" | "done" | "error";
 
@@ -38,7 +38,7 @@ export function AssistantChat({ userName }: { userName: string }) {
   const [isPending, startTransition] = useTransition();
   // Estado por acción: key = `${msgIndex}:${actionIndex}`
   const [actionStates, setActionStates] = useState<Record<string, { state: ActionState; message?: string }>>({});
-  const [provider, setProvider] = useState<AiProvider>("gemini");
+  const [provider, setProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -68,10 +68,10 @@ export function AssistantChat({ userName }: { userName: string }) {
     runChat(nextMessages.map((m) => ({ role: m.role, text: m.text })), provider);
   }
 
-  // Reenvía el último mensaje con el proveedor alternativo (Gemini ↔ OpenAI).
+  // Reenvía el último mensaje con el proveedor alternativo (OpenAI ↔ Gemini).
   function retryWithAlternative() {
     if (isPending || messages.length === 0) return;
-    const alt: AiProvider = provider === "gemini" ? "openai" : "gemini";
+    const alt = alternateProvider(provider);
     setProvider(alt);
     runChat(messages.map((m) => ({ role: m.role, text: m.text })), alt);
   }
@@ -193,7 +193,7 @@ export function AssistantChat({ userName }: { userName: string }) {
                 className="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:text-indigo-700 disabled:opacity-50"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                Reintentar con {provider === "gemini" ? "OpenAI" : "Gemini"}
+                Reintentar con {providerLabel(alternateProvider(provider))}
               </button>
             )}
           </div>

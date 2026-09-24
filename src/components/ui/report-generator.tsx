@@ -5,7 +5,8 @@ import { FileText, Download, Loader2, RefreshCw, ChevronDown, ChevronUp } from "
 import type { GeneratedReport, ReportHeader } from "@/actions/report.actions";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { ProviderToggle } from "@/components/assistant/provider-toggle";
-import type { AiProvider } from "@/lib/ai";
+import { DEFAULT_AI_PROVIDER, type AiProvider } from "@/lib/ai-provider";
+import { AiToolHeader, aiButtonStyle, useAiToolBusy } from "@/components/ui/ai-tools-panel";
 
 // ─── Export helpers ────────────────────────────────────────────────────────────
 
@@ -245,18 +246,28 @@ async function exportDOCX(report: GeneratedReport) {
 export function ReportGenerator({
   generateFn,
   label = "Informe IA",
+  description,
   options,
+  provider: controlledProvider,
+  onBusy,
 }: {
   generateFn: (provider: AiProvider) => Promise<{ error?: string; report?: GeneratedReport }>;
   label?: string;
+  description?: string;
   options?: React.ReactNode;
+  /** Dentro de `AiToolsPanel`: el panel elige el proveedor y pone la tarjeta. */
+  provider?: AiProvider;
+  onBusy?: (pending: boolean) => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [report, setReport] = useState<GeneratedReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [exporting, setExporting] = useState<"pdf" | "docx" | null>(null);
-  const [provider, setProvider] = useState<AiProvider>("gemini");
+  const [ownProvider, setOwnProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
+  const embedded = controlledProvider !== undefined;
+  const provider = controlledProvider ?? ownProvider;
+  useAiToolBusy(isPending, onBusy);
 
   function generate() {
     setError(null);
@@ -279,32 +290,25 @@ export function ReportGenerator({
     }
   }
 
-  const cardStyle: React.CSSProperties = {
-    border: "1px solid var(--app-border)",
-    borderRadius: "0.75rem",
-    overflow: "hidden",
-  };
-
-  const headerStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: "1rem",
-    padding: "0.875rem 1rem",
-    backgroundColor: "var(--app-card-bg)",
-    flexWrap: "wrap",
-  };
+  // Suelto lleva su propia tarjeta; dentro del panel, el marco lo pone el panel
+  const cardStyle: React.CSSProperties = embedded
+    ? {}
+    : {
+        border: "1px solid var(--app-border)",
+        borderRadius: "0.75rem",
+        overflow: "hidden",
+        backgroundColor: "var(--app-card-bg)",
+      };
 
   return (
     <div style={cardStyle}>
-      <div style={headerStyle}>
-        <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 600, fontSize: "0.9375rem", color: "var(--app-body-text)" }}>
-          <FileText style={{ width: "1rem", height: "1rem", color: "#6366f1" }} />
-          {label}
-        </span>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-          <ProviderToggle value={provider} onChange={setProvider} disabled={isPending} />
+      <AiToolHeader
+        icon={<FileText style={{ width: "1rem", height: "1rem" }} />}
+        title={label}
+        description={description}
+        actions={
+        <>
+          {!embedded && <ProviderToggle value={provider} onChange={setOwnProvider} disabled={isPending} />}
 
           {report && (
             <>
@@ -333,7 +337,7 @@ export function ReportGenerator({
             type="button"
             disabled={isPending}
             onClick={generate}
-            style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", padding: "0.375rem 0.875rem", fontSize: "0.8125rem", fontWeight: 500, border: "none", borderRadius: "0.375rem", backgroundColor: "#6366f1", color: "#fff", cursor: isPending ? "not-allowed" : "pointer", opacity: isPending ? 0.7 : 1 }}
+            style={aiButtonStyle(isPending)}
           >
             {isPending ? (
               <><Loader2 style={{ width: "0.875rem", height: "0.875rem", animation: "spin 1s linear infinite" }} /> Generando...</>
@@ -351,8 +355,9 @@ export function ReportGenerator({
               {open ? <ChevronUp style={{ width: "1rem", height: "1rem" }} /> : <ChevronDown style={{ width: "1rem", height: "1rem" }} />}
             </button>
           )}
-        </div>
-      </div>
+        </>
+        }
+      />
 
       {options && (
         <div style={{ borderTop: "1px solid var(--app-border)", padding: "0.875rem 1rem", backgroundColor: "var(--app-content-bg)" }}>

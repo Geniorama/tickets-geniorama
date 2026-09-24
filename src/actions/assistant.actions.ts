@@ -2,7 +2,7 @@
 
 import { Type, type FunctionDeclaration } from "@google/genai";
 import type OpenAI from "openai";
-import { runAssistantChat, providerConfigError, isValidProvider, type AiProvider, type ChatMsg } from "@/lib/ai";
+import { runAssistantChat, providerConfigError, resolveProvider, DEFAULT_AI_PROVIDER, type AiProvider, type ChatMsg } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
@@ -429,12 +429,12 @@ Reglas:
 
 export async function chatWithAssistant(
   history: ChatMessage[],
-  provider: AiProvider = "gemini"
+  provider: AiProvider = DEFAULT_AI_PROVIDER
 ): Promise<{ reply: string; actions: ProposedAction[] } | { error: string }> {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
 
-  if (!isValidProvider(provider)) provider = "gemini";
+  provider = resolveProvider(provider);
   const cfgErr = providerConfigError(provider);
   if (cfgErr) return { error: cfgErr };
 

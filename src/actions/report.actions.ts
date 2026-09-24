@@ -3,7 +3,13 @@
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { taskCode, projectPrefix } from "@/lib/task-code";
-import { runTextCompletion, type AiProvider } from "@/lib/ai";
+import {
+  runTextCompletion,
+  providerConfigError,
+  resolveProvider,
+  DEFAULT_AI_PROVIDER,
+  type AiProvider,
+} from "@/lib/ai";
 import { listComments } from "@/lib/comments";
 import { listTimeEntries, totalElapsedMs } from "@/lib/time-entries";
 import {
@@ -62,9 +68,12 @@ async function callAi(prompt: string, provider: AiProvider): Promise<string> {
 
 // ─── Tarea ────────────────────────────────────────────────────────────────────
 
-export async function generateTaskReport(taskId: string, provider: AiProvider = "gemini"): Promise<{ error?: string; report?: GeneratedReport }> {
+export async function generateTaskReport(taskId: string, provider: AiProvider = DEFAULT_AI_PROVIDER): Promise<{ error?: string; report?: GeneratedReport }> {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  provider = resolveProvider(provider);
+  const cfgErr = providerConfigError(provider);
+  if (cfgErr) return { error: cfgErr };
 
   const task = await prisma.task.findUnique({
     where: { id: taskId },
@@ -201,10 +210,13 @@ const MAX_COMMENTS_PER_TASK = 12;
 export async function generateProjectReport(
   projectId: string,
   options: ProjectReportOptions,
-  provider: AiProvider = "gemini",
+  provider: AiProvider = DEFAULT_AI_PROVIDER,
 ): Promise<{ error?: string; report?: GeneratedReport }> {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  provider = resolveProvider(provider);
+  const cfgErr = providerConfigError(provider);
+  if (cfgErr) return { error: cfgErr };
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -474,9 +486,12 @@ ${period ? `RECORDATORIO FINAL: el informe habla únicamente del ${period.label}
 
 // ─── Ticket ───────────────────────────────────────────────────────────────────
 
-export async function generateTicketReport(ticketId: string, provider: AiProvider = "gemini"): Promise<{ error?: string; report?: GeneratedReport }> {
+export async function generateTicketReport(ticketId: string, provider: AiProvider = DEFAULT_AI_PROVIDER): Promise<{ error?: string; report?: GeneratedReport }> {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  provider = resolveProvider(provider);
+  const cfgErr = providerConfigError(provider);
+  if (cfgErr) return { error: cfgErr };
 
   const ticket = await prisma.ticket.findUnique({
     where: { id: ticketId },

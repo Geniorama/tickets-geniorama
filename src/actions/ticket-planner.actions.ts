@@ -25,7 +25,7 @@ import { isAdmin } from "@/lib/roles";
 import {
   runStructuredJson,
   providerConfigError,
-  isValidProvider,
+  resolveProvider,
   type AiProvider,
 } from "@/lib/ai";
 import { extractDocument, type AiDocumentFile } from "@/lib/ai-documents";
@@ -190,7 +190,7 @@ export async function generateTicketPlan(input: {
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
   const admin = isAdmin(session.user.role);
 
-  const provider: AiProvider = isValidProvider(input.provider) ? input.provider : "gemini";
+  const provider: AiProvider = resolveProvider(input.provider);
   const cfgErr = providerConfigError(provider);
   if (cfgErr) return { error: cfgErr };
 
