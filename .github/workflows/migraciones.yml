@@ -80,13 +80,21 @@ jobs:
           # propio Prisma escriben avisos en la salida estándar, y una lista de
           # exclusiones acababa dejándolos pasar por drift.
           #
-          # Única excepción conocida: el índice único parcial de
-          # `billing_reminders`, que impide reenviar un recordatorio ya
-          # entregado. Es `... WHERE status = 'SENT'` y el lenguaje de esquema
-          # de Prisma no sabe expresar un índice parcial, así que aparecerá
-          # aquí siempre.
+          # Excepciones conocidas: índices únicos PARCIALES. El lenguaje de
+          # esquema de Prisma no sabe expresarlos, así que aparecen aquí
+          # siempre aunque el historial y el esquema estén de acuerdo:
+          #
+          # - `billing_reminders (rule_id, billing_item_id, channel)`: impide
+          #   reenviar un recordatorio ya entregado (`WHERE status = 'SENT'`).
+          # - `companies (xubio_client_id)`: un cliente de Xubio no puede
+          #   quedar enlazado a dos empresas (`WHERE xubio_client_id IS NOT
+          #   NULL`, porque los nulos son la norma). Desde la v1.88.0.
+          #
+          # Una excepción nueva va aquí solo si es un índice parcial escrito a
+          # propósito en una migración; cualquier otra diferencia es deriva.
           deriva=$(grep -E '^[[:space:]]*\[[+-]\]' diferencias.txt \
-                   | grep -v 'rule_id, billing_item_id, channel' || true)
+                   | grep -v -e 'rule_id, billing_item_id, channel' \
+                             -e 'columns (xubio_client_id)' || true)
 
           if [ -n "$deriva" ]; then
             echo "::error::El historial ya no reproduce schema.prisma. Casi siempre es un cambio empujado con 'prisma db push' sin escribir su migración."

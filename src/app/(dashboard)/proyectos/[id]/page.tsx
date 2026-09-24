@@ -145,18 +145,16 @@ export default async function ProjectPage({
         accessibleTaskIds={accessibleTaskIds}
         linkedVaultEntries={linkedVaultEntries}
         availableVaultEntries={availableVaultEntries}
+        activitySlot={<ActivityPanel entityType="PROJECT" entityId={projectId} />}
+        schedulingSlot={
+          <CollaboratorSchedulingCard
+            userId={project.managerId}
+            category="PROYECTOS"
+            heading="Agenda una llamada con el responsable del proyecto"
+            priorityUnlocked={priorityUnlocked}
+          />
+        }
       />
-      <div style={{ marginTop: "1.5rem" }}>
-        <ActivityPanel entityType="PROJECT" entityId={projectId} />
-      </div>
-      <div style={{ marginTop: "1.5rem" }}>
-        <CollaboratorSchedulingCard
-          userId={project.managerId}
-          category="PROYECTOS"
-          heading="Agenda una llamada con el responsable del proyecto"
-          priorityUnlocked={priorityUnlocked}
-        />
-      </div>
     </div>
   );
 }

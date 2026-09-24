@@ -15,6 +15,7 @@ import { ProjectVaultPanel } from "@/components/vault/project-vault-panel";
 import { ProjectAttachmentsPanel } from "@/components/projects/project-attachments-panel";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { ProjectReportGenerator } from "@/components/projects/project-report-generator";
+import { InfoTabs, type InfoTab } from "@/components/ui/info-tabs";
 
 type TaskWithRelations = Task & {
   assignedTo: { name: string } | null;
@@ -53,6 +54,8 @@ export function ProjectDetail({
   accessibleTaskIds = [],
   linkedVaultEntries = [],
   availableVaultEntries = [],
+  activitySlot,
+  schedulingSlot,
 }: {
   project: ProjectWithDetails;
   view: ViewType;
@@ -63,6 +66,10 @@ export function ProjectDetail({
   accessibleTaskIds?: string[];
   linkedVaultEntries?: VaultEntry[];
   availableVaultEntries?: VaultEntry[];
+  /** Historial del proyecto. Llega resuelto desde el servidor. */
+  activitySlot?: React.ReactNode;
+  /** Agendar con el responsable. Llega del servidor; puede no renderizar nada. */
+  schedulingSlot?: React.ReactNode;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -78,6 +85,39 @@ export function ProjectDetail({
     params.set("view", v);
     router.push(`?${params.toString()}`);
   }
+
+  // Información del proyecto, en pestañas que dicen qué está diligenciado.
+  // Un cliente ve la Bóveda solo si hay accesos compartidos con él.
+  const canManage = isStaff || isAdmin;
+  const infoTabs: InfoTab[] = [
+    ...(linkedVaultEntries.length > 0 || canManage
+      ? [{
+          id: "boveda",
+          label: "Accesos Bóveda",
+          summary: linkedVaultEntries.length > 0 ? String(linkedVaultEntries.length) : null,
+          content: (
+            <ProjectVaultPanel
+              projectId={project.id}
+              linkedEntries={linkedVaultEntries}
+              availableEntries={availableVaultEntries}
+              canManage={canManage}
+            />
+          ),
+        }]
+      : []),
+    {
+      id: "archivos",
+      label: "Archivos y enlaces",
+      summary: project.attachments.length > 0 ? String(project.attachments.length) : null,
+      content: (
+        <ProjectAttachmentsPanel
+          projectId={project.id}
+          attachments={project.attachments}
+          canManage={canManage}
+        />
+      ),
+    },
+  ];
 
   const viewButtons: { id: ViewType; label: string; icon: React.ElementType }[] = [
     { id: "lista", label: "Lista", icon: List },
@@ -331,29 +371,18 @@ export function ProjectDetail({
         </>
       )}
 
-      {/* Vault panel: visible si hay accesos o si puede gestionar */}
-      {(linkedVaultEntries.length > 0 || isStaff || isAdmin) && (
-        <ProjectVaultPanel
-          projectId={project.id}
-          linkedEntries={linkedVaultEntries}
-          availableEntries={availableVaultEntries}
-          canManage={isStaff || isAdmin}
-        />
-      )}
+      {/* Debajo de las tareas, el mismo esquema que el ticket y la tarea:
+          información a la izquierda; IA, agendamiento e historial a la derecha */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" style={{ marginTop: "1.5rem", alignItems: "start" }}>
+        <InfoTabs tabs={infoTabs} />
 
-      {/* Adjuntos del proyecto */}
-      <ProjectAttachmentsPanel
-        projectId={project.id}
-        attachments={project.attachments}
-        canManage={isStaff || isAdmin}
-      />
-
-      {/* Informe IA — solo staff/admin */}
-      {(isStaff || isAdmin) && (
-        <div style={{ marginTop: "1.5rem" }}>
-          <ProjectReportGenerator projectId={project.id} />
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+          {/* Herramientas IA — solo staff/admin */}
+          {(isStaff || isAdmin) && <ProjectReportGenerator projectId={project.id} />}
+          {schedulingSlot}
+          {activitySlot}
         </div>
-      )}
+      </div>
     </div>
   );
 }

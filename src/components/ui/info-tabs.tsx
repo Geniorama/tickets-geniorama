@@ -55,7 +55,9 @@ export function InfoTabs({ tabs, title = "Información" }: { tabs: InfoTab[]; ti
         backgroundColor: "var(--app-card-bg)",
         border: "1px solid var(--app-border)",
         borderRadius: "0.75rem",
-        overflow: "hidden",
+        // Sin overflow: hidden. Los paneles abren desplegables flotantes (el
+        // selector de Bóveda) que deben poder salirse del panel; recortarlos
+        // los dejaba invisibles.
       }}
     >
       <div style={{ padding: "1rem 1.25rem 0" }}>

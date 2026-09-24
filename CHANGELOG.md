@@ -9,6 +9,33 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.101.0] — 2026-09-24
+
+### El proyecto, con el mismo orden que el ticket y la tarea
+
+La vista del proyecto apilaba todo a ancho completo debajo de las tareas:
+Bóveda, adjuntos, informe IA, historial y agendamiento, uno tras otro. Ahora
+sigue el mismo esquema que las fichas de ticket y tarea:
+
+- Las **tareas** siguen arriba a ancho completo (el kanban lo necesita).
+- Debajo, a la izquierda, el panel **Información** con pestañas —**Accesos
+  Bóveda** y **Archivos y enlaces**— que dice de un vistazo cuál tiene
+  contenido y cuál está vacía.
+- A la derecha, **Herramientas IA**, el **agendamiento** con el responsable y
+  el **historial**.
+
+### Corregido
+
+- **El selector de accesos de Bóveda no mostraba sus opciones** dentro de la
+  pestaña. El panel de pestañas recortaba lo que se salía de sus bordes, y la
+  lista desplegable se abre justo por fuera: quedaba invisible. El panel ya no
+  recorta.
+- **La comprobación de migraciones fallaba sin haber deriva.** El índice único
+  parcial de `companies.xubio_client_id` (v1.88.0) no se puede expresar en el
+  esquema de Prisma, así que la comparación lo marcaba siempre como diferencia.
+  Queda como segunda excepción conocida, junto a la de `billing_reminders`. La
+  comprobación sigue detectando deriva real.
+
 ## [1.100.0] — 2026-09-24
 
 ### Agendamiento prioritario según el plan
