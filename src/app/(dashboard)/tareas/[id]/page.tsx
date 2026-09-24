@@ -91,6 +91,7 @@ export default async function GlobalTaskPage({
         }
         activitySlot={<ActivityPanel entityType="TASK" entityId={taskId} />}
         checklistItemCount={checklists.reduce((n, c) => n + c.items.length, 0)}
+        checklistCheckedCount={checklists.reduce((n, c) => n + c.items.filter((i) => i.isChecked).length, 0)}
       />
     </div>
   );

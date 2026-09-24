@@ -397,3 +397,16 @@ textarea::placeholder {
 .animate-fade-in {
   animation: fade-in 0.2s ease-out forwards;
 }
+
+/* ── Panel de pestañas de la ficha (InfoTabs) ──
+   Cada panel que entra en una pestaña (checklist, Bóveda, cronómetro…) trae su
+   propia tarjeta. Dentro del panel de pestañas sobra: se le quita el marco y
+   se conserva su contenido y su relleno. !important porque esos paneles fijan
+   el marco con estilos en línea o clases de Tailwind. */
+.info-tabs-body > * {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  margin-top: 0 !important;
+}

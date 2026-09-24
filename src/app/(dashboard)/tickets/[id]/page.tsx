@@ -139,6 +139,7 @@ export default async function TicketPage({
         activitySlot={<ActivityPanel entityType="TICKET" entityId={ticketId} />}
         canManage={canManage}
         checklistItemCount={checklists.reduce((n, c) => n + c.items.length, 0)}
+        checklistCheckedCount={checklists.reduce((n, c) => n + c.items.filter((i) => i.isChecked).length, 0)}
       />
       {supportSchedulingAvailable && (
         <div className="mt-6">

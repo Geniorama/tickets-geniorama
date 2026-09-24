@@ -5,7 +5,7 @@ import { canClientAccessTask } from "@/lib/task-access";
 import { prisma } from "@/lib/prisma";
 import { linkedTo, notLinkedTo } from "@/lib/vault-links";
 import { TaskDetail } from "@/components/projects/task-detail";
-import { BackButton } from "@/components/ui/back-button";
+import { BackButton } from "@/components/ui/back-button";
 import { ActivityPanel } from "@/components/ui/activity-panel";
 import { TaskChecklistPanel } from "@/components/ui/checklist-panel";
 import { ProjectVaultPanel } from "@/components/vault/project-vault-panel";
@@ -14,6 +14,7 @@ import { listComments } from "@/lib/comments";
 import { listAttachments } from "@/lib/attachments";
 import { listChecklists } from "@/lib/checklists";
 import { listTimeEntries } from "@/lib/time-entries";
+import type { InfoTab } from "@/components/ui/info-tabs";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string; taskId: string }> }) {
   const { taskId } = await params;
@@ -106,6 +107,38 @@ export default async function TaskPage({
 
   const canManageProject = staff || admin;
 
+  // Configuración general del proyecto (Bóveda y archivos), como pestañas de la
+  // ficha. Interna: un cliente no las ve.
+  const projectTabs: InfoTab[] = client
+    ? []
+    : [
+        {
+          id: "boveda-proyecto",
+          label: "Bóveda del proyecto",
+          summary: linkedVaultEntries.length > 0 ? String(linkedVaultEntries.length) : null,
+          content: (
+            <ProjectVaultPanel
+              projectId={projectId}
+              linkedEntries={linkedVaultEntries}
+              availableEntries={availableVaultEntries}
+              canManage={canManageProject}
+            />
+          ),
+        },
+        {
+          id: "archivos-proyecto",
+          label: "Archivos del proyecto",
+          summary: projectAttachments.length > 0 ? String(projectAttachments.length) : null,
+          content: (
+            <ProjectAttachmentsPanel
+              projectId={projectId}
+              attachments={projectAttachments}
+              canManage={canManageProject}
+            />
+          ),
+        },
+      ];
+
   return (
     <div>
       <div style={{ marginBottom: "1rem" }}>
@@ -132,31 +165,11 @@ export default async function TaskPage({
             readOnly={client}
           />
         }
-        activitySlot={<ActivityPanel entityType="TASK" entityId={taskId} />}
+        activitySlot={<ActivityPanel entityType="TASK" entityId={taskId} />}
         checklistItemCount={checklists.reduce((n, c) => n + c.items.length, 0)}
+        checklistCheckedCount={checklists.reduce((n, c) => n + c.items.filter((i) => i.isChecked).length, 0)}
+        projectTabs={projectTabs}
       />
-
-      {/* Configuración general del proyecto — interna, oculta para clientes */}
-      {!client && (
-      <div style={{ marginTop: "1.5rem" }}>
-        <h2 style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.75rem" }}>
-          Configuración del proyecto: {task.project?.name}
-        </h2>
-        {(linkedVaultEntries.length > 0 || canManageProject) && (
-          <ProjectVaultPanel
-            projectId={projectId}
-            linkedEntries={linkedVaultEntries}
-            availableEntries={availableVaultEntries}
-            canManage={canManageProject}
-          />
-        )}
-        <ProjectAttachmentsPanel
-          projectId={projectId}
-          attachments={projectAttachments}
-          canManage={canManageProject}
-        />
-      </div>
-      )}
     </div>
   );
 }

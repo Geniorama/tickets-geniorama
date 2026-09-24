@@ -23,6 +23,8 @@ import type { ReactionEntry } from "@/components/ui/comment-reactions";
 import type { CommentAttachment } from "@/components/ui/comment-attachments-input";
 import { ReportGenerator } from "@/components/ui/report-generator";
 import { generateTaskReport } from "@/actions/report.actions";
+import { InfoTabs, InfoTabEmpty, type InfoTab } from "@/components/ui/info-tabs";
+import { summarizeTime } from "@/lib/time-summary";
 
 type TaskWithDetails = Task & {
   project: { id: string; name: string } | null;
@@ -49,6 +51,8 @@ export function TaskDetail({
   checklistSlot,
   activitySlot,
   checklistItemCount = 0,
+  checklistCheckedCount = 0,
+  projectTabs = [],
   canOpenProject = true,
 }: {
   task: TaskWithDetails;
@@ -60,6 +64,11 @@ export function TaskDetail({
   activitySlot?: React.ReactNode;
   /** Ítems de checklist de la tarea; habilita la opción de copiarlos al duplicar. */
   checklistItemCount?: number;
+  /** Ítems marcados, para el resumen de la pestaña Checklist. */
+  checklistCheckedCount?: number;
+  /** Pestañas con la información del proyecto (Bóveda, archivos). Las arma la
+      página, que es la que consulta esos datos; vacío para clientes. */
+  projectTabs?: InfoTab[];
   /** false cuando el usuario llega a la tarea pero no puede abrir el proyecto
       (cliente mencionado en una tarea de un proyecto privado). */
   canOpenProject?: boolean;
@@ -84,6 +93,64 @@ export function TaskDetail({
   }, [showMenu]);
   const staff = isStaff(role);
   const admin = isAdmin(role);
+
+  // Información adjunta de la tarea, en pestañas que dicen qué está diligenciado.
+  // Un cliente solo consulta el checklist: si no hay ítems, no se le muestra.
+  const infoTabs: InfoTab[] = [
+    ...(staff || checklistItemCount > 0
+      ? [{
+          id: "checklist",
+          label: "Checklist",
+          summary: checklistItemCount > 0 ? `${checklistCheckedCount}/${checklistItemCount}` : null,
+          content: checklistSlot,
+        }]
+      : []),
+    {
+      id: "adjuntos",
+      label: "Adjuntos",
+      summary: task.attachments.length > 0 ? String(task.attachments.length) : null,
+      content: task.attachments.length > 0 ? (
+        <TaskAttachmentList attachments={task.attachments} />
+      ) : (
+        <InfoTabEmpty>
+          Aún no hay archivos adjuntos.{" "}
+          {admin ? (
+            <>
+              Se agregan{" "}
+              <Link
+                href={task.project ? `/proyectos/${task.project.id}/tareas/${task.id}/edit` : `/tareas/${task.id}/edit`}
+                style={{ color: "#fd1384" }}
+              >
+                editando la tarea
+              </Link>
+              .
+            </>
+          ) : (
+            "Puedes compartir archivos en los comentarios."
+          )}
+        </InfoTabEmpty>
+      ),
+    },
+    ...(staff
+      ? [{
+          id: "tiempo",
+          label: "Tiempo",
+          summary: summarizeTime(task.timeEntries),
+          content: (
+            <TaskTimer
+              taskId={task.id}
+              projectId={task.project?.id ?? null}
+              title={task.title}
+              entries={task.timeEntries}
+              canControl={staff}
+              isAdmin={admin}
+              currentUserId={session.user.id}
+            />
+          ),
+        }]
+      : []),
+    ...projectTabs,
+  ];
 
   function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
     startTransition(async () => {
@@ -518,66 +585,7 @@ export function TaskDetail({
             </div>
           </div>
 
-          {/* Checklist */}
-          {checklistSlot}
-
-          {/* Historial */}
-          {activitySlot}
-
-          {/* Attachments */}
-          {task.attachments.length > 0 && (
-            <div
-              style={{
-                backgroundColor: "var(--app-card-bg)",
-                border: "1px solid var(--app-border)",
-                borderRadius: "0.75rem",
-                padding: "1.5rem",
-              }}
-            >
-              <h2
-                style={{
-                  fontSize: "0.9375rem",
-                  fontWeight: 600,
-                  color: "var(--app-body-text)",
-                  marginBottom: "1rem",
-                }}
-              >
-                Archivos adjuntos ({task.attachments.length})
-              </h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                {task.attachments.map((att) => {
-                  const isLink = att.type === "link";
-                  return (
-                    <a
-                      key={att.id}
-                      href={att.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "0.5rem",
-                        fontSize: "0.875rem",
-                        color: "#fd1384",
-                        textDecoration: "none",
-                      }}
-                    >
-                      {isLink
-                        ? <Link2 style={{ width: "1rem", height: "1rem", flexShrink: 0 }} />
-                        : <FileText style={{ width: "1rem", height: "1rem", flexShrink: 0 }} />
-                      }
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {att.fileName}
-                      </span>
-                      {isLink && (
-                        <ExternalLink style={{ width: "0.75rem", height: "0.75rem", opacity: 0.6, flexShrink: 0 }} />
-                      )}
-                    </a>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+          <InfoTabs tabs={infoTabs} />
         </div>
 
         {/* ── Right column ── */}
@@ -587,19 +595,6 @@ export function TaskDetail({
             <ReportGenerator
               label="Informe IA"
               generateFn={(provider) => generateTaskReport(task.id, provider)}
-            />
-          )}
-
-          {/* Timer — solo visible para staff */}
-          {staff && (
-            <TaskTimer
-              taskId={task.id}
-              projectId={task.project?.id ?? null}
-              title={task.title}
-              entries={task.timeEntries}
-              canControl={staff}
-              isAdmin={admin}
-              currentUserId={session.user.id}
             />
           )}
 
@@ -642,8 +637,49 @@ export function TaskDetail({
               isAdmin={admin}
             />
           </div>
+
+          {/* Historial — en la misma columna que en el ticket */}
+          {activitySlot}
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Adjuntos de la tarea: solo consulta; se agregan desde el formulario de edición. */
+function TaskAttachmentList({ attachments }: { attachments: Attachment[] }) {
+  return (
+    <div style={{ padding: "1.25rem 1.5rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+      {attachments.map((att) => {
+        const isLink = att.type === "link";
+        return (
+          <a
+            key={att.id}
+            href={att.fileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              fontSize: "0.875rem",
+              color: "#fd1384",
+              textDecoration: "none",
+            }}
+          >
+            {isLink
+              ? <Link2 style={{ width: "1rem", height: "1rem", flexShrink: 0 }} />
+              : <FileText style={{ width: "1rem", height: "1rem", flexShrink: 0 }} />
+            }
+            <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {att.fileName}
+            </span>
+            {isLink && (
+              <ExternalLink style={{ width: "0.75rem", height: "0.75rem", opacity: 0.6, flexShrink: 0 }} />
+            )}
+          </a>
+        );
+      })}
     </div>
   );
 }

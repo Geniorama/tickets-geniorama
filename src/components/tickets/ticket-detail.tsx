@@ -3,7 +3,7 @@
 import { useTransition, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { formatDateTimeLong, formatDateTime, formatDate } from "@/lib/format-date";
-import { Pencil, Trash2, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Globe, ChevronDown, MoreVertical, Eye, Repeat } from "lucide-react";
+import { Pencil, Trash2, User as UserIcon, Building2, UserCheck, Calendar, Check, BookOpen, Globe, MoreVertical, Eye, Repeat } from "lucide-react";
 import type { Session } from "next-auth";
 // `CommentRecord` es el comentario compartido del núcleo (tabla `comments`),
 // con alias para no chocar con el tipo global `Comment` del DOM.
@@ -29,6 +29,8 @@ import {
   type PendingLink, type CommentAttachment,
 } from "@/components/ui/comment-attachments-input";
 import { FILE_RULES } from "@/lib/file-rules";
+import { InfoTabs, InfoTabEmpty, type InfoTab } from "@/components/ui/info-tabs";
+import { summarizeTime } from "@/lib/time-summary";
 import { toggleTicketCommentReaction } from "@/actions/reaction.actions";
 import type { ReactionType } from "@/generated/prisma";
 import { ReportGenerator } from "@/components/ui/report-generator";
@@ -75,6 +77,7 @@ export function TicketDetail({
   checklistSlot,
   activitySlot,
   checklistItemCount = 0,
+  checklistCheckedCount = 0,
   canManage = false,
 }: {
   ticket: TicketWithDetails;
@@ -90,6 +93,8 @@ export function TicketDetail({
   canManage?: boolean;
   /** Ítems de checklist del ticket; habilita la opción de copiarlos al duplicar. */
   checklistItemCount?: number;
+  /** Ítems marcados, para el resumen de la pestaña Checklist. */
+  checklistCheckedCount?: number;
 }) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
@@ -135,6 +140,87 @@ export function TicketDetail({
   }
 
   const canPublish = ticket.isDraft && session.user.id === ticket.createdBy.id;
+
+  // Información adjunta del ticket, en pestañas que dicen qué está diligenciado
+  const siteHasDocs = !!(ticket.site?.documentation || ticket.site?.architecture);
+  const infoTabs: InfoTab[] = [
+    {
+      id: "checklist",
+      label: "Checklist",
+      summary: checklistItemCount > 0 ? `${checklistCheckedCount}/${checklistItemCount}` : null,
+      content: checklistSlot,
+    },
+    {
+      id: "adjuntos",
+      label: "Adjuntos",
+      summary: ticket.attachments.length > 0 ? String(ticket.attachments.length) : null,
+      content: (
+        <div style={{ padding: "1.25rem 1.5rem" }}>
+          <AttachmentList
+            attachments={ticket.attachments}
+            ticketId={ticket.id}
+            isAdmin={isAdmin(role)}
+          />
+          {staff ? (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <AttachmentUploader ticketId={ticket.id} />
+            </div>
+          ) : (
+            <p className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400">
+              Para enviar archivos adicionales, adjúntalos en un comentario.
+            </p>
+          )}
+        </div>
+      ),
+    },
+    ...((linkedVaultEntries.length > 0 || staff)
+      ? [{
+          id: "boveda",
+          label: "Accesos Bóveda",
+          summary: linkedVaultEntries.length > 0 ? String(linkedVaultEntries.length) : null,
+          content: (
+            <TicketVaultPanel
+              ticketId={ticket.id}
+              linkedEntries={linkedVaultEntries}
+              availableEntries={availableVaultEntries}
+              canManage={staff}
+            />
+          ),
+        }]
+      : []),
+    ...((staff || (ticket.status === "CERRADO" && ticket.timeEntries.length > 0))
+      ? [{
+          id: "tiempo",
+          label: "Tiempo",
+          summary: summarizeTime(ticket.timeEntries),
+          content: (
+            <TicketTimer
+              ticketId={ticket.id}
+              title={ticket.title}
+              entries={ticket.timeEntries}
+              canControl={staff}
+              isAdmin={isAdmin(role)}
+              currentUserId={session.user.id}
+            />
+          ),
+        }]
+      : []),
+    ...(staff && ticket.site
+      ? [{
+          id: "sitio",
+          label: "Contexto del sitio",
+          summary: siteHasDocs ? ticket.site.name : null,
+          content: siteHasDocs ? (
+            <SiteContext site={ticket.site} />
+          ) : (
+            <InfoTabEmpty>
+              El sitio <strong>{ticket.site.name}</strong> ({ticket.site.domain}) no tiene documentación
+              ni arquitectura registradas.
+            </InfoTabEmpty>
+          ),
+        }]
+      : []),
+  ];
 
   return (
     <div>
@@ -338,51 +424,7 @@ export function TicketDetail({
             </div>
           </div>
 
-          {staff && ticket.site && (ticket.site.documentation || ticket.site.architecture) && (
-            <SiteContextPanel site={ticket.site} />
-          )}
-
-          {(staff || (ticket.status === "CERRADO" && ticket.timeEntries.length > 0)) && (
-            <TicketTimer
-              ticketId={ticket.id}
-              title={ticket.title}
-              entries={ticket.timeEntries}
-              canControl={staff}
-              isAdmin={isAdmin(role)}
-              currentUserId={session.user.id}
-            />
-          )}
-
-          {checklistSlot}
-
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="text-base font-semibold text-gray-800 mb-4">
-              Archivos adjuntos ({ticket.attachments.length})
-            </h2>
-            <AttachmentList
-              attachments={ticket.attachments}
-              ticketId={ticket.id}
-              isAdmin={isAdmin(role)}
-            />
-            {staff ? (
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <AttachmentUploader ticketId={ticket.id} />
-              </div>
-            ) : (
-              <p className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400">
-                Para enviar archivos adicionales, adjúntalos en un comentario.
-              </p>
-            )}
-          </div>
-
-          {(linkedVaultEntries.length > 0 || staff) && (
-            <TicketVaultPanel
-              ticketId={ticket.id}
-              linkedEntries={linkedVaultEntries}
-              availableEntries={availableVaultEntries}
-              canManage={staff}
-            />
-          )}
+          <InfoTabs tabs={infoTabs} />
         </div>
 
         {/* ── Right column ── */}
@@ -570,51 +612,38 @@ function TicketCommentItem({
   );
 }
 
-function SiteContextPanel({
+/** Documentación y arquitectura del sitio. Vive en su pestaña: ya no se pliega. */
+function SiteContext({
   site,
 }: {
   site: { name: string; domain: string; documentation: string | null; architecture: string | null };
 }) {
-  const [open, setOpen] = useState(false);
-
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-2 px-6 py-4 text-left hover:bg-gray-50 transition-colors"
-      >
-        <span className="flex items-center gap-2 text-base font-semibold text-gray-800">
-          <Globe className="w-4 h-4 text-indigo-500 shrink-0" />
-          Contexto del sitio: {site.name}
-          <span className="text-sm font-normal text-gray-400">({site.domain})</span>
-        </span>
-        <ChevronDown
-          className="w-4 h-4 text-gray-400 shrink-0 transition-transform"
-          style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
-        />
-      </button>
+    <div>
+      <p className="flex items-center gap-2 px-6 pt-5 text-sm font-semibold text-gray-800">
+        <Globe className="w-4 h-4 text-indigo-500 shrink-0" />
+        {site.name}
+        <span className="font-normal text-gray-400">({site.domain})</span>
+      </p>
 
-      {open && (
-        <div className="px-6 pb-6 space-y-4 border-t border-gray-100">
-          {site.documentation && (
-            <div className="pt-4">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Documentación</p>
-              <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
-                {site.documentation}
-              </pre>
-            </div>
-          )}
-          {site.architecture && (
-            <div>
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Arquitectura</p>
-              <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
-                {site.architecture}
-              </pre>
-            </div>
-          )}
-        </div>
-      )}
+      <div className="px-6 pb-6 space-y-4">
+        {site.documentation && (
+          <div className="pt-4">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Documentación</p>
+            <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+              {site.documentation}
+            </pre>
+          </div>
+        )}
+        {site.architecture && (
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Arquitectura</p>
+            <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+              {site.architecture}
+            </pre>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

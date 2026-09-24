@@ -9,6 +9,37 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.98.0] — 2026-09-24
+
+### Toda la información de la ficha, en un solo panel
+
+La información adjunta de un ticket o una tarea estaba repartida en tarjetas
+sueltas, cada una en un sitio distinto, y nada decía cuál tenía contenido: para
+saber si había accesos de Bóveda había que buscar la tarjeta y leerla. En las
+tareas era peor: los adjuntos **desaparecían** si no había ninguno, y la Bóveda
+y los archivos del proyecto quedaban al final de la página, fuera de la ficha.
+
+Ahora todo vive en un panel **Información** con una pestaña por sección. Cada
+pestaña dice su estado de un vistazo:
+
+- **✓ en verde, con su resumen**, si tiene contenido: «Checklist 3/5»,
+  «Adjuntos 2», «Tiempo 1h 20m · en curso».
+- **○ gris, borde punteado y «vacío»**, si está sin diligenciar.
+
+Arriba del panel, «4 de 5 con contenido». Se abre en la primera pestaña que
+tenga algo, y las vacías explican cómo llenarse.
+
+- **Ticket:** Checklist, Adjuntos, Accesos Bóveda, Tiempo y Contexto del sitio
+  (este último, ahora siempre visible para el equipo cuando hay sitio, aunque
+  no tenga documentación, para que se note que falta).
+- **Tarea:** Checklist, Adjuntos, Tiempo y —en tareas de proyecto— Bóveda del
+  proyecto y Archivos del proyecto.
+
+Los paneles se montan todos y solo se ocultan al cambiar de pestaña: el
+cronómetro sigue corriendo y un checklist a medio editar no se pierde. Las
+pestañas se recorren con las flechas del teclado. El historial de la tarea
+pasa a la columna de los comentarios, como en el ticket.
+
 ## [1.97.0] — 2026-09-24
 
 ### Los clientes pueden adjuntar archivos en los comentarios
