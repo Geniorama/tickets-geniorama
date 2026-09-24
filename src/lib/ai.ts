@@ -117,6 +117,37 @@ export async function runTextCompletion(opts: {
   return response.text ?? "";
 }
 
+// ─── Imágenes (solo OpenAI) ──────────────────────────────────────────────────
+
+/**
+ * Modelo de imagen. Configurable porque el acceso a los modelos de imagen de
+ * OpenAI depende de la cuenta (algunos exigen verificar la organización).
+ */
+export const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
+
+/**
+ * Genera `n` imágenes PNG y las devuelve como buffers. Calidad media: para un
+ * boceto sobra, y la alta multiplica el coste y el tiempo de espera.
+ */
+export async function runImageGeneration(opts: {
+  prompt: string;
+  size: "1024x1024" | "1024x1536" | "1536x1024";
+  n: number;
+}): Promise<Buffer[]> {
+  const res = await openaiClient().images.generate({
+    model: OPENAI_IMAGE_MODEL,
+    prompt: opts.prompt,
+    size: opts.size,
+    n: opts.n,
+    quality: "medium",
+    output_format: "png",
+  });
+  return (res.data ?? [])
+    .map((img) => img.b64_json)
+    .filter((b64): b64 is string => !!b64)
+    .map((b64) => Buffer.from(b64, "base64"));
+}
+
 // ─── Salida JSON estructurada (con documento opcional) ───────────────────────
 
 export async function runStructuredJson(opts: {

@@ -9,6 +9,33 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.103.0] — 2026-09-24
+
+### Brief creativo y bocetos con IA en las tareas de diseño
+
+Las tareas de diseño —categorías *Redes Sociales*, *Community Management*,
+*Diseño Gráfico*, *Branding* y *Diseño*— suman dos herramientas en su panel
+**Herramientas IA**, solo para el equipo:
+
+- **Brief creativo.** A partir de la descripción y los comentarios de la
+  tarea, un brief para el diseñador: objetivo, público, formato y medidas de
+  exportación, tres opciones de copy con titular, apoyo y CTA, dirección
+  visual, qué evitar y checklist de entrega. No inventa datos del cliente: lo
+  que falta lo deja como pregunta pendiente. Se puede copiar.
+- **Bocetos.** Genera de 1 a 3 propuestas visuales con OpenAI en formato
+  cuadrado, vertical (feed 4:5, historias) u horizontal, con indicaciones
+  opcionales y partiendo del brief si ya se generó. Se guardan como adjuntos de
+  la tarea.
+
+Los bocetos son **inspiración, no piezas finales**: los modelos de imagen no
+respetan con fidelidad el logo, las tipografías ni la identidad de marca, y el
+texto dentro de la imagen puede salir con errores. Por eso el prompt pide como
+mucho un titular corto y ningún logotipo inventado.
+
+Los bocetos usan el modelo de imagen de OpenAI, configurable con
+`OPENAI_IMAGE_MODEL` (por defecto `gpt-image-1`), a calidad media. Cada imagen
+tiene coste y tarda: el tope es de 3 por petición.
+
 ## [1.102.1] — 2026-09-24
 
 ### Corregido

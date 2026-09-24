@@ -23,6 +23,8 @@ import type { ReactionEntry } from "@/components/ui/comment-reactions";
 import type { CommentAttachment } from "@/components/ui/comment-attachments-input";
 import { ReportGenerator } from "@/components/ui/report-generator";
 import { AiToolsPanel, AiToolsLocked } from "@/components/ui/ai-tools-panel";
+import { DesignAiTools } from "./design-ai-tools";
+import { isDesignTask } from "@/lib/design-tasks";
 import { generateTaskReport } from "@/actions/report.actions";
 import { InfoTabs, InfoTabEmpty, type InfoTab } from "@/components/ui/info-tabs";
 import { summarizeTime } from "@/lib/time-summary";
@@ -599,13 +601,19 @@ export function TaskDetail({
           {staff || clientAiTools ? (
             <AiToolsPanel showProviderToggle={staff}>
               {(provider, busy) => (
-                <ReportGenerator
-                  label="Informe"
-                  description="Resumen formal de la tarea, exportable a PDF o DOCX."
-                  provider={provider}
-                  onBusy={busy}
-                  generateFn={(p) => generateTaskReport(task.id, p)}
-                />
+                <>
+                  {/* Brief y bocetos: solo el equipo, en tareas de diseño */}
+                  {staff && isDesignTask(task.category) && (
+                    <DesignAiTools taskId={task.id} provider={provider} onBusy={busy} />
+                  )}
+                  <ReportGenerator
+                    label="Informe"
+                    description="Resumen formal de la tarea, exportable a PDF o DOCX."
+                    provider={provider}
+                    onBusy={busy}
+                    generateFn={(p) => generateTaskReport(task.id, p)}
+                  />
+                </>
               )}
             </AiToolsPanel>
           ) : (
