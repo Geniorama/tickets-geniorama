@@ -1,6 +1,7 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type { EntityType } from "@/generated/prisma";
+import { isArchiveName, formatFileSize, MAX_FILE_BYTES, MAX_VIDEO_BYTES } from "@/lib/file-rules";
 
 // Carpeta en R2 por tipo de entidad. Las rutas coinciden con las que ya se
 // venían usando, para no invalidar los archivos existentes.
@@ -69,16 +70,35 @@ const VIDEO_MIME_TYPES = new Set([
   "video/x-msvideo",
 ]);
 
-const MAX_SIZE_BYTES       = 10  * 1024 * 1024; // 10 MB  (imágenes / docs)
-const MAX_VIDEO_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB (video)
+// Comprimidos. El MIME que manda el navegador no es fiable: Chrome en Windows
+// envía un .zip como `application/x-zip-compressed` y un .rar o .7z muchas veces
+// sin tipo o como `application/octet-stream`. Por eso se decide por la
+// extensión, y el MIME solo tiene que ser uno de estos o venir vacío.
+const ARCHIVE_MIME_TYPES = new Set([
+  "",
+  "application/octet-stream",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/vnd.rar",
+  "application/x-rar-compressed",
+  "application/x-7z-compressed",
+  "application/x-tar",
+  "application/gzip",
+  "application/x-gzip",
+  "application/x-compressed",
+]);
+
+function isArchive(file: File): boolean {
+  return isArchiveName(file.name) && ARCHIVE_MIME_TYPES.has(file.type);
+}
 
 export function validateFile(file: File): string | null {
-  const isVideo = VIDEO_MIME_TYPES.has(file.type);
-  const limit   = isVideo ? MAX_VIDEO_SIZE_BYTES : MAX_SIZE_BYTES;
-  const label   = isVideo ? "100 MB" : "10 MB";
-  if (file.size > limit) return `El archivo supera los ${label}`;
-  if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-    return "Tipo de archivo no permitido. Solo imágenes, video, PDF, Word, Excel y PowerPoint";
+  // El límite sale del mismo sitio que usan los formularios, para que el
+  // servidor no rechace lo que el formulario dejó pasar.
+  const limit = VIDEO_MIME_TYPES.has(file.type) ? MAX_VIDEO_BYTES : MAX_FILE_BYTES;
+  if (file.size > limit) return `El archivo supera los ${formatFileSize(limit)}`;
+  if (!ALLOWED_MIME_TYPES.includes(file.type) && !isArchive(file)) {
+    return "Tipo de archivo no permitido. Solo imágenes, video, PDF, Word, Excel, PowerPoint y comprimidos (ZIP, RAR, 7Z)";
   }
   return null;
 }

@@ -11,6 +11,7 @@ import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { TASK_CATEGORY_GROUPS, TASK_CATEGORIES } from "@/lib/task-categories";
 import { splitEstimatedHours } from "@/lib/estimated-time";
+import { FILE_RULES, formatFileSize, splitFiles } from "@/lib/file-rules";
 
 interface StaffUser {
   id: string;
@@ -73,11 +74,6 @@ const labelStyle: React.CSSProperties = {
   marginBottom: "0.25rem",
 };
 
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-}
 
 export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates = [], defaultReviewerIds = [], task, prefill, existingAttachments = [] }: TaskFormProps) {
   const [isPending, startTransition] = useTransition();
@@ -109,26 +105,9 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
 
   const [fileErrors, setFileErrors] = useState<string[]>([]);
 
-  function validateFileClient(file: File): string | null {
-    const videoTypes = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"];
-    const isVideo = videoTypes.includes(file.type);
-    const limit = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
-    const label = isVideo ? "100 MB" : "10 MB";
-    if (file.size > limit) return `"${file.name}" supera los ${label} (${formatFileSize(file.size)})`;
-    return null;
-  }
-
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const incoming = Array.from(e.target.files ?? []);
-    const errors: string[] = [];
-    const valid: File[] = [];
-    for (const file of incoming) {
-      const err = validateFileClient(file);
-      if (err) errors.push(err);
-      else valid.push(file);
-    }
-    if (errors.length > 0) setFileErrors(errors);
-    else setFileErrors([]);
+    const { valid, errors } = splitFiles(Array.from(e.target.files ?? []), FILE_RULES.attachment);
+    setFileErrors(errors);
     if (valid.length > 0) setSelectedFiles((prev) => [...prev, ...valid]);
     e.target.value = "";
   }
@@ -312,7 +291,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
               ref={fileInputRef}
               type="file"
               multiple
-              accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+              accept={FILE_RULES.attachment.accept}
               style={{ display: "none" }}
               onChange={handleFileChange}
             />
@@ -339,7 +318,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
               Seleccionar archivos
             </button>
             <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", marginTop: "0.375rem" }}>
-              Imágenes, video, PDF, Word, Excel o PowerPoint · máx. 10 MB (100 MB para video)
+              Imágenes, video, PDF, Word, Excel, PowerPoint o comprimidos · máx. 10 MB (100 MB para video) · puedes seleccionar varios a la vez
             </p>
 
             {fileErrors.length > 0 && (

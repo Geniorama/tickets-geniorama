@@ -28,6 +28,7 @@ import {
   CommentAttachmentsInput, CommentAttachmentsDisplay, appendCommentAttachments, mergeAttachments,
   type PendingLink, type CommentAttachment,
 } from "@/components/ui/comment-attachments-input";
+import { FILE_RULES } from "@/lib/file-rules";
 import { toggleTicketCommentReaction } from "@/actions/reaction.actions";
 import type { ReactionType } from "@/generated/prisma";
 import { ReportGenerator } from "@/components/ui/report-generator";
@@ -618,9 +619,6 @@ function SiteContextPanel({
   );
 }
 
-const COMMENT_MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
-const COMMENT_FILE_ACCEPT = ".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx";
-
 function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean }) {
   const [isPending, startTransition] = useTransition();
   const [internal, setInternal] = useState(false);
@@ -674,21 +672,19 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
         placeholder="Escribe un comentario… usa @ para mencionar a alguien"
       />
 
-      {/* Adjuntos múltiples — solo staff */}
-      {isStaff && (
-        <CommentAttachmentsInput
-          files={files}
-          setFiles={setFiles}
-          links={links}
-          setLinks={setLinks}
-          maxFileBytes={COMMENT_MAX_FILE_BYTES}
-          accept={COMMENT_FILE_ACCEPT}
-          onFileError={setError}
-        />
-      )}
+      {/* Adjuntos múltiples — el cliente, solo imágenes y comprimidos */}
+      <CommentAttachmentsInput
+        files={files}
+        setFiles={setFiles}
+        links={links}
+        setLinks={setLinks}
+        rule={isStaff ? FILE_RULES.comment : FILE_RULES.clientComment}
+        allowLinks={isStaff}
+        onFileError={setError}
+      />
 
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 whitespace-pre-line">
           {error}
         </p>
       )}

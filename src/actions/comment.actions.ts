@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { validateFile, uploadFile } from "@/lib/s3";
+import { checkFile, FILE_RULES } from "@/lib/file-rules";
 import { notifyMany } from "@/lib/notify";
 import { sendMentionEmail } from "@/lib/email";
 import {
@@ -37,10 +38,12 @@ export async function addComment(ticketId: string, formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  // Adjuntos múltiples (enlaces y archivos) — solo staff puede adjuntar en tickets
+  // Adjuntos múltiples: el staff adjunta enlaces y cualquier archivo; el
+  // cliente, imágenes —capturas de lo que ve— y comprimidos.
   const attachmentsData: NewAttachment[] = [];
+  const staff = isStaff(session.user.role);
 
-  if (isStaff(session.user.role)) {
+  if (staff) {
     const linksRaw = formData.get("links")?.toString();
     if (linksRaw) {
       try {
@@ -53,17 +56,21 @@ export async function addComment(ticketId: string, formData: FormData) {
         }
       } catch { /* JSON inválido, ignorar */ }
     }
+  }
 
-    const files = formData.getAll("attachmentFiles").filter((f): f is File => f instanceof File && f.size > 0);
-    for (const file of files) {
-      const validationError = validateFile(file);
-      if (validationError) return { error: `"${file.name}": ${validationError}` };
-      try {
-        const { storagePath, fileUrl } = await uploadFile(file, ticketId);
-        attachmentsData.push({ type: "file", url: fileUrl, name: file.name, storagePath });
-      } catch (err) {
-        return { error: err instanceof Error ? err.message : "Error al subir archivo" };
-      }
+  const files = formData.getAll("attachmentFiles").filter((f): f is File => f instanceof File && f.size > 0);
+  for (const file of files) {
+    if (!staff) {
+      const clientError = checkFile(file, FILE_RULES.clientComment);
+      if (clientError) return { error: clientError };
+    }
+    const validationError = validateFile(file);
+    if (validationError) return { error: `"${file.name}": ${validationError}` };
+    try {
+      const { storagePath, fileUrl } = await uploadFile(file, ticketId);
+      attachmentsData.push({ type: "file", url: fileUrl, name: file.name, storagePath });
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : "Error al subir archivo" };
     }
   }
 

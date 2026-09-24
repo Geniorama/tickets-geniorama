@@ -2,17 +2,14 @@
 
 import { useRef, useState, useTransition } from "react";
 import { FileText, Paperclip, X } from "lucide-react";
+import { unstable_rethrow } from "next/navigation";
 import { createTicket } from "@/actions/ticket.actions";
 import { DraftChecklist } from "@/components/ui/draft-checklist";
 import type { ChecklistGroup } from "@/lib/checklist";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { vaultOptionLabel } from "@/lib/vault-options";
-
-function formatFileSize(bytes: number) {
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+import { FILE_RULES, formatFileSize, splitFiles } from "@/lib/file-rules";
 
 interface Collaborator { id: string; name: string; role: string; }
 interface Client { id: string; name: string; companies: { id: string; name: string }[]; }
@@ -60,27 +57,11 @@ export function TicketForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [fileErrors, setFileErrors] = useState<string[]>([]);
-
-  function validateFileClient(file: File): string | null {
-    const videoTypes = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"];
-    const isVideo = videoTypes.includes(file.type);
-    const limit = isVideo ? 100 * 1024 * 1024 : 10 * 1024 * 1024;
-    const label = isVideo ? "100 MB" : "10 MB";
-    if (file.size > limit) return `"${file.name}" supera los ${label} (${formatFileSize(file.size)})`;
-    return null;
-  }
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const newFiles = Array.from(e.target.files ?? []);
-    const errors: string[] = [];
-    const valid: File[] = [];
-    for (const file of newFiles) {
-      const err = validateFileClient(file);
-      if (err) errors.push(err);
-      else valid.push(file);
-    }
-    if (errors.length > 0) setFileErrors(errors);
-    else setFileErrors([]);
+    const { valid, errors } = splitFiles(Array.from(e.target.files ?? []), FILE_RULES.attachment);
+    setFileErrors(errors);
     if (valid.length > 0) setSelectedFiles((prev) => [...prev, ...valid]);
     e.target.value = "";
   }
@@ -109,7 +90,19 @@ export function TicketForm({
     }
     formData.set("isDraft", submitAsDraft.current ? "true" : "false");
     submitAsDraft.current = false;
-    startTransition(async () => { await createTicket(formData); });
+    setSubmitError(null);
+    startTransition(async () => {
+      // Si todo va bien la acción redirige al ticket; si vuelve, es con un
+      // error, y el formulario se queda tal cual para corregir y reintentar.
+      try {
+        const result = await createTicket(formData);
+        if (result?.error) setSubmitError(result.error);
+      } catch (err) {
+        unstable_rethrow(err); // la redirección de éxito viaja como excepción
+        console.error("[createTicket]", err);
+        setSubmitError("No se pudo crear el ticket. Intenta de nuevo en unos segundos.");
+      }
+    });
   }
 
   return (
@@ -143,7 +136,7 @@ export function TicketForm({
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+          accept={FILE_RULES.attachment.accept}
           style={{ display: "none" }}
           onChange={handleFileChange}
         />
@@ -170,7 +163,7 @@ export function TicketForm({
             Seleccionar archivos
           </button>
           <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", marginTop: "0.375rem" }}>
-            Imágenes, video, PDF, Word, Excel o PowerPoint · máx. 10 MB (100 MB para video)
+            Imágenes, video, PDF, Word, Excel, PowerPoint o comprimidos · máx. 10 MB (100 MB para video) · puedes seleccionar varios a la vez
           </p>
 
           {fileErrors.length > 0 && (
@@ -382,6 +375,12 @@ export function TicketForm({
             tiene acceso a ellas en la Bóveda.
           </p>
         </div>
+      )}
+
+      {submitError && (
+        <p role="alert" className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {submitError}
+        </p>
       )}
 
       <div className="flex justify-end gap-3 pt-2">

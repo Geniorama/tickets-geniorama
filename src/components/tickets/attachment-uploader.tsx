@@ -3,11 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { FileText, Paperclip, X } from "lucide-react";
 import { addAttachment } from "@/actions/attachment.actions";
-
-function formatFileSize(bytes: number) {
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
+import { FILE_RULES, formatFileSize, splitFiles } from "@/lib/file-rules";
 
 export function AttachmentUploader({ ticketId }: { ticketId: string }) {
   const [isPending, startTransition] = useTransition();
@@ -16,9 +12,10 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const newFiles = Array.from(e.target.files ?? []);
-    if (newFiles.length > 0) {
-      setSelectedFiles((prev) => [...prev, ...newFiles]);
+    const { valid, errors } = splitFiles(Array.from(e.target.files ?? []), FILE_RULES.attachment);
+    setError(errors.length ? errors.join("\n") : null);
+    if (valid.length > 0) {
+      setSelectedFiles((prev) => [...prev, ...valid]);
     }
     e.target.value = "";
   }
@@ -54,7 +51,7 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
         ref={inputRef}
         type="file"
         multiple
-        accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.avi,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+        accept={FILE_RULES.attachment.accept}
         style={{ display: "none" }}
         onChange={handleFileChange}
       />
@@ -80,7 +77,7 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
           Seleccionar archivos
         </button>
         <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", marginTop: "0.375rem" }}>
-          Imágenes, video, PDF o Word · máx. 10 MB (100 MB para video) · puedes agregar varios uno a uno
+          Imágenes, video, PDF, Office o comprimidos · máx. 10 MB (100 MB para video) · puedes seleccionar varios a la vez
         </p>
       </div>
 
@@ -155,7 +152,7 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
       )}
 
       {error && (
-        <p style={{ fontSize: "0.75rem", color: "#b91c1c", margin: 0 }}>{error}</p>
+        <p style={{ fontSize: "0.75rem", color: "#b91c1c", margin: 0, whiteSpace: "pre-line" }}>{error}</p>
       )}
     </form>
   );

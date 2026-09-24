@@ -12,9 +12,7 @@ import {
   type PendingLink, type CommentAttachment,
 } from "@/components/ui/comment-attachments-input";
 import type { ReactionType } from "@/generated/prisma";
-
-const COMMENT_MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
-const COMMENT_FILE_ACCEPT = ".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx";
+import { FILE_RULES } from "@/lib/file-rules";
 
 interface Comment {
   id: string;
@@ -397,14 +395,14 @@ function TaskCommentForm({
         setFiles={setFiles}
         links={links}
         setLinks={setLinks}
-        maxFileBytes={COMMENT_MAX_FILE_BYTES}
-        accept={COMMENT_FILE_ACCEPT}
+        rule={FILE_RULES.comment}
         onFileError={setError}
       />
 
       {error && (
         <p
           style={{
+            whiteSpace: "pre-line",
             fontSize: "0.875rem",
             color: "#b91c1c",
             backgroundColor: "#fef2f2",

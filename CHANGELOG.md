@@ -9,6 +9,59 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.97.0] — 2026-09-24
+
+### Los clientes pueden adjuntar archivos en los comentarios
+
+Hasta ahora solo el equipo podía adjuntar algo en los comentarios de un
+ticket. El cliente, que es quien ve el problema, tenía que describirlo con
+palabras. Ahora puede subir **imágenes** (JPG, PNG, GIF o WebP) y
+**comprimidos**, hasta 10 MB cada uno. Enlaces y documentos siguen siendo solo
+del equipo, y el servidor rechaza cualquier otro tipo de archivo que envíe un
+cliente.
+
+### Las imágenes se ven, no se nombran
+
+Las imágenes adjuntas a un comentario —en tickets y en tareas— aparecen ahora
+como **miniaturas** en el hilo; al pulsarlas se abren a tamaño completo. Antes
+eran un enlace con el nombre del archivo. También se ven como miniatura antes
+de enviar el comentario, con una ✕ para quitarlas.
+
+Y queda claro que se pueden adjuntar **varios a la vez**: el botón está en
+plural, al lado se lee «Puedes seleccionar varios archivos a la vez», debajo
+qué tipos se admiten y, una vez elegidos los primeros, el botón pasa a
+**Añadir más**.
+
+### Archivos comprimidos
+
+Se pueden adjuntar **ZIP, RAR, 7Z, TAR y GZ** en todos los sitios que aceptan
+archivos: comentarios de tickets y tareas, adjuntos del ticket, creación de
+tickets y tareas, y adjuntos del proyecto. Mismo límite de 10 MB. El tipo se
+reconoce por la extensión: el navegador no manda un MIME fiable para estos
+formatos —Chrome en Windows envía un .rar o un .7z sin tipo— y rechazarlos por
+eso dejaba fuera archivos válidos.
+
+### El error de un archivo llega al elegirlo, no al publicar
+
+Un archivo con un formato no admitido pasaba el formulario y lo rechazaba el
+servidor al publicar: en un comentario el aviso llegaba después de enviar, y
+al crear un ticket o una tarea el archivo se descartaba sin avisar. Ahora cada formulario
+comprueba **tipo y peso en cuanto se elige el archivo** y dice cuál falla y
+por qué —«pesa 14 MB y el máximo es 10 MB»—. Los archivos válidos de la misma
+selección se quedan, así que no hay que volver a elegirlos. Los tipos y los
+límites viven en un solo sitio (`src/lib/file-rules.ts`) que usan tanto los
+formularios como el servidor, para que no vuelvan a desalinearse.
+
+### Corregido
+
+- **Crear un ticket ya no falla en silencio.** El formulario ignoraba lo que
+  respondía el servidor: si faltaba el plan activo, el asignado estaba inactivo
+  o algún campo no era válido, al pulsar «Crear ticket» no pasaba nada visible.
+  Ahora el error aparece junto a los botones y el formulario conserva todo lo
+  escrito para corregirlo y reintentar.
+
+---
+
 ## [1.96.0] — 2026-09-11
 
 ### El informe del proyecto cuenta lo que se hizo, no lo que se llama

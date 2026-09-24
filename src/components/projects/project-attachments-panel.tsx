@@ -23,6 +23,8 @@ import {
   deleteProjectAttachment,
   reorderProjectAttachments,
 } from "@/actions/project-attachment.actions";
+// Mismos tipos que un comentario (sin video), como hasta ahora.
+import { FILE_RULES, checkFile } from "@/lib/file-rules";
 
 interface Attachment {
   id: string;
@@ -203,7 +205,12 @@ export function ProjectAttachmentsPanel({
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    setFileError(null);
+    const pickError = checkFile(file, FILE_RULES.comment);
+    setFileError(pickError);
+    if (pickError) {
+      e.target.value = "";
+      return;
+    }
     const fd = new FormData();
     fd.append("file", file);
     startTransition(async () => {
@@ -309,7 +316,7 @@ export function ProjectAttachmentsPanel({
               type="file"
               style={{ display: "none" }}
               onChange={handleFileUpload}
-              accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+              accept={FILE_RULES.comment.accept}
             />
           </div>
         )}
