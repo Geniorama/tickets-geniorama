@@ -9,6 +9,17 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.102.1] — 2026-09-24
+
+### Corregido
+
+- **La campana de notificaciones marcaba un número y mostraba otro.** El número
+  contaba todas las no leídas, pero la lista solo traía las 30 notificaciones
+  más recientes, y al abrirla el contador se recalculaba con esa lista: una no
+  leída más antigua contaba en la campana pero no aparecía, y el número bajaba
+  solo (de 6 a 1, por ejemplo). Ahora la lista muestra primero **todas las no
+  leídas** y después las leídas recientes, y el contador es siempre el real.
+
 ## [1.102.0] — 2026-09-24
 
 ### Herramientas de IA para clientes, según su plan

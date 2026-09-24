@@ -54,9 +54,11 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
     const opening = !isOpen;
     setIsOpen(opening);
     if (opening) {
-      const data = await getNotifications();
-      setNotifications(data);
-      setUnreadCount(data.filter((n) => !n.isRead).length);
+      // El contador viene del servidor, no de la lista: la lista puede tener
+      // tope y el número de la campana debe ser el real.
+      const { items, unreadCount: count } = await getNotifications();
+      setNotifications(items);
+      setUnreadCount(count);
       setLoaded(true);
     }
   }
