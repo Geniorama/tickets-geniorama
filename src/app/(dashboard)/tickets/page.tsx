@@ -194,7 +194,6 @@ export default async function TicketsPage({
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 data-tour-id="page-title" className="text-2xl font-bold text-gray-900">Tickets</h1>
         <div className="flex items-center gap-2 sm:gap-3" data-tour-id="page-primary-action">
-          {staff && <ViewToggle current={view} />}
           {staff && <TicketPlannerLauncher />}
           {canCreateTicket ? (
             <Link
@@ -228,8 +227,16 @@ export default async function TicketsPage({
         />
       )}
 
-      <div style={{ marginBottom: "1rem" }}>
-        <FilterTags tags={filterTags} />
+      {/* Contador, filtros activos y vista, pegados a los resultados: la
+          vista es una preferencia de lectura, no una acción de la página */}
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <div className="flex flex-wrap items-center gap-2 min-w-0">
+          <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", margin: 0 }}>
+            {totalTickets} {totalTickets === 1 ? "ticket" : "tickets"}
+          </p>
+          <FilterTags tags={filterTags} />
+        </div>
+        {staff && <ViewToggle current={view} />}
       </div>
 
       {view === "kanban" ? (

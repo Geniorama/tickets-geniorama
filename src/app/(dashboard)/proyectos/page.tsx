@@ -144,7 +144,6 @@ export default async function ProyectosPage({
         </h1>
 
         <div className="flex flex-wrap items-center gap-2" data-tour-id="page-primary-action">
-          <ProjectViewToggle current={view} />
           {staff && <PlannerLauncher isAdmin={admin} />}
           {admin && (
             <Link
@@ -182,9 +181,14 @@ export default async function ProyectosPage({
         />
       </div>
 
-      <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginBottom: "1rem" }}>
-        {totalProjects} {totalProjects === 1 ? "proyecto" : "proyectos"}
-      </p>
+      {/* Contador y vista, pegados a los resultados: la vista es una
+          preferencia de lectura, no una acción de la página */}
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", margin: 0 }}>
+          {totalProjects} {totalProjects === 1 ? "proyecto" : "proyectos"}
+        </p>
+        <ProjectViewToggle current={view} />
+      </div>
 
       <ProjectList projects={projects} view={view} favoriteIds={favoriteIdSet} />
 

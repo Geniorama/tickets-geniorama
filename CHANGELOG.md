@@ -9,6 +9,21 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.103.1] — 2026-09-24
+
+### La vista de proyectos y tickets, junto a los resultados
+
+El cambio de vista —**Tarjetas / Lista** en proyectos, **Lista / Kanban** en
+tickets— estaba en la cabecera, con el mismo peso que «Planificar con IA» y
+«Nuevo …». Es una preferencia de lectura, no una acción de la página: ahora va
+en la fila del contador, justo encima de los resultados, como un selector
+segmentado discreto con los colores del tema. La cabecera queda solo con las
+acciones.
+
+En tickets, esa fila estrena además el contador («N tickets») junto a las
+etiquetas de los filtros activos. Los dos selectores comparten componente
+(`ui/view-segmented`) para que no vuelvan a diferir.
+
 ## [1.103.0] — 2026-09-24
 
 ### Brief creativo y bocetos con IA en las tareas de diseño
