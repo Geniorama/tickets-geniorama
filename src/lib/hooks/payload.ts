@@ -10,6 +10,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { projectState } from "@/lib/project-state";
 import { ticketCode } from "@/lib/ticket-code";
 import { taskCode } from "@/lib/task-code";
 import { fullName } from "@/lib/crm/contact-name";
@@ -155,8 +156,8 @@ const projectSelect = {
   id: true,
   name: true,
   description: true,
-  status: true,
   isActive: true,
+  isDraft: true,
   isPrivate: true,
   startDate: true,
   dueDate: true,
@@ -178,8 +179,11 @@ export function serializeProject(project: ProjectRow) {
     id: project.id,
     name: project.name,
     description: project.description,
-    status: project.status,
+    // ACTIVO / INACTIVO / BORRADOR. Hasta v1.103 era el estado de cinco
+    // valores (PLANIFICACION…), que dejó de existir.
+    status: projectState(project),
     isActive: project.isActive,
+    isDraft: project.isDraft,
     isPrivate: project.isPrivate,
     startDate: iso(project.startDate),
     dueDate: iso(project.dueDate),

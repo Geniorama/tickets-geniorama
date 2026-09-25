@@ -17,7 +17,11 @@ export const STATUS_LABELS: Record<string, string> = {
   EN_PROGRESO:    "En progreso",
   EN_REVISION:    "En revisión",
   COMPLETADO:     "Completado",
-  // Proyectos
+  // Proyectos (desde v1.104.0 solo Activo / Inactivo / Borrador)
+  ACTIVO:         "Activo",
+  INACTIVO:       "Inactivo",
+  BORRADOR:       "Borrador",
+  // Estados antiguos de proyecto: siguen en el historial de antes del cambio
   PLANIFICACION:  "Planificación",
   EN_DESARROLLO:  "En desarrollo",
   PAUSADO:        "Pausado",

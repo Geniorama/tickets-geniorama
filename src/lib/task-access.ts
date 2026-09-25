@@ -88,7 +88,8 @@ export async function getClientAccessibleTaskIds(
     where: {
       id: { in: taskIds },
       isDraft: false,
-      project: { companyId: { in: companyIds } },
+      // Un proyecto en borrador no se abre a clientes hasta publicarse
+      project: { companyId: { in: companyIds }, isDraft: false },
     },
     select: {
       id: true,

@@ -3,14 +3,10 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { PROJECT_STATES, PROJECT_STATE_LABEL } from "@/lib/project-state";
 
-const STATUS_OPTIONS = [
-  { value: "PLANIFICACION", label: "Planificación" },
-  { value: "EN_DESARROLLO", label: "En desarrollo" },
-  { value: "EN_REVISION",   label: "En revisión" },
-  { value: "COMPLETADO",    label: "Completado" },
-  { value: "PAUSADO",       label: "Pausado" },
-];
+// Borrador solo trae los propios: los ajenos no son visibles para nadie
+const STATUS_OPTIONS = PROJECT_STATES.map((s) => ({ value: s, label: PROJECT_STATE_LABEL[s] }));
 
 type Company = { id: string; name: string };
 type Manager = { id: string; name: string };

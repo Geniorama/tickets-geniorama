@@ -38,7 +38,7 @@ export default async function TaskPage({
   const task = await prisma.task.findUnique({
     where: { id: taskId },
     include: {
-      project: { select: { id: true, name: true, companyId: true, isPrivate: true } },
+      project: { select: { id: true, name: true, companyId: true, isPrivate: true, isDraft: true, createdById: true } },
       assignedTo: { select: { id: true, name: true } },
       reviewers: { select: { id: true, name: true } },
       createdBy: { select: { id: true, name: true } },
@@ -46,13 +46,16 @@ export default async function TaskPage({
   });
 
   if (!task || task.projectId !== projectId) notFound();
+  // Un proyecto en borrador solo existe para quien lo creó, sea cual sea su rol
+  if (task.project?.isDraft && task.project.createdById !== userId) notFound();
 
   // Los borradores son privados: solo su creador puede verlos
   if (task.isDraft && task.createdById !== userId) notFound();
 
   const moveableProjects = admin
     ? await prisma.project.findMany({
-        where: { id: { not: projectId }, isActive: true },
+        // Destinos para mover: activos y publicados
+        where: { id: { not: projectId }, isActive: true, isDraft: false },
         select: { id: true, name: true },
         orderBy: { name: "asc" },
       })

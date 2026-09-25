@@ -91,9 +91,10 @@ export async function getPlannerOptions(): Promise<PlannerOptions | { error: str
   const [projects, companies, staff] = await Promise.all([
     prisma.project.findMany({
       where: admin
-        ? { isActive: true }
+        ? { isActive: true, isDraft: false }
         : {
             isActive: true,
+            isDraft: false,
             OR: [{ managerId: userId }, { tasks: { some: { assignedToId: userId } } }],
           },
       select: { id: true, name: true },
@@ -370,7 +371,8 @@ export async function applyPlan(
       data: {
         name: np.name.trim(),
         description: np.description?.trim() || np.name.trim(),
-        status: "PLANIFICACION",
+        // Publicado y activo: el planificador crea trabajo para empezar ya
+        isActive: true,
         companyId: np.companyId ?? null,
         managerId: np.managerId ?? null,
         createdById: userId,
@@ -387,9 +389,9 @@ export async function applyPlan(
     if (!input.projectId) return { error: "Selecciona un proyecto." };
     const project = await prisma.project.findUnique({
       where: { id: input.projectId },
-      select: { id: true, name: true, isPrivate: true, isActive: true },
+      select: { id: true, name: true, isPrivate: true, isActive: true, isDraft: true },
     });
-    if (!project || !project.isActive) return { error: "Proyecto no encontrado." };
+    if (!project || !project.isActive || project.isDraft) return { error: "Proyecto no encontrado." };
     projectId = project.id;
     projectName = project.name;
     projectIsPrivate = project.isPrivate;

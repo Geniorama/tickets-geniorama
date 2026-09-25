@@ -9,6 +9,42 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.104.0] — 2026-09-25
+
+### Proyectos: Activo, Inactivo o Borrador
+
+Los cinco estados de proyecto (Planificación, En desarrollo, En revisión,
+Completado, Pausado) desaparecen. Un proyecto ahora es:
+
+- **Activo** — el trabajo en curso.
+- **Inactivo** — sigue visible, pero ya no se ofrece para crear tareas nuevas,
+  en el planificador ni en el asistente.
+- **Borrador** — **solo lo ve su creador**, con todas sus tareas, sea cual sea
+  su rol. Nadie más lo encuentra en listados, buscador, dashboard, panel,
+  reportes ni API, y nada de él avisa a nadie ni sale por webhooks. Al pulsar
+  **Publicar proyecto** en su ficha aparece todo a la vez, y entonces se
+  registra «creó el proyecto».
+
+Al crear un proyecto se elige entre **Guardar como borrador** y **Crear
+proyecto**; el estado Activo/Inactivo se cambia desde el formulario. El
+filtro del listado pasa a Activo / Inactivo / Borrador, y el dashboard cuenta
+como activos los publicados y activos.
+
+**Conversión de los existentes:** Completado y Pausado pasan a inactivos; el
+resto, a activos. Ninguno queda como borrador. La columna de estado se borra.
+
+**Cambio en webhooks y API.** El campo `status` de un proyecto pasa a valer
+`ACTIVO`, `INACTIVO` o `BORRADOR`, y se añade `isDraft`. Una integración que
+filtre por los valores antiguos (`PLANIFICACION`…) debe actualizarse. El evento
+`project.status_changed` se mantiene y ahora avisa del paso entre activo e
+inactivo.
+
+### Corregido
+
+- **Buscar en Proyectos mostraba proyectos ajenos.** El filtro de texto pisaba
+  la regla de visibilidad por rol: un colaborador que escribía en el buscador
+  del listado veía proyectos que no le correspondían. Ahora se combinan.
+
 ## [1.103.2] — 2026-09-24
 
 ### Botones con un solo criterio de color y de cursor

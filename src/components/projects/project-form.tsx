@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { createProject, updateProject } from "@/actions/project.actions";
 import type { Project } from "@/generated/prisma";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
@@ -41,6 +41,8 @@ export function ProjectForm({ companies, staffUsers, allUsers = [], project }: P
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const isEdit = !!project;
+  // Qué botón envió el formulario: «Guardar como borrador» o «Crear proyecto»
+  const submitAsDraft = useRef(false);
 
   const [isPrivate, setIsPrivate] = useState(project?.isPrivate ?? false);
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(
@@ -52,6 +54,8 @@ export function ProjectForm({ companies, staffUsers, allUsers = [], project }: P
     setError(null);
     const formData = new FormData(e.currentTarget);
     formData.set("isPrivate", isPrivate ? "true" : "false");
+    formData.set("isDraft", submitAsDraft.current ? "true" : "false");
+    submitAsDraft.current = false;
     // Replace memberIds with current state
     formData.delete("memberIds");
     for (const id of selectedMemberIds) formData.append("memberIds", id);
@@ -106,13 +110,15 @@ export function ProjectForm({ companies, staffUsers, allUsers = [], project }: P
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
         <div>
           <label style={labelStyle}>Estado</label>
-          <select name="status" defaultValue={project?.status ?? "PLANIFICACION"} style={inputStyle}>
-            <option value="PLANIFICACION">Planificación</option>
-            <option value="EN_DESARROLLO">En desarrollo</option>
-            <option value="EN_REVISION">En revisión</option>
-            <option value="COMPLETADO">Completado</option>
-            <option value="PAUSADO">Pausado</option>
+          <select name="isActive" defaultValue={project?.isActive === false ? "false" : "true"} style={inputStyle}>
+            <option value="true">Activo</option>
+            <option value="false">Inactivo</option>
           </select>
+          <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", margin: "0.25rem 0 0" }}>
+            {project?.isDraft
+              ? "Es un borrador: solo tú lo ves. Publícalo desde la ficha del proyecto."
+              : "Un proyecto inactivo sigue visible, pero no se ofrece para crear tareas nuevas."}
+          </p>
         </div>
 
         <div>
@@ -285,9 +291,21 @@ export function ProjectForm({ companies, staffUsers, allUsers = [], project }: P
         >
           Cancelar
         </button>
+        {!isEdit && (
+          <button
+            type="submit"
+            disabled={isPending}
+            onClick={() => { submitAsDraft.current = true; }}
+            title="Solo tú lo verás, con sus tareas, hasta que lo publiques"
+            style={{ padding: "0.5rem 1rem", fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", background: "none", border: "1px solid var(--app-border)", borderRadius: "0.5rem", opacity: isPending ? 0.6 : 1 }}
+          >
+            {isPending ? "Guardando..." : "Guardar como borrador"}
+          </button>
+        )}
         <button
           type="submit"
           disabled={isPending}
+          onClick={() => { submitAsDraft.current = false; }}
           style={{ backgroundColor: "#fd1384", color: "#ffffff", padding: "0.5rem 1.25rem", borderRadius: "0.5rem", fontSize: "0.875rem", fontWeight: 500, border: "none", cursor: isPending ? "not-allowed" : "pointer", opacity: isPending ? 0.6 : 1 }}
         >
           {isPending ? (isEdit ? "Guardando..." : "Creando...") : (isEdit ? "Guardar cambios" : "Crear proyecto")}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { TASK_NOT_IN_DRAFT_PROJECT } from "@/lib/search/scopes";
 import { sendGChatNotification } from "@/lib/gchat";
 import { fromZonedTime } from "date-fns-tz";
 import { formatDate } from "@/lib/format-date";
@@ -50,6 +51,8 @@ export async function POST(req: NextRequest) {
         isDraft: false,
         status: { notIn: ["COMPLETADO", "EN_REVISION"] },
         dueDate: { lt: today },
+        // Nada de un proyecto que aún es borrador: no existe para el equipo
+        AND: [TASK_NOT_IN_DRAFT_PROJECT],
         OR: [
           { project: { isPrivate: false } },
           { projectId: null },

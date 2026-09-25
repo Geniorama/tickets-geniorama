@@ -26,6 +26,7 @@ import { DEAL_STAGE_LABELS } from "@/lib/crm/deals";
 import { statusLabel } from "@/lib/status-labels";
 import { fullName } from "@/lib/crm/contact-name";
 import { visibleProjectWhere, visibleTaskWhere, visibleTicketWhere, type Viewer } from "@/lib/search/scopes";
+import { projectState, PROJECT_STATE_LABEL } from "@/lib/project-state";
 
 export type SearchHit = {
   id: string;
@@ -122,7 +123,7 @@ async function buscarProyectos(viewer: Viewer, q: string): Promise<SearchHit[]> 
 
   const rows = await prisma.project.findMany({
     where: { AND: [scope, { OR: [{ name: like(q) }, { description: like(q) }] }] },
-    select: { id: true, name: true, status: true, company: { select: { name: true } } },
+    select: { id: true, name: true, isActive: true, isDraft: true, company: { select: { name: true } } },
     orderBy: { updatedAt: "desc" },
     take: PER_GROUP,
   });
@@ -132,7 +133,7 @@ async function buscarProyectos(viewer: Viewer, q: string): Promise<SearchHit[]> 
     app: "PROYECTOS" as AppKey,
     kind: "Proyecto",
     title: p.name,
-    subtitle: [p.company?.name, estado(p.status)].filter(Boolean).join(" · ") || null,
+    subtitle: [p.company?.name, PROJECT_STATE_LABEL[projectState(p)]].filter(Boolean).join(" · ") || null,
     href: `/proyectos/${p.id}`,
   }));
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import type { Project, ProjectStatus } from "@/generated/prisma";
+import type { Project } from "@/generated/prisma";
 import { ProjectStatusBadge } from "./project-status-badge";
 import { ProjectFavoriteToggle } from "./project-favorite-toggle";
 import { formatDate } from "@/lib/format-date";
@@ -75,7 +75,7 @@ export function ProjectList({
                     {project.isPrivate && <Lock style={{ width: "0.75rem", height: "0.75rem", color: "#7c3aed" }} />}
                     {project.name}
                   </span>
-                  <ProjectStatusBadge status={project.status as ProjectStatus} />
+                  <ProjectStatusBadge project={project} />
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem 0.875rem", fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
                   {project.company && (
@@ -148,7 +148,7 @@ export function ProjectList({
                     {project.manager?.name ?? "—"}
                   </td>
                   <td style={{ padding: "0.75rem 1rem" }}>
-                    <ProjectStatusBadge status={project.status as ProjectStatus} />
+                    <ProjectStatusBadge project={project} />
                   </td>
                   <td style={{ padding: "0.75rem 1rem", color: "var(--app-text-muted)" }}>
                     {project._count.tasks}
@@ -227,7 +227,7 @@ export function ProjectList({
                     Privado
                   </span>
                 )}
-                <ProjectStatusBadge status={project.status as ProjectStatus} />
+                <ProjectStatusBadge project={project} />
               </div>
             </div>
 

@@ -16,14 +16,14 @@ export default async function EditTaskPage({
 }: {
   params: Promise<{ id: string; taskId: string }>;
 }) {
-  await requireCan("PROYECTOS", "editar");
+  const session = await requireCan("PROYECTOS", "editar");
   const { id: projectId, taskId } = await params;
 
   const [task, staffUsers, reviewerCandidates] = await Promise.all([
     prisma.task.findUnique({
       where: { id: taskId },
       include: {
-        project: { select: { id: true, name: true } },
+        project: { select: { id: true, name: true, isDraft: true, createdById: true } },
         reviewers: { select: { id: true } },
       },
     }),
@@ -40,6 +40,8 @@ export default async function EditTaskPage({
   ]);
 
   if (!task || task.projectId !== projectId) notFound();
+  // Un proyecto en borrador solo existe para quien lo creó, sea cual sea su rol
+  if (task.project?.isDraft && task.project.createdById !== session.user.id) notFound();
 
   // Los adjuntos viven en la tabla compartida, fuera de la relación.
   const attachments = await listAttachments("TASK", taskId);

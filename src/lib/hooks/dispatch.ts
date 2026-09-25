@@ -311,10 +311,14 @@ export function emitTaskHook(
     let projectId = opts.projectId ?? null;
     let isPrivate = opts.projectIsPrivate;
 
+    // Se consulta siempre: además de la privacidad hace falta saber si el
+    // proyecto es un borrador. Nada de un borrador sale de la plataforma —ni
+    // creaciones, ni cambios, ni comentarios— hasta que se publica.
+    const task = await prisma.task
+      .findUnique({ where: { id: taskId }, select: { project: { select: { id: true, isPrivate: true, isDraft: true } } } })
+      .catch(() => null);
+    if (task?.project?.isDraft) return;
     if (isPrivate === undefined) {
-      const task = await prisma.task
-        .findUnique({ where: { id: taskId }, select: { project: { select: { id: true, isPrivate: true } } } })
-        .catch(() => null);
       projectId = task?.project?.id ?? projectId;
       isPrivate = task?.project?.isPrivate ?? false;
     }

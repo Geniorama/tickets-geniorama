@@ -16,7 +16,7 @@ export default async function EditProjectPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireCan("PROYECTOS", "gestionar");
+  const session = await requireCan("PROYECTOS", "gestionar");
   const { id: projectId } = await params;
 
   const [project, companies, staffUsers, allUsers] = await Promise.all([
@@ -42,6 +42,8 @@ export default async function EditProjectPage({
   ]);
 
   if (!project) notFound();
+  // Un proyecto en borrador solo existe para quien lo creó, sea cual sea su rol
+  if (project.isDraft && project.createdById !== session.user.id) notFound();
 
   return (
     <div style={{ padding: "1.5rem" }}>

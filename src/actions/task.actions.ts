@@ -227,7 +227,7 @@ export async function createTask(projectIdArg: string | null, formData: FormData
   );
 
   const [project, assignee] = await Promise.all([
-    prisma.project.findUnique({ where: { id: projectId }, select: { name: true, isPrivate: true } }),
+    prisma.project.findUnique({ where: { id: projectId }, select: { name: true, isPrivate: true, isDraft: true } }),
     task.assignedToId
       ? prisma.user.findUnique({ where: { id: task.assignedToId }, select: { name: true } })
       : null,
@@ -235,8 +235,11 @@ export async function createTask(projectIdArg: string | null, formData: FormData
 
   const projectIsPrivate = project?.isPrivate ?? false;
 
-  // Los borradores no notifican a nadie hasta que se publican
-  if (!isDraft) {
+  // Los borradores no notifican a nadie hasta que se publican. Tampoco una
+  // tarea dentro de un proyecto en borrador: el proyecto aún no existe para
+  // nadie más, y el aviso llevaría a una página que no pueden abrir.
+  const silent = isDraft || !!project?.isDraft;
+  if (!silent) {
     // Construir mensaje enriquecido para GChat
     const msgParts: string[] = [`"${task.title}"${project ? ` en ${project.name}` : ""}`];
     if (assignee?.name) msgParts.push(`Asignado a: ${assignee.name}`);

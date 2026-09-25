@@ -1,6 +1,7 @@
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { operationalCompanyWhere } from "@/lib/crm/accounts";
 import { visibleProjectWhere } from "@/lib/search/scopes";
+import { PROJECT_STATES, projectStateWhere, type ProjectState } from "@/lib/project-state";
 import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { ProjectList } from "@/components/projects/project-list";
@@ -9,7 +10,6 @@ import { ProjectViewToggle } from "@/components/projects/project-view-toggle";
 import { PlannerLauncher } from "@/components/assistant/planner-tool";
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import type { ProjectStatus } from "@/generated/prisma";
 import { Pagination } from "@/components/ui/pagination";
 import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/search-input";
@@ -29,7 +29,11 @@ export default async function ProyectosPage({
   const admin = isAdmin(role);
 
   const q = params.q?.trim() || undefined;
-  const statusValues  = params.status?.split(",").filter(Boolean)    as ProjectStatus[] | undefined;
+  // Estado: Activo / Inactivo / Borrador. Los valores antiguos de la URL
+  // (PLANIFICACION…) se descartan en vez de romper la consulta.
+  const stateValues = (params.status?.split(",") ?? []).filter((v): v is ProjectState =>
+    (PROJECT_STATES as string[]).includes(v),
+  );
   const companyValues = params.companyId?.split(",").filter(Boolean) as string[]        | undefined;
   const managerValues = params.managerId?.split(",").filter(Boolean) as string[]        | undefined;
   const dueDateFrom     = params.dueDateFrom as string | undefined;
@@ -37,7 +41,7 @@ export default async function ProyectosPage({
 
   // Filtros aplicables a cualquier rol
   const extraFilters = {
-    ...(statusValues?.length  ? { status:    { in: statusValues } }  : {}),
+    ...(stateValues.length ? { OR: stateValues.map(projectStateWhere) } : {}),
     ...(companyValues?.length ? { companyId: { in: companyValues } } : {}),
     ...(managerValues?.length ? { managerId: { in: managerValues } } : {}),
     ...(dueDateFrom || dueDateTo
@@ -48,15 +52,20 @@ export default async function ProyectosPage({
           },
         }
       : {}),
-    ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] } : {}),
   };
+  // La búsqueda va en su propio OR: dentro del objeto pisaría el del estado
+  const searchFilter = q
+    ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { description: { contains: q, mode: "insensitive" as const } }] }
+    : {};
 
   // Filtro base por rol. Vive en `search/scopes.ts` porque el buscador global
   // lee de aquí también: si cada uno definiera la visibilidad por su cuenta,
   // una de las dos acabaría enseñando de más.
   const roleWhere = await visibleProjectWhere(session.user);
 
-  const where = { ...roleWhere, ...extraFilters };
+  // AND, no un spread: con el spread, el OR de la búsqueda reemplazaba al OR de
+  // la visibilidad por rol y un colaborador que buscaba veía proyectos ajenos.
+  const where = { AND: [roleWhere, extraFilters, searchFilter] };
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const pageSize = getPageSize(params.pageSize);
   const view = params.view === "grid" ? "grid" : "list";

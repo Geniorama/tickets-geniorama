@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { Project, ProjectStatus, Task, TaskStatus, Priority, Attachment } from "@/generated/prisma";
+import type { Project, Task, TaskStatus, Priority, Attachment } from "@/generated/prisma";
 import { ProjectStatusBadge } from "./project-status-badge";
 import { TaskList } from "./task-list";
 import { TaskKanban } from "./task-kanban";
 import { TaskCalendar } from "./task-calendar";
 import { formatDate } from "@/lib/format-date";
 import { Plus, Pencil, List, LayoutGrid, CalendarDays, User2, Building2, Calendar, Lock, Webhook } from "lucide-react";
-import { deleteProject } from "@/actions/project.actions";
+import { deleteProject, publishProject } from "@/actions/project.actions";
 import { ProjectVaultPanel } from "@/components/vault/project-vault-panel";
 import { ProjectAttachmentsPanel } from "@/components/projects/project-attachments-panel";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
@@ -81,7 +81,14 @@ export function ProjectDetail({
 
   function handleDeleteProject() {
     if (!confirm(`¿Eliminar el proyecto "${project.name}"? Se eliminarán también todas sus tareas. Esta acción no se puede deshacer.`)) return;
-    startTransition(() => deleteProject(project.id));
+    startTransition(async () => { await deleteProject(project.id); });
+  }
+
+  function handlePublish() {
+    if (!confirm("¿Publicar este proyecto? Sus tareas pasarán a verse para su equipo y su cliente.")) return;
+    startTransition(async () => {
+      await publishProject(project.id);
+    });
   }
 
   function setView(v: ViewType) {
@@ -131,6 +138,45 @@ export function ProjectDetail({
 
   return (
     <div>
+      {/* Borrador: solo lo ve su creador, así que quien lo mira puede publicarlo */}
+      {project.isDraft && (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "0.75rem",
+            border: "1px solid #fcd34d",
+            backgroundColor: "#fffbeb",
+            borderRadius: "0.75rem",
+            padding: "0.75rem 1rem",
+            marginBottom: "1rem",
+          }}
+        >
+          <p style={{ margin: 0, fontSize: "0.875rem", color: "#92400e" }}>
+            <strong>Borrador.</strong> Solo tú ves este proyecto y sus tareas, y nadie recibe avisos hasta que lo publiques.
+          </p>
+          <button
+            type="button"
+            onClick={handlePublish}
+            disabled={isPending}
+            style={{
+              backgroundColor: "#f59e0b",
+              color: "#fff",
+              border: "none",
+              borderRadius: "0.5rem",
+              padding: "0.5rem 1rem",
+              fontSize: "0.875rem",
+              fontWeight: 500,
+              opacity: isPending ? 0.6 : 1,
+            }}
+          >
+            {isPending ? "Publicando..." : "Publicar proyecto"}
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div
         style={{
@@ -181,7 +227,7 @@ export function ProjectDetail({
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
-            <ProjectStatusBadge status={project.status as ProjectStatus} />
+            <ProjectStatusBadge project={project} />
             {isAdmin && (
               <>
                 <Link

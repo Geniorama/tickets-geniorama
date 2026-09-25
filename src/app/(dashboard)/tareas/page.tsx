@@ -1,6 +1,6 @@
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
-import { visibleTaskWhere } from "@/lib/search/scopes";
+import { visibleTaskWhere, projectNotOthersDraft } from "@/lib/search/scopes";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { TaskList } from "@/components/projects/task-list";
@@ -92,6 +92,8 @@ export default async function TareasPage({
     const companyIds = (user?.companies ?? []).map((c) => c.id);
     projectsWhere = { companyId: { in: companyIds } };
   }
+  // Ni proyectos en borrador de otra persona en el filtro
+  projectsWhere = { AND: [projectsWhere, projectNotOthersDraft(userId)] };
 
   const orderBy: Record<string, unknown>[] = (() => {
     const d = sortDir;

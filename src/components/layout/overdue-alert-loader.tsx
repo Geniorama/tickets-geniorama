@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { taskNotInOthersDraftProject } from "@/lib/search/scopes";
 import { OverdueAlert } from "./overdue-alert";
 import type { OverdueItem } from "./overdue-alert";
 import { fromZonedTime } from "date-fns-tz";
@@ -26,6 +27,7 @@ export async function OverdueAlertLoader({ userId }: { userId: string }) {
         isDraft: false,
         assignedToId: userId,
         status: { not: "COMPLETADO" },
+        AND: [taskNotInOthersDraftProject(userId)],
         dueDate: { lt: today },
       },
       take: 50,

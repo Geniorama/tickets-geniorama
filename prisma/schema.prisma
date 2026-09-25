@@ -90,14 +90,6 @@ enum Priority {
   CRITICA
 }
 
-enum ProjectStatus {
-  PLANIFICACION
-  EN_DESARROLLO
-  EN_REVISION
-  COMPLETADO
-  PAUSADO
-}
-
 enum TaskStatus {
   PENDIENTE
   EN_PROGRESO
@@ -627,8 +619,11 @@ model Project {
   id          String        @id @default(cuid())
   name        String
   description String        @db.Text
-  status      ProjectStatus @default(PLANIFICACION)
+  // Activo / Inactivo. Un inactivo sigue visible pero no se ofrece para
+  // crear tareas nuevas ni en el planificador.
   isActive    Boolean       @default(true) @map("is_active")
+  // Borrador: solo lo ve su creador —con sus tareas— hasta que lo publica.
+  isDraft     Boolean       @default(false) @map("is_draft")
   isPrivate   Boolean       @default(false) @map("is_private")
   startDate   DateTime?     @map("start_date")
   dueDate     DateTime?     @map("due_date")

@@ -2,6 +2,7 @@
 
 import { Type, type FunctionDeclaration } from "@google/genai";
 import type OpenAI from "openai";
+import { taskNotInOthersDraftProject } from "@/lib/search/scopes";
 import { runAssistantChat, providerConfigError, resolveProvider, DEFAULT_AI_PROVIDER, type AiProvider, type ChatMsg } from "@/lib/ai";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -103,6 +104,7 @@ async function buildContext(userId: string): Promise<AssistantContext> {
         assignedToId: userId,
         isDraft: false,
         status: { in: ["PENDIENTE", "EN_PROGRESO", "EN_REVISION"] },
+        AND: [taskNotInOthersDraftProject(userId)],
       },
       select: {
         id: true,
@@ -148,6 +150,7 @@ async function buildContext(userId: string): Promise<AssistantContext> {
         reviewers: { some: { id: userId } },
         status: "EN_REVISION",
         isDraft: false,
+        AND: [taskNotInOthersDraftProject(userId)],
         assignedToId: { not: userId },
       },
       select: {
@@ -186,6 +189,7 @@ async function buildContext(userId: string): Promise<AssistantContext> {
     prisma.project.findMany({
       where: {
         isActive: true,
+        isDraft: false,
         OR: [{ managerId: userId }, { tasks: { some: { assignedToId: userId } } }],
       },
       select: { id: true, name: true },
@@ -622,9 +626,9 @@ export async function executeAssistantAction(
 
     const project = await prisma.project.findUnique({
       where: { id: action.projectId },
-      select: { id: true, name: true, isPrivate: true, isActive: true },
+      select: { id: true, name: true, isPrivate: true, isActive: true, isDraft: true },
     });
-    if (!project || !project.isActive) return { error: "Proyecto no encontrado" };
+    if (!project || !project.isActive || project.isDraft) return { error: "Proyecto no encontrado" };
 
     // El colaborador queda como responsable y revisor por defecto; estado pendiente.
     const task = await prisma.$transaction(async (tx) => {

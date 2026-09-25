@@ -65,7 +65,8 @@ export default async function GlobalTaskPage({
 
   const moveableProjects = admin
     ? await prisma.project.findMany({
-        where: { isActive: true },
+        // Destinos para mover: activos y publicados
+        where: { isActive: true, isDraft: false },
         select: { id: true, name: true },
         orderBy: { name: "asc" },
       })

@@ -2,7 +2,8 @@ import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import type { ProjectStatus, TaskStatus, Priority } from "@/generated/prisma";
+import type { TaskStatus, Priority } from "@/generated/prisma";
+import { projectState } from "@/lib/project-state";
 import { ProjectReportPicker } from "@/components/reportes/project-report-picker";
 import { PrintButton } from "@/components/reportes/print-button";
 import { formatDate } from "@/lib/format-date";
@@ -24,13 +25,16 @@ const PRIORITY_META: { key: Priority; label: string; color: string }[] = [
   { key: "BAJA",    label: "Baja",    color: "#64748b" },
 ];
 
-const PROJECT_STATUS_META: Record<ProjectStatus, { label: string; color: string; bg: string }> = {
-  PLANIFICACION:  { label: "Planificación",  color: "#64748b", bg: "rgba(100,116,139,0.12)" },
-  EN_DESARROLLO:  { label: "En desarrollo",  color: "#3b82f6", bg: "rgba(59,130,246,0.12)"  },
-  EN_REVISION:    { label: "En revisión",    color: "#8b5cf6", bg: "rgba(139,92,246,0.12)"  },
-  COMPLETADO:     { label: "Completado",     color: "#22c55e", bg: "rgba(34,197,94,0.12)"   },
-  PAUSADO:        { label: "Pausado",        color: "#f59e0b", bg: "rgba(245,158,11,0.12)"  },
+// Los reportes solo cuentan proyectos publicados: un borrador no es trabajo
+// que se reporte, así que aquí solo hay dos estados.
+const PROJECT_STATUS_META: Record<"ACTIVO" | "INACTIVO", { label: string; color: string; bg: string }> = {
+  ACTIVO:   { label: "Activo",   color: "#22c55e", bg: "rgba(34,197,94,0.12)"   },
+  INACTIVO: { label: "Inactivo", color: "#64748b", bg: "rgba(100,116,139,0.12)" },
 };
+
+function reportState(p: { isActive: boolean }): "ACTIVO" | "INACTIVO" {
+  return projectState({ isActive: p.isActive, isDraft: false }) as "ACTIVO" | "INACTIVO";
+}
 
 const TASK_STATUS_ORDER: TaskStatus[] = ["PENDIENTE", "EN_PROGRESO", "EN_REVISION", "COMPLETADO"];
 
@@ -85,6 +89,8 @@ export default async function ProyectosReportesPage({
     const ids = (user?.companies ?? []).map((c) => c.id);
     where = { companyId: { in: ids } };
   }
+  // Sin borradores, de nadie: se reporta lo publicado
+  where = { AND: [where, { isDraft: false }] };
 
   const projects = await prisma.project.findMany({
     where,
@@ -108,7 +114,7 @@ export default async function ProyectosReportesPage({
   const byStatus = Object.entries(PROJECT_STATUS_META).map(([key, meta]) => ({
     ...meta,
     key,
-    count: projects.filter((p) => p.status === key).length,
+    count: projects.filter((p) => reportState(p) === key).length,
   }));
 
   // ── Per-project rows ─────────────────────────────────────────────────────────
@@ -206,8 +212,8 @@ export default async function ProyectosReportesPage({
                 <Link href={`/proyectos/${selectedProject.id}`} style={{ fontSize: "1.125rem", fontWeight: 700, color: "var(--app-body-text)", textDecoration: "none" }}>
                   {selectedProject.name}
                 </Link>
-                <span style={{ fontSize: "0.75rem", fontWeight: 600, padding: "0.2rem 0.6rem", borderRadius: "9999px", backgroundColor: PROJECT_STATUS_META[selectedProject.status as ProjectStatus].bg, color: PROJECT_STATUS_META[selectedProject.status as ProjectStatus].color }}>
-                  {PROJECT_STATUS_META[selectedProject.status as ProjectStatus].label}
+                <span style={{ fontSize: "0.75rem", fontWeight: 600, padding: "0.2rem 0.6rem", borderRadius: "9999px", backgroundColor: PROJECT_STATUS_META[reportState(selectedProject)].bg, color: PROJECT_STATUS_META[reportState(selectedProject)].color }}>
+                  {PROJECT_STATUS_META[reportState(selectedProject)].label}
                 </span>
               </div>
               <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
@@ -366,7 +372,7 @@ export default async function ProyectosReportesPage({
               </tr>
             )}
             {rows.map((row, i) => {
-              const sm = PROJECT_STATUS_META[row.status as ProjectStatus];
+              const sm = PROJECT_STATUS_META[reportState(row)];
               return (
                 <tr key={row.id} style={{ borderBottom: i < rows.length - 1 ? "1px solid var(--app-border)" : "none" }}>
                   {/* Proyecto */}

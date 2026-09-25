@@ -11,7 +11,9 @@ import type { AppKey, AccountStage } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Clock, CreditCard, Star } from "lucide-react";
-import type { TaskStatus, Priority, ProjectStatus } from "@/generated/prisma";
+import type { TaskStatus, Priority } from "@/generated/prisma";
+import { projectState, PROJECT_STATE_LABEL } from "@/lib/project-state";
+import { projectNotOthersDraft, taskNotInOthersDraftProject } from "@/lib/search/scopes";
 import { formatDate } from "@/lib/format-date";
 import { getEffectiveExpiresAt, daysUntilExpiry, PLAN_EXPIRY_WARNING_DAYS } from "@/lib/plans";
 import { ticketCode } from "@/lib/ticket-code";
@@ -67,14 +69,6 @@ const PRIORITY_LABEL: Record<Priority, string> = {
   CRITICA:"Crítica",
 };
 
-const PROJECT_STATUS_LABEL: Record<ProjectStatus, string> = {
-  PLANIFICACION: "Planificación",
-  EN_DESARROLLO: "En desarrollo",
-  EN_REVISION:   "En revisión",
-  COMPLETADO:    "Completado",
-  PAUSADO:       "Pausado",
-};
-
 // ── page ──────────────────────────────────────────────────────────────────────
 
 export default async function DashboardPage() {
@@ -115,8 +109,11 @@ export default async function DashboardPage() {
     taskWhere    = { project: { companyId: { in: companyIds } } };
   }
 
-  // Los borradores no aparecen en el dashboard hasta publicarse
+  // Los borradores no aparecen en el dashboard hasta publicarse: ni las tareas
+  // en borrador ni nada de un proyecto que aún es borrador de otra persona.
   taskWhere.isDraft = false;
+  taskWhere.AND = [taskNotInOthersDraftProject(userId)];
+  projectWhere = { AND: [projectWhere, projectNotOthersDraft(userId)] };
 
   // Los módulos concedidos deciden qué se ofrece en el inicio: hasta ahora
   // dependía solo del rol, así que no reflejaba los niveles de la Fase 1.
@@ -166,7 +163,7 @@ export default async function DashboardPage() {
     // Ticket counts
     prisma.ticket.findMany({ where: ticketWhere, select: { status: true } }),
     // Projects
-    prisma.project.findMany({ where: projectWhere, select: { id: true, name: true, status: true }, orderBy: { createdAt: "desc" } }),
+    prisma.project.findMany({ where: projectWhere, select: { id: true, name: true, isActive: true, isDraft: true }, orderBy: { createdAt: "desc" } }),
     // Task counts + overdue
     prisma.task.findMany({ where: taskWhere, select: { status: true, dueDate: true, priority: true } }),
     // Recent tickets
@@ -227,7 +224,7 @@ export default async function DashboardPage() {
     prisma.project.findMany({
       where: { ...projectWhere, favorites: { some: { userId } } },
       select: {
-        id: true, name: true, status: true,
+        id: true, name: true,
         company: { select: { name: true } },
         _count: { select: { tasks: true } },
       },
@@ -247,9 +244,8 @@ export default async function DashboardPage() {
 
   const projectStats = {
     total:    projects.length,
-    activos:  projects.filter((p) => !["COMPLETADO", "PAUSADO"].includes(p.status)).length,
-    completados: projects.filter((p) => p.status === "COMPLETADO").length,
-    pausados: projects.filter((p) => p.status === "PAUSADO").length,
+    // Activo = publicado y activo: un borrador propio no cuenta todavía
+    activos:  projects.filter((p) => projectState(p) === "ACTIVO").length,
   };
 
   const taskStats = {
@@ -468,7 +464,7 @@ export default async function DashboardPage() {
                 <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {p.name}
                 </span>
-                <Badge label={PROJECT_STATUS_LABEL[p.status as ProjectStatus]} color="#8b5cf6" />
+                <Badge label={PROJECT_STATE_LABEL[projectState(p)]} color="#8b5cf6" />
               </Link>
             ))}
           </Section>

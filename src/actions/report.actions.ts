@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { authorizeAiTool } from "@/lib/ai-access";
+import { projectState, PROJECT_STATE_LABEL } from "@/lib/project-state";
 import { taskCode, projectPrefix } from "@/lib/task-code";
 import {
   runTextCompletion,
@@ -85,7 +86,6 @@ export async function generateTaskReport(taskId: string, provider: AiProvider = 
         select: {
           name: true,
           manager: { select: { name: true } },
-          status: true,
         },
       },
       assignedTo: { select: { name: true } },
@@ -178,14 +178,6 @@ ${ctx}`;
 }
 
 // ─── Proyecto ─────────────────────────────────────────────────────────────────
-
-const projectStatusLabel: Record<string, string> = {
-  PLANIFICACION: "Planificación",
-  EN_DESARROLLO: "En desarrollo",
-  EN_REVISION: "En revisión",
-  COMPLETADO: "Completado",
-  PAUSADO: "Pausado",
-};
 
 export interface ProjectReportOptions {
   includeAssignees: boolean;
@@ -360,7 +352,7 @@ export async function generateProjectReport(
     period: period?.label,
     projectManager: project.manager?.name ?? "Sin responsable",
     client: project.company?.name,
-    status: projectStatusLabel[project.status] ?? project.status,
+    status: PROJECT_STATE_LABEL[projectState(project)],
     // Con periodo, el avance es el del periodo: un porcentaje global aquí es
     // justo el dato que un informe de sprint no debe dar.
     progress: period

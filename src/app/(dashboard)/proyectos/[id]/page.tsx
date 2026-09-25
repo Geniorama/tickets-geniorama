@@ -62,6 +62,8 @@ export default async function ProjectPage({
   });
 
   if (!project) notFound();
+  // Un proyecto en borrador solo existe para quien lo creó, sea cual sea su rol
+  if (project.isDraft && project.createdById !== userId) notFound();
 
   // Vault entries linked to this project, visibles solo para el creador y los compartidos
   const vaultVisibility = {

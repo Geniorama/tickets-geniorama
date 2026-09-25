@@ -27,7 +27,7 @@ export default async function NewTaskPage({
   const { template: templateId } = await searchParams;
 
   const [project, staffUsers, reviewerCandidates, templates] = await Promise.all([
-    prisma.project.findUnique({ where: { id: projectId }, select: { id: true, name: true } }),
+    prisma.project.findUnique({ where: { id: projectId }, select: { id: true, name: true, isDraft: true, createdById: true } }),
     prisma.user.findMany({
       where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
       orderBy: { name: "asc" },
@@ -42,6 +42,8 @@ export default async function NewTaskPage({
   ]);
 
   if (!project) notFound();
+  // Un proyecto en borrador solo existe para quien lo creó, sea cual sea su rol
+  if (project.isDraft && project.createdById !== session.user.id) notFound();
 
   const template = templateId
     ? await prisma.template.findFirst({ where: { id: templateId, entityType: "TASK" } })

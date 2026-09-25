@@ -17,6 +17,7 @@ import { notify } from "@/lib/notify";
 import { emitTaskHook } from "@/lib/hooks/dispatch";
 import { serializeProject, serializeTask, projectSelect, taskSelect } from "@/lib/hooks/payload";
 import type { ApiUser } from "@/lib/api/respond";
+import { projectNotOthersDraft, taskNotInOthersDraftProject } from "@/lib/search/scopes";
 import type { WriteResult } from "@/lib/api/tickets";
 
 // ─── Frontera de datos ───────────────────────────────────────────────────────
@@ -30,29 +31,36 @@ async function companyIdsOf(userId: string): Promise<string[]> {
 }
 
 async function taskScopeWhere(user: ApiUser): Promise<Prisma.TaskWhereInput> {
+  // Ni tareas de un proyecto que aún es borrador de otra persona
+  const noDraftProject = taskNotInOthersDraftProject(user.id);
   if (isStaff(user.role)) {
-    return { OR: [{ isDraft: false }, { createdById: user.id }] };
+    return { AND: [{ OR: [{ isDraft: false }, { createdById: user.id }] }, noDraftProject] };
   }
   const companyIds = await companyIdsOf(user.id);
   // Sin empresas no hay nada que ver: un `in: []` no devuelve filas, que es
   // justo lo que se quiere.
-  return { isDraft: false, project: { companyId: { in: companyIds } } };
+  return { AND: [{ isDraft: false, project: { companyId: { in: companyIds } } }, noDraftProject] };
 }
 
 async function projectScopeWhere(user: ApiUser): Promise<Prisma.ProjectWhereInput> {
   if (isStaff(user.role)) {
     // Los proyectos privados solo los ve quien está dentro.
     return {
-      OR: [
-        { isPrivate: false },
-        { members: { some: { userId: user.id } } },
-        { managerId: user.id },
-        { createdById: user.id },
+      AND: [
+        projectNotOthersDraft(user.id),
+        {
+          OR: [
+            { isPrivate: false },
+            { members: { some: { userId: user.id } } },
+            { managerId: user.id },
+            { createdById: user.id },
+          ],
+        },
       ],
     };
   }
   const companyIds = await companyIdsOf(user.id);
-  return { isPrivate: false, companyId: { in: companyIds } };
+  return { isPrivate: false, isDraft: false, companyId: { in: companyIds } };
 }
 
 // ─── Lectura ─────────────────────────────────────────────────────────────────
@@ -167,9 +175,10 @@ export async function createTaskViaApi(
 
   const project = await prisma.project.findUnique({
     where: { id: input.projectId },
-    select: { id: true, name: true, isPrivate: true, managerId: true, createdById: true },
+    select: { id: true, name: true, isPrivate: true, managerId: true, createdById: true, isDraft: true },
   });
-  if (!project) {
+  // Un borrador ajeno no existe para quien llama
+  if (!project || (project.isDraft && project.createdById !== author.id)) {
     return { ok: false, status: 404, error: `No existe el proyecto ${input.projectId}` };
   }
 

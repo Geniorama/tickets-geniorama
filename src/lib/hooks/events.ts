@@ -27,7 +27,7 @@ export const HOOK_EVENTS: readonly HookEventDefinition[] = [
   // ── Tickets ──
   { key: "ticket.created",        resource: "ticket",  label: "Ticket creado",            description: "Alguien abrió un ticket (incluye los que entran por la API)." },
   { key: "ticket.updated",        resource: "ticket",  label: "Ticket editado",           description: "Cambió el título, la descripción, la prioridad o las fechas." },
-  { key: "ticket.status_changed", resource: "ticket",  label: "Ticket cambió de estado",  description: "Pasó a otro estado. El payload trae el estado anterior." },
+  { key: "ticket.status_changed", resource: "ticket",  label: "Ticket cambió de estado",  description: "Pasó de activo a inactivo o al revés (ACTIVO / INACTIVO). El payload trae el estado anterior." },
   { key: "ticket.assigned",       resource: "ticket",  label: "Ticket asignado",          description: "Cambió el responsable del ticket." },
   { key: "ticket.deleted",        resource: "ticket",  label: "Ticket eliminado",         description: "Se borró el ticket." },
 
@@ -40,7 +40,7 @@ export const HOOK_EVENTS: readonly HookEventDefinition[] = [
   { key: "task.deleted",          resource: "task",    label: "Tarea eliminada",          description: "Se borró la tarea." },
 
   // ── Proyectos ──
-  { key: "project.created",        resource: "project", label: "Proyecto creado",          description: "Se creó un proyecto." },
+  { key: "project.created",        resource: "project", label: "Proyecto creado",          description: "Se creó un proyecto (un borrador avisa al publicarse)." },
   { key: "project.updated",        resource: "project", label: "Proyecto editado",         description: "Cambiaron sus datos, sus fechas o sus miembros." },
   { key: "project.status_changed", resource: "project", label: "Proyecto cambió de estado", description: "Pasó a otro estado. El payload trae el estado anterior." },
   { key: "project.deleted",        resource: "project", label: "Proyecto eliminado",       description: "Se borró el proyecto y todo lo que colgaba de él." },

@@ -28,28 +28,64 @@ async function companyIdsOf(userId: string): Promise<string[]> {
 }
 
 /**
+ * Un proyecto en borrador es de quien lo crea, sea cual sea su rol —también
+ * para un admin—, y con él todas sus tareas. Estas dos condiciones lo aplican.
+ */
+export function projectNotOthersDraft(viewerId: string): Prisma.ProjectWhereInput {
+  return { OR: [{ isDraft: false }, { createdById: viewerId }] };
+}
+
+/** Tareas: fuera las que viven en un proyecto en borrador de otra persona. */
+export function taskNotInOthersDraftProject(viewerId: string): Prisma.TaskWhereInput {
+  return { OR: [{ projectId: null }, { project: projectNotOthersDraft(viewerId) }] };
+}
+
+/**
+ * Para procesos sin usuario delante (cron, avisos automáticos): nada que viva
+ * en un proyecto en borrador. Su creador verá sus tareas al publicarlo.
+ */
+export const TASK_NOT_IN_DRAFT_PROJECT: Prisma.TaskWhereInput = {
+  OR: [{ projectId: null }, { project: { isDraft: false } }],
+};
+
+/**
  * Proyectos visibles.
  *
  * Un proyecto privado solo se ve siendo miembro explícito, y eso vale igual
  * para el equipo: privado significa privado también hacia dentro.
  */
 export async function visibleProjectWhere(viewer: Viewer): Promise<Prisma.ProjectWhereInput> {
-  if (isAdmin(viewer.role)) return {};
+  const noDraftsAjenos = projectNotOthersDraft(viewer.id);
+
+  if (isAdmin(viewer.role)) return noDraftsAjenos;
 
   if (isStaff(viewer.role)) {
     return {
-      OR: [
-        { isPrivate: false, OR: [{ managerId: viewer.id }, { tasks: { some: { assignedToId: viewer.id } } }] },
-        { isPrivate: true, members: { some: { userId: viewer.id } } },
+      AND: [
+        noDraftsAjenos,
+        {
+          OR: [
+            { isPrivate: false, OR: [{ managerId: viewer.id }, { tasks: { some: { assignedToId: viewer.id } } }] },
+            { isPrivate: true, members: { some: { userId: viewer.id } } },
+            // Su propio borrador, aunque aún no tenga tareas ni sea responsable.
+            // Solo borradores: publicado, rigen las reglas de siempre.
+            { isDraft: true, createdById: viewer.id },
+          ],
+        },
       ],
     };
   }
 
   const companyIds = await companyIdsOf(viewer.id);
   return {
-    OR: [
-      { isPrivate: false, companyId: { in: companyIds } },
-      { isPrivate: true, members: { some: { userId: viewer.id } } },
+    AND: [
+      noDraftsAjenos,
+      {
+        OR: [
+          { isPrivate: false, companyId: { in: companyIds } },
+          { isPrivate: true, members: { some: { userId: viewer.id } } },
+        ],
+      },
     ],
   };
 }
@@ -62,7 +98,11 @@ export async function visibleProjectWhere(viewer: Viewer): Promise<Prisma.Projec
  */
 export async function visibleTaskWhere(viewer: Viewer): Promise<Prisma.TaskWhereInput> {
   const noBorradoresAjenos: Prisma.TaskWhereInput = {
-    OR: [{ isDraft: false }, { createdById: viewer.id }],
+    AND: [
+      { OR: [{ isDraft: false }, { createdById: viewer.id }] },
+      // Ni las tareas de un proyecto que aún es borrador de otra persona
+      taskNotInOthersDraftProject(viewer.id),
+    ],
   };
 
   if (isAdmin(viewer.role)) return { AND: [noBorradoresAjenos] };

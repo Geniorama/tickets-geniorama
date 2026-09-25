@@ -1,6 +1,7 @@
 import { requireRole } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
+import { taskNotInOthersDraftProject } from "@/lib/search/scopes";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { LayoutList } from "lucide-react";
@@ -89,6 +90,7 @@ export default async function PanelPage({
   // ── Task where (colaborador: solo asignadas a él o de proyectos que gestiona) ──
   const taskAnd = sharedAnd<Prisma.TaskWhereInput>();
   taskAnd.push({ isDraft: false }); // los borradores no aparecen en el panel
+  taskAnd.push(taskNotInOthersDraftProject(userId)); // ni las de un proyecto en borrador ajeno
   if (!admin) {
     taskAnd.push({ OR: [{ assignedToId: userId }, { project: { managerId: userId } }] });
   }

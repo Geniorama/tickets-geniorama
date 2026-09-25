@@ -11,7 +11,9 @@ export default async function NewRecurringTaskPage() {
 
   const [projects, staffUsers, taskTemplates] = await Promise.all([
     prisma.project.findMany({
-      where: { isActive: true },
+      // Selector de proyectos: activos y publicados. A un borrador se le
+      // añaden tareas desde el propio proyecto.
+      where: { isActive: true, isDraft: false },
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),

@@ -1,7 +1,8 @@
-import type { ProjectStatus, TaskStatus, Priority } from "@/generated/prisma";
+import type { TaskStatus, Priority } from "@/generated/prisma";
+import { projectState, PROJECT_STATE_LABEL, type ProjectState } from "@/lib/project-state";
 import {
   Clock,
-  Code2,
+  FilePen,
   Eye,
   CheckCircle2,
   PauseCircle,
@@ -12,40 +13,13 @@ import {
   Zap,
 } from "lucide-react";
 
-const projectStatusConfig: Record<
-  ProjectStatus,
-  { label: string; bg: string; color: string; icon: React.ElementType }
+const projectStateConfig: Record<
+  ProjectState,
+  { bg: string; color: string; icon: React.ElementType }
 > = {
-  PLANIFICACION: {
-    label: "Planificación",
-    bg: "#eff6ff",
-    color: "#1d4ed8",
-    icon: Clock,
-  },
-  EN_DESARROLLO: {
-    label: "En desarrollo",
-    bg: "#fffbeb",
-    color: "#b45309",
-    icon: Code2,
-  },
-  EN_REVISION: {
-    label: "En revisión",
-    bg: "#faf5ff",
-    color: "#7e22ce",
-    icon: Eye,
-  },
-  COMPLETADO: {
-    label: "Completado",
-    bg: "#f0fdf4",
-    color: "#15803d",
-    icon: CheckCircle2,
-  },
-  PAUSADO: {
-    label: "Pausado",
-    bg: "#f9fafb",
-    color: "#6b7280",
-    icon: PauseCircle,
-  },
+  ACTIVO:   { bg: "#f0fdf4", color: "#15803d", icon: CheckCircle2 },
+  INACTIVO: { bg: "#f9fafb", color: "#6b7280", icon: PauseCircle },
+  BORRADOR: { bg: "#fffbeb", color: "#b45309", icon: FilePen },
 };
 
 const taskStatusConfig: Record<
@@ -93,8 +67,11 @@ const priorityConfig: Record<
   CRITICA: { label: "Crítica", bg: "#fef2f2", color: "#b91c1c", icon: Zap },
 };
 
-export function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
-  const { label, bg, color, icon: Icon } = projectStatusConfig[status];
+/** Activo, Inactivo o Borrador, derivado de isActive e isDraft. */
+export function ProjectStatusBadge({ project }: { project: { isActive: boolean; isDraft: boolean } }) {
+  const state = projectState(project);
+  const { bg, color, icon: Icon } = projectStateConfig[state];
+  const label = PROJECT_STATE_LABEL[state];
   return (
     <span
       style={{
