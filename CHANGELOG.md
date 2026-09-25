@@ -9,6 +9,29 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.103.2] — 2026-09-24
+
+### Botones con un solo criterio de color y de cursor
+
+**El cursor.** Tailwind 4 dejó los botones con el cursor de flecha, y solo
+mostraban la mano los que lo declaraban uno a uno: unos sí, otros no. Una regla
+global da ahora la mano a todo botón, selector, casilla y opción habilitados, y
+el cursor de prohibido a los deshabilitados.
+
+**Los colores.** Convivían dos colores «principales» y tres índigos. Peor aún,
+la mitad de los botones usaba `bg-indigo-600`, que el tema redefine: salían
+rosas en modo oscuro e índigo en modo claro. Ahora hay dos colores fijos, los
+mismos en ambos modos:
+
+- **Rosa de marca** (`accent`) para la acción principal de cada pantalla:
+  «Nuevo…», «Crear», «Guardar», «Comentar», «Entrar»…
+- **Índigo IA** (`ai`, nuevo en el tema) para todo lo que es IA: generar,
+  diagnosticar, el asistente y su botón flotante.
+
+**«Planificar con IA»** se veía distinto en cada página: rosa con borde en
+tickets, índigo sólido en proyectos y tareas. Ahora es el mismo en las tres:
+índigo IA con borde, secundario frente al «Nuevo…» rosa de al lado.
+
 ## [1.103.1] — 2026-09-24
 
 ### La vista de proyectos y tickets, junto a los resultados

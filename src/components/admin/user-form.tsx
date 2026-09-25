@@ -230,7 +230,7 @@ export function UserForm({ companies }: { companies: Company[] }) {
         <button
           type="submit"
           disabled={isPending || (role === "CLIENTE" && companies.length === 0)}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+          className="bg-accent text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent-dark disabled:opacity-60 transition-colors"
         >
           {isPending ? "Creando..." : "Crear usuario"}
         </button>

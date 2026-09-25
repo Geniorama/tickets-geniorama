@@ -198,7 +198,7 @@ export default async function TicketsPage({
           {canCreateTicket ? (
             <Link
               href="/tickets/new"
-              className="inline-flex items-center gap-2 bg-indigo-600 text-white px-3 py-2 sm:px-4 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+              className="inline-flex items-center gap-2 bg-accent text-white px-3 py-2 sm:px-4 rounded-lg text-sm font-medium hover:bg-accent-dark transition-colors"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Nuevo ticket</span>

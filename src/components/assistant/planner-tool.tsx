@@ -69,22 +69,13 @@ export function PlannerLauncher({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          backgroundColor: "#4f46e5",
-          color: "#ffffff",
-          padding: "0.5rem 1rem",
-          borderRadius: "0.5rem",
-          fontSize: "0.875rem",
-          fontWeight: 500,
-          border: "none",
-          cursor: "pointer",
-        }}
+        // Mismo botón de IA de cabecera que en tickets: con borde, secundario
+        // frente a «Nuevo…»
+        className="inline-flex items-center gap-2 bg-transparent text-ai border border-ai/40 px-3 py-2 sm:px-4 rounded-lg text-sm font-medium hover:bg-ai/10 transition-colors"
       >
-        <Sparkles style={{ width: "1rem", height: "1rem" }} />
-        {label}
+        <Sparkles className="w-4 h-4" />
+        <span className="hidden sm:inline">{label}</span>
+        <span className="sm:hidden">IA</span>
       </button>
       {open && (
         <PlannerModal isAdmin={isAdmin} presetProjectId={presetProjectId} onClose={() => setOpen(false)} />
@@ -348,7 +339,7 @@ function PlannerModal({
                   type="button"
                   onClick={handleGenerate}
                   disabled={isPending || !options}
-                  className="flex-1 inline-flex items-center justify-center gap-2 bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-indigo-700 disabled:opacity-50"
+                  className="flex-1 inline-flex items-center justify-center gap-2 bg-ai text-white text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-ai-hover disabled:opacity-50"
                 >
                   {isPending ? (
                     <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Generando plan…</>
@@ -542,7 +533,7 @@ function PlannerModal({
               type="button"
               onClick={handleApply}
               disabled={isPending}
-              className="inline-flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              className="inline-flex items-center gap-2 bg-ai text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-ai-hover disabled:opacity-50"
             >
               {isPending ? (
                 <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Creando…</>
@@ -564,7 +555,7 @@ function ModeButton({ active, onClick, label }: { active: boolean; onClick: () =
       type="button"
       onClick={onClick}
       className={`flex-1 text-sm font-medium px-3 py-2 rounded-lg border transition-colors ${
-        active ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300"
+        active ? "bg-ai text-white border-ai" : "bg-white text-gray-600 border-gray-200 hover:border-indigo-300"
       }`}
     >
       {label}

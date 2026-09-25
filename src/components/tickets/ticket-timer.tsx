@@ -229,7 +229,7 @@ export function TicketTimer({
           <button
             type="submit"
             disabled={isPending || (hours === 0 && minutes === 0)}
-            className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+            className="px-3 py-1.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-dark disabled:opacity-60 transition-colors"
           >
             Guardar
           </button>

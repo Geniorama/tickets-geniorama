@@ -139,7 +139,7 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
               fontSize: "0.8125rem",
               fontWeight: 500,
               color: "#fff",
-              backgroundColor: isPending ? "#818cf8" : "#4f46e5",
+              backgroundColor: "var(--color-accent)",
               border: "none",
               borderRadius: "0.5rem",
               padding: "0.5rem 0.875rem",

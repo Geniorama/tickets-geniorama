@@ -149,7 +149,7 @@ export function AiTemplateGenerator({
                 display: "inline-flex",
                 alignItems: "center",
                 gap: "0.5rem",
-                backgroundColor: "#4f46e5",
+                backgroundColor: "var(--color-ai)",
                 color: "#fff",
                 padding: "0.5rem 1rem",
                 borderRadius: "0.5rem",

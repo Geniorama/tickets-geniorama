@@ -221,7 +221,7 @@ export function AssistantChat({ userName }: { userName: string }) {
         <button
           type="submit"
           disabled={isPending || !input.trim()}
-          className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 transition-colors shrink-0"
+          className="flex items-center justify-center w-10 h-10 rounded-xl bg-ai text-white hover:bg-ai-hover disabled:opacity-40 transition-colors shrink-0"
           aria-label="Enviar"
         >
           <Send className="w-4 h-4" />
@@ -263,7 +263,7 @@ function ActionCard({
             <button
               type="button"
               onClick={onConfirm}
-              className="inline-flex items-center gap-1.5 bg-indigo-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors"
+              className="inline-flex items-center gap-1.5 bg-ai text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-ai-hover transition-colors"
             >
               <Check className="w-3.5 h-3.5" />
               Confirmar

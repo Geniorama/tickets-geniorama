@@ -354,7 +354,7 @@ export function TaskTimer({
             disabled={isPending || (hours === 0 && minutes === 0)}
             style={{
               padding: "0.375rem 0.75rem",
-              backgroundColor: "#4f46e5",
+              backgroundColor: "var(--color-accent)",
               color: "#fff",
               borderRadius: "0.5rem",
               fontSize: "0.875rem",

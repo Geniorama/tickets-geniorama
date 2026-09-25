@@ -600,7 +600,7 @@ function TicketCommentItem({
             <button
               onClick={handleSaveEdit}
               disabled={isPending}
-              className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+              className="px-3 py-1.5 bg-accent text-white text-xs font-medium rounded-lg hover:bg-accent-dark disabled:opacity-60 transition-colors"
             >
               {isPending ? "Guardando..." : "Guardar"}
             </button>
@@ -754,7 +754,7 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
         <button
           type="submit"
           disabled={isPending}
-          className="ml-auto bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+          className="ml-auto bg-accent text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent-dark disabled:opacity-60 transition-colors"
         >
           {isPending ? "Enviando..." : "Comentar"}
         </button>

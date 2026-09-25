@@ -65,7 +65,7 @@ export function TicketAiAssistant({
                 <button
                   type="button"
                   onClick={() => { setOpen(true); setMinimized(false); }}
-                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: "0.8125rem", fontWeight: 500, color: "#6366f1" }}
+                  style={{ background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: "0.8125rem", fontWeight: 500, color: "var(--color-ai)" }}
                 >
                   Ver último
                 </button>
@@ -138,7 +138,7 @@ function DiagnosisPanel({
   if (minimized) {
     return (
       <div
-        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 bg-indigo-600 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-lg cursor-pointer select-none hover:bg-indigo-700 transition-colors"
+        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 bg-ai text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-lg cursor-pointer select-none hover:bg-ai-hover transition-colors"
         onClick={onRestore}
       >
         {isPending ? (

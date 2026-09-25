@@ -38,7 +38,7 @@ export function AssistantFab({ role }: { role: Role }) {
         width: hover ? "auto" : "3.25rem",
         justifyContent: "center",
         borderRadius: "9999px",
-        backgroundColor: "#4f46e5",
+        backgroundColor: "var(--color-ai)",
         color: "#ffffff",
         textDecoration: "none",
         boxShadow: "0 12px 28px rgba(79,70,229,0.45), 0 0 0 1px rgba(79,70,229,0.2)",

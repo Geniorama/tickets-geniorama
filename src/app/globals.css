@@ -41,6 +41,14 @@
   --color-accent:      #fd1384;
   --color-accent-dark: #d40069;
 
+  /* Botones: dos colores fijos, iguales en modo claro y oscuro.
+     · accent → la acción principal de cada pantalla (Nuevo…, Guardar, Crear).
+     · ai     → todo lo que es IA (planificar, generar, asistente).
+     No usar bg-indigo-* para botones: la paleta indigo está redefinida y
+     sale rosa en modo oscuro e índigo en claro. */
+  --color-ai:       #6366f1;
+  --color-ai-hover: #4f46e5;
+
   /* ── Indigo → Rosa (modo oscuro por defecto) ── */
   --color-indigo-50:  #2a0f1e;
   --color-indigo-100: #3d0f27;
@@ -415,4 +423,24 @@ textarea::placeholder {
    Una línea entre herramientas, no alrededor de cada una. */
 .ai-tools-list > * + * {
   border-top: 1px solid var(--app-border);
+}
+
+/* ── Cursor de los controles ──
+   Tailwind 4 dejó los <button> con cursor: default. Sin esto, solo mostraban
+   la mano los botones que lo declaraban a mano, y la app era inconsistente.
+   Capa base: un cursor explícito en estilos en línea o utilidades sigue
+   mandando. */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  select:not(:disabled),
+  summary,
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
 }

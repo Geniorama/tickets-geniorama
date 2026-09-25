@@ -5,7 +5,7 @@ import { Lock, Sparkles } from "lucide-react";
 import { ProviderToggle } from "@/components/assistant/provider-toggle";
 import { DEFAULT_AI_PROVIDER, type AiProvider } from "@/lib/ai-provider";
 
-export const AI_ACCENT = "#6366f1";
+export const AI_ACCENT = "var(--color-ai)";
 
 /**
  * Las herramientas de IA de una ficha (diagnóstico, informe…) en una sola

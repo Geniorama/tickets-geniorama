@@ -89,7 +89,7 @@ export function ChangePasswordForm() {
       <button
         type="submit"
         disabled={isPending}
-        className="px-5 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+        className="px-5 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-dark disabled:opacity-60 transition-colors"
       >
         {isPending ? "Guardando..." : "Cambiar contraseña"}
       </button>
