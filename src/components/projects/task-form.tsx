@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useTransition, useRef } from "react";
+import Link from "next/link";
+import { unstable_rethrow } from "next/navigation";
 import { Paperclip, Link2, X, Plus, FileText } from "lucide-react";
 import { createTask, updateTask } from "@/actions/task.actions";
 import type { TaskConflict } from "@/actions/task.actions";
@@ -79,10 +81,13 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [conflicts, setConflicts] = useState<TaskConflict[] | null>(null);
+  // La tarea ya se creó pero algo secundario falló: se avisa y no se deja reenviar
+  const [created, setCreated] = useState<{ url: string; warnings: string[] } | null>(null);
   const [reviewerIds, setReviewerIds] = useState<string[]>(defaultReviewerIds);
   const savedFormData = useRef<FormData | null>(null);
   const submitAsDraft = useRef(false);
   const isEdit = !!task;
+  const locked = isPending || !!created;
 
   // Checklist state
   const [checklistItems, setChecklistItems] = useState<ChecklistGroup[]>(prefill?.checklist ?? []);
@@ -145,6 +150,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (created) return;
     setError(null);
     setConflicts(null);
     const formData = new FormData(e.currentTarget);
@@ -165,11 +171,26 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
 
   function submit(formData: FormData) {
     startTransition(async () => {
-      const result = isEdit
-        ? await updateTask(task.id, projectId ?? task.projectId ?? null, formData)
-        : await createTask(projectId ?? null, formData);
-      if (result?.error) setError(result.error);
-      if (result?.conflicts) setConflicts(result.conflicts);
+      // Si todo va bien la acción redirige a la tarea; si vuelve, es con un
+      // error, conflictos o una tarea ya creada con avisos.
+      try {
+        const result = isEdit
+          ? await updateTask(task.id, projectId ?? task.projectId ?? null, formData)
+          : await createTask(projectId ?? null, formData);
+        if (result && "error" in result && result.error) setError(result.error);
+        if (result && "conflicts" in result && result.conflicts) setConflicts(result.conflicts);
+        if (result && "taskUrl" in result && result.taskUrl) {
+          setCreated({ url: result.taskUrl, warnings: result.warnings });
+        }
+      } catch (err) {
+        unstable_rethrow(err); // la redirección de éxito viaja como excepción
+        console.error(isEdit ? "[updateTask]" : "[createTask]", err);
+        setError(
+          isEdit
+            ? "No se pudieron guardar los cambios. Revisa tu conexión e intenta de nuevo."
+            : "No hubo respuesta del servidor. Antes de reintentar, revisa en el proyecto si la tarea ya se creó para no duplicarla."
+        );
+      }
     });
   }
 
@@ -683,6 +704,44 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
         </p>
       )}
 
+      {created && (
+        <div
+          style={{
+            backgroundColor: "#fffbeb",
+            border: "1px solid #fcd34d",
+            borderRadius: "0.5rem",
+            padding: "0.875rem 1rem",
+          }}
+        >
+          <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "#92400e", margin: "0 0 0.5rem" }}>
+            La tarea se creó, pero con avisos:
+          </p>
+          <ul style={{ margin: "0 0 0.75rem 1rem", padding: 0, listStyle: "disc" }}>
+            {created.warnings.map((w, i) => (
+              <li key={i} style={{ fontSize: "0.8125rem", color: "#78350f", marginBottom: "0.25rem" }}>{w}</li>
+            ))}
+          </ul>
+          <p style={{ fontSize: "0.8125rem", color: "#78350f", margin: "0 0 0.75rem" }}>
+            No la vuelvas a crear: completa lo que falte desde la tarea.
+          </p>
+          <Link
+            href={created.url}
+            style={{
+              display: "inline-block",
+              backgroundColor: "#f59e0b",
+              color: "#ffffff",
+              padding: "0.375rem 0.875rem",
+              borderRadius: "0.5rem",
+              fontSize: "0.8125rem",
+              fontWeight: 500,
+              textDecoration: "none",
+            }}
+          >
+            Ir a la tarea
+          </Link>
+        </div>
+      )}
+
       {conflicts && conflicts.length > 0 && (
         <div
           style={{
@@ -777,7 +836,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
         {!isEdit && (
           <button
             type="submit"
-            disabled={isPending}
+            disabled={locked}
             onClick={() => { submitAsDraft.current = true; }}
             style={{
               backgroundColor: "transparent",
@@ -787,8 +846,8 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
               fontSize: "0.875rem",
               fontWeight: 500,
               border: "1px solid var(--app-border)",
-              cursor: isPending ? "not-allowed" : "pointer",
-              opacity: isPending ? 0.6 : 1,
+              cursor: locked ? "not-allowed" : "pointer",
+              opacity: locked ? 0.6 : 1,
             }}
           >
             {isPending ? "Guardando..." : "Guardar como borrador"}
@@ -796,7 +855,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
         )}
         <button
           type="submit"
-          disabled={isPending}
+          disabled={locked}
           onClick={() => { submitAsDraft.current = false; }}
           style={{
             backgroundColor: "#fd1384",
@@ -806,8 +865,8 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
             fontSize: "0.875rem",
             fontWeight: 500,
             border: "none",
-            cursor: isPending ? "not-allowed" : "pointer",
-            opacity: isPending ? 0.6 : 1,
+            cursor: locked ? "not-allowed" : "pointer",
+            opacity: locked ? 0.6 : 1,
           }}
         >
           {isPending

@@ -9,6 +9,24 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.104.1] — 2026-09-25
+
+### Crear una tarea ya no termina en «Error al cargar el proyecto»
+
+- Si algo fallaba al guardar una tarea, la página entera caía en una pantalla
+  genérica que culpaba al proyecto. Ahora el formulario muestra qué pasó y se
+  queda como estaba para reintentar.
+- Una vez guardada la tarea, un fallo al subir adjuntos, guardar enlaces o el
+  checklist, o al enviar avisos, ya no se muestra como error: la tarea queda
+  creada, el formulario avisa de lo que faltó y enlaza a ella. Los botones de
+  envío se bloquean para no crear duplicados al reintentar.
+- Si el servidor no responde, el formulario pide revisar el proyecto antes de
+  reintentar, por si la tarea sí se creó.
+- Las pantallas de error muestran un código de referencia con el que se
+  encuentra el error real en los logs del servidor (`pm2 logs`).
+
+---
+
 ## [1.104.0] — 2026-09-25
 
 ### Proyectos: Activo, Inactivo o Borrador

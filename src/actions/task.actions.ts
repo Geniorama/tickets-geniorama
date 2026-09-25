@@ -166,45 +166,62 @@ export async function createTask(projectIdArg: string | null, formData: FormData
     }
   }
 
-  // Revisores: si no se asignan, por defecto el creador
-  const reviewerIds = await resolveReviewerIds(parseReviewerIds(formData), session.user.id);
+  let task: Awaited<ReturnType<typeof prisma.task.create>>;
+  try {
+    // Revisores: si no se asignan, por defecto el creador
+    const reviewerIds = await resolveReviewerIds(parseReviewerIds(formData), session.user.id);
 
-  const task = await prisma.$transaction(async (tx) => {
-    const last = await tx.task.findFirst({
-      where: { projectId },
-      orderBy: { number: "desc" },
-      select: { number: true },
+    task = await prisma.$transaction(async (tx) => {
+      const last = await tx.task.findFirst({
+        where: { projectId },
+        orderBy: { number: "desc" },
+        select: { number: true },
+      });
+      return tx.task.create({
+        data: {
+          // El número se asigna solo al publicar; los borradores quedan en 0
+          number:         isDraft ? 0 : (last?.number ?? 0) + 1,
+          title:          parsed.data.title,
+          description:    parsed.data.description,
+          status:         parsed.data.status,
+          priority:       parsed.data.priority,
+          category:       parsed.data.category       ?? null,
+          projectId,
+          assignedToId:   parsed.data.assignedToId   ?? null,
+          createdById:    session.user.id,
+          startDate:      parsed.data.startDate      ? new Date(parsed.data.startDate) : null,
+          startTime:      parsed.data.startTime      ?? null,
+          dueDate:        parsed.data.dueDate         ? new Date(parsed.data.dueDate)   : null,
+          endTime:        parsed.data.endTime         ?? null,
+          estimatedHours: combineEstimatedTime(parsed.data.estimatedHours, parsed.data.estimatedMinutes),
+          isDraft,
+          reviewers:      { connect: reviewerIds.map((id) => ({ id })) },
+        },
+      });
     });
-    return tx.task.create({
-      data: {
-        // El número se asigna solo al publicar; los borradores quedan en 0
-        number:         isDraft ? 0 : (last?.number ?? 0) + 1,
-        title:          parsed.data.title,
-        description:    parsed.data.description,
-        status:         parsed.data.status,
-        priority:       parsed.data.priority,
-        category:       parsed.data.category       ?? null,
-        projectId,
-        assignedToId:   parsed.data.assignedToId   ?? null,
-        createdById:    session.user.id,
-        startDate:      parsed.data.startDate      ? new Date(parsed.data.startDate) : null,
-        startTime:      parsed.data.startTime      ?? null,
-        dueDate:        parsed.data.dueDate         ? new Date(parsed.data.dueDate)   : null,
-        endTime:        parsed.data.endTime         ?? null,
-        estimatedHours: combineEstimatedTime(parsed.data.estimatedHours, parsed.data.estimatedMinutes),
-        isDraft,
-        reviewers:      { connect: reviewerIds.map((id) => ({ id })) },
-      },
-    });
-  });
+  } catch (err) {
+    console.error("[createTask] no se pudo guardar la tarea", err);
+    return { error: "No se pudo guardar la tarea. Intenta de nuevo en unos segundos." };
+  }
 
-  await addFileAttachments({
+  // A partir de aquí la tarea ya existe. Nada de lo que sigue puede tumbar la
+  // petición: si algo falla, se avisa y se lleva a la tarea en lugar de
+  // devolver un error que invita a reintentar y crear un duplicado.
+  const warnings: string[] = [];
+
+  const { errors: fileErrors } = await addFileAttachments({
     entityType: "TASK",
     entityId: task.id,
     storageKey: task.id,
     files: formData.getAll("files") as File[],
     uploadedById: session.user.id,
+  }).catch((err) => {
+    console.error("[createTask] adjuntos", err);
+    return { errors: ["error inesperado al subirlos"] };
   });
+  if (fileErrors.length > 0) {
+    warnings.push(`No se pudieron subir algunos archivos: ${fileErrors.join("; ")}`);
+  }
 
   const linksRaw = formData.get("links") as string | null;
   if (linksRaw) {
@@ -216,16 +233,44 @@ export async function createTask(projectIdArg: string | null, formData: FormData
         links: linksList,
         uploadedById: session.user.id,
       });
-    } catch { /* JSON inválido, ignorar */ }
+    } catch (err) {
+      console.error("[createTask] enlaces", err);
+      warnings.push("No se pudieron guardar los enlaces.");
+    }
   }
 
   // Crear los checklists si se enviaron
-  await createChecklistGroups(
-    { entityType: "TASK", entityId: task.id },
-    parseChecklistGroups(formData.get("checklist")),
-    session.user.id,
-  );
+  try {
+    await createChecklistGroups(
+      { entityType: "TASK", entityId: task.id },
+      parseChecklistGroups(formData.get("checklist")),
+      session.user.id,
+    );
+  } catch (err) {
+    console.error("[createTask] checklist", err);
+    warnings.push("No se pudo guardar el checklist.");
+  }
 
+  try {
+    await notifyTaskCreated(task, projectId, isDraft, session.user);
+  } catch (err) {
+    // Un aviso que no sale no es motivo para que el usuario vea un error
+    console.error("[createTask] notificaciones", err);
+  }
+
+  revalidatePath(`/proyectos/${projectId}`);
+  const taskUrl = `/proyectos/${projectId}/tareas/${task.id}`;
+  if (warnings.length > 0) return { taskUrl, warnings };
+  redirect(taskUrl);
+}
+
+/** Avisos, webhooks y hooks de una tarea recién creada. */
+async function notifyTaskCreated(
+  task: { id: string; title: string; assignedToId: string | null; dueDate: Date | null },
+  projectId: string,
+  isDraft: boolean,
+  actor: { id: string; name?: string | null },
+) {
   const [project, assignee] = await Promise.all([
     prisma.project.findUnique({ where: { id: projectId }, select: { name: true, isPrivate: true, isDraft: true } }),
     task.assignedToId
@@ -256,7 +301,7 @@ export async function createTask(projectIdArg: string | null, formData: FormData
     }
 
     // Notificar al asignado si no es el creador
-    if (task.assignedToId && task.assignedToId !== session.user.id) {
+    if (task.assignedToId && task.assignedToId !== actor.id) {
       await notify(
         task.assignedToId,
         "task_assigned",
@@ -272,14 +317,11 @@ export async function createTask(projectIdArg: string | null, formData: FormData
   // notifican a nadie.
   if (!isDraft) {
     emitTaskHook("task.created", task.id, {
-      actor: session.user,
+      actor,
       projectId,
       projectIsPrivate: projectIsPrivate,
     });
   }
-
-  revalidatePath(`/proyectos/${projectId}`);
-  redirect(`/proyectos/${projectId}/tareas/${task.id}`);
 }
 
 /**

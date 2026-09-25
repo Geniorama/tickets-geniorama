@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { ErrorReference } from "@/components/ui/error-reference";
 
 export default function DashboardError({
   error,
@@ -41,6 +42,7 @@ export default function DashboardError({
         <p className="text-sm" style={{ color: "var(--app-text-muted)" }}>
           Ocurrio un error al cargar esta pagina. Puedes intentar de nuevo o volver al inicio.
         </p>
+        <ErrorReference digest={error.digest} />
         <div className="flex items-center justify-center gap-3">
           <button
             onClick={reset}

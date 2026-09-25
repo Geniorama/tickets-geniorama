@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { ErrorReference } from "@/components/ui/error-reference";
 
 export default function ReportesError({
   error,
@@ -22,6 +23,7 @@ export default function ReportesError({
         <p className="text-sm" style={{ color: "var(--app-text-muted)" }}>
           No se pudieron cargar los datos de reportes. Puede ser un problema temporal.
         </p>
+        <ErrorReference digest={error.digest} />
         <div className="flex items-center justify-center gap-3">
           <button
             onClick={reset}

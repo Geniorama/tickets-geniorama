@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { ErrorReference } from "@/components/ui/error-reference";
 
 export default function ProjectDetailError({
   error,
@@ -17,11 +18,12 @@ export default function ProjectDetailError({
     <div className="flex min-h-[40vh] items-center justify-center">
       <div className="max-w-md text-center space-y-4">
         <h2 className="text-lg font-semibold" style={{ color: "var(--app-body-text)" }}>
-          Error al cargar el proyecto
+          Algo falló en este proyecto
         </h2>
         <p className="text-sm" style={{ color: "var(--app-text-muted)" }}>
-          No se pudo cargar el detalle del proyecto. Puede ser un problema temporal.
+          No se pudo completar la acción (abrir el proyecto, una tarea o guardarla). Puede ser un problema temporal.
         </p>
+        <ErrorReference digest={error.digest} />
         <div className="flex items-center justify-center gap-3">
           <button
             onClick={reset}
