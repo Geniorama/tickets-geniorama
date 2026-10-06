@@ -9,6 +9,22 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.106.1] — 2026-10-06
+
+### Las menciones desde el asistente (MCP) y la API ya avisan
+
+- Un comentario creado por un asistente conectado o por la API no avisaba a
+  los mencionados: ni campana ni push, ni el correo que reciben los clientes.
+  Ahora web, API y MCP usan el mismo código de menciones (`lib/mentions`).
+- El correo por mención llega también al equipo (administradores y
+  colaboradores), no solo a los clientes. Vale para menciones desde la web,
+  la API y el MCP.
+- El asistente sabe cómo mencionar: `add_comment` explica el formato
+  `@[Nombre](userId)` y `find_users` devuelve la mención ya armada. Un
+  «@Nombre» en texto plano no es una mención.
+
+---
+
 ## [1.106.0] — 2026-10-06
 
 ### Conectar Claude, ChatGPT o Cursor por MCP

@@ -218,7 +218,9 @@ export function buildMcpServer(actor: OAuthActor): McpServer {
       "find_users",
       {
         title: "Buscar usuarios",
-        description: "Busca usuarios activos por nombre o correo, para obtener el id con el que asignar trabajo.",
+        description:
+          "Busca usuarios activos por nombre o correo, para obtener el id con el que asignar trabajo o " +
+          "mencionar a alguien. Cada resultado trae `mention`, el texto exacto para mencionarlo en un comentario.",
         inputSchema: {
           query: z.string().optional().describe("Parte del nombre o del correo"),
           role: z.enum(["ADMINISTRADOR", "COLABORADOR", "CLIENTE"]).optional(),
@@ -245,7 +247,8 @@ export function buildMcpServer(actor: OAuthActor): McpServer {
           orderBy: { name: "asc" },
           take: limit ?? 25,
         });
-        return ok({ users });
+        // La mención lista para pegar: el agente no tiene que adivinar el formato
+        return ok({ users: users.map((u) => ({ ...u, mention: `@[${u.name}](${u.id})` })) });
       },
     );
   }
@@ -391,11 +394,15 @@ export function buildMcpServer(actor: OAuthActor): McpServer {
     "add_comment",
     {
       title: "Comentar",
-      description: "Publica un comentario visible en una tarea o un ticket. Avisa a los participantes.",
+      description:
+        "Publica un comentario visible en una tarea o un ticket. Avisa al creador y al responsable. " +
+        "Para mencionar a alguien (le llega un aviso y un correo) escribe @[Nombre](userId) con " +
+        "su id real; el campo `mention` de find_users ya viene en ese formato. Un «@Nombre» en texto plano " +
+        "no es una mención y no avisa a nadie.",
       inputSchema: {
         entityType: z.enum(["TASK", "TICKET"]),
         entityId: z.string(),
-        body: z.string().trim().min(1).max(10000).describe("Markdown"),
+        body: z.string().trim().min(1).max(10000).describe("Markdown. Menciones: @[Nombre](userId)"),
       },
       annotations: write,
     },

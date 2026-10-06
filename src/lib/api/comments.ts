@@ -13,6 +13,7 @@ import { notifyMany } from "@/lib/notify";
 import { canAccessTicket } from "@/lib/ticket-access";
 import { canInteractWithTask } from "@/lib/task-access";
 import { emitCommentHook } from "@/lib/hooks/dispatch";
+import { notifyMentions } from "@/lib/mentions";
 import type { ApiUser } from "@/lib/api/respond";
 import type { WriteResult } from "@/lib/api/tickets";
 
@@ -107,6 +108,9 @@ export async function addCommentViaApi(
   });
 
   await notifyParticipants(author, entityType, entityId);
+  if (entityType === "TASK" || entityType === "TICKET") {
+    await notifyMentions({ author, entityType, entityId, body: created.body });
+  }
   emitCommentHook(created.id, { actor: { id: author.id, name: author.name } });
 
   return { ok: true, value: view(created) };
