@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
+import { afterTaskStatusChange } from "@/lib/status-change";
 import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/reviewers";
 import { combineEstimatedTime } from "@/lib/estimated-time";
 import { parseChecklistGroups } from "@/lib/checklist";
@@ -22,7 +23,7 @@ import {
   deleteAttachmentsFor,
 } from "@/lib/attachments";
 import { copyChecklists, createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
-import { deleteTimeEntriesFor, startTimer, stopRunningForEntity } from "@/lib/time-entries";
+import { deleteTimeEntriesFor } from "@/lib/time-entries";
 import { emitDeletedHook, emitTaskHook } from "@/lib/hooks/dispatch";
 import { diffFields } from "@/lib/activity/record";
 import { taskPayload } from "@/lib/hooks/payload";
@@ -639,63 +640,21 @@ export async function updateTaskStatus(taskId: string, projectId: string | null,
     data: { status: status as TaskStatus },
   });
 
-  // Arrancar timer automáticamente al pasar a EN_PROGRESO (si no hay uno activo)
-  if (status === "EN_PROGRESO" && oldTask?.status !== "EN_PROGRESO") {
-    await startTimer({ entityType: "TASK", entityId: taskId }, session.user.id);
-  }
-
-  // Detener timers activos al pasar a revisión o completar la tarea
-  if (["EN_REVISION", "COMPLETADO"].includes(status)) {
-    await stopRunningForEntity({ entityType: "TASK", entityId: taskId });
-  }
-
-  // Webhook: notificar cambio a EN_PROGRESO
-  if (!projectIsPrivate && status === "EN_PROGRESO" && oldTask?.status !== "EN_PROGRESO") {
-    await sendGChatNotification(
-      "task_status",
-      "Tarea en progreso",
-      `"${oldTask?.title}" pasó a *En progreso*`,
-      taskUrl
-    );
-  }
-
-  // Webhook: notificar cambio a EN_REVISION
-  if (!projectIsPrivate && status === "EN_REVISION" && oldTask?.status !== "EN_REVISION") {
-    await sendGChatNotification(
-      "task_status",
-      "Tarea en revisión",
-      `"${oldTask?.title}" pasó a *En revisión*`,
-      taskUrl
-    );
-  }
-
-  // Avisar a los revisores cuando la tarea entra en revisión
-  if (status === "EN_REVISION" && oldTask?.status !== "EN_REVISION") {
-    await notifyReviewers("task", taskId, oldTask?.title ?? "", taskUrl, session.user.id, true);
-  }
-
-  // Webhook: notificar cambio a PENDIENTE (reapertura)
-  if (!projectIsPrivate && status === "PENDIENTE" && oldTask?.status !== "PENDIENTE") {
-    await sendGChatNotification(
-      "task_status",
-      "Tarea pendiente",
-      `"${oldTask?.title}" volvió a *Pendiente*`,
-      taskUrl
-    );
-  }
-
-  // Notificar tarea completada si es un cambio nuevo a COMPLETADO
-  if (status === "COMPLETADO" && oldTask?.status !== "COMPLETADO") {
-    const recipients = [oldTask?.createdById, oldTask?.assignedToId]
-      .filter((id): id is string => !!id && id !== session.user.id);
-    await notifyMany(
-      recipients,
-      "task_completed",
-      "Tarea completada",
-      `"${oldTask?.title}" marcada como completada`,
+  // Cronómetros y avisos (Google Chat, revisores, completada): los mismos que
+  // cuando el estado cambia por la API o el asistente (lib/status-change)
+  if (oldTask) {
+    await afterTaskStatusChange({
+      taskId,
+      title: oldTask.title,
+      from: oldTask.status,
+      to: status as TaskStatus,
+      actorId: session.user.id,
       taskUrl,
-      projectIsPrivate
-    );
+      projectIsPrivate,
+      createdById: oldTask.createdById,
+      assignedToId: oldTask.assignedToId,
+      autoStartTimer: true,
+    });
   }
 
   if (oldTask && oldTask.status !== status) {

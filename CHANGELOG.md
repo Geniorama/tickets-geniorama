@@ -9,6 +9,26 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.111.1] — 2026-10-06
+
+### Cambiar un estado desde el asistente o la API avisa igual que desde la web
+
+- Cuando el asistente (MCP) o la API cambiaban el estado de una tarea, a
+  Google Chat no llegaba nada al pasar a En progreso, En revisión o Pendiente,
+  y al completarla solo llegaba si había alguien más a quien notificar. Con un
+  ticket, el aviso no decía a qué estado había cambiado.
+- Tampoco se avisaba a los revisores al entrar En revisión, ni se enviaba al
+  cliente el correo de cambio de estado o de ticket cerrado, ni se detenían
+  los cronómetros al revisar, completar o cerrar. Ahora sí.
+- El cronómetro no se arranca solo cuando el cambio a En progreso llega por la
+  API o el asistente: eso sigue siendo solo del tablero, donde quien mueve la
+  tarjeta es quien se pone a trabajar.
+- Por dentro: los avisos y cronómetros de un cambio de estado pasan a
+  `lib/status-change`, que usan el tablero, la API y el MCP. Desde la web,
+  «cambiar» un ticket al estado que ya tiene deja de generar avisos.
+
+---
+
 ## [1.111.0] — 2026-10-06
 
 ### Empresas y planes en el asistente (MCP)

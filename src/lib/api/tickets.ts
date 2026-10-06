@@ -21,6 +21,7 @@ import { ticketCode, ticketPrefix } from "@/lib/ticket-code";
 import { notify, notifyMany } from "@/lib/notify";
 import { canAccessTicket } from "@/lib/ticket-access";
 import { emitTicketHook } from "@/lib/hooks/dispatch";
+import { afterTicketStatusChange } from "@/lib/status-change";
 import { serializeTicket, ticketSelect } from "@/lib/hooks/payload";
 import type { ApiUser } from "@/lib/api/respond";
 
@@ -273,6 +274,7 @@ export async function updateTicketViaApi(
       assignedToId: true,
       createdById: true,
       clientId: true,
+      client: { select: { name: true, email: true } },
     },
   });
   if (!before) return { ok: false, status: 404, error: "Ticket no encontrado" };
@@ -305,16 +307,19 @@ export async function updateTicketViaApi(
   const link = `/tickets/${ticketId}`;
 
   if (input.status !== undefined && input.status !== before.status) {
-    const recipients = [before.clientId, before.createdById, before.assignedToId].filter(
-      (id): id is string => !!id && id !== author.id,
-    );
-    await notifyMany(
-      recipients,
-      "ticket_status",
-      "Ticket actualizado",
-      `"${updated.title}" cambió de estado`,
-      link,
-    );
+    // Campana, Google Chat, revisores, correo al cliente y cronómetros: lo
+    // mismo que al cambiar el estado desde la plataforma
+    await afterTicketStatusChange({
+      ticketId,
+      title: updated.title,
+      from: before.status,
+      to: input.status,
+      actorId: author.id,
+      clientId: before.clientId,
+      createdById: before.createdById,
+      assignedToId: before.assignedToId,
+      client: before.client,
+    });
     emitTicketHook("ticket.status_changed", ticketId, {
       actor,
       changes: { status: { from: before.status, to: input.status } },

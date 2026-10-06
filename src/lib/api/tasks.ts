@@ -15,6 +15,7 @@ import type { Prisma, Priority, TaskStatus } from "@/generated/prisma";
 import { isStaff } from "@/lib/roles";
 import { notify } from "@/lib/notify";
 import { emitTaskHook } from "@/lib/hooks/dispatch";
+import { afterTaskStatusChange } from "@/lib/status-change";
 import { serializeProject, serializeTask, projectSelect, taskSelect } from "@/lib/hooks/payload";
 import type { ApiUser } from "@/lib/api/respond";
 import { projectNotOthersDraft, taskNotInOthersDraftProject } from "@/lib/search/scopes";
@@ -314,21 +315,25 @@ export async function updateTaskViaApi(
     });
 
     if (input.status === "COMPLETADO") {
-      const recipients = [before.createdById, before.assignedToId].filter(
-        (id): id is string => !!id && id !== author.id,
-      );
-      for (const userId of recipients) {
-        await notify(
-          userId,
-          "task_completed",
-          "Tarea completada",
-          `"${updated.title}" marcada como completada`,
-          taskUrl,
-          scope.projectIsPrivate,
-        );
-      }
       emitTaskHook("task.completed", taskId, { actor, ...scope });
     }
+
+    // Google Chat, revisores, aviso de completada y cronómetros: lo mismo que
+    // al mover la tarea en el tablero. El cronómetro no se arranca solo: por
+    // aquí entra el asistente, y un reloj corriendo sin nadie delante infla
+    // las horas.
+    await afterTaskStatusChange({
+      taskId,
+      title: updated.title,
+      from: before.status,
+      to: input.status,
+      actorId: author.id,
+      taskUrl,
+      projectIsPrivate: scope.projectIsPrivate,
+      createdById: before.createdById,
+      assignedToId: before.assignedToId,
+      autoStartTimer: false,
+    });
   }
 
   if (input.assignedToId !== undefined && input.assignedToId !== before.assignedToId) {

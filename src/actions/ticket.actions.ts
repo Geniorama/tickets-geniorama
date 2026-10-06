@@ -10,6 +10,8 @@ import { isAdmin } from "@/lib/roles";
 import { getClientActivePlan } from "@/lib/plans.server";
 import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
+import { afterTicketStatusChange } from "@/lib/status-change";
+import type { TicketStatus } from "@/generated/prisma";
 import { sendTicketAssignedEmail, sendTicketClosedEmail, sendTicketStatusChangedEmail } from "@/lib/email";
 import { ticketPrefix } from "@/lib/ticket-code";
 import { parseChecklistGroups } from "@/lib/checklist";
@@ -17,7 +19,7 @@ import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/rev
 import { deleteCommentsFor } from "@/lib/comments";
 import { addFileAttachments, deleteAttachmentsFor } from "@/lib/attachments";
 import { copyChecklists, createChecklistGroups, deleteChecklistsFor } from "@/lib/checklists";
-import { deleteTimeEntriesFor, stopRunningForEntity } from "@/lib/time-entries";
+import { deleteTimeEntriesFor } from "@/lib/time-entries";
 import { deleteVaultLinksFor, linkVaultEntries } from "@/lib/vault-links";
 import { emitDeletedHook, emitTicketHook } from "@/lib/hooks/dispatch";
 import { diffFields } from "@/lib/activity/record";
@@ -332,47 +334,20 @@ export async function updateTicketStatus(ticketId: string, status: string) {
     data: { status: status as never },
   });
 
-  // Detener timers activos al pasar a revisión o cerrar el ticket
-  if (["EN_REVISION", "CERRADO"].includes(status)) {
-    await stopRunningForEntity({ entityType: "TICKET", entityId: ticketId });
-  }
-
+  // Cronómetros y avisos (campana, Google Chat, revisores, correo al cliente):
+  // los mismos que cuando el estado cambia por la API o el asistente
   if (ticket) {
-    const label = ticketStatusLabels[status] ?? status;
-    const recipients = [ticket.clientId, ticket.createdById, ticket.assignedToId]
-      .filter((id): id is string => !!id && id !== session.user.id);
-    await notifyMany(
-      recipients,
-      "ticket_status",
-      "Ticket actualizado",
-      `"${ticket.title}" cambió a: ${label}`,
-      `/tickets/${ticketId}`
-    );
-
-    // Avisar a los revisores cuando el ticket entra en revisión
-    if (status === "EN_REVISION" && ticket.status !== "EN_REVISION") {
-      await notifyReviewers("ticket", ticketId, ticket.title, `/tickets/${ticketId}`, session.user.id, true);
-    }
-
-    // Email al cliente en cada cambio de estado (CERRADO usa su propia plantilla)
-    if (status !== ticket.status && ticket.client) {
-      const url = `${APP_URL}/tickets/${ticketId}`;
-      if (status === "CERRADO") {
-        void sendTicketClosedEmail(ticket.client, ticket.title, url).catch(console.error);
-      } else {
-        void sendTicketStatusChangedEmail(ticket.client, ticket.title, label, url).catch(console.error);
-      }
-    }
-
-    // Webhook: notificar cuando el ticket vuelve a Abierto (pendiente)
-    if (status === "ABIERTO" && ticket.status !== "ABIERTO") {
-      await sendGChatNotification(
-        "ticket_status",
-        "Ticket reabierto",
-        `"${ticket.title}" volvió a *Abierto*`,
-        `/tickets/${ticketId}`
-      );
-    }
+    await afterTicketStatusChange({
+      ticketId,
+      title: ticket.title,
+      from: ticket.status,
+      to: status as TicketStatus,
+      actorId: session.user.id,
+      clientId: ticket.clientId,
+      createdById: ticket.createdById,
+      assignedToId: ticket.assignedToId,
+      client: ticket.client,
+    });
   }
 
   if (ticket && ticket.status !== status) {
