@@ -53,13 +53,20 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+/**
+ * Botón + modal del planificador. Sin preset deja elegir entre proyecto nuevo
+ * y existente; con `presetProject` planifica solo ese (panel del proyecto) y
+ * con `newOnly` solo crea uno nuevo (página «Nuevo proyecto»).
+ */
 export function PlannerLauncher({
   isAdmin,
-  presetProjectId,
+  presetProject,
+  newOnly = false,
   label = "Planificar con IA",
 }: {
   isAdmin: boolean;
-  presetProjectId?: string;
+  presetProject?: { id: string; name: string };
+  newOnly?: boolean;
   label?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -78,7 +85,7 @@ export function PlannerLauncher({
         <span className="sm:hidden">IA</span>
       </button>
       {open && (
-        <PlannerModal isAdmin={isAdmin} presetProjectId={presetProjectId} onClose={() => setOpen(false)} />
+        <PlannerModal isAdmin={isAdmin} presetProject={presetProject} newOnly={newOnly} onClose={() => setOpen(false)} />
       )}
     </>
   );
@@ -86,16 +93,21 @@ export function PlannerLauncher({
 
 function PlannerModal({
   isAdmin,
-  presetProjectId,
+  presetProject,
+  newOnly,
   onClose,
 }: {
   isAdmin: boolean;
-  presetProjectId?: string;
+  presetProject?: { id: string; name: string };
+  newOnly: boolean;
   onClose: () => void;
 }) {
   const [options, setOptions] = useState<PlannerOptions | null>(null);
-  const [mode, setMode] = useState<"new" | "existing">(isAdmin && !presetProjectId ? "new" : "existing");
-  const [projectId, setProjectId] = useState(presetProjectId ?? "");
+  const [mode, setMode] = useState<"new" | "existing">(
+    newOnly || (isAdmin && !presetProject) ? "new" : "existing",
+  );
+  const [projectId, setProjectId] = useState(presetProject?.id ?? "");
+  const fixedMode = newOnly || !!presetProject;
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [provider, setProvider] = useState<AiProvider>(DEFAULT_AI_PROVIDER);
@@ -268,20 +280,27 @@ function PlannerModal({
                 <ProviderToggle value={provider} onChange={setProvider} disabled={isPending} />
               </div>
 
-              {isAdmin && !presetProjectId && (
+              {isAdmin && !fixedMode && (
                 <div className="flex gap-2">
                   <ModeButton active={mode === "new"} onClick={() => setMode("new")} label="Nuevo proyecto" />
                   <ModeButton active={mode === "existing"} onClick={() => setMode("existing")} label="Proyecto existente" />
                 </div>
               )}
 
-              {mode === "existing" && (
+              {/* El proyecto fijo puede no estar en el selector (borrador, o un
+                  colaborador que no lo lleva): se muestra por su nombre */}
+              {mode === "existing" && presetProject && (
+                <p className="text-sm text-gray-600">
+                  Las tareas se crearán en <strong className="text-gray-900">{presetProject.name}</strong>.
+                </p>
+              )}
+
+              {mode === "existing" && !presetProject && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Proyecto destino</label>
                   <select
                     value={projectId}
                     onChange={(e) => setProjectId(e.target.value)}
-                    disabled={!!presetProjectId}
                     className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white disabled:bg-gray-50"
                   >
                     <option value="">Selecciona un proyecto…</option>

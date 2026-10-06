@@ -5,6 +5,7 @@ import { useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { Project, Task, TaskStatus, Priority, Attachment } from "@/generated/prisma";
 import { ProjectStatusBadge } from "./project-status-badge";
+import { ProjectActiveSwitch } from "./project-active-switch";
 import { TaskList } from "./task-list";
 import { TaskKanban } from "./task-kanban";
 import { TaskCalendar } from "./task-calendar";
@@ -17,6 +18,7 @@ import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { ProjectReportGenerator } from "@/components/projects/project-report-generator";
 import { InfoTabs, type InfoTab } from "@/components/ui/info-tabs";
 import { AiToolsLocked } from "@/components/ui/ai-tools-panel";
+import { PlannerLauncher } from "@/components/assistant/planner-tool";
 
 type TaskWithRelations = Task & {
   assignedTo: { name: string } | null;
@@ -227,7 +229,11 @@ export function ProjectDetail({
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
-            <ProjectStatusBadge project={project} />
+            {/* Quien edita el proyecto lo activa o desactiva aquí; un borrador
+                se publica primero */}
+            {isAdmin && !project.isDraft
+              ? <ProjectActiveSwitch projectId={project.id} projectName={project.name} isActive={project.isActive} />
+              : <ProjectStatusBadge project={project} />}
             {isAdmin && (
               <>
                 <Link
@@ -388,6 +394,11 @@ export function ProjectDetail({
             </div>
 
             {isStaff && (
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              {/* Un inactivo no recibe trabajo nuevo; un borrador sí (solo lo ve su creador) */}
+              {(project.isActive || project.isDraft) && (
+                <PlannerLauncher isAdmin={isAdmin} presetProject={{ id: project.id, name: project.name }} />
+              )}
               <Link
                 href={`/proyectos/${project.id}/tareas/new`}
                 style={{
@@ -406,6 +417,7 @@ export function ProjectDetail({
                 <Plus style={{ width: "1rem", height: "1rem" }} />
                 Nueva tarea
               </Link>
+              </div>
             )}
           </div>
 

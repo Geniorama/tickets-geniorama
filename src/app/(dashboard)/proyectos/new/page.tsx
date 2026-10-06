@@ -2,11 +2,15 @@ import { requireCan } from "@/lib/access/can";
 import { operationalCompanyWhere } from "@/lib/crm/accounts";
 import { prisma } from "@/lib/prisma";
 import { ProjectForm } from "@/components/projects/project-form";
+import { PlannerLauncher } from "@/components/assistant/planner-tool";
+import { isAdmin } from "@/lib/roles";
 
 export const metadata = { title: "Nuevo proyecto" };
 
 export default async function NewProjectPage() {
-  await requireCan("PROYECTOS", "gestionar");
+  const session = await requireCan("PROYECTOS", "gestionar");
+  // El planificador solo crea proyectos para administradores (ver applyPlan)
+  const admin = isAdmin(session.user.role);
 
   const [companies, staffUsers, allUsers] = await Promise.all([
     prisma.company.findMany({
@@ -33,6 +37,8 @@ export default async function NewProjectPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          flexWrap: "wrap",
+          gap: "0.75rem",
           marginBottom: "1.5rem",
         }}
       >
@@ -45,6 +51,7 @@ export default async function NewProjectPage() {
         >
           Nuevo proyecto
         </h1>
+        {admin && <PlannerLauncher isAdmin newOnly label="Crear con IA desde un documento" />}
       </div>
 
       <div

@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Project } from "@/generated/prisma";
 import { ProjectStatusBadge } from "./project-status-badge";
 import { ProjectFavoriteToggle } from "./project-favorite-toggle";
+import { ProjectActiveSwitch } from "./project-active-switch";
 import { formatDate } from "@/lib/format-date";
 import { FolderOpen, Calendar, User2, Building2, Lock } from "lucide-react";
 
@@ -18,11 +19,17 @@ export function ProjectList({
   projects,
   view = "list",
   favoriteIds = new Set<string>(),
+  canManage = false,
 }: {
   projects: ProjectWithRelations[];
   view?: "grid" | "list";
   favoriteIds?: Set<string>;
+  /** Puede activar/desactivar: ve un switch en vez de la insignia de estado. */
+  canManage?: boolean;
 }) {
+  // El switch va siempre fuera del <Link>: un botón no puede ir dentro de un enlace
+  const hasSwitch = (p: ProjectWithRelations) => canManage && !p.isDraft;
+
   if (projects.length === 0) {
     return (
       <div
@@ -75,7 +82,7 @@ export function ProjectList({
                     {project.isPrivate && <Lock style={{ width: "0.75rem", height: "0.75rem", color: "#7c3aed" }} />}
                     {project.name}
                   </span>
-                  <ProjectStatusBadge project={project} />
+                  {!hasSwitch(project) && <ProjectStatusBadge project={project} />}
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem 0.875rem", fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
                   {project.company && (
@@ -99,6 +106,11 @@ export function ProjectList({
                   <span>{project._count.tasks} tareas</span>
                 </div>
               </Link>
+              {hasSwitch(project) && (
+                <div style={{ padding: "0 1rem 0.875rem" }}>
+                  <ProjectActiveSwitch projectId={project.id} projectName={project.name} isActive={project.isActive} size="sm" />
+                </div>
+              )}
             </li>
           ))}
         </ul>
@@ -148,7 +160,9 @@ export function ProjectList({
                     {project.manager?.name ?? "—"}
                   </td>
                   <td style={{ padding: "0.75rem 1rem" }}>
-                    <ProjectStatusBadge project={project} />
+                    {hasSwitch(project)
+                      ? <ProjectActiveSwitch projectId={project.id} projectName={project.name} isActive={project.isActive} size="sm" />
+                      : <ProjectStatusBadge project={project} />}
                   </td>
                   <td style={{ padding: "0.75rem 1rem", color: "var(--app-text-muted)" }}>
                     {project._count.tasks}
@@ -175,7 +189,8 @@ export function ProjectList({
     >
       {projects.map((project) => (
         <div key={project.id} style={{ position: "relative" }}>
-          <div style={{ position: "absolute", top: "0.5rem", right: "0.5rem", zIndex: 2 }}>
+          <div style={{ position: "absolute", top: "0.5rem", right: "0.5rem", zIndex: 2, display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            {hasSwitch(project) && <ProjectActiveSwitch projectId={project.id} projectName={project.name} isActive={project.isActive} size="sm" />}
             <ProjectFavoriteToggle projectId={project.id} initial={favoriteIds.has(project.id)} />
           </div>
           <Link
@@ -205,7 +220,7 @@ export function ProjectList({
                 justifyContent: "space-between",
                 alignItems: "flex-start",
                 marginBottom: "0.75rem",
-                paddingRight: "2rem",
+                paddingRight: hasSwitch(project) ? "7.5rem" : "2rem",
               }}
             >
               <h3
@@ -227,7 +242,7 @@ export function ProjectList({
                     Privado
                   </span>
                 )}
-                <ProjectStatusBadge project={project} />
+                {!hasSwitch(project) && <ProjectStatusBadge project={project} />}
               </div>
             </div>
 

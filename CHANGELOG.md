@@ -9,6 +9,29 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.105.0] — 2026-10-06
+
+### Activar o desactivar un proyecto con un switch
+
+- En el listado (tabla, tarjetas y vista móvil) y en el detalle del proyecto,
+  quien puede editar proyectos ve un switch Activo/Inactivo en lugar de la
+  insignia de estado. Cambiarlo pide confirmación.
+- Los borradores no muestran el switch: se publican primero.
+- El cambio sale por el webhook `project.status_changed`, igual que al editar
+  el estado desde el formulario.
+
+### Planificar con IA desde el proyecto y al crear uno
+
+- El panel del proyecto tiene «Planificar con IA» junto a «Nueva tarea»: las
+  tareas se crean directamente en ese proyecto, sin elegirlo en una lista.
+- «Nuevo proyecto» tiene «Crear con IA desde un documento» (administradores):
+  la IA propone el proyecto y sus tareas a partir del documento.
+- También se pueden planificar borradores. Sus tareas se crean sin avisos ni
+  mensajes a Google Chat, como cualquier tarea de un borrador.
+- Un proyecto inactivo no se planifica: el planificador pide activarlo antes.
+
+---
+
 ## [1.104.1] — 2026-09-25
 
 ### Crear una tarea ya no termina en «Error al cargar el proyecto»

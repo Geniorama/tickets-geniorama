@@ -166,6 +166,40 @@ export async function updateProject(projectId: string, formData: FormData) {
 }
 
 /**
+ * Activa o desactiva un proyecto sin pasar por el formulario de edición.
+ * Un borrador no se activa ni se desactiva: primero se publica.
+ */
+export async function setProjectActive(projectId: string, isActive: boolean) {
+  const session = await requireCan("PROYECTOS", "gestionar");
+
+  const before = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { isActive: true, isDraft: true, isPrivate: true },
+  });
+  if (!before) return { error: "Proyecto no encontrado" };
+  if (before.isDraft) return { error: "Publica el proyecto antes de activarlo o desactivarlo" };
+  if (before.isActive === isActive) return { success: true, isActive };
+
+  await prisma.project.update({ where: { id: projectId }, data: { isActive } });
+
+  emitProjectHook("project.status_changed", projectId, {
+    actor: session.user,
+    isPrivate: before.isPrivate,
+    changes: {
+      status: {
+        from: before.isActive ? "ACTIVO" : "INACTIVO",
+        to: isActive ? "ACTIVO" : "INACTIVO",
+      },
+    },
+  });
+
+  revalidatePath("/proyectos");
+  revalidatePath(`/proyectos/${projectId}`);
+  revalidatePath("/dashboard");
+  return { success: true, isActive };
+}
+
+/**
  * Publica un borrador: desde ahora lo ve quien lo vería según las reglas de
  * siempre, con sus tareas. Es el momento en que «se crea» para los demás, así
  * que aquí salen el historial y el webhook de creación.

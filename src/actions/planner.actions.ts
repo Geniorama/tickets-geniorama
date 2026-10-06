@@ -351,6 +351,8 @@ export async function applyPlan(
   let projectId: string;
   let projectName: string;
   let projectIsPrivate: boolean;
+  // Un borrador recibe sus tareas en silencio: nadie más lo ve hasta publicarlo
+  let projectIsDraft = false;
 
   if (input.mode === "new") {
     if (!admin) return { error: "Solo los administradores pueden crear proyectos." };
@@ -389,12 +391,16 @@ export async function applyPlan(
     if (!input.projectId) return { error: "Selecciona un proyecto." };
     const project = await prisma.project.findUnique({
       where: { id: input.projectId },
-      select: { id: true, name: true, isPrivate: true, isActive: true, isDraft: true },
+      select: { id: true, name: true, isPrivate: true, isActive: true, isDraft: true, createdById: true },
     });
-    if (!project || !project.isActive || project.isDraft) return { error: "Proyecto no encontrado." };
+    if (!project) return { error: "Proyecto no encontrado." };
+    // Borrador: solo su creador lo ve, así que solo él lo planifica
+    if (project.isDraft && project.createdById !== userId) return { error: "Proyecto no encontrado." };
+    if (!project.isDraft && !project.isActive) return { error: "El proyecto está inactivo. Actívalo para planificar tareas." };
     projectId = project.id;
     projectName = project.name;
     projectIsPrivate = project.isPrivate;
+    projectIsDraft = project.isDraft;
   }
 
   // Validar responsables (staff activo) y obtener sus nombres
@@ -465,7 +471,7 @@ export async function applyPlan(
 
   // Webhook (Google Chat): notificar CADA tarea de forma individual, con
   // responsable y fecha de vencimiento, igual que el alta normal de tareas.
-  if (!projectIsPrivate) {
+  if (!projectIsPrivate && !projectIsDraft) {
     for (const t of created) {
       const parts: string[] = [`"${t.title}" en ${projectName}`];
       if (t.assignedToId) parts.push(`Asignado a: ${assigneeNames.get(t.assignedToId) ?? "—"}`);
@@ -481,7 +487,7 @@ export async function applyPlan(
 
   // Notificación in-app resumida por responsable (skipGChat: el webhook ya
   // recibió cada tarea individualmente, evitamos duplicar mensajes en GChat).
-  for (const [assignee, count] of assigneeCounts) {
+  for (const [assignee, count] of projectIsDraft ? [] : assigneeCounts) {
     await notify(
       assignee,
       "task_assigned",

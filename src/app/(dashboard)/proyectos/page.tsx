@@ -199,7 +199,7 @@ export default async function ProyectosPage({
         <ProjectViewToggle current={view} />
       </div>
 
-      <ProjectList projects={projects} view={view} favoriteIds={favoriteIdSet} />
+      <ProjectList projects={projects} view={view} favoriteIds={favoriteIdSet} canManage={admin} />
 
       <Pagination
         totalItems={totalProjects}
