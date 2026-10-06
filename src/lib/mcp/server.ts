@@ -22,6 +22,7 @@ import { getTicket, listTickets, createTicketViaApi, updateTicketViaApi } from "
 import { addCommentViaApi, listComments } from "@/lib/api/comments";
 import type { OAuthActor } from "@/lib/oauth/server";
 import { registerCrmTools } from "@/lib/mcp/crm-tools";
+import { registerBillingTools } from "@/lib/mcp/billing-tools";
 
 const PRIORITY = z.enum(["BAJA", "MEDIA", "ALTA", "CRITICA"]);
 const TASK_STATUS = z.enum(["PENDIENTE", "EN_PROGRESO", "EN_REVISION", "COMPLETADO"]);
@@ -73,7 +74,8 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
         "(solicitudes de soporte de los clientes). Actúas como el usuario que autorizó la conexión y ves " +
         "solo lo que él ve. Usa whoami para saber su rol. Los ids son cadenas opacas: obtenlos de las " +
         "herramientas list_* antes de leer o modificar algo. Si el usuario tiene el módulo CRM, las " +
-        "herramientas crm_* gestionan cuentas, contactos, oportunidades y actividades comerciales.",
+        "herramientas crm_* gestionan cuentas, contactos, oportunidades y actividades comerciales; con el " +
+        "módulo Facturación, las billing_* gestionan cobros, facturas y abonos (importes en pesos colombianos).",
     },
   );
 
@@ -255,8 +257,9 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
     );
   }
 
-  // CRM: solo si el usuario tiene el módulo (ver crm-tools)
+  // CRM y Facturación: solo si el usuario tiene cada módulo (ver *-tools)
   await registerCrmTools(server, user, canWrite);
+  await registerBillingTools(server, user, canWrite);
 
   if (!canWrite) return server;
 

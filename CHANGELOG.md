@@ -9,6 +9,29 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.108.0] — 2026-10-06
+
+### Facturación en el asistente (MCP)
+
+- Nueve herramientas nuevas `billing_*` en el servidor MCP:
+  - Consultar: resumen del tablero (cuánto hay en cada estado, por cobrar y
+    vencido), listar cobros (por estado, empresa, búsqueda o solo vencidos),
+    ver un cobro con sus líneas y abonos, empresas y categorías contables.
+  - Crear cobros con sus líneas (base, IVA y categoría).
+  - Editar cobros (solo los campos enviados), moverlos de estado y registrar
+    abonos.
+- Mismas reglas que el tablero: los totales los calcula el servidor, al
+  archivo solo se llega desde Pagado, un cobro con abonos no retrocede, no se
+  abona algo sin facturar y pasar a Pagado registra el saldo. Todo queda en
+  el historial del cobro.
+- Solo aparecen a quien tiene el módulo Facturación; las de crear y editar,
+  con nivel Miembro o superior. Nunca a clientes. Borrar cobros no está
+  disponible desde el asistente.
+- Por dentro: crear y editar cobros, y apuntar abonos, pasan a
+  `lib/billing/items`, que usan tanto la web como el MCP.
+
+---
+
 ## [1.107.0] — 2026-10-06
 
 ### El CRM en el asistente (MCP)

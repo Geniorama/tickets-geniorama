@@ -8,11 +8,11 @@ import { requireCan } from "@/lib/access/can";
 import { deleteCommentsFor } from "@/lib/comments";
 import { deleteAttachmentsFor } from "@/lib/attachments";
 import type { BillingStatus } from "@/generated/prisma";
-import { BILLING_STATUSES, BILLING_STATUS_LABELS, isInvoiced } from "@/lib/billing/status";
-import { bloqueoDeArchivo, moveBillingStatus, sellosPara } from "@/lib/billing/move";
-import { formatAmount, parseAmount } from "@/lib/money";
-import { calcularTotales } from "@/lib/billing/totals";
-import { recordActivity, recordUpdate } from "@/lib/activity/record";
+import { BILLING_STATUSES } from "@/lib/billing/status";
+import { moveBillingStatus } from "@/lib/billing/move";
+import { parseAmount } from "@/lib/money";
+import { actualizarCobro, crearCobro } from "@/lib/billing/items";
+import { recordActivity } from "@/lib/activity/record";
 import { entityLabel } from "@/lib/activity/label";
 
 const estados = BILLING_STATUSES as [BillingStatus, ...BillingStatus[]];
@@ -68,27 +68,6 @@ function leerLineas(raw: FormDataEntryValue | null): unknown {
   }
 }
 
-/**
- * Descarta categorías que no existen.
- *
- * El id viaja desde el navegador y la clave foránea lo rechazaría con un error
- * feo. Se prefiere guardar el cobro sin catalogar —que se puede arreglar— a
- * perder lo que alguien acababa de escribir.
- */
-async function conCategoriasValidas<T extends { categoryId: string | null }>(lineas: T[]): Promise<T[]> {
-  const pedidas = [...new Set(lineas.map((l) => l.categoryId).filter((c): c is string => Boolean(c)))];
-  if (pedidas.length === 0) return lineas;
-
-  const existentes = new Set(
-    (await prisma.billingCategory.findMany({
-      where: { id: { in: pedidas } },
-      select: { id: true },
-    })).map((c) => c.id),
-  );
-
-  return lineas.map((l) => (l.categoryId && !existentes.has(l.categoryId) ? { ...l, categoryId: null } : l));
-}
-
 function leer(formData: FormData) {
   return cobroSchema.safeParse({
     concept:   formData.get("concept"),
@@ -108,63 +87,13 @@ export async function createBillingItem(formData: FormData) {
 
   const parsed = leer(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const d = parsed.data;
 
-  const empresa = await prisma.company.findUnique({ where: { id: d.companyId }, select: { id: true } });
-  if (!empresa) return { error: "Empresa no encontrada" };
-
-  // Un cobro no nace archivado: al archivo se llega después de cobrarlo.
-  const bloqueo = bloqueoDeArchivo(d.status, "BACKLOG");
-  if (bloqueo) return { error: bloqueo };
-
-  // Los totales se calculan **siempre en el servidor**: lo que mande el
-  // navegador es para pintar, no para guardar.
-  const lineas = await conCategoriasValidas(d.lines);
-  const totales = calcularTotales(lineas);
-  const ajuste = sellosPara(d.status, { amount: totales.total, paidAmount: 0, invoicedAt: null, paidAt: null });
-
-  const cobro = await prisma.billingItem.create({
-    data: {
-      concept: d.concept.trim(),
-      companyId: d.companyId,
-      status: d.status,
-      amount: totales.total,
-      subtotal: totales.subtotal,
-      taxAmount: totales.taxAmount,
-      lines: {
-        create: lineas.map((l, i) => ({
-          concept: l.concept.trim(),
-          amount: l.amount,
-          taxRate: l.taxRate,
-          categoryId: l.categoryId,
-          position: i,
-        })),
-      },
-      dueDate: d.dueDate,
-      // El vencimiento solo tiene sentido con factura emitida; si el cobro
-      // retrocede se borra, igual que el número, para que no queden fechas
-      // sueltas disparando recordatorios de algo que ya no está facturado.
-      invoiceDueDate: isInvoiced(d.status) ? d.invoiceDueDate : null,
-      invoiceNumber: isInvoiced(d.status) ? (d.invoiceNumber?.trim() || null) : null,
-      ownerId: d.ownerId || null,
-      notes: d.notes?.trim() || null,
-      createdById: session.user.id,
-      ...ajuste,
-    },
-    select: { id: true },
-  });
-
-  recordActivity({
-    entityType: "BILLING",
-    entityId: cobro.id,
-    action: "billing.created",
-    label: await entityLabel("BILLING", cobro.id),
-    meta: { note: `${formatAmount(totales.total) ?? totales.total} · ${BILLING_STATUS_LABELS[d.status]}` },
-    actor: session.user,
-  });
+  // La lógica vive en lib/billing/items: el asistente (MCP) guarda igual
+  const r = await crearCobro(session.user, parsed.data);
+  if (!r.ok) return { error: r.error };
 
   revalidatePath("/facturacion");
-  redirect(`/facturacion/${cobro.id}`);
+  redirect(`/facturacion/${r.id}`);
 }
 
 export async function updateBillingItem(id: string, formData: FormData) {
@@ -172,86 +101,9 @@ export async function updateBillingItem(id: string, formData: FormData) {
 
   const parsed = leer(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
-  const d = parsed.data;
 
-  const actual = await prisma.billingItem.findUnique({
-    where: { id },
-    select: {
-      amount: true, paidAmount: true, invoicedAt: true, paidAt: true,
-      // Lo que el historial vigila, para poder decir qué se editó.
-      concept: true, status: true, dueDate: true, ownerId: true,
-    },
-  });
-  if (!actual) return { error: "Cobro no encontrado" };
-
-  // El archivo tiene la misma puerta desde aquí que desde el tablero.
-  const bloqueo = bloqueoDeArchivo(d.status, actual.status);
-  if (bloqueo) return { error: bloqueo };
-
-  const lineas = await conCategoriasValidas(d.lines);
-  const totales = calcularTotales(lineas);
-  const ajuste = sellosPara(d.status, { ...actual, amount: totales.total });
-
-  await prisma.billingItem.update({
-    where: { id },
-    data: {
-      concept: d.concept.trim(),
-      status: d.status,
-      amount: totales.total,
-      subtotal: totales.subtotal,
-      taxAmount: totales.taxAmount,
-      // Se reemplazan enteras: intentar casar cuál cambió obliga a mandar ids
-      // desde el cliente y a confiar en ellos.
-      lines: {
-        deleteMany: {},
-        create: lineas.map((l, i) => ({
-          concept: l.concept.trim(),
-          amount: l.amount,
-          taxRate: l.taxRate,
-          categoryId: l.categoryId,
-          position: i,
-        })),
-      },
-      dueDate: d.dueDate,
-      // El vencimiento solo tiene sentido con factura emitida; si el cobro
-      // retrocede se borra, igual que el número, para que no queden fechas
-      // sueltas disparando recordatorios de algo que ya no está facturado.
-      invoiceDueDate: isInvoiced(d.status) ? d.invoiceDueDate : null,
-      invoiceNumber: isInvoiced(d.status) ? (d.invoiceNumber?.trim() || null) : null,
-      ownerId: d.ownerId || null,
-      notes: d.notes?.trim() || null,
-      ...ajuste,
-    },
-  });
-
-  // Cambiar de estado desde el formulario cuenta igual que arrastrar la
-  // tarjeta: es el mismo hecho y se registra con la misma acción, para que
-  // filtrar por «cambió el estado» los encuentre todos.
-  const etiqueta = await entityLabel("BILLING", id);
-  if (actual.status !== d.status) {
-    recordActivity({
-      entityType: "BILLING",
-      entityId: id,
-      action: "billing.status_changed",
-      label: etiqueta,
-      changes: { status: { from: actual.status, to: d.status } },
-      actor: session.user,
-    });
-  }
-  recordUpdate({
-    entityType: "BILLING",
-    entityId: id,
-    action: "billing.updated",
-    label: etiqueta,
-    before: actual,
-    after: {
-      concept: d.concept.trim(),
-      amount: totales.total,
-      dueDate: d.dueDate,
-      ownerId: d.ownerId || null,
-    },
-    actor: session.user,
-  });
+  const r = await actualizarCobro(session.user, id, parsed.data);
+  if (!r.ok) return { error: r.error };
 
   revalidatePath("/facturacion");
   revalidatePath(`/facturacion/${id}`);
