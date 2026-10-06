@@ -12,6 +12,10 @@ export const config = {
   // con sesión: si pasaran por aquí, una llamada sin cookie acabaría en un
   // redirect a /login en vez de en el 401 que espera quien integra.
   //
+  // api/oauth, api/mcp y .well-known son el OAuth del servidor MCP: hablan
+  // con apps externas por token y sus respuestas de error las fija el estándar.
+  // La pantalla /oauth/authorize sí pasa por aquí: necesita sesión.
+  //
   // swagger-ui son los archivos estáticos del visor de la referencia, que viven
   // en `public/`. Sin excluirlos, el navegador recibe un redirect a /login en
   // vez del script y la pantalla se queda vacía.
@@ -20,6 +24,6 @@ export const config = {
     // de sesión, así que si el middleware lo redirige al login el navegador no
     // llega a registrarlo y las notificaciones push no se activan nunca.
     // No expone nada: solo escucha avisos, no lee datos.
-    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\.png$|api/logout|api/cron|api/integrations|api/v1|swagger-ui).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\.png$|api/logout|api/cron|api/integrations|api/v1|api/oauth|api/mcp|\\.well-known|swagger-ui).*)",
   ],
 };

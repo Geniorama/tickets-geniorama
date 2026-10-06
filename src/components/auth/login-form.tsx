@@ -4,7 +4,22 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 
-export function LoginForm() {
+/**
+ * Adónde volver tras entrar. Solo se aceptan rutas de esta misma app: un
+ * callbackUrl a otro dominio convertiría el login en un redirector abierto.
+ */
+function safeCallback(raw: string | undefined): string {
+  if (!raw) return "/dashboard";
+  try {
+    const url = new URL(raw, window.location.origin);
+    if (url.origin !== window.location.origin) return "/dashboard";
+    return `${url.pathname}${url.search}`;
+  } catch {
+    return "/dashboard";
+  }
+}
+
+export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -27,7 +42,7 @@ export function LoginForm() {
     }
 
     // Hard redirect para limpiar el router cache y garantizar datos frescos
-    window.location.href = "/dashboard";
+    window.location.href = safeCallback(callbackUrl);
   }
 
   return (

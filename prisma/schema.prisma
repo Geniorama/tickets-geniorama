@@ -428,6 +428,8 @@ model User {
   // Integraciones externas
   createdHooks   Hook[]   @relation("HookCreatedBy")
   apiKeys        ApiKey[] @relation("ApiKeyUser")
+  oauthCodes     OAuthAuthorizationCode[]
+  oauthGrants    OAuthGrant[]
   createdApiKeys ApiKey[] @relation("ApiKeyCreatedBy")
 
   // CRM
@@ -1650,4 +1652,69 @@ model ApiKey {
 
   @@index([userId])
   @@map("api_keys")
+}
+
+// ─── OAuth 2.1 para el servidor MCP ──────────────────────────────────────────
+//
+// Aplicaciones como Claude o ChatGPT se registran solas (registro dinámico,
+// RFC 7591) y el usuario las autoriza desde la plataforma. Lo que reciben actúa
+// como ese usuario, con su misma frontera de datos (ver src/lib/oauth).
+
+model OAuthClient {
+  /// Es el `client_id` público.
+  id                      String    @id
+  name                    String
+  redirectUris            String[]  @map("redirect_uris")
+  /// "none" (cliente público con PKCE) o "client_secret_post" / "client_secret_basic".
+  tokenEndpointAuthMethod String    @default("none") @map("token_endpoint_auth_method")
+  /// SHA-256 del secreto, solo para clientes confidenciales.
+  secretHash              String?   @map("secret_hash")
+  createdAt               DateTime  @default(now()) @map("created_at")
+
+  codes  OAuthAuthorizationCode[]
+  grants OAuthGrant[]
+
+  @@map("oauth_clients")
+}
+
+model OAuthAuthorizationCode {
+  id            String    @id @default(cuid())
+  codeHash      String    @unique @map("code_hash")
+  clientId      String    @map("client_id")
+  userId        String    @map("user_id")
+  redirectUri   String    @map("redirect_uri")
+  codeChallenge String    @map("code_challenge")
+  scopes        String[]
+  resource      String?
+  expiresAt     DateTime  @map("expires_at")
+  usedAt        DateTime? @map("used_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  client OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("oauth_authorization_codes")
+}
+
+/// Una conexión autorizada: un usuario + una app. Los tokens rotan dentro de la
+/// misma fila, así que revocarla corta la app de una vez.
+model OAuthGrant {
+  id               String    @id @default(cuid())
+  clientId         String    @map("client_id")
+  userId           String    @map("user_id")
+  scopes           String[]
+  accessTokenHash  String    @unique @map("access_token_hash")
+  accessExpiresAt  DateTime  @map("access_expires_at")
+  refreshTokenHash String    @unique @map("refresh_token_hash")
+  refreshExpiresAt DateTime  @map("refresh_expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  lastUsedAt       DateTime? @map("last_used_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  client OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("oauth_grants")
 }

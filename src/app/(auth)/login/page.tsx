@@ -6,9 +6,9 @@ export const metadata = { title: "Iniciar sesión" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ activated?: string }>;
+  searchParams: Promise<{ activated?: string; callbackUrl?: string }>;
 }) {
-  const { activated } = await searchParams;
+  const { activated, callbackUrl } = await searchParams;
 
   return (
     <div
@@ -39,7 +39,7 @@ export default async function LoginPage({
             </div>
           )}
 
-          <LoginForm />
+          <LoginForm callbackUrl={callbackUrl} />
         </div>
 
         <p className="text-center text-xs text-white/30 mt-6">

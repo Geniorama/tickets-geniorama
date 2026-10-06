@@ -9,6 +9,31 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.106.0] — 2026-10-06
+
+### Conectar Claude, ChatGPT o Cursor por MCP
+
+- Nuevo servidor MCP en `/api/mcp`, protegido con OAuth 2.1. Se añade como
+  conector personalizado con esa URL: la app se registra sola, pide iniciar
+  sesión y muestra una pantalla para autorizar el acceso.
+- El asistente actúa como quien lo autorizó y ve solo lo que esa persona ve.
+  Herramientas: proyectos, tareas, tickets y comentarios (consultar, crear,
+  actualizar y comentar), «quién soy» y, para el equipo, buscar usuarios.
+  Avisos, historial y webhooks funcionan igual que desde la plataforma.
+- Permisos «Consultar» y «Crear y modificar». Con solo lectura, las
+  herramientas de escritura ni aparecen.
+- *Mis integraciones* muestra la URL del MCP y los asistentes conectados, con
+  opción de desconectarlos al momento.
+- El login ahora vuelve a la página que lo pidió (`callbackUrl`) en vez de ir
+  siempre al dashboard. Solo acepta rutas de la propia app.
+- Técnico: registro dinámico (RFC 7591), PKCE S256 obligatorio, metadatos en
+  `/.well-known/oauth-authorization-server` y
+  `/.well-known/oauth-protected-resource`, tokens de acceso de 1 hora y de
+  refresco de 30 días con rotación, revocación (RFC 7009). Migración con tres
+  tablas nuevas: `oauth_clients`, `oauth_authorization_codes`, `oauth_grants`.
+
+---
+
 ## [1.105.0] — 2026-10-06
 
 ### Activar o desactivar un proyecto con un switch

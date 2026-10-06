@@ -1,13 +1,16 @@
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { getMyWebhooks } from "@/actions/user-webhook.actions";
+import { getMyConnectedApps } from "@/actions/oauth.actions";
 import { UserWebhooks } from "@/components/integrations/user-webhooks";
+import { ConnectedApps } from "@/components/integrations/connected-apps";
+import { mcpResourceUrl } from "@/lib/oauth/config";
 import { Plug } from "lucide-react";
 
 export const metadata = { title: "Mis integraciones" };
 
 export default async function IntegracionesPage() {
   await getRequiredSession();
-  const webhooks = await getMyWebhooks();
+  const [webhooks, apps] = await Promise.all([getMyWebhooks(), getMyConnectedApps()]);
 
   return (
     <div style={{ maxWidth: "48rem" }}>
@@ -19,9 +22,13 @@ export default async function IntegracionesPage() {
           </h1>
         </div>
         <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--app-text-muted)" }}>
-          Conecta <strong>tus</strong> notificaciones con otras apps mediante webhooks. Cada webhook recibe
-          únicamente las notificaciones dirigidas a ti, en las categorías que elijas.
+          Conecta tu cuenta con asistentes de IA y <strong>tus</strong> notificaciones con otras apps mediante
+          webhooks. Cada webhook recibe únicamente las notificaciones dirigidas a ti, en las categorías que elijas.
         </p>
+      </div>
+
+      <div style={{ marginBottom: "1.5rem" }}>
+        <ConnectedApps mcpUrl={mcpResourceUrl()} apps={apps} />
       </div>
 
       <UserWebhooks webhooks={webhooks} />
