@@ -23,6 +23,7 @@ import { addCommentViaApi, listComments } from "@/lib/api/comments";
 import type { OAuthActor } from "@/lib/oauth/server";
 import { registerCrmTools } from "@/lib/mcp/crm-tools";
 import { registerBillingTools } from "@/lib/mcp/billing-tools";
+import { registerInfraTools } from "@/lib/mcp/infra-tools";
 
 const PRIORITY = z.enum(["BAJA", "MEDIA", "ALTA", "CRITICA"]);
 const TASK_STATUS = z.enum(["PENDIENTE", "EN_PROGRESO", "EN_REVISION", "COMPLETADO"]);
@@ -75,7 +76,8 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
         "solo lo que él ve. Usa whoami para saber su rol. Los ids son cadenas opacas: obtenlos de las " +
         "herramientas list_* antes de leer o modificar algo. Si el usuario tiene el módulo CRM, las " +
         "herramientas crm_* gestionan cuentas, contactos, oportunidades y actividades comerciales; con el " +
-        "módulo Facturación, las billing_* gestionan cobros, facturas y abonos (importes en pesos colombianos).",
+        "módulo Facturación, las billing_* gestionan cobros, facturas y abonos (importes en pesos colombianos); " +
+        "con Infraestructura, las infra_* gestionan sitios y servicios (dominios, hosting, SSL…) y sus vencimientos.",
     },
   );
 
@@ -219,6 +221,28 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
   // El directorio dice quién trabaja aquí y con qué correo: solo para el equipo
   if (staff) {
     server.registerTool(
+      "list_companies",
+      {
+        title: "Buscar empresas",
+        description:
+          "Empresas activas (clientes) por nombre, para obtener el companyId que piden las herramientas de " +
+          "facturación, infraestructura y CRM.",
+        inputSchema: { search: z.string().optional().describe("Parte del nombre"), limit: page.limit },
+        annotations: readOnly,
+      },
+      async ({ search, limit }) => {
+        const q = search?.trim();
+        const companies = await prisma.company.findMany({
+          where: { isActive: true, ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}) },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+          take: limit ?? 25,
+        });
+        return ok({ companies });
+      },
+    );
+
+    server.registerTool(
       "find_users",
       {
         title: "Buscar usuarios",
@@ -257,9 +281,10 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
     );
   }
 
-  // CRM y Facturación: solo si el usuario tiene cada módulo (ver *-tools)
+  // CRM, Facturación e Infraestructura: solo si el usuario tiene cada módulo (ver *-tools)
   await registerCrmTools(server, user, canWrite);
   await registerBillingTools(server, user, canWrite);
+  await registerInfraTools(server, user, canWrite);
 
   if (!canWrite) return server;
 

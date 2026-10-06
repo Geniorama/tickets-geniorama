@@ -9,6 +9,30 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.109.0] — 2026-10-06
+
+### Infraestructura en el asistente (MCP)
+
+- Ocho herramientas nuevas `infra_*` en el servidor MCP:
+  - Consultar: sitios, un sitio (con documentación, arquitectura, servicios
+    de la empresa y tickets abiertos), servicios y un servicio. Los servicios
+    salen del vencimiento más cercano al más lejano, con los días que faltan;
+    se pueden pedir los vencidos o lo que vence en los próximos N días.
+  - Crear sitios y servicios (dominio, hosting, correo, SSL, mantenimiento…).
+  - Editar sitios y servicios: solo los campos enviados. Renovar es mover la
+    fecha de vencimiento; dar de baja es desactivar, sin borrar.
+- Solo aparecen a quien tiene el módulo Infraestructura; las de crear y
+  editar, con nivel Miembro o superior. Nunca a clientes.
+- Fuera a propósito: los accesos de la Bóveda (son contraseñas y no salen
+  hacia un asistente externo) y el borrado de sitios y servicios.
+- Nueva herramienta general `list_companies` (solo equipo) para encontrar el
+  id de una empresa. Sustituye a `billing_list_companies`.
+- Por dentro: crear y editar sitios y servicios pasa a `lib/infra/records`,
+  que usan la web y el MCP. Crear o editar con una empresa que no existe da
+  ahora un error claro en vez de un fallo de base de datos.
+
+---
+
 ## [1.108.0] — 2026-10-06
 
 ### Facturación en el asistente (MCP)

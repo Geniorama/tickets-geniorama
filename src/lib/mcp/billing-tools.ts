@@ -250,26 +250,6 @@ export async function registerBillingTools(server: McpServer, user: ApiUser, can
   );
 
   server.registerTool(
-    "billing_list_companies",
-    {
-      title: "Facturación: empresas",
-      description: "Empresas activas a las que se puede cobrar, para obtener su id.",
-      inputSchema: { search: z.string().optional().describe("Parte del nombre") },
-      annotations: readOnly,
-    },
-    async ({ search }) => {
-      const q = search?.trim();
-      const companies = await prisma.company.findMany({
-        where: { isActive: true, ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}) },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-        take: 50,
-      });
-      return ok({ companies });
-    },
-  );
-
-  server.registerTool(
     "billing_list_categories",
     {
       title: "Facturación: categorías",

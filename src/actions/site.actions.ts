@@ -5,7 +5,8 @@ import { requireCan } from "@/lib/access/can";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { recordActivity, recordUpdate } from "@/lib/activity/record";
+import { recordActivity } from "@/lib/activity/record";
+import { actualizarSitio, crearSitio } from "@/lib/infra/records";
 
 const siteSchema = z.object({
   name: z.string().min(1, "El nombre es requerido").max(200),
@@ -16,10 +17,8 @@ const siteSchema = z.object({
   isActive: z.boolean().default(true),
 });
 
-export async function createSite(formData: FormData) {
-  const session = await requireCan("INFRAESTRUCTURA", "crear");
-
-  const parsed = siteSchema.safeParse({
+function leerSitio(formData: FormData) {
+  return siteSchema.safeParse({
     name: formData.get("name"),
     domain: formData.get("domain"),
     companyId: formData.get("companyId"),
@@ -27,29 +26,17 @@ export async function createSite(formData: FormData) {
     architecture: formData.get("architecture") || undefined,
     isActive: formData.get("isActive") !== "false",
   });
+}
 
+export async function createSite(formData: FormData) {
+  const session = await requireCan("INFRAESTRUCTURA", "crear");
+
+  const parsed = leerSitio(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const site = await prisma.site.create({
-    data: {
-      name: parsed.data.name,
-      domain: parsed.data.domain,
-      companyId: parsed.data.companyId,
-      documentation: parsed.data.documentation ?? null,
-      architecture: parsed.data.architecture ?? null,
-      isActive: parsed.data.isActive,
-    },
-    select: { id: true },
-  });
-
-  recordActivity({
-    entityType: "SITE",
-    entityId: site.id,
-    action: "site.created",
-    label: parsed.data.name,
-    meta: { note: parsed.data.domain },
-    actor: session.user,
-  });
+  // El guardado vive en lib/infra/records: el asistente (MCP) guarda igual
+  const r = await crearSitio(session.user, parsed.data);
+  if (!r.ok) return { error: r.error };
 
   revalidatePath("/admin/sitios");
   redirect("/admin/sitios");
@@ -58,48 +45,11 @@ export async function createSite(formData: FormData) {
 export async function updateSite(siteId: string, formData: FormData) {
   const session = await requireCan("INFRAESTRUCTURA", "editar");
 
-  const parsed = siteSchema.safeParse({
-    name: formData.get("name"),
-    domain: formData.get("domain"),
-    companyId: formData.get("companyId"),
-    documentation: formData.get("documentation") || undefined,
-    architecture: formData.get("architecture") || undefined,
-    isActive: formData.get("isActive") !== "false",
-  });
-
+  const parsed = leerSitio(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  const antes = await prisma.site.findUnique({
-    where: { id: siteId },
-    select: { name: true, domain: true, isActive: true },
-  });
-
-  await prisma.site.update({
-    where: { id: siteId },
-    data: {
-      name: parsed.data.name,
-      domain: parsed.data.domain,
-      companyId: parsed.data.companyId,
-      documentation: parsed.data.documentation ?? null,
-      architecture: parsed.data.architecture ?? null,
-      isActive: parsed.data.isActive,
-    },
-  });
-
-  recordUpdate({
-    entityType: "SITE",
-    entityId: siteId,
-    action: "site.updated",
-    label: parsed.data.name,
-    before: antes,
-    after: {
-      name: parsed.data.name,
-      domain: parsed.data.domain,
-      isActive: parsed.data.isActive,
-    },
-    extraFields: ["name", "domain", "isActive"],
-    actor: session.user,
-  });
+  const r = await actualizarSitio(session.user, siteId, parsed.data);
+  if (!r.ok) return { error: r.error };
 
   revalidatePath("/admin/sitios");
   redirect("/admin/sitios");

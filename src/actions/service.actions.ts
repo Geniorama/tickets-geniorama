@@ -5,7 +5,8 @@ import { requireCan } from "@/lib/access/can";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { recordActivity, recordUpdate } from "@/lib/activity/record";
+import { recordActivity } from "@/lib/activity/record";
+import { actualizarServicio, crearServicio } from "@/lib/infra/records";
 import { getRequiredSession } from "@/lib/auth-helpers";
 
 const serviceSchema = z.object({
@@ -20,10 +21,8 @@ const serviceSchema = z.object({
   companyId:   z.string().min(1, "La empresa es requerida"),
 });
 
-export async function createService(formData: FormData) {
-  const session = await getRequiredSession();
-  await requireCan("INFRAESTRUCTURA", "crear");
-
+/** Lee el formulario de un servicio, que es el mismo al crear y al editar. */
+function leerServicio(formData: FormData) {
   const parsed = serviceSchema.safeParse({
     name:        formData.get("name"),
     type:        formData.get("type"),
@@ -35,32 +34,26 @@ export async function createService(formData: FormData) {
     isActive:    formData.get("isActive") === "true",
     companyId:   formData.get("companyId"),
   });
-
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
-
-  const servicio = await prisma.service.create({
+  if (!parsed.success) return { error: parsed.error.issues[0].message } as const;
+  const d = parsed.data;
+  return {
     data: {
-      name:        parsed.data.name,
-      type:        parsed.data.type,
-      provider:    parsed.data.provider,
-      description: parsed.data.description ?? null,
-      dueDate:     parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
-      price:       parsed.data.price ? parseFloat(parsed.data.price) : null,
-      notes:       parsed.data.notes ?? null,
-      isActive:    parsed.data.isActive,
-      companyId:   parsed.data.companyId,
-      createdById: session.user.id,
+      ...d,
+      dueDate: d.dueDate ? new Date(d.dueDate) : null,
+      price: d.price ? parseFloat(d.price) : null,
     },
-    select: { id: true },
-  });
+  } as const;
+}
 
-  recordActivity({
-    entityType: "SERVICE",
-    entityId: servicio.id,
-    action: "service.created",
-    label: parsed.data.name,
-    actor: session.user,
-  });
+export async function createService(formData: FormData) {
+  const session = await requireCan("INFRAESTRUCTURA", "crear");
+
+  const leido = leerServicio(formData);
+  if ("error" in leido) return { error: leido.error };
+
+  // El guardado vive en lib/infra/records: el asistente (MCP) guarda igual
+  const r = await crearServicio(session.user, leido.data);
+  if (!r.ok) return { error: r.error };
 
   revalidatePath("/admin/servicios");
   revalidatePath("/mis-servicios");
@@ -70,56 +63,11 @@ export async function createService(formData: FormData) {
 export async function updateService(serviceId: string, formData: FormData) {
   const session = await requireCan("INFRAESTRUCTURA", "editar");
 
-  const parsed = serviceSchema.safeParse({
-    name:        formData.get("name"),
-    type:        formData.get("type"),
-    provider:    formData.get("provider") || "GENIORAMA",
-    description: formData.get("description") || undefined,
-    dueDate:     formData.get("dueDate") || undefined,
-    price:       formData.get("price") || undefined,
-    notes:       formData.get("notes") || undefined,
-    isActive:    formData.get("isActive") === "true",
-    companyId:   formData.get("companyId"),
-  });
+  const leido = leerServicio(formData);
+  if ("error" in leido) return { error: leido.error };
 
-  if (!parsed.success) return { error: parsed.error.issues[0].message };
-
-  const antes = await prisma.service.findUnique({
-    where: { id: serviceId },
-    select: { name: true, dueDate: true, isActive: true },
-  });
-
-  await prisma.service.update({
-    where: { id: serviceId },
-    data: {
-      name:        parsed.data.name,
-      type:        parsed.data.type,
-      provider:    parsed.data.provider,
-      description: parsed.data.description ?? null,
-      dueDate:     parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
-      price:       parsed.data.price ? parseFloat(parsed.data.price) : null,
-      notes:       parsed.data.notes ?? null,
-      isActive:    parsed.data.isActive,
-      companyId:   parsed.data.companyId,
-    },
-  });
-
-  recordUpdate({
-    entityType: "SERVICE",
-    entityId: serviceId,
-    action: "service.updated",
-    label: parsed.data.name,
-    before: antes,
-    after: {
-      name: parsed.data.name,
-      // La fecha de renovación es lo que más se mira de un servicio: moverla
-      // cambia cuándo salta el aviso de vencimiento.
-      dueDate: parsed.data.dueDate ? new Date(parsed.data.dueDate) : null,
-      isActive: parsed.data.isActive,
-    },
-    extraFields: ["name", "dueDate", "isActive"],
-    actor: session.user,
-  });
+  const r = await actualizarServicio(session.user, serviceId, leido.data);
+  if (!r.ok) return { error: r.error };
 
   revalidatePath("/admin/servicios");
   revalidatePath("/mis-servicios");
