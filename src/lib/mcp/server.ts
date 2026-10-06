@@ -24,6 +24,7 @@ import type { OAuthActor } from "@/lib/oauth/server";
 import { registerCrmTools } from "@/lib/mcp/crm-tools";
 import { registerBillingTools } from "@/lib/mcp/billing-tools";
 import { registerInfraTools } from "@/lib/mcp/infra-tools";
+import { registerAdminTools } from "@/lib/mcp/admin-tools";
 
 const PRIORITY = z.enum(["BAJA", "MEDIA", "ALTA", "CRITICA"]);
 const TASK_STATUS = z.enum(["PENDIENTE", "EN_PROGRESO", "EN_REVISION", "COMPLETADO"]);
@@ -77,7 +78,8 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
         "herramientas list_* antes de leer o modificar algo. Si el usuario tiene el módulo CRM, las " +
         "herramientas crm_* gestionan cuentas, contactos, oportunidades y actividades comerciales; con el " +
         "módulo Facturación, las billing_* gestionan cobros, facturas y abonos (importes en pesos colombianos); " +
-        "con Infraestructura, las infra_* gestionan sitios y servicios (dominios, hosting, SSL…) y sus vencimientos.",
+        "con Infraestructura, las infra_* gestionan sitios y servicios (dominios, hosting, SSL…) y sus vencimientos; " +
+        "con Administración (nivel gestor), las admin_* gestionan empresas y planes de soporte.",
     },
   );
 
@@ -281,10 +283,11 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
     );
   }
 
-  // CRM, Facturación e Infraestructura: solo si el usuario tiene cada módulo (ver *-tools)
+  // CRM, Facturación, Infraestructura y Administración: solo si el usuario tiene cada módulo (ver *-tools)
   await registerCrmTools(server, user, canWrite);
   await registerBillingTools(server, user, canWrite);
   await registerInfraTools(server, user, canWrite);
+  await registerAdminTools(server, user, canWrite);
 
   if (!canWrite) return server;
 

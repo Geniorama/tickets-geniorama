@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { validateLogo, uploadLogo, deleteFile } from "@/lib/s3";
+import { datosEmpresa, validarEmpresa } from "@/lib/admin/records";
 
 const companySchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -26,34 +27,12 @@ export async function createCompany(formData: FormData) {
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  // Las agencias no pueden tener empresa padre
-  if (parsed.data.type === "AGENCIA" && parsed.data.parentId) {
-    return { error: "Una agencia no puede pertenecer a otra empresa" };
-  }
+  // Las reglas (agencias, duplicados) viven en lib/admin/records: el asistente
+  // (MCP) aplica las mismas
+  const invalido = await validarEmpresa(parsed.data);
+  if (invalido) return { error: invalido };
 
-  // Validar que el padre exista y sea una agencia
-  if (parsed.data.type === "EMPRESA" && parsed.data.parentId) {
-    const parent = await prisma.company.findUnique({
-      where: { id: parsed.data.parentId },
-      select: { type: true },
-    });
-    if (!parent) return { error: "La agencia seleccionada no existe" };
-    if (parent.type !== "AGENCIA") return { error: "La empresa padre debe ser de tipo Agencia" };
-  }
-
-  const existing = await prisma.company.findFirst({
-    where: { name: { equals: parsed.data.name, mode: "insensitive" } },
-  });
-  if (existing) return { error: "Ya existe una empresa con ese nombre" };
-
-  const company = await prisma.company.create({
-    data: {
-      name: parsed.data.name,
-      taxId: parsed.data.taxId,
-      type: parsed.data.type,
-      parentId: parsed.data.type === "EMPRESA" ? (parsed.data.parentId ?? null) : null,
-    },
-  });
+  const company = await prisma.company.create({ data: datosEmpresa(parsed.data) });
 
   // Subir logo si se proporcionó
   const logoFile = formData.get("logo") as File | null;
@@ -87,37 +66,8 @@ export async function updateCompany(companyId: string, formData: FormData) {
 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
 
-  if (parsed.data.type === "AGENCIA" && parsed.data.parentId) {
-    return { error: "Una agencia no puede pertenecer a otra empresa" };
-  }
-
-  // Si cambia a EMPRESA, validar que no tenga subempresas activas
-  if (parsed.data.type === "EMPRESA") {
-    const subCount = await prisma.company.count({
-      where: { parentId: companyId },
-    });
-    if (subCount > 0) {
-      return { error: "No puedes cambiar a Empresa porque tiene subempresas asociadas" };
-    }
-  }
-
-  // Validar que el padre exista y sea una agencia
-  if (parsed.data.type === "EMPRESA" && parsed.data.parentId) {
-    if (parsed.data.parentId === companyId) {
-      return { error: "Una empresa no puede ser su propia agencia" };
-    }
-    const parent = await prisma.company.findUnique({
-      where: { id: parsed.data.parentId },
-      select: { type: true },
-    });
-    if (!parent) return { error: "La agencia seleccionada no existe" };
-    if (parent.type !== "AGENCIA") return { error: "La empresa padre debe ser de tipo Agencia" };
-  }
-
-  const duplicate = await prisma.company.findFirst({
-    where: { name: { equals: parsed.data.name, mode: "insensitive" }, NOT: { id: companyId } },
-  });
-  if (duplicate) return { error: "Ya existe una empresa con ese nombre" };
+  const invalido = await validarEmpresa(parsed.data, companyId);
+  if (invalido) return { error: invalido };
 
   const logoFile = formData.get("logo") as File | null;
   let logoData: { logoUrl: string; logoStoragePath: string } | undefined;
@@ -154,10 +104,7 @@ export async function updateCompany(companyId: string, formData: FormData) {
   await prisma.company.update({
     where: { id: companyId },
     data: {
-      name: parsed.data.name,
-      taxId: parsed.data.taxId ?? null,
-      type: parsed.data.type,
-      parentId: parsed.data.type === "EMPRESA" ? (parsed.data.parentId ?? null) : null,
+      ...datosEmpresa(parsed.data),
       ...(logoData ? logoData : {}),
       ...(removeLogo ? { logoUrl: null, logoStoragePath: null } : {}),
     },

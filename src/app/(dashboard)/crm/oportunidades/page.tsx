@@ -50,9 +50,31 @@ export default async function DealsPage({
           <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
             {abiertas.length === 0
               ? "Nada abierto en el pipeline."
-              : `${abiertas.length} ${abiertas.length === 1 ? "abierta" : "abiertas"}${
-                  enJuego > 0 ? ` · ${formatAmount(enJuego)} en juego` : ""
-                }`}
+              : `${abiertas.length} ${abiertas.length === 1 ? "abierta" : "abiertas"}`}
+            {/* El total del pipeline es la cifra que se viene a mirar: va en
+                una pastilla y no perdido en la frase. */}
+            {enJuego > 0 && (
+              <>
+                {" · "}
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "baseline",
+                    gap: "0.35rem",
+                    backgroundColor: "rgba(34,197,94,0.12)",
+                    border: "1px solid rgba(34,197,94,0.35)",
+                    borderRadius: "9999px",
+                    padding: "0.15rem 0.7rem",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <strong style={{ fontSize: "1rem", fontWeight: 700, color: "var(--app-body-text)" }}>
+                    {formatAmount(enJuego)}
+                  </strong>
+                  <span style={{ fontSize: "0.8125rem", fontWeight: 500 }}>en juego</span>
+                </span>
+              </>
+            )}
             {/* Lo que el tablero está escondiendo, dicho en voz alta. */}
             {!verCerradas && cerradasOcultas > 0 && (
               <>

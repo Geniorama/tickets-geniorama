@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { MessageCircle, Loader2, Send } from "lucide-react";
+import { Loader2, Send } from "lucide-react";
+import { WhatsAppIcon, WHATSAPP_GREEN } from "@/components/ui/whatsapp-icon";
 import { saveMyWhatsApp, sendMyWhatsAppTest, type MyWhatsApp } from "@/actions/whatsapp.actions";
 import { COUNTRIES, splitPhone } from "@/lib/crm/phone";
 import { NOTIFICATION_CATEGORIES } from "@/lib/notification-categories";
 
-const WA_GREEN = "#16a34a";
 
 const card: React.CSSProperties = {
   backgroundColor: "var(--app-card-bg)",
@@ -77,7 +77,7 @@ export function WhatsAppSettings({ initial }: { initial: MyWhatsApp }) {
   return (
     <div style={card}>
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.375rem" }}>
-        <MessageCircle style={{ width: "1rem", height: "1rem", color: WA_GREEN }} />
+        <WhatsAppIcon style={{ width: "1rem", height: "1rem", color: WHATSAPP_GREEN }} />
         <h2 style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600, color: "var(--app-body-text)" }}>
           Avisos por WhatsApp
         </h2>

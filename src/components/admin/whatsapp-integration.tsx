@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { MessageCircle, CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Send, Copy, Check } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Send, Copy, Check } from "lucide-react";
+import { WhatsAppIcon, WHATSAPP_GREEN } from "@/components/ui/whatsapp-icon";
 import { saveSetting, deleteSetting } from "@/actions/settings.actions";
 import { sendWhatsAppAdminTest } from "@/actions/whatsapp.actions";
 import { WHATSAPP_EVENTS, WHATSAPP_FROM_KEY, type WhatsAppEvent } from "@/lib/whatsapp/config";
@@ -177,7 +178,7 @@ export function WhatsAppIntegration({
     <div>
       <div style={{ marginBottom: "0.875rem" }}>
         <h2 style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: 0, fontSize: "1rem", fontWeight: 700, color: "var(--app-body-text)" }}>
-          <MessageCircle style={{ width: "1rem", height: "1rem", color: WA_GREEN }} />
+          <WhatsAppIcon style={{ width: "1rem", height: "1rem", color: WHATSAPP_GREEN }} />
           WhatsApp (Zoho CPaaS)
         </h2>
         <p style={{ margin: "0.375rem 0 0", fontSize: "0.8125rem", color: "var(--app-text-muted)", lineHeight: 1.55 }}>

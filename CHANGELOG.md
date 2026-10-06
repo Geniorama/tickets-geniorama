@@ -9,6 +9,43 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.111.0] — 2026-10-06
+
+### Empresas y planes en el asistente (MCP)
+
+- Ocho herramientas nuevas `admin_*` en el servidor MCP:
+  - Empresas: listar (por nombre o NIT), ver una empresa con sus usuarios,
+    planes y subempresas, crear y editar (incluido activar o desactivar).
+  - Planes: listar con su estado (vigente, vencido, agotado o inactivo), las
+    horas usadas y restantes de las bolsas y los días que faltan para vencer;
+    ver uno, crear y editar (incluido activar o desactivar).
+- Mismas reglas que la plataforma: no puede haber dos empresas con el mismo
+  nombre, una agencia no cuelga de otra, una bolsa de horas exige sus horas.
+  Los cambios en planes quedan en el historial.
+- Solo aparecen con nivel Gestor en Administración, igual que esas pantallas.
+  Nunca a clientes.
+- Fuera a propósito: borrar empresas o planes, subir logos y gestionar
+  usuarios.
+- Por dentro: las reglas de empresas y el guardado de planes pasan a
+  `lib/admin/records`, que usan la web y el MCP.
+
+---
+
+## [1.110.1] — 2026-10-06
+
+### Icono oficial de WhatsApp
+
+- La sección de WhatsApp en *Mis integraciones* y en *Administración →
+  Integraciones* usa el logotipo oficial de WhatsApp, con su verde de marca,
+  en vez de un globo de chat genérico.
+
+### El total «en juego» de Oportunidades se ve mejor
+
+- La suma de las oportunidades abiertas deja de ir perdida en la frase de la
+  cabecera: va en una pastilla verde, con la cifra en negrita y más grande.
+
+---
+
 ## [1.110.0] — 2026-10-06
 
 ### Notificaciones por WhatsApp (Zoho CPaaS)

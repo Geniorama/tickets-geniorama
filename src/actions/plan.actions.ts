@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { recordActivity } from "@/lib/activity/record";
+import { actualizarPlan, crearPlan, setPlanActivo } from "@/lib/admin/records";
 
 const planSchema = z.object({
   name: z.string().min(1, "El nombre es requerido"),
@@ -49,39 +50,33 @@ function parsePlanFormData(formData: FormData) {
   return raw;
 }
 
-export async function createPlan(formData: FormData) {
-  const session = await requireCan("ADMIN");
-
+/** Lee y valida el formulario de un plan, que es el mismo al crear y al editar. */
+function leerPlan(formData: FormData) {
   const type = formData.get("type") as string;
   const raw = parsePlanFormData(formData);
 
   if (type === "BOLSA_HORAS" && !raw.totalHours) {
-    return { error: "El total de horas es requerido para Bolsa de Horas" };
+    return { error: "El total de horas es requerido para Bolsa de Horas" } as const;
   }
 
   const parsed = planSchema.safeParse(raw);
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
-  }
+  if (!parsed.success) return { error: parsed.error.issues[0].message } as const;
 
   const { startedAt, expiresAt, ...rest } = parsed.data;
+  return {
+    data: { ...rest, startedAt: new Date(startedAt), expiresAt: expiresAt ? new Date(expiresAt) : null },
+  } as const;
+}
 
-  const plan = await prisma.plan.create({
-    data: {
-      ...rest,
-      startedAt: new Date(startedAt),
-      expiresAt: expiresAt ? new Date(expiresAt) : null,
-    },
-    select: { id: true, name: true },
-  });
+export async function createPlan(formData: FormData) {
+  const session = await requireCan("ADMIN");
 
-  recordActivity({
-    entityType: "PLAN",
-    entityId: plan.id,
-    action: "plan.created",
-    label: plan.name,
-    actor: session.user,
-  });
+  const leido = leerPlan(formData);
+  if ("error" in leido) return { error: leido.error };
+
+  // El guardado vive en lib/admin/records: el asistente (MCP) guarda igual
+  const r = await crearPlan(session.user, leido.data);
+  if (!r.ok) return { error: r.error };
 
   revalidatePath("/admin/plans");
   return { success: true };
@@ -90,44 +85,11 @@ export async function createPlan(formData: FormData) {
 export async function updatePlan(planId: string, formData: FormData) {
   const session = await requireCan("ADMIN");
 
-  const type = formData.get("type") as string;
-  const raw = parsePlanFormData(formData);
+  const leido = leerPlan(formData);
+  if ("error" in leido) return { error: leido.error };
 
-  if (type === "BOLSA_HORAS" && !raw.totalHours) {
-    return { error: "El total de horas es requerido para Bolsa de Horas" };
-  }
-
-  const parsed = planSchema.safeParse(raw);
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0].message };
-  }
-
-  const { startedAt, expiresAt, ...rest } = parsed.data;
-
-  await prisma.plan.update({
-    where: { id: planId },
-    data: {
-      ...rest,
-      startedAt: new Date(startedAt),
-      expiresAt: expiresAt ? new Date(expiresAt) : null,
-      // Clear durationDays if not provided
-      durationDays: rest.durationDays ?? null,
-      // Clear totalHours if not BOLSA_HORAS
-      totalHours: type === "BOLSA_HORAS" ? (rest.totalHours ?? null) : null,
-    },
-  });
-
-  recordActivity({
-    entityType: "PLAN",
-    entityId: planId,
-    action: "plan.updated",
-    label: rest.name,
-    // Un plan es todo condiciones —horas, duración, vigencia— y compararlas
-    // campo a campo llenaría el historial de ruido. Basta con saber quién lo
-    // tocó y cuándo: la ficha guarda el estado actual.
-    force: true,
-    actor: session.user,
-  });
+  const r = await actualizarPlan(session.user, planId, leido.data);
+  if (!r.ok) return { error: r.error };
 
   revalidatePath("/admin/plans");
   revalidatePath(`/admin/plans/${planId}/edit`);
@@ -137,20 +99,8 @@ export async function updatePlan(planId: string, formData: FormData) {
 export async function togglePlanActive(planId: string, isActive: boolean) {
   const session = await requireCan("ADMIN");
 
-  const plan = await prisma.plan.update({
-    where: { id: planId },
-    data: { isActive },
-    select: { name: true },
-  });
-
-  recordActivity({
-    entityType: "PLAN",
-    entityId: planId,
-    action: "plan.updated",
-    label: plan.name,
-    changes: { isActive: { from: !isActive, to: isActive } },
-    actor: session.user,
-  });
+  const r = await setPlanActivo(session.user, planId, isActive);
+  if (!r.ok) return { error: r.error };
 
   revalidatePath("/admin/plans");
   return { success: true };
