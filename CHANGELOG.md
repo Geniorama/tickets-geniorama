@@ -9,6 +9,24 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.107.0] — 2026-10-06
+
+### El CRM en el asistente (MCP)
+
+- Doce herramientas nuevas `crm_*` en el servidor MCP:
+  - Consultar: cuentas, una cuenta, contactos de una cuenta, oportunidades
+    (con `open` para el pipeline vivo), una oportunidad y el historial de
+    actividades.
+  - Crear: cuentas (sin duplicar si el nombre ya existe), contactos,
+    oportunidades y actividades (llamada, correo, reunión, WhatsApp o nota).
+  - Editar: cuentas y oportunidades (etapa, valor, fecha de cierre…).
+- Siguen la misma regla que el CRM en la plataforma: solo aparecen a quien
+  tiene el módulo concedido, las de crear y editar solo con nivel Miembro o
+  superior, y nunca a un cliente. Avisos, historial y webhooks del CRM
+  funcionan igual que desde la web.
+
+---
+
 ## [1.106.1] — 2026-10-06
 
 ### Las menciones desde el asistente (MCP) y la API ya avisan

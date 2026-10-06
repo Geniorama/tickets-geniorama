@@ -44,7 +44,7 @@ export async function POST(req: Request) {
   const actor = await authenticateBearer(req);
   if (!actor) return unauthorized(/^Bearer\s+\S/i.test(req.headers.get("authorization") ?? ""));
 
-  const server = buildMcpServer(actor);
+  const server = await buildMcpServer(actor);
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

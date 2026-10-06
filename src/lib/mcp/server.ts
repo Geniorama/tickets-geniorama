@@ -21,6 +21,7 @@ import { getProject, getTask, listProjects, listTasks, createTaskViaApi, updateT
 import { getTicket, listTickets, createTicketViaApi, updateTicketViaApi } from "@/lib/api/tickets";
 import { addCommentViaApi, listComments } from "@/lib/api/comments";
 import type { OAuthActor } from "@/lib/oauth/server";
+import { registerCrmTools } from "@/lib/mcp/crm-tools";
 
 const PRIORITY = z.enum(["BAJA", "MEDIA", "ALTA", "CRITICA"]);
 const TASK_STATUS = z.enum(["PENDIENTE", "EN_PROGRESO", "EN_REVISION", "COMPLETADO"]);
@@ -59,7 +60,7 @@ function resolveMe(user: ApiUser, id: string | undefined): string | undefined {
   return id === "me" ? user.id : id;
 }
 
-export function buildMcpServer(actor: OAuthActor): McpServer {
+export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
   const user: ApiUser = actor.user;
   const canWrite = actor.scopes.includes("write");
   const staff = isStaff(user.role);
@@ -71,7 +72,8 @@ export function buildMcpServer(actor: OAuthActor): McpServer {
         "Plataforma de gestión de Geniorama: proyectos con tareas (trabajo interno del equipo) y tickets " +
         "(solicitudes de soporte de los clientes). Actúas como el usuario que autorizó la conexión y ves " +
         "solo lo que él ve. Usa whoami para saber su rol. Los ids son cadenas opacas: obtenlos de las " +
-        "herramientas list_* antes de leer o modificar algo.",
+        "herramientas list_* antes de leer o modificar algo. Si el usuario tiene el módulo CRM, las " +
+        "herramientas crm_* gestionan cuentas, contactos, oportunidades y actividades comerciales.",
     },
   );
 
@@ -252,6 +254,9 @@ export function buildMcpServer(actor: OAuthActor): McpServer {
       },
     );
   }
+
+  // CRM: solo si el usuario tiene el módulo (ver crm-tools)
+  await registerCrmTools(server, user, canWrite);
 
   if (!canWrite) return server;
 
