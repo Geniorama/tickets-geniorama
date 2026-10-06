@@ -438,7 +438,9 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
       inputSchema: {
         entityType: z.enum(["TASK", "TICKET"]),
         entityId: z.string(),
-        body: z.string().trim().min(1).max(10000).describe("Markdown. Menciones: @[Nombre](userId)"),
+        body: z.string().trim().min(1).max(10000).describe(
+          "Markdown: negritas, listas, citas, código, tablas y enlaces. Menciones: @[Nombre](userId)",
+        ),
       },
       annotations: write,
     },

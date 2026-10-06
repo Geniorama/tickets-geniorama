@@ -9,6 +9,24 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.112.0] — 2026-10-06
+
+### Markdown y enlaces en los comentarios de tickets y tareas
+
+- Los comentarios aceptan Markdown: negritas, cursivas, listas, citas,
+  código, tablas y enlaces con texto (`[texto](https://…)`).
+- Una URL pegada (`https://…` o `www.…`) se puede abrir con un clic, sin
+  escribir nada más.
+- Vale también para los comentarios que ya existían: se interpreta al
+  mostrar. Un salto de línea sigue siendo un salto de línea, así que lo ya
+  escrito no se junta en un solo párrafo.
+- Las menciones siguen saliendo como pastilla, también dentro de una lista o
+  una negrita.
+- Los enlaces abren en otra pestaña. No se interpreta HTML y solo se enlazan
+  direcciones seguras; un `javascript:` se queda como texto.
+
+---
+
 ## [1.111.1] — 2026-10-06
 
 ### Cambiar un estado desde el asistente o la API avisa igual que desde la web

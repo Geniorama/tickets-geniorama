@@ -386,7 +386,7 @@ function TaskCommentForm({
       <MentionTextarea
         required
         rows={3}
-        placeholder="Escribe un comentario… usa @ para mencionar a alguien"
+        placeholder="Escribe un comentario… usa @ para mencionar. Admite Markdown y enlaces"
         style={inputStyle}
       />
 

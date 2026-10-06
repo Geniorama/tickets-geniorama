@@ -719,7 +719,7 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
         required
         rows={3}
         className={inputCls}
-        placeholder="Escribe un comentario… usa @ para mencionar a alguien"
+        placeholder="Escribe un comentario… usa @ para mencionar. Admite Markdown y enlaces"
       />
 
       {/* Adjuntos múltiples — el cliente, solo imágenes y comprimidos */}

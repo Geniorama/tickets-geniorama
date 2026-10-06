@@ -4,7 +4,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
 
-const components: Components = {
+/** Los estilos de cada elemento. Se exportan para que los comentarios partan de los mismos. */
+export const markdownComponents: Components = {
   h1: ({ children }) => (
     <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.5rem", color: "var(--app-body-text)", lineHeight: 1.3 }}>{children}</h1>
   ),
@@ -124,7 +125,7 @@ const components: Components = {
 
 export function MarkdownRenderer({ content }: { content: string }) {
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
       {content}
     </ReactMarkdown>
   );
