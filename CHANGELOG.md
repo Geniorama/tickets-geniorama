@@ -9,6 +9,31 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.110.0] — 2026-10-06
+
+### Notificaciones por WhatsApp (Zoho CPaaS)
+
+- Los avisos importantes salen también por WhatsApp, para el equipo y para
+  los clientes, a través de la API de WhatsApp de Zoho CPaaS (antes ZeptoMail).
+- Qué se envía: menciones, tarea asignada, ticket asignado al agente, ticket
+  nuevo de un cliente, cambio de estado de un ticket y respuestas en un
+  ticket. Además, cuando un ticket recibe un agente, su cliente recibe «tu
+  solicitud ya tiene un agente asignado» (el equivalente al correo que ya
+  salía).
+- Cada persona lo activa para sí misma en *Mis integraciones*: su número, el
+  consentimiento y qué categorías quiere. Nadie recibe WhatsApp sin pedirlo.
+  Incluye un botón de mensaje de prueba.
+- *Administración → Integraciones* tiene la sección WhatsApp: número emisor,
+  la clave de plantilla de cada aviso (con el texto sugerido para registrarla
+  en Zoho CPaaS) y un envío de prueba que muestra la respuesta de Zoho. Un
+  aviso sin plantilla no se envía.
+- Servidor: la clave va en `ZOHO_CPAAS_WHATSAPP_TOKEN`; si no existe se usa
+  `ZEPTOMAIL_TOKEN`. Un fallo de WhatsApp nunca bloquea la acción que avisa.
+- Migración: tres columnas nuevas en `users` (`whatsapp_phone`,
+  `whatsapp_enabled`, `whatsapp_events`).
+
+---
+
 ## [1.109.0] — 2026-10-06
 
 ### Infraestructura en el asistente (MCP)

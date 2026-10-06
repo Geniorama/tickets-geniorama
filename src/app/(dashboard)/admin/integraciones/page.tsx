@@ -8,6 +8,9 @@ import { GChatIntegrations } from "@/components/admin/gchat-integrations";
 import { BriefRoutings } from "@/components/admin/brief-routings";
 import { HooksManager } from "@/components/integrations/hooks-manager";
 import { ApiKeys } from "@/components/integrations/api-keys";
+import { WhatsAppIntegration } from "@/components/admin/whatsapp-integration";
+import { WHATSAPP_SETTING_KEYS } from "@/lib/whatsapp/config";
+import { whatsappTokenConfigured } from "@/lib/whatsapp/send";
 import { Plug, Webhook, KeyRound, BookOpen, Code2 } from "lucide-react";
 
 export const metadata = { title: "Integraciones del equipo" };
@@ -17,6 +20,7 @@ const KEYS = [
   "gchat_webhook_tasks",
   "gchat_webhook_comments",
   "gchat_webhook_mentions",
+  ...WHATSAPP_SETTING_KEYS,
 ];
 
 function SectionHeader({
@@ -158,6 +162,10 @@ export default async function IntegracionesPage() {
             webhookUrl={`${baseUrl}/api/integrations/brief`}
             tokenConfigured={Boolean(process.env.INTEGRATION_BRIEF_TOKEN?.trim())}
           />
+        </section>
+
+        <section>
+          <WhatsAppIntegration settings={settings} tokenConfigured={whatsappTokenConfigured()} />
         </section>
 
         <section>

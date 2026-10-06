@@ -385,6 +385,14 @@ model User {
   isProjectManager  Boolean  @default(false) @map("is_project_manager")
   isSupportAgent    Boolean  @default(false) @map("is_support_agent")
   isActive          Boolean  @default(true) @map("is_active")
+
+  /// Notificaciones por WhatsApp. El número va en E.164 (`+573001234567`) y
+  /// solo se usa si la persona lo activó: WhatsApp exige consentimiento.
+  whatsappPhone   String?  @map("whatsapp_phone")
+  whatsappEnabled Boolean  @default(false) @map("whatsapp_enabled")
+  /// Categorías que quiere recibir (ver src/lib/notification-categories.ts).
+  whatsappEvents  String[] @default([]) @map("whatsapp_events")
+
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
 

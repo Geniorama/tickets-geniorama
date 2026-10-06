@@ -3,6 +3,8 @@ import { getMyWebhooks } from "@/actions/user-webhook.actions";
 import { getMyConnectedApps } from "@/actions/oauth.actions";
 import { UserWebhooks } from "@/components/integrations/user-webhooks";
 import { ConnectedApps } from "@/components/integrations/connected-apps";
+import { WhatsAppSettings } from "@/components/integrations/whatsapp-settings";
+import { getMyWhatsApp } from "@/actions/whatsapp.actions";
 import { mcpResourceUrl } from "@/lib/oauth/config";
 import { Plug } from "lucide-react";
 
@@ -10,7 +12,7 @@ export const metadata = { title: "Mis integraciones" };
 
 export default async function IntegracionesPage() {
   await getRequiredSession();
-  const [webhooks, apps] = await Promise.all([getMyWebhooks(), getMyConnectedApps()]);
+  const [webhooks, apps, whatsapp] = await Promise.all([getMyWebhooks(), getMyConnectedApps(), getMyWhatsApp()]);
 
   return (
     <div style={{ maxWidth: "48rem" }}>
@@ -29,6 +31,10 @@ export default async function IntegracionesPage() {
 
       <div style={{ marginBottom: "1.5rem" }}>
         <ConnectedApps mcpUrl={mcpResourceUrl()} apps={apps} />
+      </div>
+
+      <div style={{ marginBottom: "1.5rem" }}>
+        <WhatsAppSettings initial={whatsapp} />
       </div>
 
       <UserWebhooks webhooks={webhooks} />
