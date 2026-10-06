@@ -12,6 +12,7 @@ import { es } from "date-fns/locale";
 import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { afterTaskStatusChange } from "@/lib/status-change";
+import { notifyTaskCreated } from "@/lib/task-created";
 import { parseReviewerIds, resolveReviewerIds, notifyReviewers } from "@/lib/reviewers";
 import { combineEstimatedTime } from "@/lib/estimated-time";
 import { parseChecklistGroups } from "@/lib/checklist";
@@ -263,66 +264,6 @@ export async function createTask(projectIdArg: string | null, formData: FormData
   const taskUrl = `/proyectos/${projectId}/tareas/${task.id}`;
   if (warnings.length > 0) return { taskUrl, warnings };
   redirect(taskUrl);
-}
-
-/** Avisos, webhooks y hooks de una tarea recién creada. */
-async function notifyTaskCreated(
-  task: { id: string; title: string; assignedToId: string | null; dueDate: Date | null },
-  projectId: string,
-  isDraft: boolean,
-  actor: { id: string; name?: string | null },
-) {
-  const [project, assignee] = await Promise.all([
-    prisma.project.findUnique({ where: { id: projectId }, select: { name: true, isPrivate: true, isDraft: true } }),
-    task.assignedToId
-      ? prisma.user.findUnique({ where: { id: task.assignedToId }, select: { name: true } })
-      : null,
-  ]);
-
-  const projectIsPrivate = project?.isPrivate ?? false;
-
-  // Los borradores no notifican a nadie hasta que se publican. Tampoco una
-  // tarea dentro de un proyecto en borrador: el proyecto aún no existe para
-  // nadie más, y el aviso llevaría a una página que no pueden abrir.
-  const silent = isDraft || !!project?.isDraft;
-  if (!silent) {
-    // Construir mensaje enriquecido para GChat
-    const msgParts: string[] = [`"${task.title}"${project ? ` en ${project.name}` : ""}`];
-    if (assignee?.name) msgParts.push(`Asignado a: ${assignee.name}`);
-    if (task.dueDate) msgParts.push(`Vence: ${fmt(task.dueDate)}`);
-
-    // Notificar creación de tarea al webhook (sin destinatario en-app)
-    if (!projectIsPrivate) {
-      await sendGChatNotification(
-        "task_new",
-        "Nueva tarea",
-        msgParts.join(" · "),
-        `/proyectos/${projectId}/tareas/${task.id}`
-      );
-    }
-
-    // Notificar al asignado si no es el creador
-    if (task.assignedToId && task.assignedToId !== actor.id) {
-      await notify(
-        task.assignedToId,
-        "task_assigned",
-        "Tarea asignada",
-        `Se te asignó: "${task.title}"${project ? ` en ${project.name}` : ""}`,
-        `/proyectos/${projectId}/tareas/${task.id}`,
-        true // asignación individual: no va al webhook de equipo (GChat)
-      );
-    }
-  }
-
-  // Los borradores no salen de la plataforma hasta publicarse, igual que no
-  // notifican a nadie.
-  if (!isDraft) {
-    emitTaskHook("task.created", task.id, {
-      actor,
-      projectId,
-      projectIsPrivate: projectIsPrivate,
-    });
-  }
 }
 
 /**

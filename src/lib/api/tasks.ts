@@ -16,6 +16,7 @@ import { isStaff } from "@/lib/roles";
 import { notify } from "@/lib/notify";
 import { emitTaskHook } from "@/lib/hooks/dispatch";
 import { afterTaskStatusChange } from "@/lib/status-change";
+import { notifyTaskCreated } from "@/lib/task-created";
 import { serializeProject, serializeTask, projectSelect, taskSelect } from "@/lib/hooks/payload";
 import type { ApiUser } from "@/lib/api/respond";
 import { projectNotOthersDraft, taskNotInOthersDraftProject } from "@/lib/search/scopes";
@@ -220,22 +221,19 @@ export async function createTaskViaApi(
     });
   });
 
-  if (created.assignedTo && created.assignedTo.id !== author.id) {
-    await notify(
-      created.assignedTo.id,
-      "task_assigned",
-      "Tarea asignada",
-      `Se te asignó: "${created.title}" en ${project.name}`,
-      `/proyectos/${project.id}/tareas/${created.id}`,
-      true,
+  // «Nueva tarea» a Google Chat, aviso al responsable y hook: lo mismo que al
+  // crearla desde el formulario (lib/task-created). Un aviso que no sale no
+  // es motivo para decir que la tarea no se creó.
+  try {
+    await notifyTaskCreated(
+      { id: created.id, title: created.title, assignedToId: created.assignedTo?.id ?? null, dueDate: input.dueDate ?? null },
+      project.id,
+      false,
+      { id: author.id, name: author.name },
     );
+  } catch (err) {
+    console.error("[createTaskViaApi] notificaciones", err);
   }
-
-  emitTaskHook("task.created", created.id, {
-    actor: { id: author.id, name: author.name },
-    projectId: project.id,
-    projectIsPrivate: project.isPrivate,
-  });
 
   return { ok: true, value: serializeTask(created) };
 }

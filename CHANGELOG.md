@@ -9,6 +9,21 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.112.1] — 2026-10-06
+
+### Crear una tarea desde el asistente o la API avisa a Google Chat
+
+- Las tareas creadas por el asistente (MCP) o por la API no enviaban «Nueva
+  tarea» al canal de Google Chat; solo lo hacía el formulario de la web. Ahora
+  sale el mismo mensaje, con el proyecto, el responsable y la fecha límite.
+- Una tarea creada por esa vía dentro de un proyecto en borrador ya no avisa a
+  su responsable: queda en silencio hasta que el proyecto se publique, igual
+  que desde la web.
+- Por dentro: los avisos de «tarea creada» pasan a `lib/task-created`, que
+  usan el formulario, la API y el MCP.
+
+---
+
 ## [1.112.0] — 2026-10-06
 
 ### Markdown y enlaces en los comentarios de tickets y tareas
