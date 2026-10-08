@@ -9,6 +9,23 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.117.0] — 2026-10-08
+
+### Facturación avisa también al cambiar de estado y al registrar un abono
+
+- Mover un cobro de estado —arrastrando en el tablero, desde el formulario o
+  desde el asistente (MCP)— avisa a quien lleva Facturación, diciendo de qué
+  estado a cuál pasó.
+- Registrar un abono avisa con el importe y con lo que falta por cobrar, o que
+  el cobro queda pagado. Si el abono mueve el cobro solo a «Abonado» o
+  «Pagado», llega ese único aviso y no un segundo por el estado.
+- Igual que el de cobro nuevo: notificación en la plataforma y **siempre por
+  correo**, a quien tenga el módulo en Miembro o más, menos a quien hizo el
+  cambio. No se publica en Google Chat.
+- Corregir o borrar un abono no avisa.
+
+---
+
 ## [1.116.0] — 2026-10-08
 
 ### Aviso al crear un cobro, en la plataforma y por correo

@@ -12,6 +12,7 @@ import { recordActivity } from "@/lib/activity/record";
 import { entityLabel } from "@/lib/activity/label";
 import { BILLING_STATUSES, BILLING_STATUS_LABELS, isClosed, isInvoiced } from "@/lib/billing/status";
 import { recalcularPagos } from "@/lib/billing/payments";
+import { avisarFacturacion } from "@/lib/billing/notify";
 
 export type Sellos = {
   paidAmount: number;
@@ -172,6 +173,7 @@ export async function moveBillingStatus(
       changes: { status: { from: actual.status, to: status } },
       actor,
     });
+    await avisarFacturacion(actor, id, { tipo: "estado", from: actual.status, to: status });
   }
 
   return { ok: true };
