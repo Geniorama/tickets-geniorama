@@ -17,6 +17,9 @@ import { registrarPago } from "@/lib/billing/payments";
 import { formatAmount } from "@/lib/money";
 import { recordActivity, recordUpdate } from "@/lib/activity/record";
 import { entityLabel } from "@/lib/activity/label";
+import { notifyMany } from "@/lib/notify";
+import { sendBillingCreatedEmail } from "@/lib/email";
+import { usersWithModule } from "@/lib/access/can";
 
 export type Actor = { id: string; name?: string | null };
 
@@ -72,8 +75,64 @@ function lineasACrear(lineas: LineaInput[]) {
   }));
 }
 
+/**
+ * Avisa de un cobro nuevo a quien lleva Facturación (nivel Miembro o más),
+ * menos a quien lo acaba de crear.
+ *
+ * El correo sale **siempre**, sin preferencia que lo apague: un cobro que nadie
+ * ve es dinero que no se factura. Se espera a que salga —en vez de dejarlo al
+ * aire— para que no se pierda si el proceso termina antes; un fallo se anota y
+ * no tumba el alta, que ya está guardada.
+ *
+ * No va a Google Chat: el canal del equipo no es sitio para importes.
+ */
+async function avisarCobroNuevo(
+  actor: Actor,
+  cobro: { id: string; concept: string; company: string; total: number; status: BillingStatus },
+) {
+  try {
+    const destinatarios = (await usersWithModule("FACTURACION", "MIEMBRO")).filter((u) => u.id !== actor.id);
+    if (destinatarios.length === 0) return;
+
+    const total = formatAmount(cobro.total) ?? String(cobro.total);
+    const link = `/facturacion/${cobro.id}`;
+    const autor =
+      actor.name ??
+      (await prisma.user.findUnique({ where: { id: actor.id }, select: { name: true } }))?.name ??
+      "Alguien del equipo";
+
+    await notifyMany(
+      destinatarios.map((u) => u.id),
+      "billing_created",
+      "Nuevo cobro",
+      `${autor} creó «${cobro.concept}» para ${cobro.company} · ${total}`,
+      link,
+      true,
+    );
+
+    const url = `${(process.env.AUTH_URL ?? "http://localhost:3000").replace(/\/$/, "")}${link}`;
+    const envios = await Promise.allSettled(
+      destinatarios.map((u) =>
+        sendBillingCreatedEmail(u, {
+          concept: cobro.concept,
+          company: cobro.company,
+          total,
+          status: BILLING_STATUS_LABELS[cobro.status],
+          createdBy: autor,
+          url,
+        }),
+      ),
+    );
+    for (const e of envios) {
+      if (e.status === "rejected") console.error("[avisarCobroNuevo] Error enviando email:", e.reason);
+    }
+  } catch (err) {
+    console.error("[avisarCobroNuevo]", err);
+  }
+}
+
 export async function crearCobro(actor: Actor, d: CobroInput): Promise<ResultadoCobro> {
-  const empresa = await prisma.company.findUnique({ where: { id: d.companyId }, select: { id: true } });
+  const empresa = await prisma.company.findUnique({ where: { id: d.companyId }, select: { id: true, name: true } });
   if (!empresa) return { ok: false, error: "Empresa no encontrada" };
 
   // Un cobro no nace archivado: al archivo se llega después de cobrarlo.
@@ -116,6 +175,14 @@ export async function crearCobro(actor: Actor, d: CobroInput): Promise<Resultado
     label: await entityLabel("BILLING", cobro.id),
     meta: { note: `${formatAmount(totales.total) ?? totales.total} · ${BILLING_STATUS_LABELS[d.status]}` },
     actor,
+  });
+
+  await avisarCobroNuevo(actor, {
+    id: cobro.id,
+    concept: d.concept.trim(),
+    company: empresa.name,
+    total: totales.total,
+    status: d.status,
   });
 
   return { ok: true, id: cobro.id };

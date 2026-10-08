@@ -9,6 +9,22 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.116.0] — 2026-10-08
+
+### Aviso al crear un cobro, en la plataforma y por correo
+
+- Crear un cobro avisa a quien lleva Facturación (nivel Miembro o más), menos a
+  quien lo creó. Antes el módulo no avisaba de nada: un cobro dado de alta por
+  otra persona o por el asistente (MCP) solo se veía entrando al tablero.
+- Llega como notificación en la plataforma —y al móvil, si está activado— y
+  **siempre por correo**, sin preferencia que lo apague. El correo trae el
+  concepto, la empresa, el total con IVA, el estado y el enlace a la ficha.
+- Vale igual desde la web y desde el MCP: los dos guardan por el mismo sitio.
+- No se publica en Google Chat: el canal del equipo no es sitio para importes.
+- Si el correo falla, el cobro se guarda igual y el error queda en el registro.
+
+---
+
 ## [1.115.0] — 2026-10-08
 
 ### Un colaborador puede llevar solo Facturación, sin ver nada más

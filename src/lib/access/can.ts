@@ -162,3 +162,38 @@ export async function getAccessibleApps(actor: Actor): Promise<AppKey[]> {
 
   return result;
 }
+
+/**
+ * Quiénes del equipo tienen un módulo con al menos este nivel. Sirve para
+ * avisar a «los de Facturación» sin mantener una lista aparte: el aviso sigue
+ * a quien tenga el acceso hoy.
+ *
+ * Resuelve el nivel igual que `getGrants`: el del perfil, pisado por el
+ * explícito. Solo usuarios activos.
+ */
+export async function usersWithModule(
+  app: AppKey,
+  minLevel: AccessLevel = "LECTURA",
+): Promise<{ id: string; name: string; email: string }[]> {
+  const definition = APP_BY_KEY.get(app);
+  if (!definition) return [];
+
+  const users = await prisma.user.findMany({
+    where: { isActive: true, role: { in: [...definition.allowedRoles] } },
+    select: {
+      id: true, name: true, email: true,
+      profile: { select: { grants: true } },
+      appAccess: { where: { app }, select: { level: true } },
+    },
+  });
+
+  return users
+    .filter((u) => {
+      const delPerfil = (u.profile?.grants as Record<string, unknown> | null)?.[app];
+      const level =
+        u.appAccess[0]?.level ??
+        (typeof delPerfil === "string" && delPerfil in LEVEL_ORDER ? (delPerfil as AccessLevel) : "SIN_ACCESO");
+      return LEVEL_ORDER[level] >= LEVEL_ORDER[minLevel];
+    })
+    .map(({ id, name, email }) => ({ id, name, email }));
+}

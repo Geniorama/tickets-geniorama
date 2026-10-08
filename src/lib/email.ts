@@ -260,3 +260,46 @@ export async function sendBillingReminderEmail(
     `,
   });
 }
+
+const escapar = (s: string) =>
+  s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/**
+ * Aviso interno: alguien dio de alta un cobro. Va a quien lleva Facturación,
+ * no al cliente, así que sí lleva botón a la ficha.
+ */
+export async function sendBillingCreatedEmail(
+  to: Recipient,
+  cobro: { concept: string; company: string; total: string; status: string; createdBy: string; url: string },
+) {
+  await client.sendMail({
+    from: FROM,
+    to: [{ email_address: { address: to.email, name: to.name } }],
+    subject: `Nuevo cobro — ${cobro.company}: ${cobro.concept}`,
+    htmlbody: `
+      <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; color: #1f2937;">
+        <div style="background: #4f46e5; padding: 24px 32px; border-radius: 8px 8px 0 0;">
+          <h1 style="margin: 0; color: #ffffff; font-size: 20px;">Geniorama Tickets</h1>
+        </div>
+        <div style="background: #ffffff; padding: 32px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
+          <p style="margin-top: 0;">Hola <strong>${escapar(to.name)}</strong>,</p>
+          <p>${escapar(cobro.createdBy)} creó un cobro en Facturación.</p>
+          <p style="background: #f5f3ff; border-left: 4px solid #4f46e5; padding: 12px 16px; border-radius: 0 6px 6px 0; margin: 24px 0;">
+            <strong>${escapar(cobro.concept)}</strong><br>
+            ${escapar(cobro.company)}<br>
+            ${escapar(cobro.total)} · ${escapar(cobro.status)}
+          </p>
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${cobro.url}"
+               style="background: #4f46e5; color: #ffffff; padding: 12px 28px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 15px;">
+              Ver cobro
+            </a>
+          </div>
+          <p style="color: #6b7280; font-size: 13px;">
+            <a href="${cobro.url}" style="color: #4f46e5; word-break: break-all;">${cobro.url}</a>
+          </p>
+        </div>
+      </div>
+    `,
+  });
+}
