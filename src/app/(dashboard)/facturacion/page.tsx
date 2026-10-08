@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Bell, PieChart, Link2 } from "lucide-react";
+import { Plus, Bell, PieChart, Link2, Mail } from "lucide-react";
 import { requireCan, can } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { BILLING_STATUSES, BOARD_BILLING_STATUSES, isClosed, pendiente } from "@/lib/billing/status";
@@ -114,6 +114,18 @@ export default async function BillingPage({
           >
             <PieChart style={{ width: "0.9rem", height: "0.9rem" }} />
             Qué se vendió
+          </Link>
+          {/* Sin condición: las plantillas de correo son de todo el que entra. */}
+          <Link
+            href="/facturacion/correos"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: "0.4rem",
+              fontSize: "0.8125rem", padding: "0.45rem 0.85rem", borderRadius: "0.5rem",
+              border: "1px solid var(--app-border)", color: "var(--app-nav-text)", textDecoration: "none",
+            }}
+          >
+            <Mail style={{ width: "0.9rem", height: "0.9rem" }} />
+            Correos
           </Link>
           {canManage && (
             <Link

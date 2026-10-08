@@ -33,10 +33,34 @@ export const VARIABLES: { marca: string; descripcion: string }[] = [
   { marca: "factura",     descripcion: "Número de factura" },
 ];
 
-const NOMBRES = new Set(VARIABLES.map((v) => v.marca));
+/**
+ * Lo que además puede decir un correo mandado a mano.
+ *
+ * Las reglas no las tienen porque solo reclaman; un «pago recibido» necesita
+ * hablar de lo que entró.
+ */
+export type DatosCorreo = DatosCobro & {
+  abonado: number;
+  ultimoAbono: number | null;
+  fechaAbono: Date | null;
+};
 
-function valores(d: DatosCobro): Record<string, string> {
+export const VARIABLES_CORREO: { marca: string; descripcion: string }[] = [
+  ...VARIABLES,
+  { marca: "abonado",      descripcion: "Todo lo que ya entró de este cobro" },
+  { marca: "ultimo_abono", descripcion: "Importe del último pago recibido" },
+  { marca: "fecha_abono",  descripcion: "Fecha del último pago recibido" },
+];
+
+function valores(d: DatosCobro | DatosCorreo): Record<string, string> {
   return {
+    ...("abonado" in d
+      ? {
+          abonado:      formatAmount(d.abonado) ?? "—",
+          ultimo_abono: formatAmount(d.ultimoAbono) ?? "—",
+          fecha_abono:  d.fechaAbono ? formatDate(d.fechaAbono) : "—",
+        }
+      : {}),
     empresa:     d.empresa,
     contacto:    d.contacto,
     concepto:    d.concepto,
@@ -52,7 +76,7 @@ function valores(d: DatosCobro): Record<string, string> {
 }
 
 /** Sustituye `{{marca}}` por su valor. Deja intacta la que no reconoce. */
-export function renderPlantilla(texto: string, datos: DatosCobro): string {
+export function renderPlantilla(texto: string, datos: DatosCobro | DatosCorreo): string {
   const v = valores(datos);
   return texto.replace(/\{\{\s*(\w+)\s*\}\}/g, (entera, nombre: string) =>
     nombre in v ? v[nombre] : entera,
@@ -60,9 +84,10 @@ export function renderPlantilla(texto: string, datos: DatosCobro): string {
 }
 
 /** Las marcas escritas que no existen, para avisar al guardar la regla. */
-export function marcasDesconocidas(texto: string): string[] {
+export function marcasDesconocidas(texto: string, variables = VARIABLES): string[] {
+  const nombres = new Set(variables.map((v) => v.marca));
   const encontradas = [...texto.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map((m) => m[1]);
-  return [...new Set(encontradas.filter((m) => !NOMBRES.has(m)))];
+  return [...new Set(encontradas.filter((m) => !nombres.has(m)))];
 }
 
 const ESCAPES: Record<string, string> = {

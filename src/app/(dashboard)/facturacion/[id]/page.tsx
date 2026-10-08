@@ -19,6 +19,11 @@ import { LabelPicker } from "@/components/billing/label-picker";
 import { ReminderPanel } from "@/components/billing/reminder-panel";
 import { PaymentList } from "@/components/billing/payment-list";
 import { destinatarioDe } from "@/lib/billing/reminders/plan";
+import { EmailPanel } from "@/components/billing/email-panel";
+import { canalDisponible } from "@/lib/billing/reminders/channels";
+import {
+  datosDeCorreo, direccionesDe, direccionesPorDefecto, hoyEnBogota,
+} from "@/lib/billing/emails/compose";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -112,6 +117,31 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
       error: true, sentAt: true, rule: { select: { name: true } },
     },
   });
+
+  // Los correos mandados a mano. Lo programado va primero aunque sea viejo:
+  // es lo único de la lista que todavía se puede cancelar.
+  const [plantillasCorreo, correos] = await Promise.all([
+    prisma.billingEmailTemplate.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, subject: true, body: true, onlyIfPending: true },
+    }),
+    prisma.billingEmail.findMany({
+      where: { billingItemId: id },
+      orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+      take: 15,
+      select: {
+        id: true, status: true, subject: true, templateName: true, recipients: true,
+        scheduledFor: true, sentAt: true, createdAt: true, error: true,
+        createdBy: { select: { name: true } },
+      },
+    }),
+  ]);
+  const cuenta = {
+    nombre: cobro.company.name,
+    billingEmails: cobro.company.billingEmails,
+    contactos: cobro.company.contacts,
+  };
+
   const reparto = repartoPorCategoria(
     cobro.lines.map((l) => ({
       concept: l.concept, amount: l.amount, taxRate: l.taxRate,
@@ -286,6 +316,24 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
           facturado={isInvoiced(cobro.status)}
           canEdit={canEdit}
           canManage={canManage}
+        />
+
+        {/* Sin `canEdit`: escribirle al cliente lo puede hacer cualquiera con
+            acceso al módulo, también quien no puede tocar el cobro. */}
+        <EmailPanel
+          billingItemId={cobro.id}
+          plantillas={plantillasCorreo}
+          direcciones={direccionesDe(cuenta)}
+          porDefecto={direccionesPorDefecto(cuenta)}
+          empresa={cobro.company.name}
+          empresaId={cobro.company.id}
+          datos={datosDeCorreo(
+            { ...cobro, payments: cobro.payments.slice(0, 1) },
+            cobro.company.name,
+            hoyEnBogota(),
+          )}
+          correoListo={canalDisponible("EMAIL")}
+          correos={correos.map((c) => ({ ...c, createdBy: c.createdBy.name }))}
         />
 
         <BillingNotes

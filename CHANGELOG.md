@@ -9,6 +9,36 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.113.0] — 2026-10-07
+
+### Plantillas de correo en Facturación, para enviar al momento o programar
+
+- Nueva pantalla **Facturación → Correos** con plantillas de correo para
+  clientes. Vienen dos de partida, «Pago recibido» y «Cobranza», y se pueden
+  crear, editar y borrar las que hagan falta.
+- Desde la ficha de un cobro, **Enviar correo**: se elige la plantilla, se
+  ajusta el texto si hace falta, se marca a quién va y se ve cómo queda con los
+  datos de ese cobro antes de enviarlo.
+- Se puede mandar **ahora** o **programarlo** para un día y una hora en punto
+  (hora de Colombia). Lo programado se puede cancelar hasta que sale.
+- Lo puede hacer **cualquiera con acceso a Facturación**, también con nivel
+  Lectura. Las reglas de recordatorio automático siguen pidiendo Gestor.
+- Los destinatarios se eligen entre los buzones de facturación y los contactos
+  activos del cliente; no se puede escribir a una dirección que no esté en su
+  ficha.
+- Una plantilla marcada «Solo si queda saldo pendiente» no sale si, al llegar
+  su hora, el cliente ya pagó. En un correo programado los importes se calculan
+  al salir, no al programarlo.
+- Marcas nuevas para estos correos: `{{abonado}}`, `{{ultimo_abono}}` y
+  `{{fecha_abono}}`.
+- Cada correo enviado queda como nota interna en el cobro, y la lista de
+  programados y enviados se ve en la ficha y en Facturación → Correos.
+- Por dentro: tablas `billing_email_templates` y `billing_emails`, el
+  endpoint `/api/cron/billing-emails` y un workflow de GitHub Actions que lo
+  llama cada hora. Usa el mismo secreto `CRON_SECRET` que los demás.
+
+---
+
 ## [1.112.1] — 2026-10-06
 
 ### Crear una tarea desde el asistente o la API avisa a Google Chat

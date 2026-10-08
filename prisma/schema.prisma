@@ -446,6 +446,8 @@ model User {
   billingCreated    BillingItem[] @relation("BillingCreatedBy")
   billingRules      BillingReminderRule[] @relation("BillingRuleCreatedBy")
   billingPayments   BillingPayment[] @relation("BillingPaymentRegisteredBy")
+  billingEmailTemplates BillingEmailTemplate[] @relation("BillingEmailTemplateCreatedBy")
+  billingEmails     BillingEmail[] @relation("BillingEmailCreatedBy")
 
   ownedAccounts   Company[] @relation("AccountOwner")
   contactProfile  Contact?  @relation("ContactUser")
@@ -1290,6 +1292,7 @@ model BillingItem {
   labels    BillingLabel[] @relation("BillingItemLabels")
   reminders BillingReminder[]
   payments  BillingPayment[]
+  emails    BillingEmail[]
 
   @@index([status])
   @@index([companyId])
@@ -1407,6 +1410,92 @@ model BillingReminder {
 
   @@index([billingItemId, sentAt])
   @@map("billing_reminders")
+}
+
+/// Una plantilla de correo para clientes: «Pago recibido», «Cobranza»…
+///
+/// No es una regla: una regla sale sola según el vencimiento, y esto lo manda
+/// una persona —ahora o a una hora que ella elige— desde la ficha de un cobro.
+/// Por eso la puede escribir cualquiera con acceso a Facturación y no solo
+/// quien la gestiona: detrás de cada envío hay alguien que lo decidió.
+model BillingEmailTemplate {
+  id   String @id @default(cuid())
+  name String
+
+  subject String
+  /// El cuerpo, con marcas tipo `{{contacto}}`. Ver `reminders/template.ts`.
+  body    String @db.Text
+
+  /// Para las de cobranza: un correo programado con esta plantilla no sale si
+  /// para entonces el cobro ya no debe nada. Reclamarle a quien pagó ayer es
+  /// justo lo que un envío programado puede hacer sin que nadie lo vea.
+  onlyIfPending Boolean @default(false) @map("only_if_pending")
+
+  createdById String @map("created_by_id")
+  createdBy   User   @relation("BillingEmailTemplateCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  emails BillingEmail[]
+
+  @@map("billing_email_templates")
+}
+
+enum BillingEmailStatus {
+  /// Esperando su hora.
+  PROGRAMADO
+  /// Alguien —el cron o quien pulsó «Enviar»— lo tomó y está saliendo. Es
+  /// también el seguro contra el doble envío: solo se toma lo PROGRAMADO.
+  ENVIANDO
+  ENVIADO
+  FALLIDO
+  /// Lo canceló una persona antes de su hora.
+  CANCELADO
+  /// Llegó su hora y ya no tenía sentido mandarlo. Ver `onlyIfPending`.
+  OMITIDO
+}
+
+/// Un correo a un cliente sobre un cobro: el programado y, después, el registro
+/// de lo que salió.
+model BillingEmail {
+  id String @id @default(cuid())
+
+  /// Si se borra la plantilla, el correo se queda —es historial de lo que se
+  /// le dijo a un cliente— y conserva el nombre con el que se mandó.
+  templateId   String?               @map("template_id")
+  template     BillingEmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateName String?               @map("template_name")
+
+  billingItemId String      @map("billing_item_id")
+  billingItem   BillingItem @relation(fields: [billingItemId], references: [id], onDelete: Cascade)
+
+  /// Mientras espera, llevan las marcas sin sustituir: lo que falta por pagar
+  /// se calcula el día que sale, no el día que se programó. Al salir se
+  /// guardan ya sustituidas, que es lo que el cliente leyó.
+  subject String
+  body    String @db.Text
+
+  /// A qué direcciones. Siempre de entre las de la empresa del cobro.
+  recipients String[]
+
+  onlyIfPending Boolean @default(false) @map("only_if_pending")
+
+  status BillingEmailStatus
+  /// Vacío si se mandó en el momento.
+  scheduledFor DateTime? @map("scheduled_for")
+  sentAt       DateTime? @map("sent_at")
+  error        String?   @db.Text
+
+  /// Quién lo mandó o lo programó.
+  createdById String @map("created_by_id")
+  createdBy   User   @relation("BillingEmailCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([status, scheduledFor])
+  @@index([billingItemId, createdAt])
+  @@map("billing_emails")
 }
 
 /// Una línea de un cobro: un concepto con su base y su impuesto.

@@ -1,0 +1,57 @@
+# Los correos de facturación programados, cada hora.
+#
+# A diferencia de los recordatorios —una vez al día, según reglas—, estos los
+# dejó programados una persona para un día y una hora concretos. Por eso el
+# barrido es horario: en la app solo se pueden elegir horas en punto, y esto
+# recoge lo que ya venció.
+#
+# Que se dispare dos veces no duplica nada: cada correo se toma antes de salir
+# y solo se puede tomar una vez.
+
+name: Correos de facturación programados
+
+on:
+  schedule:
+    # Al minuto 3 y no en punto: a las horas en punto es cuando más se retrasan
+    # los programados de GitHub, y aquí un correo de las 9:00 debe salir cerca
+    # de las 9:00.
+    - cron: "3 * * * *"
+  # Para lanzarlo a mano si un correo no puede esperar a la siguiente hora.
+  workflow_dispatch:
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mandar los correos a los que les llegó la hora
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          respuesta=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            --max-time 120 \
+            https://app.geniorama.co/api/cron/billing-emails)
+
+          codigo=$(echo "$respuesta" | tail -n1)
+          cuerpo=$(echo "$respuesta" | sed '$d')
+
+          echo "HTTP $codigo"
+          echo "$cuerpo"
+
+          if [ "$codigo" != "200" ]; then
+            echo "::error::Los correos programados devolvieron HTTP $codigo. Si es 401, falta el secreto CRON_SECRET o no coincide con el del servidor."
+            exit 1
+          fi
+
+          # Un correo que falla no tumba el trabajo —los demás ya salieron—,
+          # pero alguien tiene que mirarlo: queda marcado en la ficha del cobro.
+          fallidos=$(echo "$cuerpo" | grep -o '"fallidos":[0-9]*' | cut -d: -f2)
+          if [ -n "$fallidos" ] && [ "$fallidos" != "0" ]; then
+            echo "::warning::$fallidos correo(s) programado(s) no salieron. Mira 'problemas' en el resumen."
+          fi
+
+          echo "### Correos de facturación programados" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          echo "$cuerpo" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
