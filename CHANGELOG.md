@@ -9,6 +9,34 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.114.0] — 2026-10-08
+
+### El MCP ya ve lo que cuelga de un ticket o una tarea
+
+- `get_ticket` y `get_task` devuelven además los **checklists** con sus ítems,
+  los **adjuntos** (archivos y enlaces), las entradas de **bóveda** vinculadas y
+  el **tiempo** registrado.
+- De la bóveda solo salen el título, el usuario y la URL de las entradas que
+  quien conecta creó o le compartieron. La contraseña y las notas no salen de
+  la plataforma.
+- `list_comments` (y los comentarios de la API REST) traen los adjuntos de cada
+  comentario.
+- Nuevas herramientas: `list_activity` (historial de la ficha, solo equipo),
+  `add_checklist_items`, `update_checklist_item` (marcar, desmarcar o cambiar
+  el texto) y `add_link_attachment` (solo equipo, solo enlaces).
+- `create_ticket` y `update_ticket` aceptan **cliente, plan y empresa**
+  (`clientId`, `planId`, `companyId`), solo para el equipo. Con la empresa sola
+  se toma su plan vigente; si tiene varios pide elegir. Se comprueba que el
+  cliente y el plan sean de la empresa indicada.
+- El ticket devuelve ahora su `company` (la del plan y, sin plan, la del
+  cliente), también en la API REST y en los webhooks.
+- Nueva herramienta `get_company_ticket_options`: los clientes y planes de una
+  empresa, con cuáles están vigentes.
+- Se respeta lo mismo que en la plataforma: un cliente no ve el detalle de una
+  tarea si no lo involucraron, ni el tiempo de un ticket que sigue abierto.
+
+---
+
 ## [1.113.0] — 2026-10-07
 
 ### Plantillas de correo en Facturación, para enviar al momento o programar

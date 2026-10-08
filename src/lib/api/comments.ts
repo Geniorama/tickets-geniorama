@@ -23,6 +23,8 @@ type CommentView = {
   isInternal: boolean;
   createdAt: string | null;
   author: { id: string; name: string; email: string } | null;
+  /** Archivos y enlaces que acompañan al comentario. `type` es "file" o "link". */
+  attachments: { id: string; type: string; name: string | null; url: string }[];
 };
 
 const select = {
@@ -31,6 +33,10 @@ const select = {
   isInternal: true,
   createdAt: true,
   author: { select: { id: true, name: true, email: true } },
+  attachments: {
+    select: { id: true, type: true, name: true, url: true },
+    orderBy: { createdAt: "asc" },
+  },
 } as const;
 
 function view(row: {
@@ -39,6 +45,7 @@ function view(row: {
   isInternal: boolean;
   createdAt: Date;
   author: { id: string; name: string; email: string };
+  attachments: { id: string; type: string; name: string | null; url: string }[];
 }): CommentView {
   return {
     id: row.id,
@@ -46,6 +53,7 @@ function view(row: {
     isInternal: row.isInternal,
     createdAt: row.createdAt.toISOString(),
     author: row.author,
+    attachments: row.attachments,
   };
 }
 

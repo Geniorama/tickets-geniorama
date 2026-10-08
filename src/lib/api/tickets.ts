@@ -16,7 +16,9 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma, Priority, TicketStatus } from "@/generated/prisma";
 import { isStaff } from "@/lib/roles";
+import { isPlanExpired } from "@/lib/plans";
 import { getClientActivePlan } from "@/lib/plans.server";
+import { getPlanUsedHours } from "@/lib/time-entries";
 import { ticketCode, ticketPrefix } from "@/lib/ticket-code";
 import { notify, notifyMany } from "@/lib/notify";
 import { canAccessTicket } from "@/lib/ticket-access";
@@ -105,6 +107,127 @@ export async function getTicket(user: ApiUser, ticketId: string) {
   return row ? serializeTicket(row) : null;
 }
 
+// ─── Cliente, plan y empresa ─────────────────────────────────────────────────
+
+/** `undefined` deja el campo como está; `null` lo vacía. */
+export type TicketLinksInput = {
+  clientId?: string | null;
+  planId?: string | null;
+  /**
+   * El ticket no guarda empresa: se le reconoce por su plan y, sin plan, por su
+   * cliente. Indicarla sirve para dos cosas: comprobar que el cliente y el plan
+   * son de ella, y —si no se dijo qué plan— tomar el que tenga vigente.
+   */
+  companyId?: string;
+};
+
+/** Planes de la empresa contra los que hoy se puede abrir trabajo. */
+export async function activePlansOfCompany(companyId: string) {
+  const plans = await prisma.plan.findMany({
+    where: { companyId, isActive: true },
+    select: {
+      id: true, name: true, type: true, totalHours: true, durationDays: true,
+      startedAt: true, expiresAt: true, isActive: true,
+    },
+    orderBy: { startedAt: "desc" },
+  });
+
+  const valid: typeof plans = [];
+  for (const plan of plans) {
+    if (isPlanExpired(plan)) continue;
+    if (plan.type === "BOLSA_HORAS" && plan.totalHours !== null) {
+      if ((await getPlanUsedHours(plan.id)) >= plan.totalHours) continue;
+    }
+    valid.push(plan);
+  }
+  return valid;
+}
+
+/**
+ * Valida lo que se pide vincular y lo deja listo para guardar.
+ *
+ * La interfaz no necesita esto porque sus desplegables ya solo ofrecen lo que
+ * encaja; aquí llegan ids sueltos y hay que comprobar que existen y que no se
+ * contradicen entre sí.
+ */
+async function resolveTicketLinks(input: TicketLinksInput): Promise<
+  WriteResult<{ clientId: string | null | undefined; planId: string | null | undefined; companyName: string | null }>
+> {
+  let company: { id: string; name: string } | null = null;
+  if (input.companyId) {
+    company = await prisma.company.findUnique({
+      where: { id: input.companyId },
+      select: { id: true, name: true },
+    });
+    if (!company) return { ok: false, status: 404, error: "La empresa no existe." };
+  }
+
+  let planId = input.planId;
+  let planCompanyName: string | null = null;
+  if (typeof planId === "string") {
+    const plan = await prisma.plan.findUnique({
+      where: { id: planId },
+      select: { companyId: true, company: { select: { name: true } } },
+    });
+    if (!plan) return { ok: false, status: 404, error: "El plan no existe." };
+    if (company && plan.companyId !== company.id) {
+      return { ok: false, status: 422, error: `Ese plan no es de «${company.name}».` };
+    }
+    planCompanyName = plan.company.name;
+  }
+
+  let clientCompanyName: string | null = null;
+  if (typeof input.clientId === "string") {
+    const client = await prisma.user.findFirst({
+      where: { id: input.clientId, role: "CLIENTE", isActive: true },
+      select: { companies: { select: { id: true, name: true } } },
+    });
+    if (!client) {
+      return { ok: false, status: 404, error: "El cliente no existe, está inactivo o no es un usuario cliente." };
+    }
+    if (company && !client.companies.some((c) => c.id === company.id)) {
+      return { ok: false, status: 422, error: `Ese cliente no pertenece a «${company.name}».` };
+    }
+    clientCompanyName = client.companies[0]?.name ?? null;
+  }
+
+  // Empresa sin plan explícito: el que tenga vigente, si no hay duda de cuál
+  if (company && planId === undefined) {
+    const vigentes = await activePlansOfCompany(company.id);
+    if (vigentes.length === 1) {
+      planId = vigentes[0].id;
+      planCompanyName = company.name;
+    } else if (vigentes.length > 1) {
+      const opciones = vigentes.map((p) => `${p.name} (${p.id})`).join(", ");
+      return {
+        ok: false,
+        status: 422,
+        error: `«${company.name}» tiene varios planes vigentes; indica planId. Opciones: ${opciones}.`,
+      };
+    } else if (typeof input.clientId !== "string") {
+      return {
+        ok: false,
+        status: 422,
+        error:
+          `«${company.name}» no tiene un plan vigente. Un ticket se vincula a una empresa por su plan o por ` +
+          "su cliente: indica un clientId de esa empresa, o un planId concreto.",
+      };
+    } else {
+      // Queda vinculado solo por el cliente; un plan de otra empresa lo contradiría
+      planId = null;
+    }
+  }
+
+  return {
+    ok: true,
+    value: {
+      clientId: input.clientId,
+      planId,
+      companyName: planCompanyName ?? clientCompanyName ?? company?.name ?? null,
+    },
+  };
+}
+
 // ─── Creación ────────────────────────────────────────────────────────────────
 
 export type CreateTicketInput = {
@@ -120,6 +243,10 @@ export type CreateTicketInput = {
   assignedToId?: string | null;
   siteId?: string | null;
   dueDate?: Date | null;
+  /** Solo el equipo. Un cliente abre el ticket a su nombre y contra su plan. */
+  clientId?: string | null;
+  planId?: string | null;
+  companyId?: string;
 };
 
 export async function createTicketViaApi(
@@ -164,10 +291,27 @@ export async function createTicketViaApi(
     }
   }
 
-  // El prefijo sale de la empresa dueña del plan; si no hay plan (staff), de la
-  // primera empresa del usuario.
+  let clientId: string | null = isClient ? author.id : null;
   let companyName: string | null = null;
-  if (planId) {
+
+  if (input.clientId || input.planId || input.companyId) {
+    if (isClient) {
+      return { ok: false, status: 403, error: "Un cliente no puede elegir el cliente, el plan ni la empresa del ticket." };
+    }
+    const links = await resolveTicketLinks({
+      clientId: input.clientId ?? undefined,
+      planId: input.planId ?? undefined,
+      companyId: input.companyId,
+    });
+    if (!links.ok) return links;
+    clientId = links.value.clientId ?? null;
+    planId = links.value.planId ?? null;
+    companyName = links.value.companyName;
+  }
+
+  // El prefijo sale de la empresa dueña del plan; si no hay plan, de la del
+  // cliente; y si el equipo no vinculó nada, de la primera empresa del autor.
+  if (planId && !companyName) {
     const plan = await prisma.plan.findUnique({
       where: { id: planId },
       select: { company: { select: { name: true } } },
@@ -196,7 +340,7 @@ export async function createTicketViaApi(
         priority: input.priority ?? "MEDIA",
         category: input.category ?? null,
         status,
-        clientId: isClient ? author.id : null,
+        clientId,
         createdById: author.id,
         assignedToId: input.assignedToId ?? null,
         siteId: input.siteId ?? null,
@@ -253,7 +397,7 @@ export type UpdateTicketInput = {
   category?: string | null;
   assignedToId?: string | null;
   dueDate?: Date | null;
-};
+} & TicketLinksInput;
 
 export async function updateTicketViaApi(
   author: ApiUser,
@@ -289,9 +433,19 @@ export async function updateTicketViaApi(
     }
   }
 
+  // El código del ticket no cambia aunque cambie de empresa: ya se compartió
+  const links = await resolveTicketLinks({
+    clientId: input.clientId,
+    planId: input.planId,
+    companyId: input.companyId,
+  });
+  if (!links.ok) return links;
+
   const updated = await prisma.ticket.update({
     where: { id: ticketId },
     data: {
+      ...(links.value.clientId !== undefined ? { clientId: links.value.clientId } : {}),
+      ...(links.value.planId !== undefined ? { planId: links.value.planId } : {}),
       ...(input.title !== undefined ? { title: input.title.slice(0, 200) } : {}),
       ...(input.description !== undefined ? { description: input.description } : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),

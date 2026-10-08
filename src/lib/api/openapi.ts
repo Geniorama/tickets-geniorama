@@ -52,6 +52,12 @@ const ticketSchema = {
     createdBy: person,
     assignedTo: person,
     client: person,
+    company: {
+      type: "object",
+      nullable: true,
+      description: "La empresa del plan y, sin plan, la del cliente. El ticket no la guarda aparte.",
+      properties: { id: { type: "string" }, name: { type: "string" } },
+    },
     plan: {
       type: "object",
       nullable: true,
@@ -132,6 +138,19 @@ const commentSchema = {
     isInternal: { type: "boolean", description: "Siempre false: las notas internas no salen ni entran por la API." },
     createdAt: { type: "string", format: "date-time" },
     author: person,
+    attachments: {
+      type: "array",
+      description: "Archivos y enlaces que acompañan al comentario.",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          type: { type: "string", enum: ["file", "link"] },
+          name: { type: "string", nullable: true },
+          url: { type: "string" },
+        },
+      },
+    },
   },
 } as const;
 

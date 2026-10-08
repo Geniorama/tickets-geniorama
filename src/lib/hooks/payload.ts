@@ -44,8 +44,10 @@ const ticketSelect = {
   updatedAt: true,
   createdBy: { select: { id: true, name: true, email: true } },
   assignedTo: { select: { id: true, name: true, email: true } },
-  client: { select: { id: true, name: true, email: true } },
-  plan: { select: { id: true, name: true } },
+  client: {
+    select: { id: true, name: true, email: true, companies: { select: { id: true, name: true }, take: 1 } },
+  },
+  plan: { select: { id: true, name: true, company: { select: { id: true, name: true } } } },
   site: { select: { id: true, name: true, domain: true } },
 } as const;
 
@@ -72,6 +74,9 @@ export function serializeTicket(ticket: TicketRow) {
     createdBy: person(ticket.createdBy),
     assignedTo: person(ticket.assignedTo),
     client: person(ticket.client),
+    // El ticket no guarda empresa: es la del plan y, sin plan, la del cliente.
+    // El mismo orden con el que se le eligió el prefijo.
+    company: ticket.plan?.company ?? ticket.client?.companies[0] ?? null,
     plan: ticket.plan ? { id: ticket.plan.id, name: ticket.plan.name } : null,
     site: ticket.site ? { id: ticket.site.id, name: ticket.site.name, domain: ticket.site.domain } : null,
   };

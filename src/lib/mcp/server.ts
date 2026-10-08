@@ -1,5 +1,6 @@
 /**
- * Servidor MCP de Geniorama: proyectos, tareas, tickets y comentarios.
+ * Servidor MCP de Geniorama: proyectos, tareas, tickets, comentarios y lo que
+ * cuelga de cada ficha (checklists, adjuntos, bóveda vinculada, tiempo, historial).
  *
  * Cada herramienta es una puerta más a las mismas funciones de `src/lib/api`
  * que usa la API REST, así que hereda todo lo que ya hacen: la visibilidad por
@@ -18,8 +19,21 @@ import { isStaff } from "@/lib/roles";
 import type { ApiUser } from "@/lib/api/respond";
 import type { WriteResult } from "@/lib/api/tickets";
 import { getProject, getTask, listProjects, listTasks, createTaskViaApi, updateTaskViaApi } from "@/lib/api/tasks";
-import { getTicket, listTickets, createTicketViaApi, updateTicketViaApi } from "@/lib/api/tickets";
+import {
+  activePlansOfCompany,
+  getTicket,
+  listTickets,
+  createTicketViaApi,
+  updateTicketViaApi,
+} from "@/lib/api/tickets";
 import { addCommentViaApi, listComments } from "@/lib/api/comments";
+import {
+  addChecklistItemsViaApi,
+  addLinkAttachmentViaApi,
+  getPanels,
+  listActivityViaApi,
+  updateChecklistItemViaApi,
+} from "@/lib/api/panels";
 import type { OAuthActor } from "@/lib/oauth/server";
 import { registerCrmTools } from "@/lib/mcp/crm-tools";
 import { registerBillingTools } from "@/lib/mcp/billing-tools";
@@ -34,6 +48,20 @@ const date = z
   .string()
   .refine((v) => !Number.isNaN(Date.parse(v)), "Fecha no válida")
   .describe("Fecha ISO, p. ej. 2026-10-20");
+
+const ENTITY = z.enum(["TASK", "TICKET"]);
+
+/** Lo que acompaña a la ficha en get_task y get_ticket. */
+const PANELS_NOTE =
+  " Incluye sus checklists, adjuntos (archivos y enlaces), las entradas de bóveda vinculadas que el " +
+  "usuario puede ver (solo título, usuario y URL: la contraseña nunca sale de la plataforma) y el tiempo registrado.";
+
+/** Cómo se vincula un ticket a cliente, plan y empresa, para create_ticket y update_ticket. */
+const LINKS_NOTE =
+  "Cliente, plan y empresa: el ticket guarda clientId y planId; su empresa es la del plan y, sin plan, la del " +
+  "cliente. companyId comprueba que el cliente y el plan sean de esa empresa y, si no se indica planId, toma su " +
+  "plan vigente (si hay varios pide elegir; si no hay ninguno hace falta un clientId de esa empresa). " +
+  "get_company_ticket_options da los clientes y planes de una empresa.";
 
 const page = {
   limit: z.number().int().min(1).max(100).optional().describe("Máximo de resultados (1–100, por defecto 25)"),
@@ -153,13 +181,16 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
     "get_task",
     {
       title: "Ver tarea",
-      description: "Detalle de una tarea por id.",
+      description: "Detalle de una tarea por id." + PANELS_NOTE,
       inputSchema: { taskId: z.string() },
       annotations: readOnly,
     },
     async ({ taskId }) => {
       const task = await getTask(user, taskId);
-      return task ? ok({ task }) : fail("Tarea no encontrada");
+      if (!task) return fail("Tarea no encontrada");
+      // Null para el cliente al que no involucraron: ve la tarea, no su detalle
+      const panels = await getPanels(user, "TASK", taskId);
+      return ok({ task, ...panels });
     },
   );
 
@@ -192,13 +223,15 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
     "get_ticket",
     {
       title: "Ver ticket",
-      description: "Detalle de un ticket por id.",
+      description: "Detalle de un ticket por id." + PANELS_NOTE,
       inputSchema: { ticketId: z.string() },
       annotations: readOnly,
     },
     async ({ ticketId }) => {
       const ticket = await getTicket(user, ticketId);
-      return ticket ? ok({ ticket }) : fail("Ticket no encontrado");
+      if (!ticket) return fail("Ticket no encontrado");
+      const panels = await getPanels(user, "TICKET", ticketId);
+      return ok({ ticket, ...panels });
     },
   );
 
@@ -206,9 +239,11 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
     "list_comments",
     {
       title: "Leer comentarios",
-      description: "Comentarios de una tarea o un ticket, del más reciente al más antiguo. Las notas internas no se incluyen.",
+      description:
+        "Comentarios de una tarea o un ticket, del más reciente al más antiguo, con sus adjuntos. " +
+        "Las notas internas no se incluyen.",
       inputSchema: {
-        entityType: z.enum(["TASK", "TICKET"]),
+        entityType: ENTITY,
         entityId: z.string(),
         ...page,
       },
@@ -220,8 +255,24 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
     },
   );
 
-  // El directorio dice quién trabaja aquí y con qué correo: solo para el equipo
+  // El historial y el directorio —quién trabaja aquí y con qué correo— son solo para el equipo
   if (staff) {
+    server.registerTool(
+      "list_activity",
+      {
+        title: "Ver historial",
+        description:
+          "Historial de una tarea o un ticket, de lo más reciente a lo más antiguo: quién cambió qué y cuándo. " +
+          "`action` va como recurso.acción (p. ej. ticket.status_changed) y `changes` como { campo: { from, to } }.",
+        inputSchema: { entityType: ENTITY, entityId: z.string(), ...page },
+        annotations: readOnly,
+      },
+      async ({ entityType, entityId, limit, cursor }) => {
+        const result = await listActivityViaApi(user, entityType, entityId, { limit: limit ?? 25, cursor: cursor ?? null });
+        return result ? ok(result) : fail("No encuentro esa tarea o ticket, o no tienes acceso");
+      },
+    );
+
     server.registerTool(
       "list_companies",
       {
@@ -241,6 +292,44 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
           take: limit ?? 25,
         });
         return ok({ companies });
+      },
+    );
+
+    server.registerTool(
+      "get_company_ticket_options",
+      {
+        title: "Clientes y planes de una empresa",
+        description:
+          "Los usuarios cliente activos de una empresa y sus planes, para elegir el clientId y el planId de un ticket. " +
+          "`vigente` dice si contra ese plan se puede abrir trabajo hoy (activo, sin vencer y con horas).",
+        inputSchema: { companyId: z.string() },
+        annotations: readOnly,
+      },
+      async ({ companyId }) => {
+        const company = await prisma.company.findUnique({
+          where: { id: companyId },
+          select: {
+            id: true,
+            name: true,
+            users: {
+              where: { role: "CLIENTE", isActive: true },
+              select: { id: true, name: true, email: true },
+              orderBy: { name: "asc" },
+            },
+            plans: {
+              where: { isActive: true },
+              select: { id: true, name: true, type: true },
+              orderBy: { startedAt: "desc" },
+            },
+          },
+        });
+        if (!company) return fail("Empresa no encontrada");
+        const vigentes = new Set((await activePlansOfCompany(companyId)).map((p) => p.id));
+        return ok({
+          company: { id: company.id, name: company.name },
+          clients: company.users,
+          plans: company.plans.map((p) => ({ ...p, vigente: vigentes.has(p.id) })),
+        });
       },
     );
 
@@ -365,9 +454,14 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
       "update_ticket",
       {
         title: "Actualizar ticket",
-        description: "Cambia solo los campos que se envíen: estado, prioridad, responsable, fecha… null borra el campo.",
+        description:
+          "Cambia solo los campos que se envíen: estado, prioridad, responsable, fecha, cliente, plan… null borra el campo. " +
+          LINKS_NOTE,
         inputSchema: {
           ticketId: z.string(),
+          clientId: z.string().nullable().optional().describe("Id de un usuario CLIENTE, o null para quitarlo"),
+          planId: z.string().nullable().optional().describe("Id de un plan, o null para quitarlo"),
+          companyId: z.string().optional().describe("Id de empresa, de list_companies"),
           title: z.string().trim().min(1).max(200).optional(),
           description: z.string().trim().min(1).optional(),
           status: TICKET_STATUS.optional(),
@@ -387,6 +481,24 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
         return fromWrite(result, "ticket");
       },
     );
+
+    server.registerTool(
+      "add_link_attachment",
+      {
+        title: "Adjuntar enlace",
+        description:
+          "Añade un enlace a los adjuntos de una tarea o un ticket. Solo enlaces: los archivos se suben desde la plataforma.",
+        inputSchema: {
+          entityType: ENTITY,
+          entityId: z.string(),
+          url: z.string().trim().url().describe("http:// o https://"),
+          label: z.string().trim().max(200).optional().describe("Nombre visible; sin él se muestra la URL"),
+        },
+        annotations: write,
+      },
+      async ({ entityType, entityId, url, label }) =>
+        fromWrite(await addLinkAttachmentViaApi(user, entityType, entityId, { url, label }), "attachments"),
+    );
   }
 
   server.registerTool(
@@ -394,7 +506,7 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
     {
       title: "Crear ticket",
       description: staff
-        ? "Crea un ticket de soporte. Sin status nace POR_ASIGNAR."
+        ? "Crea un ticket de soporte. Sin status nace POR_ASIGNAR. " + LINKS_NOTE
         : "Abre un ticket de soporte a tu nombre. Requiere un plan vigente.",
       inputSchema: {
         title: z.string().trim().min(1).max(200),
@@ -405,6 +517,9 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
           ? {
               status: TICKET_STATUS.optional(),
               assignedToId: z.string().optional().describe('Id de usuario del equipo, o "me"'),
+              clientId: z.string().optional().describe("Id de un usuario CLIENTE"),
+              planId: z.string().optional().describe("Id de un plan"),
+              companyId: z.string().optional().describe("Id de empresa, de list_companies"),
             }
           : {}),
         dueDate: date.optional(),
@@ -412,7 +527,13 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
       annotations: write,
     },
     async (args) => {
-      const a = args as typeof args & { status?: z.infer<typeof TICKET_STATUS>; assignedToId?: string };
+      const a = args as typeof args & {
+        status?: z.infer<typeof TICKET_STATUS>;
+        assignedToId?: string;
+        clientId?: string;
+        planId?: string;
+        companyId?: string;
+      };
       const result = await createTicketViaApi(user, source, {
         title: a.title,
         description: a.description,
@@ -421,9 +542,59 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
         category: a.category ?? null,
         assignedToId: resolveMe(user, a.assignedToId) ?? null,
         dueDate: toDate(a.dueDate) ?? null,
+        clientId: a.clientId,
+        planId: a.planId,
+        companyId: a.companyId,
       });
       return fromWrite(result, "ticket");
     },
+  );
+
+  server.registerTool(
+    "add_checklist_items",
+    {
+      title: "Añadir al checklist",
+      description:
+        "Añade ítems al checklist de una tarea o un ticket. Con checklistId van a ese checklist; con " +
+        "newChecklistTitle se crea uno nuevo y van ahí; sin ninguno, al primero de la ficha (se crea si no hay). " +
+        "Devuelve los checklists como quedan.",
+      inputSchema: {
+        entityType: ENTITY,
+        entityId: z.string(),
+        checklistId: z.string().optional().describe("Id de un checklist de get_task / get_ticket"),
+        newChecklistTitle: z.string().trim().min(1).max(200).optional(),
+        items: z.array(z.string().trim().min(1).max(500)).max(100).optional().describe("Un texto por ítem"),
+      },
+      annotations: write,
+    },
+    async ({ entityType, entityId, checklistId, newChecklistTitle, items }) =>
+      fromWrite(
+        await addChecklistItemsViaApi(user, entityType, entityId, { checklistId, newChecklistTitle, items: items ?? [] }),
+        "checklists",
+      ),
+  );
+
+  server.registerTool(
+    "update_checklist_item",
+    {
+      title: "Marcar o editar un ítem",
+      description:
+        "Marca o desmarca un ítem de checklist, o le cambia el texto. `checked` fija el estado, no lo invierte. " +
+        "Devuelve los checklists como quedan.",
+      inputSchema: {
+        entityType: ENTITY,
+        entityId: z.string(),
+        itemId: z.string().describe("Id del ítem, de get_task / get_ticket"),
+        checked: z.boolean().optional(),
+        title: z.string().trim().min(1).max(500).optional(),
+      },
+      annotations: { ...write, idempotentHint: true },
+    },
+    async ({ entityType, entityId, itemId, checked, title }) =>
+      fromWrite(
+        await updateChecklistItemViaApi(user, entityType, entityId, itemId, { checked, title }),
+        "checklists",
+      ),
   );
 
   server.registerTool(
@@ -436,7 +607,7 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
         "su id real; el campo `mention` de find_users ya viene en ese formato. Un «@Nombre» en texto plano " +
         "no es una mención y no avisa a nadie.",
       inputSchema: {
-        entityType: z.enum(["TASK", "TICKET"]),
+        entityType: ENTITY,
         entityId: z.string(),
         body: z.string().trim().min(1).max(10000).describe(
           "Markdown: negritas, listas, citas, código, tablas y enlaces. Menciones: @[Nombre](userId)",

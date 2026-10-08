@@ -94,8 +94,9 @@ export async function addChecklist(entity: Entity, title: string, userId: string
     select: { position: true },
   });
 
-  await prisma.checklist.create({
+  return prisma.checklist.create({
     data: { ...entity, title: t, position: (last?.position ?? -1) + 1, createdById: userId },
+    select: { id: true },
   });
 }
 
@@ -180,6 +181,19 @@ export async function toggleChecklistItem(entity: Entity, itemId: string) {
   });
 
   return {};
+}
+
+/**
+ * Deja el ítem en el estado pedido, en vez de invertirlo. Es lo que necesita
+ * quien no está mirando la casilla: una integración que repite la llamada no
+ * debe desmarcar lo que acaba de marcar.
+ */
+export async function setChecklistItemChecked(entity: Entity, itemId: string, isChecked: boolean) {
+  const { count } = await prisma.checklistItem.updateMany({
+    where: { id: itemId, checklist: entity },
+    data: { isChecked },
+  });
+  return count === 0 ? { error: "Ítem no encontrado" } : {};
 }
 
 export async function updateChecklistItem(entity: Entity, itemId: string, title: string) {
