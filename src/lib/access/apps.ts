@@ -98,6 +98,18 @@ export const APPS: readonly AppDefinition[] = [
     // Nunca un cliente: aquí está lo que se le cobra a todos, no solo a él.
     allowedRoles: ["ADMINISTRADOR", "COLABORADOR"],
   },
+  {
+    key: "PORTAL_FACTURACION",
+    name: "Mi facturación",
+    description: "Sus facturas, pagadas y pendientes, y el pago en línea.",
+    href: "/mi-facturacion",
+    built: true,
+    // Rige por nivel desde el primer día: a diferencia del resto del portal,
+    // no basta ser cliente. Lo autoriza un administrador, usuario por usuario
+    // — no todo el que abre tickets en una empresa debe ver lo que esta paga.
+    enforced: true,
+    allowedRoles: ["CLIENTE"],
+  },
 ] as const;
 
 export const APP_BY_KEY = new Map(APPS.map((a) => [a.key, a]));

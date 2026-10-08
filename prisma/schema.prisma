@@ -138,6 +138,9 @@ enum AppKey {
   ADMIN
   CRM
   FACTURACION
+  /// La facturación propia de un cliente, dentro de su portal. Módulo aparte y
+  /// no un nivel de FACTURACION: aquel enseña lo que se le cobra a todos.
+  PORTAL_FACTURACION
 }
 
 // Nivel dentro de un módulo. Es independiente del rol: el rol delimita QUÉ

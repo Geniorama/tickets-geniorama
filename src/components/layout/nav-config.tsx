@@ -55,6 +55,7 @@ export const APP_ICONS: Record<AppKey, React.ElementType> = {
   ADMIN:           ShieldCheck,
   CRM:             Handshake,
   FACTURACION:     Receipt,
+  PORTAL_FACTURACION: Receipt,
 };
 
 export const APP_SECTIONS: Record<AppKey, NavSection[]> = {
@@ -96,6 +97,9 @@ export const APP_SECTIONS: Record<AppKey, NavSection[]> = {
   FACTURACION: [
     { href: "/facturacion", label: "Cobros", icon: Receipt, isRoot: true, requires: "ver" },
   ],
+  PORTAL_FACTURACION: [
+    { href: "/mi-facturacion", label: "Mis facturas", icon: Receipt, isRoot: true, requires: "ver" },
+  ],
 };
 
 /**
@@ -121,6 +125,7 @@ const EXTRA_PREFIXES: Partial<Record<AppKey, string[]>> = {
   ADMIN:     ["/admin/users", "/admin/companies", "/admin/plans", "/admin/estadisticas", "/admin/integraciones", "/admin/actividad"],
   CRM:       ["/crm"],
   FACTURACION: ["/facturacion"],
+  PORTAL_FACTURACION: ["/mi-facturacion"],
 };
 
 /**

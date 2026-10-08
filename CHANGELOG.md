@@ -9,6 +9,28 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.119.0] — 2026-10-08
+
+### «Mi facturación»: los clientes autorizados ven sus facturas
+
+- Módulo nuevo para clientes, **Mi facturación**, con sus facturas pendientes y
+  pagadas: concepto, número, fecha de emisión y de vencimiento, total, lo
+  abonado, lo que falta y los pagos recibidos. Arriba, cuánto tiene por pagar.
+- **No lo tiene ningún cliente por defecto.** Lo autoriza un administrador en
+  **Usuarios → Editar → Acceso a módulos**, poniendo «Mi facturación» en
+  Lectura. No todo el que abre tickets en una empresa debe ver lo que esta paga.
+- Si el equipo ya generó el **link de pago**, el cliente lo encuentra ahí como
+  «Pagar en línea». Solo aparece con el cobro en Facturado o Abonado; en
+  cualquier otro estado se oculta. Desde aquí no se genera ningún link.
+- Qué ve y qué no: solo los cobros de sus empresas y solo lo ya facturado. Lo
+  que sigue en Backlog o Por facturar no aparece, ni las notas, etiquetas,
+  comentarios o quién lleva el cobro. Una factura archivada se le muestra como
+  pagada.
+- Es un módulo aparte y no un nivel de Facturación: aquel enseña lo que se le
+  cobra a todos los clientes, y sigue cerrado a cualquier cliente.
+
+---
+
 ## [1.118.0] — 2026-10-08
 
 ### Link de pago en línea en cada cobro (Payments Way)
