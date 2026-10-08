@@ -95,7 +95,13 @@ export type CobroParaCorreo = {
   payments: { amount: number; paidOn: Date }[];
 };
 
-export function datosDeCorreo(cobro: CobroParaCorreo, contacto: string, hoy: Date): DatosCorreo {
+export function datosDeCorreo(
+  cobro: CobroParaCorreo,
+  contacto: string,
+  hoy: Date,
+  /** Lo calcula el servidor: aquí no se sabe en qué dominio vive la página. */
+  linkPago: string | null = null,
+): DatosCorreo {
   const ultimo = cobro.payments[0] ?? null;
   return {
     empresa: cobro.company.name,
@@ -109,5 +115,6 @@ export function datosDeCorreo(cobro: CobroParaCorreo, contacto: string, hoy: Dat
     abonado: cobro.paidAmount,
     ultimoAbono: ultimo?.amount ?? null,
     fechaAbono: ultimo?.paidOn ?? null,
+    linkPago,
   };
 }

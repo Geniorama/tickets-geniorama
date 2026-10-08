@@ -276,6 +276,7 @@ export const ACTIVITY_ACTIONS: readonly ActivityAction[] = [
   { key: "billing.payment_added",    entity: "BILLING", label: "registró un abono",          tone: "create" },
   { key: "billing.payment_updated",  entity: "BILLING", label: "corrigió un abono",          tone: "update" },
   { key: "billing.payment_deleted",  entity: "BILLING", label: "eliminó un abono",           tone: "destroy" },
+  { key: "billing.pay_link_created", entity: "BILLING", label: "generó el link de pago",     tone: "update" },
   { key: "billing.receipt_added",    entity: "BILLING", label: "subió un comprobante",       tone: "update" },
   { key: "billing.receipt_deleted",  entity: "BILLING", label: "borró un comprobante",       tone: "destroy" },
   { key: "billing.labels_changed",   entity: "BILLING", label: "cambió las etiquetas",       tone: "update" },

@@ -4,6 +4,9 @@ import { pendiente } from "@/lib/billing/status";
 import { renderPlantilla, aHtml } from "@/lib/billing/reminders/template";
 import { enviarPor } from "@/lib/billing/reminders/channels";
 import { datosDeCorreo, direccionesDe, hoyEnBogota, saludoPara } from "./compose";
+import { asegurarLinkDePago, motivoNoPagable, pasarelaLista, urlDePago } from "@/lib/billing/paylink";
+
+const USA_LINK = /{{s*link_pagos*}}/;
 
 /**
  * Sacar un correo, sea el que alguien acaba de pulsar o uno que esperaba su
@@ -12,7 +15,7 @@ import { datosDeCorreo, direccionesDe, hoyEnBogota, saludoPara } from "./compose
 
 /** Lo que hay que leer de un cobro para escribirle a su cliente. */
 export const COBRO_PARA_CORREO = {
-  id: true, concept: true, amount: true, paidAmount: true,
+  id: true, concept: true, amount: true, paidAmount: true, status: true,
   invoiceDueDate: true, invoiceNumber: true,
   payments: {
     orderBy: { paidOn: "desc" as const },
@@ -89,8 +92,22 @@ export async function entregar(id: string): Promise<{ status: BillingEmailStatus
     return cerrar("FALLIDO", "Ninguna de las direcciones elegidas sigue en la ficha del cliente");
   }
 
+  // El link de pago nace aquí, al salir el correo que lo cita, y no antes: así
+  // un correo programado lleva un link aunque nadie lo generara a mano. Si el
+  // cobro no se puede pagar en línea, el correo no sale: mandar «paga aquí: —»
+  // a un cliente es peor que no mandarlo.
+  let linkPago: string | null = null;
+  if (USA_LINK.test(correo.subject) || USA_LINK.test(correo.body)) {
+    if (!pasarelaLista()) return cerrar("FALLIDO", "El pago en línea no está configurado en el servidor");
+    const motivo = motivoNoPagable(cobro);
+    if (motivo) return cerrar("FALLIDO", `No se puede mandar un link de pago: ${motivo.toLowerCase()}`);
+    const token = await asegurarLinkDePago(cobro.id);
+    if (!token) return cerrar("FALLIDO", "No se pudo generar el link de pago");
+    linkPago = urlDePago(token);
+  }
+
   const saludo = saludoPara(direcciones, vigentes, cobro.company.name);
-  const datos = datosDeCorreo(cobro, saludo.contacto, hoyEnBogota());
+  const datos = datosDeCorreo(cobro, saludo.contacto, hoyEnBogota(), linkPago);
   const asunto = renderPlantilla(correo.subject, datos);
   const cuerpo = renderPlantilla(correo.body, datos);
 

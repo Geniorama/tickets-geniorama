@@ -9,6 +9,49 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.118.0] — 2026-10-08
+
+### Link de pago en línea en cada cobro (Payments Way)
+
+- En la ficha de un cobro facturado y con saldo hay una tarjeta **Pago en
+  línea** con el botón **Generar link de pago**. El link se copia o se manda
+  con **Enviar al cliente**, que abre el correo ya preparado con la plantilla
+  nueva «Link de pago».
+- El link lleva a una página pública, `/pagar/…`, que enseña la empresa, el
+  concepto, la factura y el saldo. El cliente pone sus datos y pasa a la
+  pasarela de Payments Way. Cobra siempre el saldo del momento, así que el
+  mismo link sirve después de un abono.
+- Cuando Payments Way confirma el pago, **el abono se apunta solo** (método
+  «Payments Way», con el número de orden y la referencia), el cobro pasa a
+  «Abonado» o «Pagado» y se avisa a quien lleva Facturación.
+- Nueva marca `{{link_pago}}` para las plantillas de correo de Facturación. El
+  link se genera al salir el correo; si el cobro no se puede pagar en línea, el
+  correo no sale y dice por qué.
+- La ficha lista los últimos intentos de pago y en qué quedó cada uno.
+
+#### Por dentro
+
+- Es la misma integración que usa el sitio de hosting: Payments Way no tiene
+  una API que devuelva un link, sino un formulario que envía el navegador y un
+  aviso (webhook) con el resultado. El «link» es una página nuestra.
+- El aviso llega a `/api/integrations/paymentsway` y **exige la firma**. Sin
+  ella cualquiera con el link podría fabricarse un «pago exitoso»: el número de
+  orden lo conoce quien paga. El sitio de hosting la deja opcional; aquí no.
+- Un aviso repetido no apunta el abono dos veces, y uno tardío de «pendiente»
+  no deshace un pago ya confirmado.
+- La página pública nace con el formulario vacío: no enseña correos ni
+  teléfonos de los contactos a quien reciba el link reenviado.
+
+#### Para activarlo
+
+Variables en el servidor: `PAYMENTSWAY_MERCHANT_ID`, `PAYMENTSWAY_FORM_ID`,
+`PAYMENTSWAY_TERMINAL_ID` y `PAYMENTSWAY_API_KEY`. Y en la consola de Payments
+Way, el webhook del formulario apuntando a
+`<dominio>/api/integrations/paymentsway`. Sin las variables, la tarjeta lo dice
+y no se genera ningún link.
+
+---
+
 ## [1.117.0] — 2026-10-08
 
 ### Facturación avisa también al cambiar de estado y al registrar un abono

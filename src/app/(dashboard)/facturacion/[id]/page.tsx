@@ -20,6 +20,8 @@ import { ReminderPanel } from "@/components/billing/reminder-panel";
 import { PaymentList } from "@/components/billing/payment-list";
 import { destinatarioDe } from "@/lib/billing/reminders/plan";
 import { EmailPanel } from "@/components/billing/email-panel";
+import { PayLinkCard } from "@/components/billing/pay-link-card";
+import { motivoNoPagable, pasarelaLista, urlDePago } from "@/lib/billing/paylink";
 import { canalDisponible } from "@/lib/billing/reminders/channels";
 import {
   datosDeCorreo, direccionesDe, direccionesPorDefecto, hoyEnBogota,
@@ -31,7 +33,13 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   return { title: cobro?.concept ?? "Cobro" };
 }
 
-export default async function BillingItemPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function BillingItemPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ correo?: string }>;
+}) {
   const session = await requireCan("FACTURACION", "ver");
   const { id } = await params;
   const canEdit = await can(session.user, "FACTURACION", "editar");
@@ -42,7 +50,12 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
       id: true, concept: true, status: true, amount: true, subtotal: true,
       taxAmount: true, paidAmount: true,
       dueDate: true, invoiceDueDate: true, invoiceNumber: true, invoicedAt: true, paidAt: true, notes: true,
-      remindersOff: true,
+      remindersOff: true, payToken: true,
+      gatewayOrders: {
+        orderBy: { createdAt: "desc" },
+        take: 5,
+        select: { id: true, amount: true, status: true, createdAt: true },
+      },
       payments: {
         orderBy: { paidOn: "desc" },
         select: {
@@ -151,6 +164,15 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
 
   const color = BILLING_STATUS_COLORS[cobro.status];
   const falta = pendiente(cobro.amount, cobro.paidAmount);
+
+  // El link de pago en línea. La plantilla que lo manda se busca por la marca
+  // y no por su nombre: alguien puede haberla renombrado o escrito la suya.
+  const linkPago = cobro.payToken ? urlDePago(cobro.payToken) : null;
+  const motivoSinPago = pasarelaLista()
+    ? motivoNoPagable(cobro)
+    : "El pago en línea no está configurado en el servidor";
+  const plantillaLink = plantillasCorreo.find((p) => /{{s*link_pagos*}}/.test(p.body)) ?? null;
+  const { correo: abrirCorreo } = await searchParams;
 
   return (
     <div>
@@ -318,9 +340,23 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
           canManage={canManage}
         />
 
+        <PayLinkCard
+          billingItemId={cobro.id}
+          url={linkPago}
+          motivo={motivoSinPago}
+          falta={falta}
+          canEdit={canEdit}
+          hrefCorreo={plantillaLink ? `/facturacion/${cobro.id}?correo=link-pago#correos` : null}
+          intentos={cobro.gatewayOrders}
+        />
+
         {/* Sin `canEdit`: escribirle al cliente lo puede hacer cualquiera con
             acceso al módulo, también quien no puede tocar el cobro. */}
         <EmailPanel
+          // La clave lo vuelve a montar al llegar desde «Enviar al cliente»:
+          // el formulario nace abierto con esa plantilla, y eso es estado inicial.
+          key={abrirCorreo ?? "correos"}
+          abrirCon={abrirCorreo === "link-pago" ? plantillaLink?.id ?? null : null}
           billingItemId={cobro.id}
           plantillas={plantillasCorreo}
           direcciones={direccionesDe(cuenta)}
@@ -331,6 +367,8 @@ export default async function BillingItemPage({ params }: { params: Promise<{ id
             { ...cobro, payments: cobro.payments.slice(0, 1) },
             cobro.company.name,
             hoyEnBogota(),
+            // Para la vista previa. Si aún no existe, se genera al enviar.
+            linkPago ?? "(el link de pago se genera al enviar)",
           )}
           correoListo={canalDisponible("EMAIL")}
           correos={correos.map((c) => ({ ...c, createdBy: c.createdBy.name }))}

@@ -27,7 +27,9 @@ import { usersWithModule } from "@/lib/access/can";
 export type AvisoCobro =
   | { tipo: "creado" }
   | { tipo: "estado"; from: BillingStatus; to: BillingStatus }
-  | { tipo: "abono"; amount: number };
+  | { tipo: "abono"; amount: number }
+  /** El cliente pagó por el link. No lo hizo nadie del equipo: se avisa a todos. */
+  | { tipo: "en_linea"; amount: number };
 
 const pesos = (n: number) => formatAmount(n) ?? String(n);
 
@@ -37,7 +39,9 @@ export async function avisarFacturacion(
   aviso: AvisoCobro,
 ): Promise<void> {
   try {
-    const destinatarios = (await usersWithModule("FACTURACION", "MIEMBRO")).filter((u) => u.id !== actor.id);
+    const destinatarios = (await usersWithModule("FACTURACION", "MIEMBRO")).filter(
+      (u) => aviso.tipo === "en_linea" || u.id !== actor.id,
+    );
     if (destinatarios.length === 0) return;
 
     const cobro = await prisma.billingItem.findUnique({
@@ -72,6 +76,12 @@ export async function avisarFacturacion(
       title = `Cobro en «${a}»`;
       message = `${autor} pasó «${cobro.concept}» (${empresa}) de «${de}» a «${a}» · ${pesos(cobro.amount)}`;
       detalle = `${pesos(cobro.amount)} · ${de} → ${a}`;
+    } else if (aviso.tipo === "en_linea") {
+      const queda = falta > 0 ? `falta ${pesos(falta)}` : "queda pagado";
+      type = "billing_payment";
+      title = "Pago en línea recibido";
+      message = `${empresa} pagó ${pesos(aviso.amount)} en línea por «${cobro.concept}» · ${queda}`;
+      detalle = `Pago en línea de ${pesos(aviso.amount)} sobre ${pesos(cobro.amount)} · ${queda} · ${estado}`;
     } else {
       // Un abono puede mover el cobro solo (a «Abonado» o «Pagado»): se dice
       // aquí cómo quedó en vez de mandar un segundo aviso por el estado.

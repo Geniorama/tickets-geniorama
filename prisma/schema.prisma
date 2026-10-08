@@ -448,6 +448,7 @@ model User {
   billingPayments   BillingPayment[] @relation("BillingPaymentRegisteredBy")
   billingEmailTemplates BillingEmailTemplate[] @relation("BillingEmailTemplateCreatedBy")
   billingEmails     BillingEmail[] @relation("BillingEmailCreatedBy")
+  billingGatewayOrders BillingGatewayOrder[] @relation("BillingGatewayOrderCreatedBy")
 
   ownedAccounts   Company[] @relation("AccountOwner")
   contactProfile  Contact?  @relation("ContactUser")
@@ -1288,11 +1289,17 @@ model BillingItem {
   /// cliente que ya avisó de que paga el martes y al que no hay que perseguir.
   remindersOff Boolean @default(false) @map("reminders_off")
 
+  /// La llave del link de pago: lo que va en `/pagar/<token>`. Nace al pedir el
+  /// link, no con el cobro. Es larga y al azar porque es lo único que protege
+  /// la página: quien la tiene ve el concepto y el saldo, y puede pagarlo.
+  payToken String? @unique @map("pay_token")
+
   lines     BillingLine[]
   labels    BillingLabel[] @relation("BillingItemLabels")
   reminders BillingReminder[]
   payments  BillingPayment[]
   emails    BillingEmail[]
+  gatewayOrders BillingGatewayOrder[]
 
   @@index([status])
   @@index([companyId])
@@ -1562,6 +1569,42 @@ model BillingPayment {
 
   @@index([billingItemId, paidOn])
   @@map("billing_payments")
+}
+
+/// Un intento de pago en línea (Payments Way) de un cobro.
+///
+/// Cada vez que el cliente pulsa «Pagar» nace uno, con su propio número de
+/// orden: la pasarela identifica el pago por ese número y su aviso llega con
+/// él. Es intento y no pago: la mayoría de los que se abandonan a medias se
+/// quedan en `created` para siempre. El abono solo se apunta cuando la
+/// pasarela confirma, y queda enlazado aquí para no apuntarlo dos veces si el
+/// aviso se repite.
+model BillingGatewayOrder {
+  /// El número de orden que viaja a la pasarela: `GC-…`.
+  id     String @id
+  /// Lo que se mandó a cobrar: el saldo pendiente en ese momento.
+  amount Float
+  /// created · pending · success · failed · cancelled · refunded
+  status String @default("created")
+  /// El id de la transacción en la pasarela.
+  paymentRef String? @map("payment_ref")
+  /// El abono que se apuntó al confirmarse.
+  paymentId  String? @unique @map("payment_id")
+  payerEmail String? @map("payer_email")
+
+  billingItemId String      @map("billing_item_id")
+  billingItem   BillingItem @relation(fields: [billingItemId], references: [id], onDelete: Cascade)
+
+  /// Quién generó el link. El abono queda apuntado a su nombre: no hay otra
+  /// persona del equipo detrás de un pago que hace el cliente.
+  createdById String @map("created_by_id")
+  createdBy   User   @relation("BillingGatewayOrderCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([billingItemId, createdAt])
+  @@map("billing_gateway_orders")
 }
 
 /// Cómo cataloga contabilidad lo que se vende.

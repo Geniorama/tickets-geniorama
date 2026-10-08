@@ -49,6 +49,7 @@ export function EmailPanel({
   datos,
   correoListo,
   correos,
+  abrirCon,
 }: {
   billingItemId: string;
   plantillas: PlantillaDisponible[];
@@ -62,11 +63,18 @@ export function EmailPanel({
   /** Si el servidor puede mandar correo. Sin esto, todo fallaría al pulsar. */
   correoListo: boolean;
   correos: CorreoRegistrado[];
+  /**
+   * Id de una plantilla con la que el formulario nace ya abierto. Lo usa el
+   * botón «Enviar al cliente» del link de pago: lleva hasta aquí con el correo
+   * preparado, pero quien lo manda sigue viendo a quién va y cómo queda.
+   */
+  abrirCon?: string | null;
 }) {
-  const [abierto, setAbierto] = useState(false);
-  const [plantillaId, setPlantillaId] = useState("");
-  const [asunto, setAsunto] = useState("");
-  const [cuerpo, setCuerpo] = useState("");
+  const inicial = abrirCon ? plantillas.find((p) => p.id === abrirCon) ?? null : null;
+  const [abierto, setAbierto] = useState(inicial !== null);
+  const [plantillaId, setPlantillaId] = useState(inicial?.id ?? "");
+  const [asunto, setAsunto] = useState(inicial?.subject ?? "");
+  const [cuerpo, setCuerpo] = useState(inicial?.body ?? "");
   const [elegidas, setElegidas] = useState<string[]>(porDefecto);
   const [programar, setProgramar] = useState(false);
   const [fecha, setFecha] = useState("");
@@ -148,9 +156,10 @@ export function EmailPanel({
 
   return (
     <div
+      id="correos"
       style={{
         backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)",
-        borderRadius: "0.75rem", padding: "1.25rem",
+        borderRadius: "0.75rem", padding: "1.25rem", scrollMarginTop: "1rem",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", flexWrap: "wrap" }}>

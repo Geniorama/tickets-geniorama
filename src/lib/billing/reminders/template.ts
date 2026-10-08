@@ -43,6 +43,8 @@ export type DatosCorreo = DatosCobro & {
   abonado: number;
   ultimoAbono: number | null;
   fechaAbono: Date | null;
+  /** La dirección de la página de pago en línea. Vacío si no se puede pagar así. */
+  linkPago: string | null;
 };
 
 export const VARIABLES_CORREO: { marca: string; descripcion: string }[] = [
@@ -50,6 +52,7 @@ export const VARIABLES_CORREO: { marca: string; descripcion: string }[] = [
   { marca: "abonado",      descripcion: "Todo lo que ya entró de este cobro" },
   { marca: "ultimo_abono", descripcion: "Importe del último pago recibido" },
   { marca: "fecha_abono",  descripcion: "Fecha del último pago recibido" },
+  { marca: "link_pago",    descripcion: "Enlace para pagar en línea el saldo pendiente" },
 ];
 
 function valores(d: DatosCobro | DatosCorreo): Record<string, string> {
@@ -59,6 +62,7 @@ function valores(d: DatosCobro | DatosCorreo): Record<string, string> {
           abonado:      formatAmount(d.abonado) ?? "—",
           ultimo_abono: formatAmount(d.ultimoAbono) ?? "—",
           fecha_abono:  d.fechaAbono ? formatDate(d.fechaAbono) : "—",
+          link_pago:    d.linkPago ?? "—",
         }
       : {}),
     empresa:     d.empresa,

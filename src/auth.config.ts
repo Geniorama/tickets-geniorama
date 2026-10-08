@@ -23,6 +23,10 @@ export const authConfig = {
 
       if (isApiAuth) return true;
 
+      // La página de pago en línea de un cobro: la abre el cliente, que no
+      // tiene cuenta. Lo que la protege es la llave larga de su dirección.
+      if (nextUrl.pathname.startsWith("/pagar/")) return true;
+
       if (isAuthRoute) {
         // /set-password siempre accesible (no redirigir al dashboard si está logueado)
         if (isLoggedIn && nextUrl.pathname.startsWith("/login")) {
