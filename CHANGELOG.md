@@ -9,6 +9,34 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.115.0] — 2026-10-08
+
+### Un colaborador puede llevar solo Facturación, sin ver nada más
+
+- Nuevo perfil de acceso **Facturación**: Gestor en el módulo de Facturación y
+  nada más. El usuario tiene que ser **Colaborador**: un cliente no puede tener
+  el módulo.
+- El perfil se elige ya **al crear el usuario** (campo «Perfil de acceso», para
+  administradores y colaboradores) y se cambia como siempre en **Editar →
+  Acceso a módulos**.
+- **Para el equipo, Tickets y Proyectos se abren por nivel y no por rol.** Antes
+  bastaba ser colaborador: el módulo no salía en el menú, pero su dirección
+  abría igual. Ahora un módulo en «Sin acceso» no se abre ni por su dirección,
+  ni sale en el inicio, ni en el buscador, ni por la API o el MCP.
+- El **Panel** y el **Asistente IA** solo se ofrecen a quien tenga Tickets o
+  Proyectos, y el Panel enseña solo la mitad que corresponde.
+- Los **clientes no cambian**: sus tickets, proyectos y portal siguen abriéndose
+  por rol.
+- Nadie del equipo pierde acceso al desplegar: a quien no tenía ningún nivel
+  dicho en Tickets o Proyectos se le concede el que ya tenía por rol. Quien
+  tuviera un «Sin acceso» puesto a mano lo conserva, y ahora rige.
+
+Pendiente: crear o editar un ticket o una tarea desde una Server Action o la
+API todavía comprueba el rol, no el módulo. No hay pantalla que lo ofrezca a
+quien no tiene el módulo.
+
+---
+
 ## [1.114.0] — 2026-10-08
 
 ### El MCP ya ve lo que cuelga de un ticket o una tarea

@@ -224,7 +224,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
             return (
               <span
                 key={a.key}
-                title={a.enforced ? undefined : "El nivel se guarda, pero este módulo aún decide por el rol."}
+                title={a.enforced || user.role !== "CLIENTE" ? undefined : "El nivel se guarda, pero este módulo aún decide por el rol."}
                 style={{
                   fontSize: "0.75rem",
                   padding: "0.25rem 0.6rem",
@@ -235,7 +235,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
                 }}
               >
                 {a.name}: <strong>{ACCESS_LEVEL_LABELS[nivel]}</strong>
-                {!a.enforced && <span style={{ opacity: 0.6 }}> · aún no rige</span>}
+                {!a.enforced && user.role === "CLIENTE" && <span style={{ opacity: 0.6 }}> · aún no rige</span>}
               </span>
             );
           })}

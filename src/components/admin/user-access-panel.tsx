@@ -92,11 +92,19 @@ export function UserAccessPanel({
         El perfil reparte los niveles de una vez. Puedes ajustar módulos sueltos
         después: lo que definas aquí manda sobre el perfil.
       </p>
-      <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", margin: "0 0 1.25rem", lineHeight: 1.5 }}>
-        Los módulos marcados como <strong>«El nivel aún no rige»</strong> guardan
-        lo que definas, pero de momento siguen decidiendo el acceso por el rol
-        del usuario. Se irán activando módulo por módulo.
-      </p>
+      {role === "CLIENTE" ? (
+        <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", margin: "0 0 1.25rem", lineHeight: 1.5 }}>
+          Los módulos marcados como <strong>«El nivel aún no rige»</strong> guardan
+          lo que definas, pero de momento siguen decidiendo el acceso por el rol
+          del usuario. Se irán activando módulo por módulo.
+        </p>
+      ) : (
+        <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", margin: "0 0 1.25rem", lineHeight: 1.5 }}>
+          Un módulo en <strong>«Sin acceso»</strong> no aparece en el menú ni se
+          abre por su dirección. Para alguien que solo lleva los cobros, elige
+          el perfil <strong>Facturación</strong>.
+        </p>
+      )}
       <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", margin: "0 0 1.25rem", lineHeight: 1.5 }}>
         Esto es distinto de las <strong>designaciones</strong> del formulario de
         arriba, que solo deciden quién aparece en la página «Agendar» de los
@@ -160,7 +168,7 @@ export function UserAccessPanel({
                   >
                     Módulo aún no construido
                   </span>
-                ) : !app.enforced ? (
+                ) : !app.enforced && role === "CLIENTE" ? (
                   // Sin este aviso, cambiar el nivel de un módulo todavía
                   // regido por rol parece no surtir efecto.
                   <span

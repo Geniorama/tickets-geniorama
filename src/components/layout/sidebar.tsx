@@ -77,7 +77,9 @@ export function Sidebar({
 
   const logoSrc = mounted && theme === "light" ? LOGO_LIGHT : LOGO_DARK;
 
-  const visible = (s: NavSection) => !s.roles || s.roles.includes(role);
+  const visible = (s: NavSection) =>
+    (!s.roles || s.roles.includes(role)) &&
+    (!s.anyApp || s.anyApp.some((app) => apps.includes(app)));
 
   /** Además del rol, el nivel dentro del módulo activo. */
   const permitido = (s: NavSection) => {

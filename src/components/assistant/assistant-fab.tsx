@@ -4,16 +4,19 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
-import type { Role } from "@/generated/prisma";
+import type { AppKey, Role } from "@/generated/prisma";
 import { isStaff } from "@/lib/roles";
+import { WORK_APPS } from "@/components/layout/nav-config";
 
 /** Botón flotante de acceso rápido al Asistente IA. Solo para staff. */
-export function AssistantFab({ role }: { role: Role }) {
+export function AssistantFab({ role, apps }: { role: Role; apps: AppKey[] }) {
   const pathname = usePathname();
   const [hover, setHover] = useState(false);
 
   // Solo staff y oculto cuando ya estás en el asistente
   if (!isStaff(role)) return null;
+  // Sin tickets ni tareas el asistente no tiene sobre qué trabajar.
+  if (!WORK_APPS.some((app) => apps.includes(app))) return null;
   if (pathname === "/asistente" || pathname.startsWith("/asistente/")) return null;
 
   return (

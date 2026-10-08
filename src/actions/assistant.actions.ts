@@ -7,6 +7,7 @@ import { runAssistantChat, providerConfigError, resolveProvider, DEFAULT_AI_PROV
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
+import { canOpenModule, type Actor } from "@/lib/access/can";
 import { notify } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { formatEstimatedTime } from "@/lib/estimated-time";
@@ -94,6 +95,15 @@ type AssistantContext = {
   taskMap: Map<string, TaskCtx>;
   projectMap: Map<string, string>; // projectId -> name
 };
+
+/** Misma puerta que la página: hace falta Tickets o Proyectos. */
+async function canUseAssistant(actor: Actor): Promise<boolean> {
+  const [tickets, proyectos] = await Promise.all([
+    canOpenModule(actor, "TICKETS"),
+    canOpenModule(actor, "PROYECTOS"),
+  ]);
+  return tickets || proyectos;
+}
 
 async function buildContext(userId: string): Promise<AssistantContext> {
   const now = new Date();
@@ -437,6 +447,7 @@ export async function chatWithAssistant(
 ): Promise<{ reply: string; actions: ProposedAction[] } | { error: string }> {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await canUseAssistant(session.user))) return { error: "Sin permisos" };
 
   provider = resolveProvider(provider);
   const cfgErr = providerConfigError(provider);
@@ -539,6 +550,7 @@ export async function executeAssistantAction(
 ): Promise<{ success: true; message: string } | { error: string }> {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) return { error: "Sin permisos" };
+  if (!(await canUseAssistant(session.user))) return { error: "Sin permisos" };
   const userId = session.user.id;
 
   // ── Cambiar estado ──

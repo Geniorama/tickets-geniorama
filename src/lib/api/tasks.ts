@@ -13,6 +13,7 @@
 import { prisma } from "@/lib/prisma";
 import type { Prisma, Priority, TaskStatus } from "@/generated/prisma";
 import { isStaff } from "@/lib/roles";
+import { canOpenModule } from "@/lib/access/can";
 import { notify } from "@/lib/notify";
 import { emitTaskHook } from "@/lib/hooks/dispatch";
 import { afterTaskStatusChange } from "@/lib/status-change";
@@ -36,6 +37,8 @@ async function taskScopeWhere(user: ApiUser): Promise<Prisma.TaskWhereInput> {
   // Ni tareas de un proyecto que aún es borrador de otra persona
   const noDraftProject = taskNotInOthersDraftProject(user.id);
   if (isStaff(user.role)) {
+    // Sin el módulo de Proyectos no hay nada que listar.
+    if (!(await canOpenModule(user, "PROYECTOS"))) return { id: { in: [] } };
     return { AND: [{ OR: [{ isDraft: false }, { createdById: user.id }] }, noDraftProject] };
   }
   const companyIds = await companyIdsOf(user.id);
@@ -46,6 +49,7 @@ async function taskScopeWhere(user: ApiUser): Promise<Prisma.TaskWhereInput> {
 
 async function projectScopeWhere(user: ApiUser): Promise<Prisma.ProjectWhereInput> {
   if (isStaff(user.role)) {
+    if (!(await canOpenModule(user, "PROYECTOS"))) return { id: { in: [] } };
     // Los proyectos privados solo los ve quien está dentro.
     return {
       AND: [

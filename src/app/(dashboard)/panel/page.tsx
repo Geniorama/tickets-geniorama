@@ -1,4 +1,5 @@
 import { requireRole } from "@/lib/auth-helpers";
+import { canOpenModule } from "@/lib/access/can";
 import { isAdmin } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { taskNotInOthersDraftProject } from "@/lib/search/scopes";
@@ -34,6 +35,14 @@ export default async function PanelPage({
   const { id: userId, role } = session.user;
   const admin = isAdmin(role);
 
+  // El panel mezcla tickets y tareas: cada mitad solo sale con su módulo, y
+  // sin ninguno de los dos no hay panel que enseñar.
+  const [verTickets, verTareas] = await Promise.all([
+    canOpenModule(session.user, "TICKETS"),
+    canOpenModule(session.user, "PROYECTOS"),
+  ]);
+  if (!verTickets && !verTareas) redirect("/dashboard");
+
   const params = await searchParams;
 
   // Por defecto: colaborador ve lo asignado a él; admin ve todo.
@@ -50,8 +59,8 @@ export default async function PanelPage({
   const overdueOnly    = params.overdue === "1";
   const includeDone    = params.done === "1";
 
-  const showTickets = kindValues.length === 0 || kindValues.includes("ticket");
-  const showTasks   = kindValues.length === 0 || kindValues.includes("task");
+  const showTickets = verTickets && (kindValues.length === 0 || kindValues.includes("ticket"));
+  const showTasks   = verTareas && (kindValues.length === 0 || kindValues.includes("task"));
 
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const pageSize = getPageSize(params.pageSize);

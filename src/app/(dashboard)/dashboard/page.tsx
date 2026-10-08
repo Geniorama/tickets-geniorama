@@ -1,6 +1,6 @@
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
-import { getAccessibleApps } from "@/lib/access/can";
+import { canOpenModule, getAccessibleApps } from "@/lib/access/can";
 import { OPEN_STAGES } from "@/lib/crm/deals";
 import { CLOSED_BILLING_STATUSES } from "@/lib/billing/status";
 import { formatAmount } from "@/lib/money";
@@ -118,6 +118,19 @@ export default async function DashboardPage() {
   // Los módulos concedidos deciden qué se ofrece en el inicio: hasta ahora
   // dependía solo del rol, así que no reflejaba los niveles de la Fase 1.
   const apps = await getAccessibleApps(session.user);
+
+  // Y deciden también qué se resume: quien solo lleva Facturación no tiene por
+  // qué encontrarse aquí los tickets y las tareas del resto del equipo. Un
+  // `in: []` no devuelve filas, así que las consultas de abajo salen vacías.
+  const [verTickets, verProyectos] = await Promise.all([
+    canOpenModule(session.user, "TICKETS"),
+    canOpenModule(session.user, "PROYECTOS"),
+  ]);
+  if (!verTickets) ticketWhere.id = { in: [] };
+  if (!verProyectos) {
+    taskWhere.id = { in: [] };
+    projectWhere = { id: { in: [] } };
+  }
 
   // La cifra del CRM solo se consulta si el módulo está concedido: para casi
   // todos los usuarios estas dos consultas no llegan a hacerse.
@@ -372,9 +385,11 @@ export default async function DashboardPage() {
       )}
 
       {/* ── Main grid ── */}
+      {(verTickets || verProyectos) && (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
 
         {/* Recent tickets */}
+        {verTickets && (
         <Section
           title="Tickets recientes"
           href="/tickets"
@@ -408,9 +423,10 @@ export default async function DashboardPage() {
             </Link>
           ))}
         </Section>
+        )}
 
         {/* Recent tasks (staff/admin) or project list (client) */}
-        {(staff || admin) ? (
+        {!verProyectos ? null : (staff || admin) ? (
           <Section
             title="Tareas recientes"
             href="/tareas"
@@ -470,6 +486,7 @@ export default async function DashboardPage() {
           </Section>
         )}
       </div>
+      )}
 
       {/*
         Lo urgente en detalle. Antes eran cuatro tarjetas con el mismo marcado
@@ -478,7 +495,7 @@ export default async function DashboardPage() {
         las tareas van juntas en una tarjeta y los planes en otra, y el grid ya
         no estira nada.
       */}
-      {(staff || admin) && (
+      {(staff || admin) && (verProyectos || admin) && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" style={{ alignItems: "start" }}>
 
           {/* El reparto de tareas no es una alerta: es el estado general. */}

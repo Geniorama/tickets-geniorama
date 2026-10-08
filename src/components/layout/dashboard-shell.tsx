@@ -82,7 +82,7 @@ export function DashboardShell({
       </div>
 
       <FloatingTimer />
-      <AssistantFab role={role} />
+      <AssistantFab role={role} apps={apps} />
       <TourController role={role} />
     </div>
   );

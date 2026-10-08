@@ -20,9 +20,10 @@ export type AppDefinition = {
    */
   built: boolean;
   /**
-   * false mientras el módulo siga rigiéndose por chequeos de rol. El nivel se
-   * guarda pero todavía no decide nada, así que la interfaz debe decirlo: sin
-   * este aviso, cambiar un nivel parece no surtir efecto.
+   * false mientras, para los **clientes**, el módulo siga rigiéndose por el
+   * rol: su nivel se guarda pero no decide nada, y la interfaz debe decirlo o
+   * cambiarlo parece no surtir efecto. Para el equipo el nivel manda siempre
+   * (`canOpenModule`): sin el módulo concedido, no se abre.
    */
   enforced: boolean;
   /**

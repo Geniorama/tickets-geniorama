@@ -6,6 +6,13 @@ import { Eye, EyeOff, Copy, Wand2, Check } from "lucide-react";
 import { createUser } from "@/actions/user.actions";
 
 interface Company { id: string; name: string; }
+interface Profile { id: string; name: string; description: string | null; }
+
+/** El perfil que se propone al elegir rol; el administrador puede cambiarlo. */
+const DEFAULT_PROFILE: Record<string, string> = {
+  COLABORADOR: "prf_equipo",
+  ADMINISTRADOR: "prf_direccion",
+};
 
 const CHARSET = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%&*";
 const REQUIRED = ["abcdefghijkmnpqrstuvwxyz", "ABCDEFGHJKLMNPQRSTUVWXYZ", "23456789", "!@#$%&*"];
@@ -26,17 +33,24 @@ function generatePassword(length = 16): string {
   return chars.join("").slice(0, length);
 }
 
-export function UserForm({ companies }: { companies: Company[] }) {
+export function UserForm({ companies, profiles }: { companies: Company[]; profiles: Profile[] }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState("CLIENTE");
+  const [profileId, setProfileId] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const inputClass =
     "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500";
+
+  function handleRoleChange(next: string) {
+    setRole(next);
+    const propuesto = DEFAULT_PROFILE[next];
+    setProfileId(profiles.some((p) => p.id === propuesto) ? propuesto : "");
+  }
 
   function handleSuggest() {
     const pw = generatePassword();
@@ -134,7 +148,7 @@ export function UserForm({ companies }: { companies: Company[] }) {
         <select
           name="role"
           value={role}
-          onChange={(e) => setRole(e.target.value)}
+          onChange={(e) => handleRoleChange(e.target.value)}
           className={inputClass}
         >
           <option value="CLIENTE">Cliente</option>
@@ -142,6 +156,29 @@ export function UserForm({ companies }: { companies: Company[] }) {
           <option value="ADMINISTRADOR">Administrador</option>
         </select>
       </div>
+
+      {role !== "CLIENTE" && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Perfil de acceso</label>
+          <select
+            name="profileId"
+            required
+            value={profileId}
+            onChange={(e) => setProfileId(e.target.value)}
+            className={inputClass}
+          >
+            <option value="" disabled>Elige a qué módulos entra</option>
+            {profiles.map((p) => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-400 mt-1">
+            {profiles.find((p) => p.id === profileId)?.description ??
+              "Decide qué módulos ve. Los que el perfil no incluye no le aparecen ni se le abren."}
+            {" "}Podrás ajustar módulos sueltos al editar el usuario.
+          </p>
+        </div>
+      )}
 
       {role !== "CLIENTE" && (
         <div className="grid grid-cols-2 gap-4">

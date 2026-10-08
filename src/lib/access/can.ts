@@ -121,6 +121,34 @@ export async function requireCan(app: AppKey, capability: Capability = "gestiona
   return session;
 }
 
+/**
+ * ¿Puede este usuario abrir el módulo, aunque sea para mirar?
+ *
+ * Para el equipo manda el nivel: un colaborador que solo lleva Facturación no
+ * entra a Tickets ni a Proyectos por el hecho de ser colaborador. Para un
+ * cliente sigue mandando el rol —los suyos son Tickets, Proyectos y el Portal,
+ * y `allowedRoles` ya le cierra el resto—, porque hay clientes dados de alta
+ * por integraciones que no tienen ningún nivel concedido y perderían su
+ * soporte de un día para otro.
+ */
+export async function canOpenModule(actor: Actor, app: AppKey): Promise<boolean> {
+  const definition = APP_BY_KEY.get(app);
+  if (!definition || !definition.allowedRoles.includes(actor.role)) return false;
+  if (actor.role === "CLIENTE") return true;
+  return can(actor, app, "ver");
+}
+
+/**
+ * Guardia de módulo para layouts y páginas de solo lectura. Con varios módulos
+ * basta con tener abierto uno: el Panel mezcla tickets y tareas.
+ */
+export async function requireModule(...apps: AppKey[]) {
+  const session = await getRequiredSession();
+  const abiertos = await Promise.all(apps.map((app) => canOpenModule(session.user, app)));
+  if (!abiertos.some(Boolean)) redirect("/dashboard");
+  return session;
+}
+
 /** Los módulos que este usuario puede abrir. Alimenta el lanzador. */
 export async function getAccessibleApps(actor: Actor): Promise<AppKey[]> {
   const grants = await getGrants(actor.id);

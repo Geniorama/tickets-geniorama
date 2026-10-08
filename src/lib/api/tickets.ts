@@ -22,6 +22,7 @@ import { getPlanUsedHours } from "@/lib/time-entries";
 import { ticketCode, ticketPrefix } from "@/lib/ticket-code";
 import { notify, notifyMany } from "@/lib/notify";
 import { canAccessTicket } from "@/lib/ticket-access";
+import { canOpenModule } from "@/lib/access/can";
 import { emitTicketHook } from "@/lib/hooks/dispatch";
 import { afterTicketStatusChange } from "@/lib/status-change";
 import { serializeTicket, ticketSelect } from "@/lib/hooks/payload";
@@ -45,6 +46,8 @@ function sourceNote(keyLabel: string): string {
  */
 export async function ticketScopeWhere(user: ApiUser): Promise<Prisma.TicketWhereInput> {
   if (isStaff(user.role)) {
+    // Sin el módulo no hay nada que listar: un `in: []` no devuelve filas.
+    if (!(await canOpenModule(user, "TICKETS"))) return { id: { in: [] } };
     return { OR: [{ isDraft: false }, { createdById: user.id }] };
   }
 

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { isStaff } from "@/lib/roles";
+import { canOpenModule } from "@/lib/access/can";
 import type { Role } from "@/generated/prisma";
 
 /**
@@ -30,7 +31,9 @@ export async function canAccessTicket(
   // Los borradores son privados: solo su creador puede verlos.
   if (ticket.isDraft && ticket.createdById !== userId) return false;
 
-  if (isStaff(role)) return true;
+  // Ser del equipo ya no basta: hace falta tener el módulo de Tickets. Quien
+  // solo lleva Facturación no abre un ticket ni por su dirección ni por la API.
+  if (isStaff(role)) return canOpenModule({ id: userId, role }, "TICKETS");
 
   if (ticket.createdById === userId) return true;
   if (!ticket.clientId) return false;

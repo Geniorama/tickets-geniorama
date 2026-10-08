@@ -64,7 +64,9 @@ async function moduloAbierto(viewer: Viewer, app: AppKey): Promise<boolean> {
   const definicion = APP_BY_KEY.get(app);
   if (!definicion) return false;
   if (!definicion.allowedRoles.includes(viewer.role)) return false;
-  if (!definicion.enforced) return true;
+  // Para el equipo manda siempre el nivel; el criterio por rol solo queda
+  // para los clientes, igual que en las pantallas (`canOpenModule`).
+  if (!definicion.enforced && viewer.role === "CLIENTE") return true;
   return can(viewer, app, "ver");
 }
 

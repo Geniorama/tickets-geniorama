@@ -33,10 +33,18 @@ export type NavSection = {
   requires?: NavCapability;
   /** Marca la sección de entrada del módulo. */
   isRoot?: boolean;
+  /**
+   * Para las herramientas transversales que trabajan sobre un módulo: solo se
+   * ofrecen a quien tenga alguno de estos. El Panel y el asistente no le dicen
+   * nada a quien solo lleva Facturación.
+   */
+  anyApp?: readonly AppKey[];
 };
 
 const STAFF = ["ADMINISTRADOR", "COLABORADOR"] as const;
 const ADMIN = ["ADMINISTRADOR"] as const;
+/** Los módulos donde vive el trabajo del día a día: tickets y tareas. */
+export const WORK_APPS = ["TICKETS", "PROYECTOS"] as const satisfies readonly AppKey[];
 
 /** Icono de cada módulo en el lanzador y en la cabecera del sidebar. */
 export const APP_ICONS: Record<AppKey, React.ElementType> = {
@@ -96,8 +104,8 @@ export const APP_SECTIONS: Record<AppKey, NavSection[]> = {
  */
 export const ALWAYS_VISIBLE: NavSection[] = [
   { href: "/dashboard",    label: "Inicio",       icon: LayoutDashboard },
-  { href: "/panel",        label: "Panel",        icon: LayoutList,    roles: STAFF },
-  { href: "/asistente",    label: "Asistente IA", icon: Bot,           roles: STAFF },
+  { href: "/panel",        label: "Panel",        icon: LayoutList,    roles: STAFF, anyApp: WORK_APPS },
+  { href: "/asistente",    label: "Asistente IA", icon: Bot,           roles: STAFF, anyApp: WORK_APPS },
   { href: "/boveda",       label: "Bóveda",       icon: KeyRound },
   { href: "/agendar",      label: "Agendar",      icon: CalendarClock },
   { href: "/integraciones",label: "Mis integraciones", icon: Webhook },

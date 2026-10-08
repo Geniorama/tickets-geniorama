@@ -11,6 +11,8 @@ import { getRequiredSession } from "@/lib/auth-helpers";
 import { generateInvitationToken } from "@/actions/invitation.actions";
 import { sendInvitationEmail } from "@/lib/email";
 import { recordActivity, recordUpdate } from "@/lib/activity/record";
+import { APPS, LEVEL_ORDER } from "@/lib/access/apps";
+import type { AccessLevel } from "@/generated/prisma";
 
 const BASE_URL = process.env.AUTH_URL ?? "http://localhost:3000";
 
@@ -25,6 +27,7 @@ const createUserSchema = z.object({
   bio: z.string().max(2000).optional(),
   isProjectManager: z.boolean().optional(),
   isSupportAgent: z.boolean().optional(),
+  profileId: z.string().optional(),
 });
 
 export async function createUser(formData: FormData) {
@@ -43,11 +46,39 @@ export async function createUser(formData: FormData) {
     bio: formData.get("bio") || undefined,
     isProjectManager: formData.get("isProjectManager") === "true",
     isSupportAgent: formData.get("isSupportAgent") === "true",
+    profileId: formData.get("profileId") || undefined,
   });
 
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
+
+  // Alguien del equipo nace con un perfil: sin módulos concedidos no vería
+  // nada, porque para el equipo ya no basta el rol para abrir Tickets o
+  // Proyectos. Un cliente no lo necesita; los suyos se abren por rol.
+  const role = parsed.data.role;
+  const profile =
+    role !== "CLIENTE" && parsed.data.profileId
+      ? await prisma.accessProfile.findUnique({
+          where: { id: parsed.data.profileId },
+          select: { id: true, grants: true },
+        })
+      : null;
+  if (role !== "CLIENTE" && !profile) {
+    return { error: "Elige un perfil de acceso para el usuario" };
+  }
+  // Los niveles se materializan además del perfil, igual que al guardar desde
+  // «Acceso a módulos»: la pantalla de edición muestra lo que hay en app_access.
+  const grants = (profile?.grants ?? {}) as Record<string, unknown>;
+  const access = profile
+    ? APPS.filter((a) => a.allowedRoles.includes(role)).map((a) => {
+        const level = grants[a.key];
+        return {
+          app: a.key,
+          level: (typeof level === "string" && level in LEVEL_ORDER ? level : "SIN_ACCESO") as AccessLevel,
+        };
+      })
+    : [];
 
   if (parsed.data.role === "CLIENTE" && (!parsed.data.companyIds || parsed.data.companyIds.length === 0)) {
     return { error: "Los usuarios de tipo Cliente deben tener al menos una empresa asignada" };
@@ -77,6 +108,7 @@ export async function createUser(formData: FormData) {
       companies: {
         connect: (parsed.data.companyIds ?? []).map((id) => ({ id })),
       },
+      ...(profile ? { profileId: profile.id, appAccess: { create: access } } : {}),
     },
   });
 
