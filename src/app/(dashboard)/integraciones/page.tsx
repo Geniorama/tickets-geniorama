@@ -10,7 +10,8 @@ import { getMyWhatsApp } from "@/actions/whatsapp.actions";
 import { clientHasPlanFeature } from "@/lib/plans.server";
 import { agentChatAvailableFor } from "@/lib/agent-chat";
 import { mcpResourceUrl } from "@/lib/oauth/config";
-import { Plug, Bot, Webhook, MessageCircle } from "lucide-react";
+import { Plug, Bot, Webhook } from "lucide-react";
+import { GenieIcon } from "@/components/ui/genie-icon";
 
 export const metadata = { title: "Mis integraciones" };
 
@@ -42,7 +43,7 @@ export default async function IntegracionesPage() {
     ...(agentEnabled
       ? [{
           id: "whatsapp",
-          icon: <MessageCircle style={icon("#16a34a")} />,
+          icon: <GenieIcon style={icon("#fd1384")} />,
           title: "GENIA",
           purpose: agentChat
             ? "Escríbele desde el chat de la plataforma o por WhatsApp y te responde con tus datos."

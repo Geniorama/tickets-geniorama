@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.124.0] — 2026-10-16
+
+### GENIA estrena ícono
+
+- **Un genio saliendo de la lámpara**, con un destello, en lugar de la burbuja
+  de chat: en el botón flotante de la plataforma, en la cabecera del chat, en
+  el menú, en la tarjeta de *Mis integraciones* y en el botón del widget para
+  otros sitios. Es un SVG propio (`src/components/ui/genie-icon.tsx`) con el
+  mismo trazo que el resto de íconos, así que toma el color de donde se use.
+
+---
+
 ## [1.123.0] — 2026-10-16
 
 ### GENIA: el asistente, con nombre y como widget en la plataforma y en otros sitios

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { AlertCircle, MessageCircle, Plus, Send } from "lucide-react";
+import { AlertCircle, Plus, Send } from "lucide-react";
+import { GenieIcon } from "@/components/ui/genie-icon";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { sendAgentChatMessage } from "@/actions/agent-chat.actions";
 import type { AgentChatMessageView, SendResult } from "@/lib/agent-chat-session";
@@ -99,7 +100,7 @@ export function AgentChat({
     >
       <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", padding: "0.75rem 1.25rem", borderBottom: "1px solid var(--app-border)", flexShrink: 0 }}>
         <span style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "2rem", height: "2rem", borderRadius: "0.5rem", backgroundColor: "rgba(253,19,132,0.1)" }}>
-          <MessageCircle style={{ width: "1rem", height: "1rem", color: ACCENT }} />
+          <GenieIcon style={{ width: "1.25rem", height: "1.25rem", color: ACCENT }} />
         </span>
         <div style={{ minWidth: 0 }}>
           <p style={{ margin: 0, fontSize: "0.9375rem", fontWeight: 600, color: "var(--app-body-text)", lineHeight: 1.3 }}>GENIA</p>

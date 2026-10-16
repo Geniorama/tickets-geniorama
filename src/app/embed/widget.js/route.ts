@@ -12,6 +12,8 @@
  * `data-label="¿Necesitas ayuda?"` (el texto del botón al pasar el ratón).
  */
 
+import { GENIE_SVG_PATHS } from "@/components/ui/genie-icon";
+
 const APP_ORIGIN = new URL(process.env.AUTH_URL ?? "http://localhost:3000").origin;
 
 const script = (origin: string) => `(function () {
@@ -26,7 +28,7 @@ const script = (origin: string) => `(function () {
   var label = data.label || "GENIA";
   var Z = 2147483000;
 
-  var CHAT = '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>';
+  var CHAT = ${JSON.stringify(`<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${GENIE_SVG_PATHS}</svg>`)};
   var CLOSE = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>';
 
   var button = document.createElement("button");

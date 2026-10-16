@@ -3,8 +3,9 @@ import {
   BarChart3, FolderKanban, ListTodo, TrendingUp, Server as ServerIcon, Globe,
   KeyRound, Plug, Sparkles, Repeat, Webhook, LayoutList, LayoutTemplate, Bot,
   CalendarClock, Wrench, Briefcase, ShieldCheck, Handshake, Target, Receipt,
-  History, MessageCircle,
+  History,
 } from "lucide-react";
+import { GenieIcon } from "@/components/ui/genie-icon";
 import type { AppKey, Role } from "@/generated/prisma";
 
 /**
@@ -115,7 +116,7 @@ export const ALWAYS_VISIBLE: NavSection[] = [
   { href: "/dashboard",    label: "Inicio",       icon: LayoutDashboard },
   { href: "/panel",        label: "Panel",        icon: LayoutList,    roles: STAFF, anyApp: WORK_APPS },
   { href: "/asistente",    label: "Asistente IA", icon: Bot,           roles: STAFF, anyApp: WORK_APPS },
-  { href: "/mi-asistente", label: "GENIA", icon: MessageCircle, roles: ["CLIENTE"], feature: "agentChat" },
+  { href: "/mi-asistente", label: "GENIA", icon: GenieIcon, roles: ["CLIENTE"], feature: "agentChat" },
   { href: "/boveda",       label: "Bóveda",       icon: KeyRound },
   { href: "/agendar",      label: "Agendar",      icon: CalendarClock },
   { href: "/integraciones",label: "Mis integraciones", icon: Webhook },

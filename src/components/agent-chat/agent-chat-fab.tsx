@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useTransition } from "react";
-import { MessageCircle, X, Maximize2, Loader2 } from "lucide-react";
+import { X, Maximize2, Loader2 } from "lucide-react";
+import { GenieIcon } from "@/components/ui/genie-icon";
 import { getMyAgentChat, type AgentChatState } from "@/actions/agent-chat.actions";
 import { AgentChat } from "./agent-chat";
 
@@ -132,7 +133,7 @@ export function AgentChatFab() {
           boxShadow: "0 12px 28px rgba(253,19,132,0.4)",
         }}
       >
-        {open ? <X style={{ width: "1.375rem", height: "1.375rem" }} /> : <MessageCircle style={{ width: "1.375rem", height: "1.375rem" }} />}
+        {open ? <X style={{ width: "1.375rem", height: "1.375rem" }} /> : <GenieIcon style={{ width: "1.625rem", height: "1.625rem" }} />}
       </button>
     </>
   );
