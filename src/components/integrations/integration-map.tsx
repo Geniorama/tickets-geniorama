@@ -22,6 +22,8 @@ export type IntegrationCard = {
   example: string;
   direction: IntegrationDirection;
   status: { tone: "ok" | "off" | "warn"; text: string };
+  /** Si la tarjeta lleva a otra página en vez de a la sección de abajo. */
+  href?: string;
 };
 
 const DIRECTIONS: Record<IntegrationDirection, { label: string; Icon: typeof ArrowUpRight }> = {
@@ -45,7 +47,7 @@ export function IntegrationMap({ cards }: { cards: IntegrationCard[] }) {
         return (
           <a
             key={`${card.id}:${card.title}`}
-            href={`#${card.id}`}
+            href={card.href ?? `#${card.id}`}
             style={{
               display: "flex",
               flexDirection: "column",

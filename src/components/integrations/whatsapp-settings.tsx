@@ -35,7 +35,14 @@ const input: React.CSSProperties = {
  * `agentEnabled`: el plan del cliente incluye el agente por WhatsApp. El mismo
  * número es el que usa el agente para reconocerlo, así que se le dice aquí.
  */
-export function WhatsAppSettings({ initial, agentEnabled = false }: { initial: MyWhatsApp; agentEnabled?: boolean }) {
+export function WhatsAppSettings({
+  initial, agentEnabled = false, agentChat = false,
+}: {
+  initial: MyWhatsApp;
+  agentEnabled?: boolean;
+  /** El asistente también está en el chat de la plataforma. */
+  agentChat?: boolean;
+}) {
   const start = splitPhone(initial.phone);
   const [dial, setDial] = useState(start.dial);
   const [number, setNumber] = useState(start.national);
@@ -108,6 +115,7 @@ export function WhatsAppSettings({ initial, agentEnabled = false }: { initial: M
           tickets, proyectos, plan o facturas. Te reconoce por este número, así que guárdalo aunque no actives
           los avisos.
           {!savedPhone && " Todavía no tienes uno guardado."}
+          {agentChat && <> También puedes escribirle sin WhatsApp, desde <a href="/mi-asistente" style={{ color: "#166534", fontWeight: 600 }}>Asistente Geniorama</a>.</>}
         </p>
       )}
 

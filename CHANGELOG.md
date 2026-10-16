@@ -9,6 +9,36 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.122.0] — 2026-10-16
+
+### El agente de atención, también como chat en la plataforma
+
+- **Asistente Geniorama** (`/mi-asistente`): los clientes con el agente en su
+  plan pueden escribirle desde la plataforma, sin WhatsApp. Consultan sus
+  tickets, proyectos, plan, sitios y facturas, y el agente abre tickets cuando
+  hace falta. La conversación se guarda: al volver, sigue donde quedó, y hay un
+  botón para empezar una nueva. Las respuestas se muestran con formato.
+- **Es el mismo agente de n8n**, no uno nuevo: cada mensaje se reenvía a un
+  webhook del workflow, firmado como los hooks, con el `clientToken` del
+  cliente ya emitido por la plataforma. El workflow no tiene que identificar a
+  nadie y, sin un token firmado aquí, nadie puede leer datos ajenos llamando al
+  webhook.
+- **Configuración en *Integraciones del equipo → Agente IA de atención → Chat
+  en la plataforma***: la URL del webhook, el secreto de firma (se genera ahí y
+  se muestra una sola vez) y la llave del agente. El chat solo aparece en el
+  menú del cliente cuando está todo puesto y su plan incluye el agente.
+- La casilla del plan pasa a llamarse **Agente IA de atención**, porque ya no es
+  solo WhatsApp. En *Mis integraciones*, la tarjeta del asistente lleva al chat.
+- Límites: mensajes de hasta 2.000 caracteres, 30 cada 10 minutos por cliente,
+  y 90 s de espera por respuesta. Si el agente falla, el mensaje no se guarda y
+  el cliente lo puede reenviar.
+- Guía (`docs/hooks-y-api.md`, sección 3): qué recibe el webhook y cómo montar
+  la rama del chat en el workflow, y el workflow listo para importar en n8n
+  (`docs/n8n/agente-chat-web.json`).
+- Migración: tabla `agent_chat_messages`.
+
+---
+
 ## [1.121.0] — 2026-10-16
 
 ### Integraciones más fáciles de entender

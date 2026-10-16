@@ -7,6 +7,7 @@ import { TimerProvider } from "@/providers/timer-provider";
 import type { ActiveTimer } from "@/providers/timer-provider";
 import { findRunningTimerForUser } from "@/lib/time-entries";
 import { getAccessibleApps, getGrants } from "@/lib/access/can";
+import { agentChatAvailableFor } from "@/lib/agent-chat";
 
 // Evitar que Next.js cachee el layout protegido en el cliente.
 // Sin esto, después del logout el router cache puede servir el dashboard
@@ -22,7 +23,7 @@ export default async function DashboardLayout({
   const userId = session.user.id;
 
   // Queries ligeras: count + findFirst — no bloquean significativamente
-  const [unreadCount, runningTimer, me, apps, levels] = await Promise.all([
+  const [unreadCount, runningTimer, me, apps, levels, agentChat] = await Promise.all([
     prisma.notification.count({
       where: { userId, isRead: false },
     }),
@@ -35,6 +36,8 @@ export default async function DashboardLayout({
     }),
     getAccessibleApps(session.user),
     getGrants(userId),
+    // El chat con el agente solo se ofrece a clientes con el agente en su plan.
+    session.user.role === "CLIENTE" ? agentChatAvailableFor(userId).catch(() => false) : false,
   ]);
 
   const initialTimers: ActiveTimer[] = runningTimer
@@ -55,6 +58,7 @@ export default async function DashboardLayout({
         role={session.user.role}
         apps={apps}
         levels={levels}
+        features={agentChat ? ["agentChat"] : []}
         user={session.user}
         avatarUrl={me?.avatarUrl ?? null}
         unreadCount={unreadCount}

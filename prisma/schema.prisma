@@ -468,6 +468,9 @@ model User {
   recurringTicketsAssigned RecurringTicketTemplate[] @relation("RecurringTicketAssignedTo")
   recurringTicketsAsClient RecurringTicketTemplate[] @relation("RecurringTicketClient")
 
+  // Chat con el agente de atención dentro de la plataforma
+  agentChatMessages AgentChatMessage[]
+
   @@map("users")
 }
 
@@ -1798,6 +1801,26 @@ model ApiKey {
 
   @@index([userId])
   @@map("api_keys")
+}
+
+// Chat del agente de atención dentro de la plataforma. El agente vive en n8n
+// (ver src/lib/agent-chat.ts): aquí solo se guarda la conversación, para que
+// el cliente la recupere y el equipo pueda revisar qué se le respondió.
+model AgentChatMessage {
+  id             String   @id @default(cuid())
+  userId         String   @map("user_id")
+  /// Agrupa los mensajes de una conversación; lo genera la plataforma.
+  conversationId String   @map("conversation_id")
+  /// "user" | "assistant"
+  role           String
+  content        String   @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([conversationId, createdAt])
+  @@map("agent_chat_messages")
 }
 
 // ─── OAuth 2.1 para el servidor MCP ──────────────────────────────────────────

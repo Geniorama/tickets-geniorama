@@ -10,7 +10,7 @@ import { LEVEL_ORDER } from "@/lib/access/apps";
 import { cn } from "@/lib/utils";
 import { ChevronsLeft, ChevronsRight } from "lucide-react";
 import { AppLauncher } from "./app-launcher";
-import { APP_SECTIONS, ALWAYS_VISIBLE, appForPath, type NavCapability, type NavSection } from "./nav-config";
+import { APP_SECTIONS, ALWAYS_VISIBLE, appForPath, type NavCapability, type NavFeature, type NavSection } from "./nav-config";
 
 /** Mismo umbral que `can()` en el servidor. */
 const REQUIRED_LEVEL: Record<NavCapability, AccessLevel> = {
@@ -35,6 +35,7 @@ export function Sidebar({
   role,
   apps,
   levels,
+  features = [],
   isOpen = false,
   onClose,
   collapsed = false,
@@ -45,6 +46,8 @@ export function Sidebar({
   apps: AppKey[];
   /** Nivel efectivo por módulo, para no ofrecer enlaces que redirigirían. */
   levels: Partial<Record<AppKey, AccessLevel>>;
+  /** Funciones habilitadas por plan o configuración (p. ej. el chat del agente). */
+  features?: NavFeature[];
   isOpen?: boolean;
   onClose?: () => void;
   collapsed?: boolean;
@@ -79,7 +82,8 @@ export function Sidebar({
 
   const visible = (s: NavSection) =>
     (!s.roles || s.roles.includes(role)) &&
-    (!s.anyApp || s.anyApp.some((app) => apps.includes(app)));
+    (!s.anyApp || s.anyApp.some((app) => apps.includes(app))) &&
+    (!s.feature || features.includes(s.feature));
 
   /** Además del rol, el nivel dentro del módulo activo. */
   const permitido = (s: NavSection) => {

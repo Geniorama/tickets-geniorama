@@ -3,7 +3,7 @@ import {
   BarChart3, FolderKanban, ListTodo, TrendingUp, Server as ServerIcon, Globe,
   KeyRound, Plug, Sparkles, Repeat, Webhook, LayoutList, LayoutTemplate, Bot,
   CalendarClock, Wrench, Briefcase, ShieldCheck, Handshake, Target, Receipt,
-  History,
+  History, MessageCircle,
 } from "lucide-react";
 import type { AppKey, Role } from "@/generated/prisma";
 
@@ -39,7 +39,12 @@ export type NavSection = {
    * nada a quien solo lleva Facturación.
    */
   anyApp?: readonly AppKey[];
+  /** Solo si el usuario tiene esta función (la resuelve el layout en servidor). */
+  feature?: NavFeature;
 };
+
+/** Funciones que dependen del plan o de la configuración, no del rol. */
+export type NavFeature = "agentChat";
 
 const STAFF = ["ADMINISTRADOR", "COLABORADOR"] as const;
 const ADMIN = ["ADMINISTRADOR"] as const;
@@ -110,6 +115,7 @@ export const ALWAYS_VISIBLE: NavSection[] = [
   { href: "/dashboard",    label: "Inicio",       icon: LayoutDashboard },
   { href: "/panel",        label: "Panel",        icon: LayoutList,    roles: STAFF, anyApp: WORK_APPS },
   { href: "/asistente",    label: "Asistente IA", icon: Bot,           roles: STAFF, anyApp: WORK_APPS },
+  { href: "/mi-asistente", label: "Asistente Geniorama", icon: MessageCircle, roles: ["CLIENTE"], feature: "agentChat" },
   { href: "/boveda",       label: "Bóveda",       icon: KeyRound },
   { href: "/agendar",      label: "Agendar",      icon: CalendarClock },
   { href: "/integraciones",label: "Mis integraciones", icon: Webhook },

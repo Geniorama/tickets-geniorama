@@ -292,7 +292,7 @@ En `PATCH`, omitir un campo lo deja como estaba; mandarlo en `null` lo borra.
 
 ---
 
-## 3. El agente de atención a clientes (WhatsApp)
+## 3. El agente de atención a clientes (WhatsApp y chat en la plataforma)
 
 El agente que conversa con los clientes vive **fuera**, en n8n, como todo lo
 demás desde la v1.66. La plataforma pone los datos y los frenos; n8n pone el
@@ -314,8 +314,8 @@ Lo que el agente sabe hacer con la API:
 
 ### Quién puede usarlo
 
-Se activa **por plan**: *Administración → Planes → Editar → Agente IA por
-WhatsApp*. Con un plan vigente que lo incluya, los clientes de esa empresa
+Se activa **por plan**: *Administración → Planes → Editar → Agente IA de
+atención*. Con un plan vigente que lo incluya, los clientes de esa empresa
 pueden usarlo; sin él, `/agent/client` responde `agentEnabled: false` y el resto
 de endpoints un `403` con `plan_sin_agente`.
 
@@ -396,6 +396,66 @@ Eres el asistente de soporte de Geniorama. Hablas con {{nombre}}, cliente de
 - No prometas fechas ni cambies estados, prioridades o responsables.
 - Facturas: solo si billing.available es true. Para pagar, comparte payUrl.
 ```
+
+### El mismo agente en el chat de la plataforma
+
+Los clientes con el agente en su plan también pueden escribirle desde la
+plataforma (menú **Asistente Geniorama**, `/mi-asistente`), sin WhatsApp. No es
+otro agente: la plataforma pone la ventana y guarda la conversación, y cada
+mensaje se reenvía a un webhook del **mismo** workflow. Se configura en
+*Integraciones del equipo → Agente IA de atención → Chat en la plataforma*:
+
+- **Webhook**: la *Production URL* de un nodo **Webhook** de n8n (`POST`,
+  *Respond: Using 'Respond to Webhook' node*).
+- **Secreto de firma**: se genera ahí y se muestra una sola vez.
+- **Llave del agente**: la misma que usan las herramientas. El token del cliente
+  se firma para ella; con otra llave las herramientas dan `client_token_invalido`.
+
+El chat aparece en el menú del cliente solo cuando las tres cosas están puestas
+y su plan incluye el agente.
+
+Lo que recibe el webhook:
+
+```json
+{
+  "channel": "web",
+  "conversationId": "5b0c…",
+  "message": "¿Cómo van mis tickets?",
+  "history": [{ "role": "user", "content": "…" }, { "role": "assistant", "content": "…" }],
+  "client": { "id": "…", "name": "Ana Pérez", "email": "ana@empresa.com", "companies": [{ "id": "…", "name": "ACME" }] },
+  "clientToken": "…",
+  "clientTokenExpiresAt": "2026-10-16T21:00:00.000Z",
+  "sentAt": "2026-10-16T15:00:00.000Z"
+}
+```
+
+con las cabeceras `X-Geniorama-Timestamp` y `X-Geniorama-Signature:
+sha256=<HMAC-SHA256 del cuerpo con el secreto>`, igual que los hooks.
+
+La diferencia con WhatsApp es quién identifica al cliente: aquí ya hay sesión,
+así que **no se llama a `/agent/client`**. El `clientToken` llega en el cuerpo
+y se usa tal cual en las herramientas. Aunque alguien llamara al webhook por su
+cuenta, sin un token firmado por la plataforma no lee los datos de nadie; aun
+así, comprueba la firma.
+
+El workflow listo para importar está en `docs/n8n/agente-chat-web.json` (n8n →
+*Import from File*). Lo que hace, por si se arma a mano:
+
+1. **Webhook** → **Crypto** (HMAC SHA256 de `{{ JSON.stringify($json.body) }}`
+   con el secreto) → **If**: la firma coincide con `x-geniorama-signature` y
+   `sentAt` no tiene más de 5 minutos. Si no, responde `401`.
+2. El mismo **AI Agent**, con `history` (los últimos 20 mensajes) dentro del
+   prompt, sin nodo de memoria: la conversación ya la guarda la plataforma, y `client` de las herramientas
+   fijado a `{{ $json.body.clientToken }}`.
+3. **Respond to Webhook** con `{ "reply": "<texto>" }`. También se acepta la
+   salida directa del AI Agent (`{ "output": … }` o `[{ "output": … }]`) o
+   texto plano.
+
+Las respuestas se muestran con **Markdown** (listas, negritas, enlaces), así que
+en esta rama el agente no tiene por qué escribir como en WhatsApp. La plataforma
+espera hasta 90 s; si n8n tarda más, falla o responde vacío, el cliente ve un
+error y puede reenviar el mensaje, que no queda guardado. Cada cliente puede
+mandar hasta 30 mensajes cada 10 minutos.
 
 ---
 

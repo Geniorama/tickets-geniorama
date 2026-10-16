@@ -8,6 +8,7 @@ import { AssistantFab } from "@/components/assistant/assistant-fab";
 import { TourController } from "@/components/tour/tour-controller";
 import type { Session } from "next-auth";
 import type { AccessLevel, AppKey, Role } from "@/generated/prisma";
+import type { NavFeature } from "./nav-config";
 
 const COLLAPSED_KEY = "sidebar-collapsed";
 
@@ -15,6 +16,7 @@ export function DashboardShell({
   role,
   apps,
   levels,
+  features,
   user,
   avatarUrl,
   unreadCount,
@@ -24,6 +26,7 @@ export function DashboardShell({
   /** Módulos concedidos, resueltos en servidor. */
   apps: AppKey[];
   levels: Partial<Record<AppKey, AccessLevel>>;
+  features: NavFeature[];
   user: Session["user"];
   avatarUrl?: string | null;
   unreadCount: number;
@@ -60,6 +63,7 @@ export function DashboardShell({
         role={role}
         apps={apps}
         levels={levels}
+        features={features}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         collapsed={collapsed}

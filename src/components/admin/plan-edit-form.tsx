@@ -221,9 +221,9 @@ export function PlanEditForm({
           className="mt-0.5 text-indigo-600"
         />
         <span>
-          <span className="block text-sm font-medium text-gray-700">Agente IA por WhatsApp</span>
+          <span className="block text-sm font-medium text-gray-700">Agente IA de atención</span>
           <span className="block text-xs text-gray-500 mt-0.5">
-            Los clientes de la empresa podrán escribirle al agente de atención: consultar sus tickets, proyectos, plan y facturas, diagnosticar sus sitios y abrir tickets. Sin esto, el agente les responde que no está incluido en su plan.
+            Los clientes de la empresa podrán escribirle al agente de atención, por WhatsApp o en el chat de la plataforma: consultar sus tickets, proyectos, plan y facturas, diagnosticar sus sitios y abrir tickets. Sin esto, el agente les responde que no está incluido en su plan.
           </span>
         </span>
       </label>

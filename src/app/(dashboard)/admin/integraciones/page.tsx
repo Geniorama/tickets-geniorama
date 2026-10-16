@@ -10,6 +10,8 @@ import { BriefRoutings } from "@/components/admin/brief-routings";
 import { HooksManager } from "@/components/integrations/hooks-manager";
 import { ApiKeys } from "@/components/integrations/api-keys";
 import { AgentSetupPanel } from "@/components/integrations/agent-setup";
+import { AgentChatSettings } from "@/components/integrations/agent-chat-settings";
+import { getAgentChatConfig } from "@/lib/agent-chat";
 import { IntegrationMap, IntegrationSection, type IntegrationCard } from "@/components/integrations/integration-map";
 import { WhatsAppIntegration } from "@/components/admin/whatsapp-integration";
 import { WhatsAppIcon, WHATSAPP_GREEN } from "@/components/ui/whatsapp-icon";
@@ -43,7 +45,7 @@ const linkStyle: React.CSSProperties = {
 export default async function IntegracionesPage() {
   await requireCan("ADMIN");
 
-  const [settings, routings, staff, hooks, apiKeys, candidates, agent] = await Promise.all([
+  const [settings, routings, staff, hooks, apiKeys, candidates, agent, agentChat] = await Promise.all([
     getSettings(KEYS),
     listBriefRoutings(),
     listAssignableStaff(),
@@ -51,6 +53,7 @@ export default async function IntegracionesPage() {
     getApiKeys(),
     getApiKeyCandidates(),
     getAgentSetup(),
+    getAgentChatConfig(),
   ]);
 
   const baseUrl = process.env.AUTH_URL ?? "http://localhost:3000";
@@ -66,6 +69,7 @@ export default async function IntegracionesPage() {
   const gchatChannels = GCHAT_KEYS.filter((k) => settings[k]).length;
   const agentClients = agent.companies.flatMap((c) => c.clients).filter((c) => c.phone && !c.duplicated).length;
   const agentReady = agent.companies.length > 0 && agent.keys.length > 0 && agent.secretConfigured;
+  const agentChatClients = new Set(agent.companies.flatMap((c) => c.clients.map((u) => u.id))).size;
 
   const cards: IntegrationCard[] = [
     {
@@ -89,12 +93,12 @@ export default async function IntegracionesPage() {
     {
       id: "agente",
       icon: <Bot style={icon("#16a34a")} />,
-      title: "Agente IA por WhatsApp",
-      purpose: "Un asistente que atiende a los clientes por chat con sus propios datos.",
+      title: "Agente IA de atención",
+      purpose: "Un asistente que atiende a los clientes por WhatsApp o en el chat de la plataforma, con sus propios datos.",
       example: "«¿Cuándo vence mi plan?», «mi sitio no carga».",
       direction: "conversa",
       status: agentReady
-        ? { tone: "ok", text: `Listo · ${agentClients} cliente(s)` }
+        ? { tone: "ok", text: agentChat.ready ? `Listo · WhatsApp y chat` : `Listo · ${agentClients} por WhatsApp` }
         : agent.companies.length > 0 || agent.keys.length > 0
           ? { tone: "warn", text: "Faltan pasos" }
           : { tone: "off", text: "Sin activar" },
@@ -198,17 +202,27 @@ export default async function IntegracionesPage() {
         <IntegrationSection
           id="agente"
           icon={<Bot style={icon("#16a34a")} />}
-          title="Agente IA por WhatsApp"
+          title="Agente IA de atención"
           intro={
             <>
-              Un asistente que contesta a los clientes por WhatsApp: el estado de sus tickets y proyectos, cuándo
+              Un asistente que contesta a los clientes por WhatsApp o en el chat de la plataforma: el estado de sus tickets y proyectos, cuándo
               vence su plan, sus facturas, por qué no carga su sitio, y abre un ticket cuando no puede
               resolverlo. Vive en n8n; aquí se ve si la plataforma tiene su parte lista y quién podrá usarlo.
             </>
           }
           notFor="los avisos automáticos por WhatsApp (más abajo): esos salen con plantillas y no reciben respuestas."
         >
-          <AgentSetupPanel setup={agent} />
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            <AgentSetupPanel setup={agent} />
+            <AgentChatSettings
+              url={agentChat.url}
+              secretConfigured={agentChat.secretConfigured}
+              keyId={agentChat.key?.id ?? null}
+              keys={agentChat.keys}
+              ready={agentChat.ready && agent.companies.length > 0}
+              availableClients={agentChatClients}
+            />
+          </div>
         </IntegrationSection>
 
         <IntegrationSection

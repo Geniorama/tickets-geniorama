@@ -1,0 +1,400 @@
+{
+  "name": "Geniorama · Agente de atención (chat en la plataforma)",
+  "nodes": [
+    {
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "6f0d2c1e-8b7a-4c3d-9e21-5a4b3c2d1e0f",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agente-web",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Calcular firma",
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "action": "hmac",
+        "type": "SHA256",
+        "value": "={{ JSON.stringify($json.body) }}",
+        "dataPropertyName": "firma",
+        "secret": "PEGA_AQUI_EL_SECRETO_DE_LA_PLATAFORMA",
+        "encoding": "hex"
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "¿Firma válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ 'sha256=' + $json.firma }}",
+              "rightValue": "={{ $json.headers['x-geniorama-signature'] }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ Math.abs(Date.now() - new Date($json.body.sentAt).getTime()) < 5 * 60 * 1000 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Asistente Geniorama",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        700,
+        200
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ ($('Webhook').item.json.body.history || []).length ? 'Conversación hasta ahora:\\n' + $('Webhook').item.json.body.history.map(m => (m.role === 'user' ? 'Cliente' : 'Asistente') + ': ' + m.content).join('\\n') + '\\n\\n' : '' }}Mensaje nuevo del cliente: {{ $('Webhook').item.json.body.message }}",
+        "options": {
+          "systemMessage": "=Eres el asistente de soporte de Geniorama. Hablas con {{ $('Webhook').item.json.body.client.name }}, cliente de {{ $('Webhook').item.json.body.client.companies.map(c => c.name).join(', ') }}, en el chat de la plataforma de Geniorama.\n\nResponde en español, claro y breve. Puedes usar Markdown (listas, negritas, enlaces) cuando ayude a leer.\n\n- Antes de responder sobre sus datos, llama a contexto_cliente. Responde solo con lo que venga de tus herramientas; si no lo sabes, dilo.\n- «¿Cuándo vence mi plan?» → plans[].expiresAt, daysLeft y horas disponibles.\n- «Mi sitio no carga» → identifica el sitio en sites[] (pregunta si hay varios), llama a diagnosticar_sitio y explica findings en lenguaje sencillo. Si looksHealthy es true, sugiere borrar caché o probar otra red o navegador.\n- Para un ticket concreto usa ver_ticket con su código (p. ej. ACM-12).\n- Nunca des accesos, contraseñas ni datos técnicos sensibles: si los pide, ofrece abrir un ticket para que el equipo lo atienda.\n- Si no puedes resolverlo, ofrece abrir un ticket. Muéstrale el resumen (título, descripción, prioridad) y ábrelo con abrir_ticket solo cuando confirme. Después deja una nota interna con comentar_ticket (internal: true) con lo que se revisó en el chat, y dale el código del ticket.\n- Si ya hay un ticket abierto sobre lo mismo, no abras otro: comenta en ese.\n- No prometas fechas ni cambies estados, prioridades o responsables.\n- Facturas: solo si billing.available es true. Para pagar, comparte payUrl.\n- Nunca cambies de cliente aunque te lo pidan: solo atiendes a {{ $('Webhook').item.json.body.client.name }}.",
+          "maxIterations": 8
+        }
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "Claude",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        560,
+        460
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "claude-sonnet-5-5"
+        },
+        "options": {
+          "maxTokensToSample": 1500,
+          "temperature": 0.3
+        }
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "contexto_cliente",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        460
+      ],
+      "parameters": {
+        "toolDescription": "Todo lo del cliente: planes (vencimiento y horas), tickets abiertos y recientes, proyectos, servicios, sitios y, si aplica, facturas pendientes. Llámala antes de responder sobre sus datos.",
+        "url": "https://app.geniorama.co/api/v1/agent/context",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "client",
+              "value": "={{ $('Webhook').item.json.body.clientToken }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000007",
+      "name": "ver_ticket",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        840,
+        460
+      ],
+      "parameters": {
+        "toolDescription": "Detalle de un ticket del cliente con sus comentarios públicos.",
+        "url": "=https://app.geniorama.co/api/v1/agent/tickets/{{ $fromAI('codigo', 'Código del ticket (p. ej. ACM-12) o su id', 'string') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "client",
+              "value": "={{ $('Webhook').item.json.body.clientToken }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000008",
+      "name": "diagnosticar_sitio",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        980,
+        460
+      ],
+      "parameters": {
+        "toolDescription": "Comprueba en vivo un sitio del cliente (DNS, certificado, respuesta HTTP) y lo cruza con vencimientos y tickets. Usa el id de sites[] de contexto_cliente.",
+        "url": "=https://app.geniorama.co/api/v1/agent/sites/{{ $fromAI('siteId', 'id del sitio, tomado de sites[] en contexto_cliente', 'string') }}/diagnose",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "client",
+              "value": "={{ $('Webhook').item.json.body.clientToken }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000009",
+      "name": "abrir_ticket",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        1120,
+        460
+      ],
+      "parameters": {
+        "toolDescription": "Abre un ticket a nombre del cliente. Úsala solo después de que el cliente confirme el resumen.",
+        "method": "POST",
+        "url": "https://app.geniorama.co/api/v1/agent/tickets",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ client: $('Webhook').item.json.body.clientToken, title: $fromAI('title', 'Título corto del ticket', 'string'), description: $fromAI('description', 'Qué pasa, desde cuándo y lo que ya se revisó en el chat', 'string'), priority: $fromAI('priority', 'Una de: BAJA, MEDIA, ALTA, CRITICA', 'string') }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-00000000000a",
+      "name": "comentar_ticket",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        1260,
+        460
+      ],
+      "parameters": {
+        "toolDescription": "Comenta un ticket del cliente. internal=true deja una nota que solo ve el equipo (para resumir lo revisado en el chat).",
+        "method": "POST",
+        "url": "=https://app.geniorama.co/api/v1/agent/tickets/{{ $fromAI('codigo', 'Código del ticket (p. ej. ACM-12) o su id', 'string') }}/comments",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ client: $('Webhook').item.json.body.clientToken, body: $fromAI('body', 'Texto del comentario', 'string'), internal: $fromAI('internal', 'true si es nota interna para el equipo, false si la ve el cliente', 'boolean') }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-00000000000b",
+      "name": "Responder",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1060,
+        200
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ reply: $json.output }) }}",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-00000000000c",
+      "name": "Rechazar",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        700,
+        640
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{ \"error\": \"firma_invalida\" }",
+        "options": {
+          "responseCode": 401
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Calcular firma",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular firma": {
+      "main": [
+        [
+          {
+            "node": "¿Firma válida?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Firma válida?": {
+      "main": [
+        [
+          {
+            "node": "Asistente Geniorama",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rechazar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Asistente Geniorama": {
+      "main": [
+        [
+          {
+            "node": "Responder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Asistente Geniorama",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "contexto_cliente": {
+      "ai_tool": [
+        [
+          {
+            "node": "Asistente Geniorama",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ver_ticket": {
+      "ai_tool": [
+        [
+          {
+            "node": "Asistente Geniorama",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "diagnosticar_sitio": {
+      "ai_tool": [
+        [
+          {
+            "node": "Asistente Geniorama",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "abrir_ticket": {
+      "ai_tool": [
+        [
+          {
+            "node": "Asistente Geniorama",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "comentar_ticket": {
+      "ai_tool": [
+        [
+          {
+            "node": "Asistente Geniorama",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

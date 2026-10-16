@@ -8,6 +8,7 @@ import { IntegrationMap, type IntegrationCard } from "@/components/integrations/
 import { WhatsAppIcon, WHATSAPP_GREEN } from "@/components/ui/whatsapp-icon";
 import { getMyWhatsApp } from "@/actions/whatsapp.actions";
 import { clientHasPlanFeature } from "@/lib/plans.server";
+import { agentChatAvailableFor } from "@/lib/agent-chat";
 import { mcpResourceUrl } from "@/lib/oauth/config";
 import { Plug, Bot, Webhook, MessageCircle } from "lucide-react";
 
@@ -17,11 +18,13 @@ const icon = (color: string) => ({ width: "1rem", height: "1rem", color, flexShr
 
 export default async function IntegracionesPage() {
   const session = await getRequiredSession();
-  const [webhooks, apps, whatsapp, agentEnabled] = await Promise.all([
+  const isClient = session.user.role === "CLIENTE";
+  const [webhooks, apps, whatsapp, agentEnabled, agentChat] = await Promise.all([
     getMyWebhooks(),
     getMyConnectedApps(),
     getMyWhatsApp(),
-    session.user.role === "CLIENTE" ? clientHasPlanFeature(session.user.id, "aiAgent") : Promise.resolve(false),
+    isClient ? clientHasPlanFeature(session.user.id, "aiAgent") : Promise.resolve(false),
+    isClient ? agentChatAvailableFor(session.user.id) : Promise.resolve(false),
   ]);
 
   const activeWebhooks = webhooks.filter((w) => w.isActive).length;
@@ -40,13 +43,18 @@ export default async function IntegracionesPage() {
       ? [{
           id: "whatsapp",
           icon: <MessageCircle style={icon("#16a34a")} />,
-          title: "Asistente por WhatsApp",
-          purpose: "Escríbele al asistente de Geniorama y te responde con tus datos.",
+          title: "Asistente Geniorama",
+          purpose: agentChat
+            ? "Escríbele desde el chat de la plataforma o por WhatsApp y te responde con tus datos."
+            : "Escríbele por WhatsApp y te responde con tus datos.",
           example: "«¿Cuántas horas me quedan?».",
           direction: "conversa" as const,
-          status: whatsapp.phone
-            ? { tone: "ok" as const, text: "Incluido en tu plan" }
-            : { tone: "warn" as const, text: "Falta tu número" },
+          ...(agentChat ? { href: "/mi-asistente" } : {}),
+          status: agentChat
+            ? { tone: "ok" as const, text: "Abrir el chat" }
+            : whatsapp.phone
+              ? { tone: "ok" as const, text: "Incluido en tu plan" }
+              : { tone: "warn" as const, text: "Falta tu número" },
         }]
       : []),
     {
@@ -93,7 +101,7 @@ export default async function IntegracionesPage() {
       </div>
 
       <div id="whatsapp" style={{ marginBottom: "1.5rem", scrollMarginTop: "1rem" }}>
-        <WhatsAppSettings initial={whatsapp} agentEnabled={agentEnabled} />
+        <WhatsAppSettings initial={whatsapp} agentEnabled={agentEnabled} agentChat={agentChat} />
       </div>
 
       <div id="webhooks" style={{ scrollMarginTop: "1rem" }}>

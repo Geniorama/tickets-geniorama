@@ -4,7 +4,7 @@ import { formatDateTime } from "@/lib/format-date";
 import type { AgentSetup } from "@/lib/api/agent-setup";
 
 /**
- * El estado del agente de atención por WhatsApp, de solo lectura: lo que falta
+ * El estado del agente de atención (WhatsApp y chat), de solo lectura: lo que falta
  * de este lado y qué clientes ya podrán escribirle. Todo se configura en otro
  * sitio (planes, llaves, n8n); aquí solo se ve si encaja.
  */
@@ -43,7 +43,7 @@ export function AgentSetupPanel({ setup }: { setup: AgentSetup }) {
       title: "Un plan vigente que lo incluya",
       detail: setup.companies.length > 0
         ? `${setup.companies.length} empresa(s): ${setup.companies.map((c) => c.name).join(", ")}.`
-        : <>Ningún plan vigente tiene marcado «Agente IA por WhatsApp». Se activa en <Link href="/admin/plans" style={{ color: "#6366f1" }}>Planes</Link>.</>,
+        : <>Ningún plan vigente tiene marcado «Agente IA de atención». Se activa en <Link href="/admin/plans" style={{ color: "#6366f1" }}>Planes</Link>.</>,
     },
     {
       done: setup.keys.length > 0,
@@ -63,7 +63,7 @@ export function AgentSetupPanel({ setup }: { setup: AgentSetup }) {
     {
       done: withPhone.length > 0,
       warn: duplicated.length > 0,
-      title: "Clientes con su WhatsApp registrado",
+      title: "Clientes con su WhatsApp registrado (solo para el canal de WhatsApp)",
       detail: clients.length === 0
         ? "Aparecerán cuando haya un plan con el agente."
         : `${withPhone.length} de ${clients.length} pueden escribirle al agente.` +
