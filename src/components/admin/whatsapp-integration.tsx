@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Send, Copy, Check } from "lucide-react";
-import { WhatsAppIcon, WHATSAPP_GREEN } from "@/components/ui/whatsapp-icon";
 import { saveSetting, deleteSetting } from "@/actions/settings.actions";
 import { sendWhatsAppAdminTest } from "@/actions/whatsapp.actions";
 import { WHATSAPP_EVENTS, WHATSAPP_FROM_KEY, type WhatsAppEvent } from "@/lib/whatsapp/config";
@@ -176,18 +175,7 @@ export function WhatsAppIntegration({
 
   return (
     <div>
-      <div style={{ marginBottom: "0.875rem" }}>
-        <h2 style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: 0, fontSize: "1rem", fontWeight: 700, color: "var(--app-body-text)" }}>
-          <WhatsAppIcon style={{ width: "1rem", height: "1rem", color: WHATSAPP_GREEN }} />
-          WhatsApp (Zoho CPaaS)
-        </h2>
-        <p style={{ margin: "0.375rem 0 0", fontSize: "0.8125rem", color: "var(--app-text-muted)", lineHeight: 1.55 }}>
-          Los avisos importantes salen también por WhatsApp para quien lo active en <em>Mis integraciones</em>.
-          WhatsApp solo permite mensajes con plantillas aprobadas por Meta: cada tipo de aviso necesita la suya.
-          Un tipo sin clave de plantilla no se envía.
-        </p>
-      </div>
-
+      {/* El título y la explicación los pone la página (IntegrationSection). */}
       <p
         style={{
           margin: "0 0 0.875rem",

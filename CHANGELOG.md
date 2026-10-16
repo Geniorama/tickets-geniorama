@@ -9,6 +9,36 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.121.0] — 2026-10-16
+
+### Integraciones más fáciles de entender
+
+- **Un mapa arriba de cada pantalla de integraciones**, con una tarjeta por
+  tipo: para qué sirve en una frase, un ejemplo, hacia dónde va la
+  información (*la plataforma avisa*, *escribe en la plataforma* o
+  *conversa*) y si ya está funcionando. Cada tarjeta lleva a su sección.
+- **Cada sección del equipo dice también para qué *no* es**, que es donde más
+  se confunden: los hooks no son para avisar a una persona, las llaves no son
+  para conectar Claude o ChatGPT, los avisos por WhatsApp no sirven para
+  conversar con clientes.
+- **Sección nueva: Agente IA por WhatsApp** (*Integraciones del equipo*). Una
+  lista de lo que falta del lado de la plataforma (plan vigente que lo
+  incluya, llave con el permiso, `AUTH_SECRET`) y, por empresa, qué clientes
+  tienen su WhatsApp registrado, cuáles no y cuáles chocan con otra cuenta.
+  Antes no había forma de saberlo.
+- **En *Mis integraciones***, al cliente cuyo plan incluye el agente se le
+  cuenta en *Avisos por WhatsApp* que el asistente lo reconoce por ese número,
+  y que conviene guardarlo aunque no active los avisos.
+
+#### Por dentro
+
+- `src/components/integrations/integration-map.tsx` — el mapa y el encabezado
+  común de sección.
+- `src/lib/api/agent-setup.ts` y `src/components/integrations/agent-setup.tsx`
+  — el estado del agente.
+
+---
+
 ## [1.120.0] — 2026-10-14
 
 ### API para el agente IA de atención a clientes

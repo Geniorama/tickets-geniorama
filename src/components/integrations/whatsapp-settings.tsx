@@ -31,7 +31,11 @@ const input: React.CSSProperties = {
  * qué. Activarlo es el consentimiento que exige WhatsApp, así que solo lo hace
  * cada persona para sí misma.
  */
-export function WhatsAppSettings({ initial }: { initial: MyWhatsApp }) {
+/**
+ * `agentEnabled`: el plan del cliente incluye el agente por WhatsApp. El mismo
+ * número es el que usa el agente para reconocerlo, así que se le dice aquí.
+ */
+export function WhatsAppSettings({ initial, agentEnabled = false }: { initial: MyWhatsApp; agentEnabled?: boolean }) {
   const start = splitPhone(initial.phone);
   const [dial, setDial] = useState(start.dial);
   const [number, setNumber] = useState(start.national);
@@ -86,6 +90,26 @@ export function WhatsAppSettings({ initial }: { initial: MyWhatsApp }) {
         Recibe en tu WhatsApp los avisos importantes: cuando te mencionan, te asignan algo o hay novedades en
         tus tickets. Solo te escribimos si lo activas, y puedes apagarlo cuando quieras.
       </p>
+
+      {agentEnabled && (
+        <p
+          style={{
+            margin: "0 0 1rem",
+            fontSize: "0.8125rem",
+            lineHeight: 1.55,
+            color: "#166534",
+            backgroundColor: "#f0fdf4",
+            border: "1px solid #bbf7d0",
+            borderRadius: "0.5rem",
+            padding: "0.5rem 0.75rem",
+          }}
+        >
+          Tu plan incluye el <strong>asistente de Geniorama por WhatsApp</strong>: escríbele para consultar tus
+          tickets, proyectos, plan o facturas. Te reconoce por este número, así que guárdalo aunque no actives
+          los avisos.
+          {!savedPhone && " Todavía no tienes uno guardado."}
+        </p>
+      )}
 
       {!initial.available && (
         <p
