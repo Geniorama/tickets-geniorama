@@ -8,7 +8,8 @@
  * - Lee TODOS los nombres de cookie del request y genera un Set-Cookie
  *   de borrado para cada uno, con los atributos correctos según prefijo.
  * - Retorna 200 OK con JS que navega a /login DESPUÉS de que el browser
- *   haya procesado los Set-Cookie. Más fiable que un redirect 307 donde
+ *   haya procesado los Set-Cookie. Con `?callbackUrl=/ruta` (solo rutas de
+ *   esta app) el login vuelve ahí: lo usa «Usar otra cuenta» del widget. Más fiable que un redirect 307 donde
  *   algunos proxies/CDN pueden ignorar los Set-Cookie del response.
  */
 export async function GET(request: Request) {
@@ -33,8 +34,14 @@ export async function GET(request: Request) {
     }
   }
 
+  // Solo rutas propias: un callbackUrl a otro dominio sería un redirector abierto.
+  const callback = new URL(request.url).searchParams.get("callbackUrl") ?? "";
+  const loginUrl = /^\/(?![/\\])/.test(callback)
+    ? `/login?callbackUrl=${encodeURIComponent(callback)}`
+    : "/login";
+
   const html = `<!doctype html><html><head><meta charset="utf-8">
-<script>window.location.replace("/login");</script>
+<script>window.location.replace(${JSON.stringify(loginUrl)});</script>
 </head><body></body></html>`;
 
   const headers = new Headers({

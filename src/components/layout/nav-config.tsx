@@ -115,7 +115,7 @@ export const ALWAYS_VISIBLE: NavSection[] = [
   { href: "/dashboard",    label: "Inicio",       icon: LayoutDashboard },
   { href: "/panel",        label: "Panel",        icon: LayoutList,    roles: STAFF, anyApp: WORK_APPS },
   { href: "/asistente",    label: "Asistente IA", icon: Bot,           roles: STAFF, anyApp: WORK_APPS },
-  { href: "/mi-asistente", label: "Asistente Geniorama", icon: MessageCircle, roles: ["CLIENTE"], feature: "agentChat" },
+  { href: "/mi-asistente", label: "GENIA", icon: MessageCircle, roles: ["CLIENTE"], feature: "agentChat" },
   { href: "/boveda",       label: "Bóveda",       icon: KeyRound },
   { href: "/agendar",      label: "Agendar",      icon: CalendarClock },
   { href: "/integraciones",label: "Mis integraciones", icon: Webhook },

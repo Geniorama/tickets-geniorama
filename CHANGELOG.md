@@ -9,6 +9,35 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.123.0] — 2026-10-16
+
+### GENIA: el asistente, con nombre y como widget en la plataforma y en otros sitios
+
+- **El asistente se llama GENIA.** Así aparece en el menú, en el chat, en el
+  widget y en *Mis integraciones*, y así se presenta: las instrucciones del
+  workflow de ejemplo y de la guía empiezan por «Eres GENIA».
+- **Botón flotante en la plataforma.** Los clientes con el chat disponible
+  tienen el asistente a mano en cualquier pantalla: abre la misma conversación
+  en un panel, con un botón para verla en pantalla completa.
+- **Widget para otros sitios** (la página web, por ejemplo): una línea
+  `<script src=".../embed/widget.js">` pone el botón y abre el chat en un
+  iframe de la plataforma. Para conversar hay que **entrar con la cuenta de
+  Geniorama** en una ventana de la plataforma (la contraseña nunca pasa por el
+  sitio anfitrión); solo los clientes con el asistente en su plan pueden usarlo
+  y ven únicamente lo suyo. Se puede cambiar de cuenta y salir.
+- **Sitios autorizados**: en *Integraciones del equipo → Chat en la plataforma*
+  se copia el código y se listan los dominios donde puede mostrarse. En los
+  demás, el widget dice «no autorizado».
+- **Arreglo: «El asistente respondió vacío».** Con Claude y herramientas, el AI
+  Agent de n8n puede devolver la respuesta como bloques de contenido en vez de
+  texto, y la plataforma la descartaba. Ahora junta los bloques de texto, y el
+  workflow de ejemplo (`docs/n8n/agente-chat-web.json`) ya los convierte en el
+  nodo **Responder**.
+- `/api/logout` acepta `?callbackUrl=` (solo rutas propias) para volver al
+  mismo sitio después de entrar con otra cuenta.
+
+---
+
 ## [1.122.0] — 2026-10-16
 
 ### El agente de atención, también como chat en la plataforma

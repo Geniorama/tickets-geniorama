@@ -27,6 +27,11 @@ export const authConfig = {
       // tiene cuenta. Lo que la protege es la llave larga de su dirección.
       if (nextUrl.pathname.startsWith("/pagar/")) return true;
 
+      // El widget del asistente en otros sitios: el script y el chat del
+      // iframe no tienen sesión (la cookie no llega a un iframe de terceros);
+      // se identifican con su propio token. /embed/conectar sí pide sesión.
+      if (nextUrl.pathname === "/embed/widget.js" || nextUrl.pathname === "/embed/asistente") return true;
+
       if (isAuthRoute) {
         // /set-password siempre accesible (no redirigir al dashboard si está logueado)
         if (isLoggedIn && nextUrl.pathname.startsWith("/login")) {

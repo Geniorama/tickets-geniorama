@@ -83,25 +83,41 @@ export async function agentChatAvailableFor(userId: string): Promise<boolean> {
  * n8n responde con lo que devuelva el nodo «Respond to Webhook». Se aceptan
  * las formas habituales: `{ reply }`, `{ output }` (la salida del AI Agent),
  * `{ text }`, una lista con cualquiera de ellas o texto plano.
+ *
+ * Con Claude y herramientas, el AI Agent a veces entrega `output` no como
+ * texto sino como los bloques de contenido del modelo
+ * (`[{ type: "text", text: "…" }, { type: "tool_use", … }]`); se juntan los
+ * de texto. Sin esto, una respuesta válida llegaba como «vacía».
  */
-function extractReply(raw: string): string | null {
-  const text = raw.trim();
-  if (!text) return null;
-  let data: unknown;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    return text;
+const REPLY_FIELDS = ["reply", "output", "text", "message", "content"] as const;
+
+function textOf(value: unknown, depth = 0): string | null {
+  if (depth > 4 || value == null) return null;
+  if (typeof value === "string") return value.trim() ? value : null;
+  if (Array.isArray(value)) {
+    const parts = value
+      .filter((v) => !(v && typeof v === "object" && "type" in v && (v as { type: unknown }).type !== "text"))
+      .map((v) => textOf(v, depth + 1))
+      .filter((v): v is string => Boolean(v));
+    return parts.length ? parts.join("\n\n") : null;
   }
-  const first = Array.isArray(data) ? data[0] : data;
-  if (typeof first === "string") return first;
-  if (first && typeof first === "object") {
-    for (const field of ["reply", "output", "text", "message"]) {
-      const v = (first as Record<string, unknown>)[field];
-      if (typeof v === "string" && v.trim()) return v;
+  if (typeof value === "object") {
+    for (const field of REPLY_FIELDS) {
+      const found = textOf((value as Record<string, unknown>)[field], depth + 1);
+      if (found) return found;
     }
   }
   return null;
+}
+
+function extractReply(raw: string): string | null {
+  const text = raw.trim();
+  if (!text) return null;
+  try {
+    return textOf(JSON.parse(text));
+  } catch {
+    return text;
+  }
 }
 
 export type AskResult = { ok: true; reply: string } | { ok: false; error: string };

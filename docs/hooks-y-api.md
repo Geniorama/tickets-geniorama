@@ -335,7 +335,7 @@ con volver a llamar a `/agent/client`.
 ### La llave
 
 Una sola llave, atada a una **cuenta del equipo** creada para el agente (p. ej.
-«Asistente Geniorama»: es quien firma sus comentarios), con el permiso `agent`.
+«GENIA»: es quien firma sus comentarios), con el permiso `agent`.
 No necesita `read`, `write` ni `act_as`: los endpoints `/agent` ya leen y
 escriben en nombre del cliente que se atiende, y recortan todo a lo que él vería
 en la plataforma. Una llave de cliente no puede tener `agent`.
@@ -378,7 +378,7 @@ el agente.
 ### Instrucciones de partida para el agente
 
 ```text
-Eres el asistente de soporte de Geniorama. Hablas con {{nombre}}, cliente de
+Eres GENIA, el asistente de soporte de Geniorama. Preséntate como GENIA. Hablas con {{nombre}}, cliente de
 {{empresas}}. Responde en español, breve y claro, como en un chat de WhatsApp.
 
 - Al empezar, llama a contexto_cliente. Responde solo con datos que vengan de tus
@@ -400,7 +400,7 @@ Eres el asistente de soporte de Geniorama. Hablas con {{nombre}}, cliente de
 ### El mismo agente en el chat de la plataforma
 
 Los clientes con el agente en su plan también pueden escribirle desde la
-plataforma (menú **Asistente Geniorama**, `/mi-asistente`), sin WhatsApp. No es
+plataforma (menú **GENIA**, `/mi-asistente`), sin WhatsApp. No es
 otro agente: la plataforma pone la ventana y guarda la conversación, y cada
 mensaje se reenvía a un webhook del **mismo** workflow. Se configura en
 *Integraciones del equipo → Agente IA de atención → Chat en la plataforma*:
@@ -445,17 +445,54 @@ El workflow listo para importar está en `docs/n8n/agente-chat-web.json` (n8n �
    con el secreto) → **If**: la firma coincide con `x-geniorama-signature` y
    `sentAt` no tiene más de 5 minutos. Si no, responde `401`.
 2. El mismo **AI Agent**, con `history` (los últimos 20 mensajes) dentro del
-   prompt, sin nodo de memoria: la conversación ya la guarda la plataforma, y `client` de las herramientas
-   fijado a `{{ $json.body.clientToken }}`.
+   prompt, sin nodo de memoria (la conversación ya la guarda la plataforma), y
+   `client` de las herramientas fijado a `{{ $json.body.clientToken }}`.
 3. **Respond to Webhook** con `{ "reply": "<texto>" }`. También se acepta la
    salida directa del AI Agent (`{ "output": … }` o `[{ "output": … }]`) o
-   texto plano.
+   texto plano. Con Claude y herramientas, `output` puede llegar como bloques
+   (`[{ "type": "text", "text": "…" }, …]`): la plataforma junta los de texto,
+   y el workflow de ejemplo ya los convierte antes de responder.
 
 Las respuestas se muestran con **Markdown** (listas, negritas, enlaces), así que
 en esta rama el agente no tiene por qué escribir como en WhatsApp. La plataforma
 espera hasta 90 s; si n8n tarda más, falla o responde vacío, el cliente ve un
 error y puede reenviar el mensaje, que no queda guardado. Cada cliente puede
-mandar hasta 30 mensajes cada 10 minutos.
+mandar hasta 30 mensajes cada 10 minutos. Si el cliente ve «respondió vacío»,
+abre la ejecución en n8n y mira la salida del nodo **Responder**: tiene que
+traer `reply` con texto.
+
+### El widget: botón flotante en la plataforma y en otros sitios
+
+Dentro de la plataforma, los clientes con el chat disponible tienen un **botón
+flotante** abajo a la derecha que abre la misma conversación en un panel.
+
+Para ponerlo en otro sitio (la página web, por ejemplo) basta una línea antes de
+`</body>`:
+
+```html
+<script src="https://app.geniorama.co/embed/widget.js" defer></script>
+```
+
+Opcionales: `data-color="#fd1384"`, `data-position="left"` y
+`data-label="¿Necesitas ayuda?"`. El script pone el botón y, al pulsarlo, abre
+el chat en un iframe servido por la plataforma (`/embed/asistente`).
+
+- **Siempre con cuenta.** Para conversar hay que entrar con la cuenta de
+  Geniorama. El botón «Iniciar sesión» abre una ventana de la plataforma
+  (`/embed/conectar`), que pasa por el login normal: la contraseña nunca se
+  escribe en el sitio anfitrión. Si ya hay sesión abierta en la plataforma, se
+  conecta sin pedirla. Solo pueden usarlo clientes con el agente en su plan;
+  al resto se le explica por qué no.
+- **El token del widget** (30 días) lo entrega esa ventana al iframe por
+  `postMessage`, dirigido solo al dominio de la plataforma. Vive dentro del
+  iframe y el sitio anfitrión no puede leerlo. En cada mensaje se vuelve a
+  comprobar que la cuenta siga activa y con el asistente en su plan. «Salir»
+  lo borra.
+- **Solo en sitios autorizados.** Se listan en *Chat en la plataforma → Sitios
+  autorizados* (`https://geniorama.co`, `https://www.geniorama.co`…: con y sin
+  «www» son dos). En cualquier otro, el iframe muestra «no autorizado».
+- La conversación es la misma en los tres sitios: el panel flotante, la página
+  *GENIA* y el widget externo.
 
 ---
 

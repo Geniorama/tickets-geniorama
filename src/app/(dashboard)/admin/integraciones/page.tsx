@@ -12,6 +12,7 @@ import { ApiKeys } from "@/components/integrations/api-keys";
 import { AgentSetupPanel } from "@/components/integrations/agent-setup";
 import { AgentChatSettings } from "@/components/integrations/agent-chat-settings";
 import { getAgentChatConfig } from "@/lib/agent-chat";
+import { embedAllowedOrigins } from "@/lib/agent-chat-session";
 import { IntegrationMap, IntegrationSection, type IntegrationCard } from "@/components/integrations/integration-map";
 import { WhatsAppIntegration } from "@/components/admin/whatsapp-integration";
 import { WhatsAppIcon, WHATSAPP_GREEN } from "@/components/ui/whatsapp-icon";
@@ -45,7 +46,7 @@ const linkStyle: React.CSSProperties = {
 export default async function IntegracionesPage() {
   await requireCan("ADMIN");
 
-  const [settings, routings, staff, hooks, apiKeys, candidates, agent, agentChat] = await Promise.all([
+  const [settings, routings, staff, hooks, apiKeys, candidates, agent, agentChat, embedOrigins] = await Promise.all([
     getSettings(KEYS),
     listBriefRoutings(),
     listAssignableStaff(),
@@ -54,6 +55,7 @@ export default async function IntegracionesPage() {
     getApiKeyCandidates(),
     getAgentSetup(),
     getAgentChatConfig(),
+    embedAllowedOrigins(),
   ]);
 
   const baseUrl = process.env.AUTH_URL ?? "http://localhost:3000";
@@ -221,6 +223,8 @@ export default async function IntegracionesPage() {
               keys={agentChat.keys}
               ready={agentChat.ready && agent.companies.length > 0}
               availableClients={agentChatClients}
+              embedOrigins={embedOrigins}
+              appOrigin={new URL(baseUrl).origin}
             />
           </div>
         </IntegrationSection>

@@ -43,7 +43,7 @@ export default async function IntegracionesPage() {
       ? [{
           id: "whatsapp",
           icon: <MessageCircle style={icon("#16a34a")} />,
-          title: "Asistente Geniorama",
+          title: "GENIA",
           purpose: agentChat
             ? "Escríbele desde el chat de la plataforma o por WhatsApp y te responde con tus datos."
             : "Escríbele por WhatsApp y te responde con tus datos.",

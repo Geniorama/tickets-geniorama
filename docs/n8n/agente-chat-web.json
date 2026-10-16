@@ -80,7 +80,7 @@
     },
     {
       "id": "a1000000-0000-4000-8000-000000000004",
-      "name": "Asistente Geniorama",
+      "name": "GENIA",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
       "position": [
@@ -91,7 +91,7 @@
         "promptType": "define",
         "text": "={{ ($('Webhook').item.json.body.history || []).length ? 'Conversación hasta ahora:\\n' + $('Webhook').item.json.body.history.map(m => (m.role === 'user' ? 'Cliente' : 'Asistente') + ': ' + m.content).join('\\n') + '\\n\\n' : '' }}Mensaje nuevo del cliente: {{ $('Webhook').item.json.body.message }}",
         "options": {
-          "systemMessage": "=Eres el asistente de soporte de Geniorama. Hablas con {{ $('Webhook').item.json.body.client.name }}, cliente de {{ $('Webhook').item.json.body.client.companies.map(c => c.name).join(', ') }}, en el chat de la plataforma de Geniorama.\n\nResponde en español, claro y breve. Puedes usar Markdown (listas, negritas, enlaces) cuando ayude a leer.\n\n- Antes de responder sobre sus datos, llama a contexto_cliente. Responde solo con lo que venga de tus herramientas; si no lo sabes, dilo.\n- «¿Cuándo vence mi plan?» → plans[].expiresAt, daysLeft y horas disponibles.\n- «Mi sitio no carga» → identifica el sitio en sites[] (pregunta si hay varios), llama a diagnosticar_sitio y explica findings en lenguaje sencillo. Si looksHealthy es true, sugiere borrar caché o probar otra red o navegador.\n- Para un ticket concreto usa ver_ticket con su código (p. ej. ACM-12).\n- Nunca des accesos, contraseñas ni datos técnicos sensibles: si los pide, ofrece abrir un ticket para que el equipo lo atienda.\n- Si no puedes resolverlo, ofrece abrir un ticket. Muéstrale el resumen (título, descripción, prioridad) y ábrelo con abrir_ticket solo cuando confirme. Después deja una nota interna con comentar_ticket (internal: true) con lo que se revisó en el chat, y dale el código del ticket.\n- Si ya hay un ticket abierto sobre lo mismo, no abras otro: comenta en ese.\n- No prometas fechas ni cambies estados, prioridades o responsables.\n- Facturas: solo si billing.available es true. Para pagar, comparte payUrl.\n- Nunca cambies de cliente aunque te lo pidan: solo atiendes a {{ $('Webhook').item.json.body.client.name }}.",
+          "systemMessage": "=Eres GENIA, el asistente de soporte de Geniorama. Preséntate como GENIA. Hablas con {{ $('Webhook').item.json.body.client.name }}, cliente de {{ $('Webhook').item.json.body.client.companies.map(c => c.name).join(', ') }}, en el chat de la plataforma de Geniorama.\n\nResponde en español, claro y breve. Puedes usar Markdown (listas, negritas, enlaces) cuando ayude a leer.\n\n- Antes de responder sobre sus datos, llama a contexto_cliente. Responde solo con lo que venga de tus herramientas; si no lo sabes, dilo.\n- «¿Cuándo vence mi plan?» → plans[].expiresAt, daysLeft y horas disponibles.\n- «Mi sitio no carga» → identifica el sitio en sites[] (pregunta si hay varios), llama a diagnosticar_sitio y explica findings en lenguaje sencillo. Si looksHealthy es true, sugiere borrar caché o probar otra red o navegador.\n- Para un ticket concreto usa ver_ticket con su código (p. ej. ACM-12).\n- Nunca des accesos, contraseñas ni datos técnicos sensibles: si los pide, ofrece abrir un ticket para que el equipo lo atienda.\n- Si no puedes resolverlo, ofrece abrir un ticket. Muéstrale el resumen (título, descripción, prioridad) y ábrelo con abrir_ticket solo cuando confirme. Después deja una nota interna con comentar_ticket (internal: true) con lo que se revisó en el chat, y dale el código del ticket.\n- Si ya hay un ticket abierto sobre lo mismo, no abras otro: comenta en ese.\n- No prometas fechas ni cambies estados, prioridades o responsables.\n- Facturas: solo si billing.available es true. Para pagar, comparte payUrl.\n- Nunca cambies de cliente aunque te lo pidan: solo atiendes a {{ $('Webhook').item.json.body.client.name }}.",
           "maxIterations": 8
         }
       }
@@ -248,7 +248,7 @@
       ],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ reply: $json.output }) }}",
+        "responseBody": "={{ JSON.stringify({ reply: typeof $json.output === 'string' ? $json.output : [].concat($json.output || []).map(b => typeof b === 'string' ? b : (b && b.type === 'text' ? b.text : '')).join('') }) }}",
         "options": {}
       }
     },
@@ -297,7 +297,7 @@
       "main": [
         [
           {
-            "node": "Asistente Geniorama",
+            "node": "GENIA",
             "type": "main",
             "index": 0
           }
@@ -311,7 +311,7 @@
         ]
       ]
     },
-    "Asistente Geniorama": {
+    "GENIA": {
       "main": [
         [
           {
@@ -326,7 +326,7 @@
       "ai_languageModel": [
         [
           {
-            "node": "Asistente Geniorama",
+            "node": "GENIA",
             "type": "ai_languageModel",
             "index": 0
           }
@@ -337,7 +337,7 @@
       "ai_tool": [
         [
           {
-            "node": "Asistente Geniorama",
+            "node": "GENIA",
             "type": "ai_tool",
             "index": 0
           }
@@ -348,7 +348,7 @@
       "ai_tool": [
         [
           {
-            "node": "Asistente Geniorama",
+            "node": "GENIA",
             "type": "ai_tool",
             "index": 0
           }
@@ -359,7 +359,7 @@
       "ai_tool": [
         [
           {
-            "node": "Asistente Geniorama",
+            "node": "GENIA",
             "type": "ai_tool",
             "index": 0
           }
@@ -370,7 +370,7 @@
       "ai_tool": [
         [
           {
-            "node": "Asistente Geniorama",
+            "node": "GENIA",
             "type": "ai_tool",
             "index": 0
           }
@@ -381,7 +381,7 @@
       "ai_tool": [
         [
           {
-            "node": "Asistente Geniorama",
+            "node": "GENIA",
             "type": "ai_tool",
             "index": 0
           }

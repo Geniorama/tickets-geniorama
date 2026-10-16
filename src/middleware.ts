@@ -16,6 +16,8 @@ export const config = {
   // con apps externas por token y sus respuestas de error las fija el estándar.
   // La pantalla /oauth/authorize sí pasa por aquí: necesita sesión.
   //
+  // api/embed es el chat del widget del asistente: autentica con su token.
+  //
   // swagger-ui son los archivos estáticos del visor de la referencia, que viven
   // en `public/`. Sin excluirlos, el navegador recibe un redirect a /login en
   // vez del script y la pantalla se queda vacía.
@@ -24,6 +26,6 @@ export const config = {
     // de sesión, así que si el middleware lo redirige al login el navegador no
     // llega a registrarlo y las notificaciones push no se activan nunca.
     // No expone nada: solo escucha avisos, no lee datos.
-    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\.png$|api/logout|api/cron|api/integrations|api/v1|api/oauth|api/mcp|\\.well-known|swagger-ui).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\.png$|api/logout|api/cron|api/integrations|api/v1|api/embed|api/oauth|api/mcp|\\.well-known|swagger-ui).*)",
   ],
 };

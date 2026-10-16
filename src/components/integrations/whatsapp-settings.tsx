@@ -111,11 +111,11 @@ export function WhatsAppSettings({
             padding: "0.5rem 0.75rem",
           }}
         >
-          Tu plan incluye el <strong>asistente de Geniorama por WhatsApp</strong>: escríbele para consultar tus
+          Tu plan incluye a <strong>GENIA, el asistente de Geniorama</strong>, por WhatsApp: escríbele para consultar tus
           tickets, proyectos, plan o facturas. Te reconoce por este número, así que guárdalo aunque no actives
           los avisos.
           {!savedPhone && " Todavía no tienes uno guardado."}
-          {agentChat && <> También puedes escribirle sin WhatsApp, desde <a href="/mi-asistente" style={{ color: "#166534", fontWeight: 600 }}>Asistente Geniorama</a>.</>}
+          {agentChat && <> También puedes escribirle sin WhatsApp, desde <a href="/mi-asistente" style={{ color: "#166534", fontWeight: 600 }}>GENIA</a>.</>}
         </p>
       )}
 

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { CheckCircle2, Circle, Copy, Check, Loader2, KeyRound } from "lucide-react";
 import { saveSetting, deleteSetting } from "@/actions/settings.actions";
-import { generateAgentChatSecret, setAgentChatKey } from "@/actions/agent-chat.actions";
+import { generateAgentChatSecret, setAgentChatKey, setAgentChatEmbedOrigins } from "@/actions/agent-chat.actions";
 import { AGENT_CHAT_URL_KEY } from "@/lib/agent-chat-keys";
 
 /**
@@ -60,7 +60,7 @@ function NoticeLine({ notice }: { notice: Notice }) {
 }
 
 export function AgentChatSettings({
-  url, secretConfigured, keyId, keys, ready, availableClients,
+  url, secretConfigured, keyId, keys, ready, availableClients, embedOrigins, appOrigin,
 }: {
   url: string | null;
   secretConfigured: boolean;
@@ -69,7 +69,36 @@ export function AgentChatSettings({
   ready: boolean;
   /** Clientes con un plan vigente que incluye el agente: a ellos se les muestra el chat. */
   availableClients: number;
+  /** Sitios autorizados a mostrar el widget. */
+  embedOrigins: string[];
+  appOrigin: string;
 }) {
+  const [originsValue, setOriginsValue] = useState(embedOrigins.join("\n"));
+  const [savedOrigins, setSavedOrigins] = useState(embedOrigins.join("\n"));
+  const [originsNotice, setOriginsNotice] = useState<Notice>(null);
+  const [savingOrigins, startOrigins] = useTransition();
+  const [snippetCopied, setSnippetCopied] = useState(false);
+  const snippet = `<script src="${appOrigin}/embed/widget.js" defer></script>`;
+
+  function saveOrigins() {
+    setOriginsNotice(null);
+    startOrigins(async () => {
+      const res = await setAgentChatEmbedOrigins(originsValue);
+      if ("error" in res) return setOriginsNotice({ kind: "error", text: res.error });
+      const text = res.origins.join("\n");
+      setOriginsValue(text);
+      setSavedOrigins(text);
+      setOriginsNotice({ kind: "ok", text: res.origins.length ? `Guardado: ${res.origins.length} sitio(s).` : "Sin sitios: el widget solo funciona dentro de la plataforma." });
+    });
+  }
+
+  function copySnippet() {
+    void navigator.clipboard.writeText(snippet).then(() => {
+      setSnippetCopied(true);
+      setTimeout(() => setSnippetCopied(false), 1500);
+    });
+  }
+
   const [urlValue, setUrlValue] = useState(url ?? "");
   const [savedUrl, setSavedUrl] = useState(url ?? "");
   const [urlNotice, setUrlNotice] = useState<Notice>(null);
@@ -128,15 +157,16 @@ export function AgentChatSettings({
   }
 
   const status = ready
-    ? { Icon: CheckCircle2, color: "#16a34a", text: `Activo: lo ven ${availableClients} cliente(s) en el menú, como «Asistente Geniorama».` }
+    ? { Icon: CheckCircle2, color: "#16a34a", text: `Activo: lo ven ${availableClients} cliente(s) en el menú, como «GENIA».` }
     : { Icon: Circle, color: "#9ca3af", text: "Inactivo: los clientes no lo ven hasta completar lo de abajo." };
 
   return (
     <div style={card}>
       <p style={{ margin: "0 0 0.25rem", fontSize: "0.875rem", fontWeight: 600, color: "var(--app-body-text)" }}>Chat en la plataforma</p>
       <p style={{ margin: "0 0 0.75rem", fontSize: "0.8125rem", color: "var(--app-text-muted)", lineHeight: 1.55 }}>
-        Los clientes con el agente en su plan también pueden escribirle desde aquí, sin WhatsApp. Cada mensaje se
-        reenvía al webhook de n8n con el token del cliente ya firmado, y la respuesta se muestra en el chat.
+        Los clientes con el agente en su plan también pueden escribirle sin WhatsApp: desde el botón flotante de la
+        plataforma, desde «GENIA» en el menú o desde el widget en otros sitios. Cada mensaje se reenvía
+        al webhook de n8n con el token del cliente ya firmado, y la respuesta se muestra en el chat.
       </p>
       <p style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: "0 0 1rem", fontSize: "0.8125rem", color: "var(--app-body-text)" }}>
         <status.Icon style={{ width: "1rem", height: "1rem", color: status.color, flexShrink: 0 }} />
@@ -209,6 +239,41 @@ export function AgentChatSettings({
             </>
           )}
           <NoticeLine notice={keyNotice} />
+        </div>
+
+        <div style={{ borderTop: "1px solid var(--app-border)", paddingTop: "0.875rem" }}>
+          <p style={{ margin: "0 0 0.25rem", fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-body-text)" }}>Insertar en otro sitio (p. ej. la página web)</p>
+          <p style={{ margin: "0 0 0.625rem", fontSize: "0.75rem", color: "var(--app-text-muted)", lineHeight: 1.55 }}>
+            Pega esta línea antes de <code>&lt;/body&gt;</code>. Aparece un botón flotante; para conversar, la persona entra con
+            su cuenta de Geniorama en una ventana de la plataforma (su contraseña no pasa por el sitio) y solo ve lo suyo.
+            Dentro de la plataforma, los clientes ya tienen el mismo botón.
+          </p>
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
+            <code style={{ ...input, fontFamily: "var(--font-mono, monospace)", overflowX: "auto", whiteSpace: "nowrap" }}>{snippet}</code>
+            <button type="button" onClick={copySnippet} style={button}>
+              {snippetCopied ? <Check style={{ width: "0.875rem", height: "0.875rem" }} /> : <Copy style={{ width: "0.875rem", height: "0.875rem" }} />}
+              {snippetCopied ? "Copiado" : "Copiar"}
+            </button>
+          </div>
+          <label style={label} htmlFor="agent-chat-origins">Sitios autorizados (uno por línea)</label>
+          <textarea
+            id="agent-chat-origins"
+            value={originsValue}
+            onChange={(e) => setOriginsValue(e.target.value)}
+            rows={3}
+            placeholder={"https://geniorama.co\nhttps://www.geniorama.co"}
+            style={{ ...input, width: "100%", resize: "vertical", fontFamily: "var(--font-mono, monospace)" }}
+          />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginTop: "0.375rem" }}>
+            <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--app-text-muted)", lineHeight: 1.5 }}>
+              En cualquier otro sitio el widget muestra «no autorizado». Cuentan el dominio exacto: con y sin «www» son dos.
+            </p>
+            <button type="button" onClick={saveOrigins} disabled={savingOrigins || originsValue.trim() === savedOrigins.trim()} style={{ ...button, opacity: savingOrigins || originsValue.trim() === savedOrigins.trim() ? 0.5 : 1 }}>
+              {savingOrigins && <Loader2 style={spin} />}
+              Guardar
+            </button>
+          </div>
+          <NoticeLine notice={originsNotice} />
         </div>
       </div>
     </div>
