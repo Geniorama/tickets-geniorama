@@ -70,7 +70,9 @@ const script = (origin: string) => `(function () {
       // El origen de esta página tiene que llegar a la plataforma para
       // comprobar que el sitio está autorizado, aunque el sitio lo oculte.
       frame.referrerPolicy = "strict-origin-when-cross-origin";
-      frame.allow = "clipboard-write";
+      // El micrófono, para las notas de voz: un iframe de otro dominio no lo
+      // puede pedir si la página no se lo permite aquí.
+      frame.allow = "clipboard-write; microphone";
       var f = frame.style;
       f.position = "fixed"; f.zIndex = String(Z); f.border = "0"; f.background = "#ffffff";
       f.boxShadow = "0 24px 48px rgba(0,0,0,0.22)"; f.colorScheme = "light";

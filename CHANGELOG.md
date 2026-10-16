@@ -9,6 +9,26 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.125.0] — 2026-10-16
+
+### GENIA entiende notas de voz
+
+- **Micrófono en el chat** (página, botón flotante y widget en otros sitios):
+  aparece en lugar del botón de enviar mientras no hay texto, como en
+  WhatsApp. Se graba hasta 2 minutos, se puede descartar con la papelera y se
+  envía sola al llegar al límite.
+- **La plataforma transcribe el audio** con OpenAI (`gpt-4o-mini-transcribe`,
+  cambiable con `OPENAI_TRANSCRIBE_MODEL`) y se lo pasa a GENIA como texto,
+  con `messageType: "audio"`. El workflow de n8n no necesita cambios; el de
+  ejemplo le pide al agente confirmar lo que no cuadre.
+- **El audio no se guarda**: se transcribe y se descarta. En el chat queda la
+  transcripción marcada como «Nota de voz», para ver qué se entendió.
+- El widget de otros sitios pide permiso de micrófono al iframe
+  (`allow="microphone"`).
+- Migración: columna `kind` en `agent_chat_messages`.
+
+---
+
 ## [1.124.0] — 2026-10-16
 
 ### GENIA estrena ícono

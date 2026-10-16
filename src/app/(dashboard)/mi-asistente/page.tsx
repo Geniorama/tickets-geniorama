@@ -30,6 +30,7 @@ export default async function MiAsistentePage() {
         userName={session.user.name ?? state.name}
         initialConversationId={state.conversationId}
         initialMessages={state.messages}
+        audio={state.audio}
       />
     </div>
   );

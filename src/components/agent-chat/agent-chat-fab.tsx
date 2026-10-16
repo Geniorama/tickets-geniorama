@@ -83,6 +83,7 @@ export function AgentChatFab() {
               userName={state.name}
               initialConversationId={state.conversationId}
               initialMessages={state.messages}
+              audio={state.audio}
               height="100%"
               rounded={false}
               headerActions={

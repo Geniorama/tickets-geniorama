@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { requireCan } from "@/lib/access/can";
-import { loadAgentChat, sendAgentChat, parseOrigins, type AgentChatState, type SendResult } from "@/lib/agent-chat-session";
+import { loadAgentChat, sendAgentChat, sendAgentChatAudio, parseOrigins, type AgentChatState, type SendResult } from "@/lib/agent-chat-session";
 import { AGENT_CHAT_API_KEY_KEY, AGENT_CHAT_SECRET_KEY, AGENT_CHAT_EMBED_ORIGINS_KEY } from "@/lib/agent-chat-keys";
 import { recordActivity } from "@/lib/activity/record";
 import { PLATFORM_SCOPE } from "@/lib/activity/catalog";
@@ -23,6 +23,16 @@ export async function sendAgentChatMessage(conversationId: string | null, text: 
   const session = await getRequiredSession();
   if (session.user.role !== "CLIENTE") return { error: "El asistente es para los clientes de Geniorama." };
   return sendAgentChat(session.user.id, conversationId, text);
+}
+
+/** Una nota de voz del cliente con sesión: `audio` (el archivo) y `conversationId` en el FormData. */
+export async function sendAgentChatAudioMessage(formData: FormData): Promise<SendResult> {
+  const session = await getRequiredSession();
+  if (session.user.role !== "CLIENTE") return { error: "El asistente es para los clientes de Geniorama." };
+  const audio = formData.get("audio");
+  if (!(audio instanceof File)) return { error: "No llegó la nota de voz." };
+  const conversationId = formData.get("conversationId");
+  return sendAgentChatAudio(session.user.id, typeof conversationId === "string" && conversationId ? conversationId : null, audio);
 }
 
 /** El secreto con que se firman las peticiones al workflow. Se muestra una sola vez. */

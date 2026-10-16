@@ -1814,6 +1814,8 @@ model AgentChatMessage {
   /// "user" | "assistant"
   role           String
   content        String   @db.Text
+  /// "text" | "audio" (nota de voz: `content` es la transcripción; el audio no se guarda)
+  kind           String   @default("text")
   createdAt      DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

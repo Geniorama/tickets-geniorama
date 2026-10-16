@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { AlertCircle, Plus, Send } from "lucide-react";
+import { AlertCircle, Mic, Plus, Send } from "lucide-react";
 import { GenieIcon } from "@/components/ui/genie-icon";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
-import { sendAgentChatMessage } from "@/actions/agent-chat.actions";
+import { sendAgentChatMessage, sendAgentChatAudioMessage } from "@/actions/agent-chat.actions";
+import { VoiceRecorder, voiceRecordingSupported } from "./voice-recorder";
 import type { AgentChatMessageView, SendResult } from "@/lib/agent-chat-session";
 
 const ACCENT = "#fd1384";
@@ -23,10 +24,24 @@ const SUGGESTIONS = [
  * La usan la página `/mi-asistente`, el widget flotante de la plataforma y el
  * widget insertado en otros sitios. Este último no tiene sesión, así que pasa
  * su propio `send` (con el token del widget) en vez de la acción de servidor.
+ *
+ * Con `audio`, el micrófono reemplaza al botón de enviar mientras no haya
+ * texto escrito, como en WhatsApp. La nota de voz se transcribe en el servidor
+ * y aparece en el chat como lo que se entendió.
  */
+
+/** La nota de voz por la acción de servidor (página y widget de la plataforma). */
+function sendAudioWithSession(conversationId: string | null, audio: Blob): Promise<SendResult> {
+  const form = new FormData();
+  form.append("audio", audio, "nota");
+  if (conversationId) form.append("conversationId", conversationId);
+  return sendAgentChatAudioMessage(form);
+}
 export function AgentChat({
   userName, initialConversationId, initialMessages,
   send: sendMessage = sendAgentChatMessage,
+  sendAudio = sendAudioWithSession,
+  audio = false,
   height = "calc(100vh - 11rem)",
   rounded = true,
   headerActions,
@@ -35,6 +50,9 @@ export function AgentChat({
   initialConversationId: string | null;
   initialMessages: AgentChatMessageView[];
   send?: (conversationId: string | null, text: string) => Promise<SendResult>;
+  sendAudio?: (conversationId: string | null, audio: Blob) => Promise<SendResult>;
+  /** Ofrecer notas de voz (la transcripción está configurada en el servidor). */
+  audio?: boolean;
   height?: string;
   /** Borde y esquinas redondeadas; el widget los pone por fuera. */
   rounded?: boolean;
@@ -43,7 +61,16 @@ export function AgentChat({
 }) {
   const [conversationId, setConversationId] = useState(initialConversationId);
   const [messages, setMessages] = useState(initialMessages);
+  /** Lo que se está enviando: el texto, o `null` con `pendingAudio` si es una nota de voz. */
   const [pending, setPending] = useState<string | null>(null);
+  const [pendingAudio, setPendingAudio] = useState(false);
+  const [recording, setRecording] = useState(false);
+  // MediaRecorder solo existe en el navegador: se decide después de montar.
+  const [canRecord, setCanRecord] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCanRecord(audio && voiceRecordingSupported());
+  }, [audio]);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -52,7 +79,7 @@ export function AgentChat({
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, pending, error]);
+  }, [messages, pending, pendingAudio, error]);
 
   function send(text: string) {
     const trimmed = text.trim();
@@ -75,6 +102,22 @@ export function AgentChat({
     });
   }
 
+  function sendVoice(blob: Blob) {
+    if (isPending) return;
+    setError(null);
+    setPendingAudio(true);
+    startTransition(async () => {
+      const res = await sendAudio(conversationId, blob);
+      setPendingAudio(false);
+      if ("error" in res) {
+        setError(res.error);
+        return;
+      }
+      setConversationId(res.conversationId);
+      setMessages((prev) => [...prev, res.user, res.reply]);
+    });
+  }
+
   function newConversation() {
     if (isPending) return;
     setConversationId(null);
@@ -83,7 +126,8 @@ export function AgentChat({
     inputRef.current?.focus();
   }
 
-  const empty = messages.length === 0 && !pending;
+  const empty = messages.length === 0 && !pending && !pendingAudio;
+  const showMic = canRecord && !input.trim();
 
   return (
     <div
@@ -146,13 +190,14 @@ export function AgentChat({
           </div>
         )}
 
-        {messages.map((m) => <Bubble key={m.id} role={m.role} content={m.content} />)}
+        {messages.map((m) => <Bubble key={m.id} role={m.role} content={m.content} voice={m.kind === "audio"} />)}
         {pending && <Bubble role="user" content={pending} />}
+        {pendingAudio && <Bubble role="user" content={null} voice />}
 
         {isPending && (
           <div style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", color: "var(--app-text-muted)", padding: "0.625rem 1rem", borderRadius: "1rem", border: "1px solid var(--app-border)", backgroundColor: "var(--app-content-bg)" }}>
             <span style={{ width: "0.875rem", height: "0.875rem", border: "2px solid var(--app-border)", borderTopColor: ACCENT, borderRadius: "9999px", animation: "spin 1s linear infinite" }} />
-            Revisando tu información…
+            {pendingAudio ? "Escuchando tu nota de voz…" : "Revisando tu información…"}
           </div>
         )}
 
@@ -168,7 +213,7 @@ export function AgentChat({
         onSubmit={(e) => { e.preventDefault(); send(input); }}
         style={{ display: "flex", alignItems: "flex-end", gap: "0.5rem", padding: "0.75rem 1rem", borderTop: "1px solid var(--app-border)", flexShrink: 0 }}
       >
-        <textarea
+        {!recording && <textarea
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -183,7 +228,10 @@ export function AgentChat({
           placeholder="Escribe tu mensaje…"
           aria-label="Mensaje para el asistente"
           style={{ flex: 1, resize: "none", maxHeight: "8rem", fontSize: "0.875rem", padding: "0.625rem 0.875rem", borderRadius: "0.75rem", border: "1px solid var(--app-border)", backgroundColor: "var(--app-content-bg)", color: "var(--app-body-text)", outline: "none", fontFamily: "inherit" }}
-        />
+        />}
+        {showMic ? (
+          <VoiceRecorder disabled={isPending} onRecorded={sendVoice} onRecordingChange={setRecording} onError={setError} />
+        ) : (
         <button
           type="submit"
           disabled={isPending || !input.trim()}
@@ -192,22 +240,30 @@ export function AgentChat({
         >
           <Send style={{ width: "1rem", height: "1rem" }} />
         </button>
+        )}
       </form>
     </div>
   );
 }
 
-function Bubble({ role, content }: { role: "user" | "assistant"; content: string }) {
+/** `content: null` es una nota de voz que todavía se está transcribiendo. */
+function Bubble({ role, content, voice = false }: { role: "user" | "assistant"; content: string | null; voice?: boolean }) {
   if (role === "user") {
     return (
       <div style={{ alignSelf: "flex-end", maxWidth: "80%", fontSize: "0.875rem", lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word", color: "#ffffff", backgroundColor: ACCENT, borderRadius: "1rem 1rem 0.25rem 1rem", padding: "0.625rem 1rem" }}>
+        {voice && (
+          <span style={{ display: "flex", alignItems: "center", gap: "0.25rem", fontSize: "0.6875rem", fontWeight: 600, opacity: 0.85, marginBottom: "0.125rem", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+            <Mic style={{ width: "0.75rem", height: "0.75rem" }} />
+            Nota de voz
+          </span>
+        )}
         {content}
       </div>
     );
   }
   return (
     <div style={{ alignSelf: "flex-start", maxWidth: "88%", fontSize: "0.875rem", wordBreak: "break-word", backgroundColor: "var(--app-content-bg)", border: "1px solid var(--app-border)", borderRadius: "1rem 1rem 1rem 0.25rem", padding: "0.75rem 1rem 0.25rem" }}>
-      <MarkdownRenderer content={content} />
+      <MarkdownRenderer content={content ?? ""} />
     </div>
   );
 }

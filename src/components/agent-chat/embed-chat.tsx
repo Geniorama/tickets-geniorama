@@ -140,6 +140,26 @@ export function EmbedChat() {
     }
   }, []);
 
+  const sendAudio = useCallback(async (conversationId: string | null, audio: Blob): Promise<SendResult> => {
+    const token = tokenRef.current;
+    if (!token) return { error: "Inicia sesión de nuevo." };
+    const form = new FormData();
+    form.append("audio", audio, "nota");
+    if (conversationId) form.append("conversationId", conversationId);
+    try {
+      const res = await fetch("/api/embed/agent-chat/audio", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: form });
+      if (res.status === 401) {
+        writeToken(null);
+        tokenRef.current = null;
+        setPhase({ kind: "signed-out", notice: "Tu sesión venció. Entra de nuevo." });
+        return { error: "Tu sesión venció." };
+      }
+      return (await res.json()) as SendResult;
+    } catch {
+      return { error: "No pudimos enviar la nota de voz. Inténtalo en un momento." };
+    }
+  }, []);
+
   const closeButton = (
     <button type="button" onClick={closeWidget} title="Cerrar" aria-label="Cerrar" style={iconButton}>
       <X style={{ width: "0.875rem", height: "0.875rem" }} />
@@ -154,6 +174,8 @@ export function EmbedChat() {
           initialConversationId={phase.state.conversationId}
           initialMessages={phase.state.messages}
           send={send}
+          sendAudio={sendAudio}
+          audio={phase.state.audio}
           height="100%"
           rounded={false}
           headerActions={

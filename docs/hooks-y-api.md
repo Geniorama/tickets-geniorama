@@ -421,6 +421,7 @@ Lo que recibe el webhook:
   "channel": "web",
   "conversationId": "5b0c…",
   "message": "¿Cómo van mis tickets?",
+  "messageType": "text",
   "history": [{ "role": "user", "content": "…" }, { "role": "assistant", "content": "…" }],
   "client": { "id": "…", "name": "Ana Pérez", "email": "ana@empresa.com", "companies": [{ "id": "…", "name": "ACME" }] },
   "clientToken": "…",
@@ -460,6 +461,25 @@ error y puede reenviar el mensaje, que no queda guardado. Cada cliente puede
 mandar hasta 30 mensajes cada 10 minutos. Si el cliente ve «respondió vacío»,
 abre la ejecución en n8n y mira la salida del nodo **Responder**: tiene que
 traer `reply` con texto.
+
+### Notas de voz
+
+En el chat (página, botón flotante y widget) el micrófono reemplaza al botón de
+enviar mientras no hay texto escrito. La nota de voz (hasta 2 minutos) la
+**transcribe la plataforma** con OpenAI (`OPENAI_API_KEY`, la misma del
+asistente del equipo; modelo `gpt-4o-mini-transcribe`, cambiable con
+`OPENAI_TRANSCRIBE_MODEL`) y al workflow le llega como texto, con
+`"messageType": "audio"`. El workflow no tiene que hacer nada distinto; el de
+ejemplo se lo indica al agente para que confirme lo que no cuadre (un código de
+ticket mal entendido, por ejemplo).
+
+El audio no se guarda: se transcribe y se descarta. En la conversación queda la
+transcripción, marcada como nota de voz, para que el cliente vea qué se
+entendió. Sin `OPENAI_API_KEY` el micrófono no aparece.
+
+En WhatsApp las notas de voz llegan al workflow como un archivo de Meta: se
+descargan y se transcriben en n8n (nodo *OpenAI → Transcribe a recording*)
+antes del AI Agent.
 
 ### El widget: botón flotante en la plataforma y en otros sitios
 

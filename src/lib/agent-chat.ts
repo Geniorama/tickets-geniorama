@@ -131,6 +131,8 @@ export async function askAgent(input: {
   userId: string;
   conversationId: string;
   message: string;
+  /** "audio": `message` es la transcripción de una nota de voz. */
+  messageType?: "text" | "audio";
   history: { role: string; content: string }[];
 }): Promise<AskResult> {
   const config = await readConfig();
@@ -149,6 +151,7 @@ export async function askAgent(input: {
     channel: "web",
     conversationId: input.conversationId,
     message: input.message,
+    messageType: input.messageType ?? "text",
     history: input.history.slice(-HISTORY_LIMIT),
     client: { id: client.id, name: client.name, email: client.email, companies: client.companies },
     clientToken: token.token,

@@ -10,11 +10,19 @@ import { prisma } from "@/lib/prisma";
 import { findClient } from "@/lib/api/agent";
 import { askAgent, getAgentChatConfig } from "@/lib/agent-chat";
 import { AGENT_CHAT_EMBED_ORIGINS_KEY } from "@/lib/agent-chat-keys";
+import { audioTranscriptionAvailable, transcribeAudio } from "@/lib/agent-chat-audio";
 
-export type AgentChatMessageView = { id: string; role: "user" | "assistant"; content: string; createdAt: string };
+export type AgentChatMessageView = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  /** "audio": una nota de voz; `content` es lo que se transcribió. */
+  kind: "text" | "audio";
+  createdAt: string;
+};
 
 export type AgentChatState =
-  | { available: true; name: string; conversationId: string | null; messages: AgentChatMessageView[] }
+  | { available: true; name: string; conversationId: string | null; messages: AgentChatMessageView[]; audio: boolean }
   | { available: false; name: string | null; reason: string };
 
 const MAX_MESSAGE = 2_000;
@@ -24,10 +32,11 @@ const RATE_MAX = 30;
 /** Cuántos mensajes de la última conversación se recuperan al entrar. */
 const RESUME_LIMIT = 100;
 
-const view = (m: { id: string; role: string; content: string; createdAt: Date }): AgentChatMessageView => ({
+const view = (m: { id: string; role: string; content: string; kind: string; createdAt: Date }): AgentChatMessageView => ({
   id: m.id,
   role: m.role === "assistant" ? "assistant" : "user",
   content: m.content,
+  kind: m.kind === "audio" ? "audio" : "text",
   createdAt: m.createdAt.toISOString(),
 });
 
@@ -59,10 +68,16 @@ export async function loadAgentChat(userId: string): Promise<AgentChatState> {
         where: { userId, conversationId: last.conversationId },
         orderBy: { createdAt: "desc" },
         take: RESUME_LIMIT,
-        select: { id: true, role: true, content: true, createdAt: true },
+        select: { id: true, role: true, content: true, kind: true, createdAt: true },
       })
     : [];
-  return { available: true, name: name ?? "", conversationId: last?.conversationId ?? null, messages: messages.reverse().map(view) };
+  return {
+    available: true,
+    name: name ?? "",
+    conversationId: last?.conversationId ?? null,
+    messages: messages.reverse().map(view),
+    audio: audioTranscriptionAvailable(),
+  };
 }
 
 export type SendResult =
@@ -74,10 +89,19 @@ export type SendResult =
  * empieza una conversación nueva. Si el agente no responde, el mensaje no se
  * guarda: se reenvía sin que quede repetido.
  */
-export async function sendAgentChat(userId: string, conversationId: string | null, text: string): Promise<SendResult> {
+export async function sendAgentChat(
+  userId: string,
+  conversationId: string | null,
+  text: string,
+  kind: "text" | "audio" = "text",
+): Promise<SendResult> {
   const message = text.trim();
   if (!message) return { error: "Escribe un mensaje." };
-  if (message.length > MAX_MESSAGE) return { error: `El mensaje es muy largo (máximo ${MAX_MESSAGE} caracteres).` };
+  // Una nota de voz de dos minutos transcrita pasa de sobra los 2.000 caracteres.
+  const max = kind === "audio" ? MAX_MESSAGE * 2 : MAX_MESSAGE;
+  if (message.length > max) {
+    return { error: kind === "audio" ? "La nota de voz es muy larga. Grábala más corta." : `El mensaje es muy largo (máximo ${max} caracteres).` };
+  }
 
   const { reason } = await unavailableReason(userId);
   if (reason) return { error: reason };
@@ -103,10 +127,10 @@ export async function sendAgentChat(userId: string, conversationId: string | nul
   });
 
   const userMsg = await prisma.agentChatMessage.create({
-    data: { userId, conversationId: convId, role: "user", content: message },
+    data: { userId, conversationId: convId, role: "user", content: message, kind },
   });
 
-  const r = await askAgent({ userId, conversationId: convId, message, history: history.reverse() });
+  const r = await askAgent({ userId, conversationId: convId, message, messageType: kind, history: history.reverse() });
   if (!r.ok) {
     await prisma.agentChatMessage.delete({ where: { id: userMsg.id } }).catch(() => {});
     return { error: r.error };
@@ -116,6 +140,19 @@ export async function sendAgentChat(userId: string, conversationId: string | nul
     data: { userId, conversationId: convId, role: "assistant", content: r.reply },
   });
   return { conversationId: convId, user: view(userMsg), reply: view(reply) };
+}
+
+/**
+ * Una nota de voz: se transcribe y sigue el mismo camino que un mensaje
+ * escrito. Las comprobaciones de disponibilidad van antes de transcribir, para
+ * no pagar la transcripción de quien no puede usar el asistente.
+ */
+export async function sendAgentChatAudio(userId: string, conversationId: string | null, file: File): Promise<SendResult> {
+  const { reason } = await unavailableReason(userId);
+  if (reason) return { error: reason };
+  const t = await transcribeAudio(file);
+  if (!t.ok) return { error: t.error };
+  return sendAgentChat(userId, conversationId, t.text, "audio");
 }
 
 // ─── El widget en otros sitios ───────────────────────────────────────────────
