@@ -89,6 +89,7 @@ export type PlanInput = {
   expiresAt?: Date | null;
   prioritySupport: boolean;
   aiTools: boolean;
+  aiAgent: boolean;
 };
 
 async function validarPlan(d: PlanInput): Promise<string | null> {
@@ -111,6 +112,7 @@ function datosPlan(d: PlanInput) {
     expiresAt: d.expiresAt ?? null,
     prioritySupport: d.prioritySupport,
     aiTools: d.aiTools,
+    aiAgent: d.aiAgent,
   };
 }
 

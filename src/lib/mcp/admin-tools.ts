@@ -62,7 +62,7 @@ function serializeCompany(c: Prisma.CompanyGetPayload<{ select: typeof companySe
 
 const planSelect = {
   id: true, name: true, type: true, totalHours: true, durationDays: true, startedAt: true,
-  expiresAt: true, isActive: true, prioritySupport: true, aiTools: true,
+  expiresAt: true, isActive: true, prioritySupport: true, aiTools: true, aiAgent: true,
   company: { select: { id: true, name: true } },
 } satisfies Prisma.PlanSelect;
 
@@ -90,6 +90,7 @@ async function serializePlan(p: PlanRow) {
     daysToExpiry: daysUntilExpiry(p),
     prioritySupport: p.prioritySupport,
     aiTools: p.aiTools,
+    aiAgent: p.aiAgent,
   };
 }
 
@@ -324,6 +325,7 @@ export async function registerAdminTools(server: McpServer, user: ApiUser, canWr
         expiresAt: date.optional(),
         prioritySupport: z.boolean().optional().describe("Da a los clientes los links de agendamiento prioritarios"),
         aiTools: z.boolean().optional().describe("Da a los clientes las herramientas de IA de sus fichas"),
+        aiAgent: z.boolean().optional().describe("Da a los clientes el agente de atención por WhatsApp"),
       },
       annotations: write,
     },
@@ -338,6 +340,7 @@ export async function registerAdminTools(server: McpServer, user: ApiUser, canWr
         expiresAt: toDate(a.expiresAt) ?? null,
         prioritySupport: a.prioritySupport ?? false,
         aiTools: a.aiTools ?? false,
+        aiAgent: a.aiAgent ?? false,
       });
       if (!r.ok) return fail(r.error);
       const plan = await prisma.plan.findUnique({ where: { id: r.id }, select: planSelect });
@@ -363,6 +366,7 @@ export async function registerAdminTools(server: McpServer, user: ApiUser, canWr
         expiresAt: date.nullable().optional(),
         prioritySupport: z.boolean().optional(),
         aiTools: z.boolean().optional(),
+        aiAgent: z.boolean().optional(),
         isActive: z.boolean().optional(),
       },
       annotations: write,
@@ -372,7 +376,7 @@ export async function registerAdminTools(server: McpServer, user: ApiUser, canWr
         where: { id: planId },
         select: {
           name: true, type: true, companyId: true, totalHours: true, durationDays: true,
-          startedAt: true, expiresAt: true, prioritySupport: true, aiTools: true, isActive: true,
+          startedAt: true, expiresAt: true, prioritySupport: true, aiTools: true, aiAgent: true, isActive: true,
         },
       });
       if (!cur) return fail("Plan no encontrado");
@@ -389,6 +393,7 @@ export async function registerAdminTools(server: McpServer, user: ApiUser, canWr
           expiresAt: a.expiresAt !== undefined ? (toDate(a.expiresAt) ?? null) : cur.expiresAt,
           prioritySupport: a.prioritySupport ?? cur.prioritySupport,
           aiTools: a.aiTools ?? cur.aiTools,
+          aiAgent: a.aiAgent ?? cur.aiAgent,
         });
         if (!r.ok) return fail(r.error);
       }

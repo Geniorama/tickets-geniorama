@@ -18,6 +18,7 @@ const planSchema = z.object({
   expiresAt: z.string().optional(),
   prioritySupport: z.boolean(),
   aiTools: z.boolean(),
+  aiAgent: z.boolean(),
 });
 
 function parsePlanFormData(formData: FormData) {
@@ -32,6 +33,7 @@ function parsePlanFormData(formData: FormData) {
     // Casilla: solo llega en el formulario si está marcada
     prioritySupport: formData.get("prioritySupport") === "on",
     aiTools: formData.get("aiTools") === "on",
+    aiAgent: formData.get("aiAgent") === "on",
   };
 
   if (type === "BOLSA_HORAS") {

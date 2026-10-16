@@ -368,6 +368,179 @@ function okWith(name: string, schema: unknown, extra: Record<string, unknown> = 
   };
 }
 
+// ─── Agente de atención a clientes ───────────────────────────────────────────
+
+const CLIENT_TOKEN_DESC =
+  "El `clientToken` que devolvió `/agent/client`. No acepta id ni correo: así el modelo no puede cambiar de cliente aunque se lo pidan. Vencido o de otra llave → 403 (`client_token_invalido`).";
+
+const CLIENT_QUERY = {
+  name: "client",
+  in: "query",
+  required: true,
+  description: CLIENT_TOKEN_DESC,
+  schema: { type: "string" },
+} as const;
+
+const AGENT_ERRORS = {
+  "403": {
+    description:
+      "La llave no tiene el permiso `agent`, no es de una cuenta del equipo, el `client` no es válido o venció (`client_token_invalido`), o el plan del cliente no incluye el agente (`plan_sin_agente`).",
+    content: { "application/json": { schema: errorRef } },
+  },
+} as const;
+
+/**
+ * Los endpoints `/agent`. Todo se lee y se escribe en nombre de un cliente, y
+ * se recorta a lo que él vería en la plataforma.
+ */
+function agentPaths() {
+  return {
+    "/agent/client": {
+      get: {
+        operationId: "agentFindClient",
+        tags: ["Agente"],
+        summary: "Identificar al cliente que escribe",
+        description:
+          "Por el número de WhatsApp (con o sin `+`), el correo o el id. Responde aunque el plan no incluya el agente: `agentEnabled: false` es para que el bot lo diga. 404 = número sin cuenta; 409 = dos cuentas con el mismo número (se avisa a los administradores). Con el agente incluido devuelve `clientToken`, que es lo que el resto de `/agent` acepta en `client`: firmado, atado a esta llave, vence a las 6 h. Pídelo de nuevo con cada mensaje. Requiere `agent`.",
+        parameters: [
+          { name: "phone", in: "query", schema: { type: "string" }, example: "573001234567" },
+          { name: "email", in: "query", schema: { type: "string" } },
+          { name: "id", in: "query", schema: { type: "string" } },
+        ],
+        responses: {
+          "200": okWith("client", {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              name: { type: "string" },
+              email: { type: "string" },
+              companies: { type: "array", items: { type: "object", properties: { id: { type: "string" }, name: { type: "string" } } } },
+            },
+          }, {
+            agentEnabled: { type: "boolean" },
+            clientToken: { type: "string", nullable: true, description: "`null` si el plan no incluye el agente." },
+            clientTokenExpiresAt: { type: "string", format: "date-time", nullable: true },
+          }),
+          ...commonErrors(AGENT_ERRORS),
+          ...notFound("El cliente"),
+          "409": { description: "Varias cuentas de cliente tienen ese número.", content: { "application/json": { schema: errorRef } } },
+        },
+      },
+    },
+    "/agent/context": {
+      get: {
+        operationId: "agentContext",
+        tags: ["Agente"],
+        summary: "Todo lo del cliente en una llamada",
+        description:
+          "Planes (vencimiento, días restantes, horas usadas y disponibles), tickets abiertos y cerrados en los últimos 30 días, proyectos con su avance, servicios (dominio, hosting, SSL…) con su vencimiento, sitios y —si tiene autorizada «Mi facturación»— facturas pendientes con link de pago. Requiere `agent`.",
+        parameters: [CLIENT_QUERY],
+        responses: {
+          "200": okWith("context", { type: "object" }),
+          ...commonErrors(AGENT_ERRORS),
+        },
+      },
+    },
+    "/agent/tickets": {
+      post: {
+        operationId: "agentCreateTicket",
+        tags: ["Agente"],
+        summary: "Abrir un ticket a nombre del cliente",
+        description:
+          "Cuando el agente no puede resolver algo. Nace `POR_ASIGNAR`, contra el plan vigente del cliente, con los avisos de siempre. Sin plan vigente responde 422. Requiere `agent`.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["client", "title", "description"],
+                properties: {
+                  client: { type: "string", description: CLIENT_TOKEN_DESC },
+                  title: { type: "string", maxLength: 200 },
+                  description: { type: "string", description: "Qué pasa, dónde, desde cuándo y qué se descartó en el chat." },
+                  priority: { type: "string", enum: PRIORITY },
+                  siteId: { type: "string", description: "Uno de los sitios del cliente." },
+                  category: { type: "string" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "201": okWith("ticket", { $ref: "#/components/schemas/Ticket" }),
+          ...commonErrors(AGENT_ERRORS),
+          "422": { description: "El cliente no tiene un plan vigente.", content: { "application/json": { schema: errorRef } } },
+        },
+      },
+    },
+    "/agent/tickets/{id}": {
+      get: {
+        operationId: "agentGetTicket",
+        tags: ["Agente"],
+        summary: "Un ticket del cliente con sus comentarios públicos",
+        description: "`id` acepta el id o el código («ACM-12»). Requiere `agent`.",
+        parameters: [idParam, CLIENT_QUERY],
+        responses: {
+          "200": okWith("ticket", { type: "object" }),
+          ...commonErrors(AGENT_ERRORS),
+          ...notFound("El ticket"),
+        },
+      },
+    },
+    "/agent/tickets/{id}/comments": {
+      post: {
+        operationId: "agentCommentTicket",
+        tags: ["Agente"],
+        summary: "Comentar un ticket del cliente, también en nota interna",
+        description:
+          "Firma la cuenta del equipo dueña de la llave. Con `internal: true` la nota solo la ve el equipo y se avisa al responsable del ticket. Es la única vía de la API que escribe notas internas. Requiere `agent`.",
+        parameters: [idParam],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["client", "body"],
+                properties: {
+                  client: { type: "string", description: CLIENT_TOKEN_DESC },
+                  body: { type: "string", maxLength: 10000 },
+                  internal: { type: "boolean", default: false },
+                },
+              },
+              examples: {
+                publico: { summary: "Público", value: { client: "<clientToken>", body: "El cliente confirma que el error sigue desde el celular." } },
+                interno: { summary: "Nota interna", value: { client: "<clientToken>", body: "Resumen del chat: DNS y SSL bien, responde 500 desde las 9:00.", internal: true } },
+              },
+            },
+          },
+        },
+        responses: {
+          "201": okWith("comment", { $ref: "#/components/schemas/Comment" }),
+          ...commonErrors(AGENT_ERRORS),
+          ...notFound("El ticket"),
+        },
+      },
+    },
+    "/agent/sites/{id}/diagnose": {
+      get: {
+        operationId: "agentDiagnoseSite",
+        tags: ["Agente"],
+        summary: "¿Por qué no carga mi sitio?",
+        description:
+          "Comprueba en vivo DNS, certificado y respuesta HTTP, y lo cruza con los vencimientos de dominio, hosting y SSL y con los tickets abiertos del sitio. `findings` trae las conclusiones en español; `looksHealthy` es true si desde fuera todo va bien. No incluye la documentación interna de la ficha. Puede tardar hasta ~20 s. Requiere `agent`.",
+        parameters: [idParam, CLIENT_QUERY],
+        responses: {
+          "200": okWith("diagnosis", { type: "object" }),
+          ...commonErrors(AGENT_ERRORS),
+          ...notFound("El sitio"),
+        },
+      },
+    },
+  };
+}
+
 // ─── Documento ───────────────────────────────────────────────────────────────
 
 /**
@@ -411,6 +584,7 @@ export function buildOpenApiDocument(baseUrl: string) {
       { name: "Usuarios", description: "Directorio mínimo, para resolver responsables y `onBehalfOf`." },
       { name: "CRM · Cuentas", description: "Empresas y prospectos, con sus contactos y su historial." },
       { name: "CRM · Oportunidades", description: "El pipeline de venta." },
+      { name: "Agente", description: "Para el agente de atención a clientes (WhatsApp vía n8n). Todo en nombre de un cliente y recortado a lo suyo. Requiere el permiso `agent`." },
     ],
     components: {
       securitySchemes: {
@@ -434,6 +608,7 @@ export function buildOpenApiDocument(baseUrl: string) {
     },
     security: [{ bearerAuth: [] }],
     paths: {
+      ...agentPaths(),
       // ── Diagnóstico ──
       "/me": {
         get: {

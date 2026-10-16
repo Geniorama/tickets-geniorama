@@ -15,6 +15,7 @@ type PlanRow = {
   isActive: boolean;
   prioritySupport: boolean;
   aiTools: boolean;
+  aiAgent: boolean;
   statusBadge: { label: string; bg: string; color: string };
   company: { name: string };
 };
@@ -39,6 +40,17 @@ function AiBadge() {
       style={{ fontSize: "0.6875rem", fontWeight: 600, padding: "0.1rem 0.5rem", borderRadius: "9999px", backgroundColor: "rgba(99,102,241,0.12)", color: "#6366f1" }}
     >
       IA
+    </span>
+  );
+}
+
+function AgentBadge() {
+  return (
+    <span
+      title="Incluye el agente IA por WhatsApp: sus clientes pueden consultar y abrir tickets por chat"
+      style={{ fontSize: "0.6875rem", fontWeight: 600, padding: "0.1rem 0.5rem", borderRadius: "9999px", backgroundColor: "rgba(22,163,74,0.12)", color: "#16a34a" }}
+    >
+      Agente
     </span>
   );
 }
@@ -78,7 +90,7 @@ export function PlansTable({
         {plans.map((plan) => (
           <li key={plan.id} style={{ padding: "0.875rem 1rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.25rem" }}>
-              <span style={{ fontWeight: 600, color: "var(--app-body-text)", fontSize: "0.9375rem", display: "inline-flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap" }}>{plan.name} {plan.prioritySupport && <PriorityBadge />}{plan.aiTools && <AiBadge />}</span>
+              <span style={{ fontWeight: 600, color: "var(--app-body-text)", fontSize: "0.9375rem", display: "inline-flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap" }}>{plan.name} {plan.prioritySupport && <PriorityBadge />}{plan.aiTools && <AiBadge />}{plan.aiAgent && <AgentBadge />}</span>
               <span style={{ fontSize: "0.75rem", fontWeight: 600, padding: "0.2rem 0.6rem", borderRadius: "9999px", backgroundColor: plan.statusBadge.bg, color: plan.statusBadge.color, flexShrink: 0 }}>
                 {plan.statusBadge.label}
               </span>
@@ -127,7 +139,7 @@ export function PlansTable({
               <tr key={plan.id} style={{ borderBottom: "1px solid var(--app-border)" }}>
                 <td style={{ padding: "0.75rem 1rem", fontWeight: 500, color: "var(--app-body-text)" }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem", alignItems: "flex-start" }}>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap" }}>{plan.name} {plan.prioritySupport && <PriorityBadge />}{plan.aiTools && <AiBadge />}</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap" }}>{plan.name} {plan.prioritySupport && <PriorityBadge />}{plan.aiTools && <AiBadge />}{plan.aiAgent && <AgentBadge />}</span>
                     <CopyId value={plan.id} />
                   </div>
                 </td>

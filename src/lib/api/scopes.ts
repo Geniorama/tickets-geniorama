@@ -9,7 +9,7 @@
 /** Prefijo de marca: hace obvio de dónde salió un token filtrado. */
 export const TOKEN_PREFIX = "gnr";
 
-export const API_SCOPES = ["read", "write", "act_as"] as const;
+export const API_SCOPES = ["read", "write", "act_as", "agent"] as const;
 export type ApiScope = (typeof API_SCOPES)[number];
 
 export const API_SCOPE_LABELS: Record<ApiScope, { label: string; description: string }> = {
@@ -25,6 +25,11 @@ export const API_SCOPE_LABELS: Record<ApiScope, { label: string; description: st
     label: "Actuar en nombre de otro",
     description:
       "Permite mandar «onBehalfOf» para atribuir lo que se cree a otro usuario. Necesario para bots que atienden a varias personas.",
+  },
+  agent: {
+    label: "Agente de atención a clientes",
+    description:
+      "Los endpoints /agent: reconocer al cliente por su WhatsApp y consultar solo lo suyo, diagnosticar sus sitios, abrir tickets y dejar comentarios, también notas internas. Solo para la llave del agente, atada a una cuenta del equipo.",
   },
 };
 

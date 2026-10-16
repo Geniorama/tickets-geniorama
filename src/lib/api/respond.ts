@@ -43,6 +43,20 @@ export async function requireActor(
   return actor;
 }
 
+/**
+ * La llave del agente de atención: permiso `agent` y atada a una cuenta del
+ * equipo. Lo segundo se comprueba aquí y no solo al crear la llave, por si el
+ * dueño cambió de rol después.
+ */
+export async function requireAgentActor(req: Request): Promise<ApiActor | NextResponse> {
+  const actor = await requireActor(req, "agent");
+  if (actor instanceof NextResponse) return actor;
+  if (actor.user.role === "CLIENTE") {
+    return apiError("El permiso de agente solo vale en una llave del equipo", 403);
+  }
+  return actor;
+}
+
 /** Lee el cuerpo JSON, o devuelve la respuesta de error correspondiente. */
 export async function readJson(req: Request): Promise<unknown | NextResponse> {
   try {

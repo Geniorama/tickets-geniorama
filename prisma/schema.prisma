@@ -583,6 +583,9 @@ model Plan {
   // Habilita a los clientes de la empresa las herramientas de IA de sus fichas
   // (diagnóstico e informes). El equipo las tiene siempre.
   aiTools Boolean @default(false) @map("ai_tools")
+  // Habilita a los clientes de la empresa el agente de atención por WhatsApp
+  // (vive fuera, en n8n; aquí solo se decide quién lo tiene). Ver /api/v1/agent.
+  aiAgent Boolean @default(false) @map("ai_agent")
 
   companyId String  @map("company_id")
   company   Company @relation(fields: [companyId], references: [id])

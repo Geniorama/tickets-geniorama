@@ -213,6 +213,21 @@ export function PlanEditForm({
         </span>
       </label>
 
+      <label className="flex items-start gap-3 rounded-lg border border-gray-200 px-3 py-3 cursor-pointer">
+        <input
+          type="checkbox"
+          name="aiAgent"
+          defaultChecked={plan.aiAgent}
+          className="mt-0.5 text-indigo-600"
+        />
+        <span>
+          <span className="block text-sm font-medium text-gray-700">Agente IA por WhatsApp</span>
+          <span className="block text-xs text-gray-500 mt-0.5">
+            Los clientes de la empresa podrán escribirle al agente de atención: consultar sus tickets, proyectos, plan y facturas, diagnosticar sus sitios y abrir tickets. Sin esto, el agente les responde que no está incluido en su plan.
+          </span>
+        </span>
+      </label>
+
       {error && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
           {error}

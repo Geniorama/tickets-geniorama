@@ -12,7 +12,7 @@ export async function getClientActivePlan(userId: string) {
 }
 
 /** Funciones que un plan habilita a los clientes de su empresa. */
-export type PlanFeature = "prioritySupport" | "aiTools";
+export type PlanFeature = "prioritySupport" | "aiTools" | "aiAgent";
 
 /**
  * ¿Tiene el cliente esta función? Basta con que uno de sus planes vigentes
@@ -47,6 +47,7 @@ async function getClientActivePlans(userId: string) {
               isActive: true,
               prioritySupport: true,
               aiTools: true,
+              aiAgent: true,
             },
           },
         },

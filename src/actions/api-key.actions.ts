@@ -96,9 +96,14 @@ export async function createApiKey(input: {
 
   const user = await prisma.user.findUnique({
     where: { id: parsed.data.userId, isActive: true },
-    select: { id: true },
+    select: { id: true, role: true },
   });
   if (!user) return { error: "Ese usuario no existe o está inactivo" };
+  // El agente escribe notas internas y ve a todos los clientes: nunca en la
+  // llave de un cliente. El servidor lo vuelve a exigir en cada petición.
+  if (scopes.includes("agent") && user.role === "CLIENTE") {
+    return { error: "El permiso de agente solo se puede dar a una llave del equipo" };
+  }
 
   const count = await prisma.apiKey.count();
   if (count >= MAX_KEYS) {

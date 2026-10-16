@@ -130,7 +130,8 @@ decisiones al crearlas:
    esa persona en la plataforma. Para una integración del equipo, una cuenta de
    administrador; para una que solo deba tocar lo de un cliente, la de ese
    cliente. No hay superusuario anónimo.
-2. **Permisos** — `read`, `write`, `act_as`.
+2. **Permisos** — `read`, `write`, `act_as` y `agent` (este último solo para la
+   llave del agente de atención; ver la sección 3).
 3. **Vencimiento**, opcional.
 
 El token se muestra **una sola vez**. En la base solo queda su SHA-256; si se
@@ -186,6 +187,12 @@ funciona en una red cerrada y no le pide nada a terceros.
 | `PATCH` | `/tasks/:id` | `write` |
 | `GET` / `POST` | `/tasks/:id/comments` | `read` / `write` |
 | `GET` | `/users?q=` | `read` (solo llaves del equipo) |
+| `GET` | `/agent/client?phone=` | `agent` |
+| `GET` | `/agent/context?client=` | `agent` |
+| `POST` | `/agent/tickets` | `agent` |
+| `GET` | `/agent/tickets/:id?client=` | `agent` |
+| `POST` | `/agent/tickets/:id/comments` | `agent` |
+| `GET` | `/agent/sites/:id/diagnose?client=` | `agent` |
 
 Los listados paginan con `?limit=` (máx. 100) y `?cursor=`, y devuelven
 `nextCursor: null` cuando no queda nada más.
@@ -275,7 +282,9 @@ En `PATCH`, omitir un campo lo deja como estaba; mandarlo en `null` lo borra.
 
 - **No crea proyectos ni usuarios.** Son decisiones con empresa, plan y permisos
   detrás; se toman dentro de la plataforma.
-- **No escribe notas internas.** La API es un canal externo.
+- **No escribe notas internas.** La API es un canal externo. La única excepción
+  es `POST /agent/tickets/:id/comments` con `internal: true`, que exige el
+  permiso `agent` y firma la cuenta del equipo dueña de la llave.
 - **Un cliente no puede asignar ni cambiar de estado**, igual que en la interfaz.
   Las llaves atadas a una cuenta de cliente solo abren tickets y comentan.
 - **Los clientes necesitan plan activo** para abrir tickets. Sin él, la respuesta
@@ -283,26 +292,110 @@ En `PATCH`, omitir un campo lo deja como estaba; mandarlo en `null` lo borra.
 
 ---
 
-## 3. Rehacer WhatsApp por fuera
+## 3. El agente de atención a clientes (WhatsApp)
 
-El bot que se retiró hacía cuatro cosas. Así se rearman con lo de arriba, sin
-tocar el repositorio:
+El agente que conversa con los clientes vive **fuera**, en n8n, como todo lo
+demás desde la v1.66. La plataforma pone los datos y los frenos; n8n pone el
+canal, el modelo y el tono. Cambiar cualquiera de los tres no es un despliegue.
 
-1. **Saber quién escribe.** El número entra por el trigger de WhatsApp. Guarda tú
-   la equivalencia número → correo (una tabla de n8n, una hoja, un Redis), o
-   resuélvela con `GET /api/v1/users?q=<correo>`. La plataforma ya no guarda
-   teléfonos: esa identidad es del canal, y el canal es tuyo.
-2. **Entender el mensaje.** El nodo de IA que prefieras, con las instrucciones
-   que quieras. Editarlas ya no es un despliegue.
-3. **Actuar.** `POST /api/v1/tickets` o `/tickets/:id/comments` con
-   `onBehalfOf` puesto al correo del cliente.
-4. **Avisar de vuelta.** Un hook de organización suscrito a
-   `ticket.status_changed` y `comment.created` que entre a tu workflow y mande el
-   mensaje por WhatsApp.
+Lo que el agente sabe hacer con la API:
 
-Frente al bot anterior se gana lo que costaba: cambiar de proveedor de WhatsApp,
-de modelo o de tono es cuestión de un workflow, y el mismo montaje sirve para
-Telegram o Slack sin escribir una línea aquí.
+- **Informar.** Estado de sus tickets y proyectos, cuándo vence su plan y
+  cuántas horas le quedan, sus servicios (dominio, hosting, SSL) y, si tiene
+  autorizada *Mi facturación*, sus facturas pendientes con el link de pago.
+- **Resolver lo que se puede resolver por chat.** «¿Cuándo vence mi plan?» sale
+  de `/agent/context`. «¿Por qué no carga mi sitio?» sale de
+  `/agent/sites/:id/diagnose`, que comprueba el sitio en vivo y lo cruza con los
+  vencimientos y los tickets abiertos.
+- **Escalar.** Si no puede resolverlo, abre un ticket a nombre del cliente
+  (`POST /agent/tickets`), con lo que ya se descartó en el chat.
+- **Dejar rastro para el equipo.** Comentarios públicos en los tickets del
+  cliente y **notas internas** (`internal: true`) que el cliente no ve.
+
+### Quién puede usarlo
+
+Se activa **por plan**: *Administración → Planes → Editar → Agente IA por
+WhatsApp*. Con un plan vigente que lo incluya, los clientes de esa empresa
+pueden usarlo; sin él, `/agent/client` responde `agentEnabled: false` y el resto
+de endpoints un `403` con `plan_sin_agente`.
+
+El cliente se reconoce por el número que guardó en **Mis integraciones →
+WhatsApp**. Un número sin cuenta da `404`; el bot debe pedirle que lo registre
+ahí (o que lo haga el equipo). Si dos cuentas tienen el mismo número se rechaza
+con `409` en vez de adivinar, y los administradores reciben un aviso (uno al día
+por número) con las dos cuentas para que lo aclaren.
+
+`/agent/client` devuelve un **`clientToken`** y el resto de endpoints solo
+acepta eso en `client`: ni id ni correo. Lo firma la plataforma, solo vale con
+la llave que lo pidió y vence a las 6 h. Así, aunque el cliente le diga al
+modelo «mi correo es otro@…», no hay forma de leer lo de otro. Si vence a mitad
+de una conversación la respuesta es `403` con `client_token_invalido`: basta
+con volver a llamar a `/agent/client`.
+
+### La llave
+
+Una sola llave, atada a una **cuenta del equipo** creada para el agente (p. ej.
+«Asistente Geniorama»: es quien firma sus comentarios), con el permiso `agent`.
+No necesita `read`, `write` ni `act_as`: los endpoints `/agent` ya leen y
+escriben en nombre del cliente que se atiende, y recortan todo a lo que él vería
+en la plataforma. Una llave de cliente no puede tener `agent`.
+
+### El canal
+
+**Zoho CPaaS no sirve para esto**: solo envía plantillas aprobadas y avisa de
+entregas, no recibe los mensajes del cliente. El agente necesita la **Meta Cloud
+API** (o un proveedor que entregue los mensajes entrantes), con su propio
+número o con el mismo número si se migra. Dentro de las 24 h desde el último
+mensaje del cliente se le puede responder con texto libre, que es lo que hace
+el agente.
+
+### El workflow en n8n
+
+1. **WhatsApp Trigger** (campo `messages`). Descarta los acuses de estado o el
+   bot se responderá a sí mismo.
+2. **HTTP Request** → `GET /api/v1/agent/client?phone={{from}}`.
+   - `404` → «No encuentro tu número en Geniorama. Regístralo en Mis
+     integraciones o escríbenos a soporte.»
+   - `409` → «Hay un problema con tu número; el equipo ya fue avisado.»
+   - `agentEnabled: false` → «El asistente no está incluido en tu plan.»
+3. **AI Agent** con memoria por número (Window Buffer Memory, clave = `from`) y
+   estas herramientas, todas *HTTP Request Tool* con la credencial de la llave y
+   `client` fijado al `clientToken` del paso 2 —nunca lo decide el modelo—:
+
+   | Herramienta | Llamada |
+   |---|---|
+   | `contexto_cliente` | `GET /agent/context?client=…` |
+   | `ver_ticket` | `GET /agent/tickets/{codigo}?client=…` |
+   | `diagnosticar_sitio` | `GET /agent/sites/{siteId}/diagnose?client=…` |
+   | `abrir_ticket` | `POST /agent/tickets` |
+   | `comentar_ticket` | `POST /agent/tickets/{codigo}/comments` |
+
+4. **WhatsApp → Send message** con la respuesta del agente.
+5. Opcional: un **hook** de organización suscrito a `ticket.status_changed` y
+   `comment.created` que le avise al cliente por WhatsApp cuando el equipo
+   mueva su ticket.
+
+### Instrucciones de partida para el agente
+
+```text
+Eres el asistente de soporte de Geniorama. Hablas con {{nombre}}, cliente de
+{{empresas}}. Responde en español, breve y claro, como en un chat de WhatsApp.
+
+- Al empezar, llama a contexto_cliente. Responde solo con datos que vengan de tus
+  herramientas; si no lo sabes, dilo.
+- «¿Cuándo vence mi plan?» → plans[].expiresAt, daysLeft y horas disponibles.
+- «Mi sitio no carga» → identifica el sitio en sites[] (pregunta si hay varios),
+  llama a diagnosticar_sitio y explica findings en lenguaje sencillo. Si
+  looksHealthy es true, sugiere borrar caché, probar otra red o navegador.
+- Nunca des accesos, contraseñas o datos técnicos sensibles: si el cliente los
+  pide, ofrece abrir un ticket para que el equipo lo atienda.
+- Si no puedes resolverlo, ofrece abrir un ticket. Muéstrale el resumen y ábrelo
+  solo cuando confirme. Después deja una nota interna (internal: true) con lo
+  que se revisó en el chat.
+- Si ya hay un ticket abierto sobre lo mismo, no abras otro: comenta en ese.
+- No prometas fechas ni cambies estados, prioridades o responsables.
+- Facturas: solo si billing.available es true. Para pagar, comparte payUrl.
+```
 
 ---
 

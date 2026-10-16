@@ -9,6 +9,64 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.120.0] — 2026-10-14
+
+### API para el agente IA de atención a clientes
+
+El agente que atenderá a los clientes por WhatsApp vive **fuera**, en n8n, como
+se decidió en la v1.66. Esta versión le da a la API lo que le faltaba para
+hacerlo bien sin ver más de la cuenta.
+
+- **Endpoints `/api/v1/agent`**, con un permiso nuevo en las llaves, **Agente
+  de atención a clientes** (`agent`):
+  - `GET /agent/client?phone=` reconoce al cliente por el número que guardó en
+    *Mis integraciones*, dice si su plan incluye el agente y entrega un
+    **token firmado** (`clientToken`, 6 h, atado a la llave). Es lo único que
+    el resto acepta en `client`: ni id ni correo, para que el cliente no pueda
+    pedirle al modelo que lea lo de otro. Si dos cuentas tienen el mismo
+    número, responde `409` y avisa a los administradores una vez al día.
+  - `GET /agent/context?client=` da todo lo suyo en una llamada: planes (cuándo
+    vencen, horas usadas y disponibles), tickets abiertos y recientes, proyectos
+    con su avance, servicios con su vencimiento, sitios y —si tiene autorizada
+    *Mi facturación*— sus facturas pendientes con el link de pago.
+  - `GET /agent/tickets/:id` (acepta el código, «ACM-12») con sus comentarios
+    públicos.
+  - `GET /agent/sites/:id/diagnose` responde «¿por qué no carga mi sitio?»:
+    comprueba en vivo DNS, certificado y respuesta del servidor, lo cruza con
+    los vencimientos de dominio, hosting y SSL y con los tickets abiertos del
+    sitio, y lo cuenta en español. No trae la documentación interna del
+    sitio: a veces lleva accesos y el agente conversa con el cliente.
+  - `POST /agent/tickets` abre un ticket a nombre del cliente cuando el agente
+    no puede resolver algo.
+  - `POST /agent/tickets/:id/comments` comenta, también con **notas internas**
+    (`internal: true`), que avisan al responsable del ticket.
+- **Todo se lee en nombre del cliente que se atiende** y se recorta a lo que él
+  vería en la plataforma. El resto de la API lee como el dueño de la llave, que
+  aquí es una cuenta del equipo: sin este recorte el bot vería a todos.
+- **Las notas internas siguen fuera de la API**, salvo esta excepción: solo con
+  el permiso `agent`, solo en tickets del cliente atendido y firmadas por la
+  cuenta del equipo dueña de la llave. Una llave de cliente no puede tener
+  `agent`.
+- **Se activa por plan**: casilla nueva **Agente IA por WhatsApp** al crear o
+  editar un plan, con su insignia «Agente» en la lista. Sin ella, el agente
+  recibe un `403` (`plan_sin_agente`) y le dice al cliente que no está incluido.
+- La guía (*Administración → Integraciones del equipo → Ver la guía*) explica
+  cómo montarlo en n8n con Meta Cloud API, con las herramientas y unas
+  instrucciones de partida. Zoho CPaaS no sirve para el chat: solo envía
+  plantillas y no recibe los mensajes del cliente.
+
+#### Por dentro
+
+- `prisma/migrations/20261014120000_add_plan_ai_agent` — columna
+  `plans.ai_agent`.
+- `src/lib/api/agent.ts` — la frontera de datos del agente y sus escrituras.
+- `src/lib/infra/site-check.ts` — el diagnóstico en vivo. No sondea direcciones
+  privadas: la IP se valida en cada conexión, también en cada redirección, así
+  que ni un 302 ni un DNS que cambie entre consultas lo llevan a la red interna.
+- El MCP de administración acepta `aiAgent` al crear y editar planes.
+
+---
+
 ## [1.119.0] — 2026-10-08
 
 ### «Mi facturación»: los clientes autorizados ven sus facturas

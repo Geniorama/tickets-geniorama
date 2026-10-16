@@ -55,6 +55,7 @@ export default async function PlansPage({
       isActive: true,
       prioritySupport: true,
       aiTools: true,
+      aiAgent: true,
       company: { select: { name: true } },
     },
   });
@@ -94,6 +95,7 @@ export default async function PlansPage({
       isActive: plan.isActive,
       prioritySupport: plan.prioritySupport,
       aiTools: plan.aiTools,
+      aiAgent: plan.aiAgent,
       statusBadge,
       company: plan.company,
     };
