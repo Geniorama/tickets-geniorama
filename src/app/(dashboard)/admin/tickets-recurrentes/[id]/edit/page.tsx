@@ -87,6 +87,7 @@ export default async function EditRecurringTicketPage({
         staffUsers={opciones.staffUsers}
         plans={opciones.plans}
         sites={opciones.sites}
+        ticketTemplates={opciones.ticketTemplates}
       />
 
       {tpl.generatedTickets.length > 0 && (

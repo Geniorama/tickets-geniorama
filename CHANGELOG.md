@@ -9,6 +9,19 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.126.0] — 2026-10-27
+
+### Tickets recurrentes desde una plantilla de ticket
+
+- Al crear o editar un **ticket recurrente** aparece «Usar plantilla de ticket»:
+  copia título, descripción, prioridad, categoría y checklist de una plantilla
+  de ticket existente, igual que ya hacían las tareas recurrentes.
+- Solo pisa lo que define la plantilla: cliente, plan, sitio, responsable,
+  revisores y cadencia se conservan.
+- Sin migraciones.
+
+---
+
 ## [1.125.0] — 2026-10-16
 
 ### GENIA entiende notas de voz

@@ -25,7 +25,7 @@ export default async function NewRecurringTicketPage({
   await requireCan("TICKETS", "gestionar");
 
   const { desde } = await searchParams;
-  const { clients, staffUsers, plans, sites } = await opcionesRecurrencia();
+  const { clients, staffUsers, plans, sites, ticketTemplates } = await opcionesRecurrencia();
 
   let initial: RecurringTicketFormData | undefined;
 
@@ -93,6 +93,7 @@ export default async function NewRecurringTicketPage({
         staffUsers={staffUsers}
         plans={plans}
         sites={sites}
+        ticketTemplates={ticketTemplates}
       />
     </div>
   );

@@ -27,6 +27,16 @@ type Option = { id: string; name: string };
 export type PlanOption = { id: string; name: string; companyName: string };
 export type SiteOption = { id: string; name: string; companyName: string };
 
+export type TicketTemplateOption = {
+  id: string;
+  name: string;
+  title: string;
+  description: string;
+  priority: "BAJA" | "MEDIA" | "ALTA" | "CRITICA";
+  category: string | null;
+  checklist: ChecklistGroup[];
+};
+
 export type RecurringTicketFormData = RecurrenceValue & {
   id?: string;
   title: string;
@@ -105,12 +115,14 @@ export function RecurringTicketForm({
   staffUsers,
   plans,
   sites,
+  ticketTemplates = [],
 }: {
   initial?: RecurringTicketFormData;
   clients: Option[];
   staffUsers: Option[];
   plans: PlanOption[];
   sites: SiteOption[];
+  ticketTemplates?: TicketTemplateOption[];
 }) {
   const router = useRouter();
   const [data, setData] = useState<RecurringTicketFormData>(initial ?? vacio());
@@ -120,6 +132,21 @@ export function RecurringTicketForm({
 
   function update<K extends keyof RecurringTicketFormData>(key: K, value: RecurringTicketFormData[K]) {
     setData((s) => ({ ...s, [key]: value }));
+  }
+
+  // Solo pisa lo que define la plantilla; cliente, plan, sitio, responsable y
+  // cadencia son de esta recurrencia y se conservan.
+  function applyTemplate(templateId: string) {
+    const tpl = ticketTemplates.find((t) => t.id === templateId);
+    if (!tpl) return;
+    setData((s) => ({
+      ...s,
+      title: tpl.title,
+      description: tpl.description,
+      priority: tpl.priority,
+      category: tpl.category,
+      checklist: tpl.checklist.map((g) => ({ title: g.title, items: [...g.items] })),
+    }));
   }
 
   function toggleReviewer(id: string) {
@@ -215,6 +242,30 @@ export function RecurringTicketForm({
       {/* Qué ticket se abre */}
       <div style={sectionStyle}>
         <h3 style={headingStyle}>El ticket</h3>
+
+        {ticketTemplates.length > 0 && (
+          <div style={{ marginBottom: "0.875rem" }}>
+            <label style={labelStyle}>Usar plantilla de ticket (opcional)</label>
+            <select
+              value=""
+              onChange={(e) => {
+                if (e.target.value) applyTemplate(e.target.value);
+                e.target.value = "";
+              }}
+              style={inputStyle}
+            >
+              <option value="">— Prellenar desde una plantilla —</option>
+              {ticketTemplates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            <p style={{ fontSize: "0.6875rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
+              Copia título, descripción, prioridad, categoría y checklist. Luego puedes ajustar los campos.
+            </p>
+          </div>
+        )}
 
         <div style={{ marginBottom: "0.875rem" }}>
           <label style={labelStyle}>Título</label>
