@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { KeyRound, ExternalLink, X, Plus } from "lucide-react";
 import { linkVaultToProject, unlinkVaultFromProject } from "@/actions/vault.actions";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { vaultOptionLabel } from "@/lib/vault-options";
 import Link from "next/link";
 
 interface VaultEntry {
@@ -26,16 +28,21 @@ export function ProjectVaultPanel({
   canManage,
 }: ProjectVaultPanelProps) {
   const [isPending, startTransition] = useTransition();
-  const [selectedId, setSelectedId] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   function handleLink() {
-    if (!selectedId) return;
+    if (selectedIds.length === 0) return;
     setError(null);
     startTransition(async () => {
-      const result = await linkVaultToProject(projectId, selectedId);
-      if (result?.error) setError(result.error);
-      else setSelectedId("");
+      for (const id of selectedIds) {
+        const result = await linkVaultToProject(projectId, id);
+        if (result?.error) {
+          setError(result.error);
+          return;
+        }
+      }
+      setSelectedIds([]);
     });
   }
 
@@ -134,37 +141,37 @@ export function ProjectVaultPanel({
       )}
 
       {canManage && availableEntries.length > 0 && (
+        // El `<select>` nativo ancho lo fijaba la opción más larga y empujaba
+        // el botón fuera de la tarjeta. Mismo arreglo que el panel de tickets.
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-          <select
-            value={selectedId}
-            onChange={(e) => setSelectedId(e.target.value)}
-            style={{
-              flex: 1, border: "1px solid var(--app-border)", borderRadius: "0.375rem",
-              padding: "0.375rem 0.625rem", fontSize: "0.8125rem",
-              color: "var(--app-body-text)", backgroundColor: "var(--app-input-bg)", outline: "none",
-            }}
-          >
-            <option value="">Vincular acceso de Bóveda...</option>
-            {availableEntries.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.title}{e.username ? ` — ${e.username}` : ""}
-              </option>
-            ))}
-          </select>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <MultiSelect
+              options={availableEntries.map((e) => ({ value: e.id, label: vaultOptionLabel(e) }))}
+              value={selectedIds}
+              onChange={setSelectedIds}
+              placeholder="Vincular acceso de Bóveda..."
+              triggerStyle={{
+                border: "1px solid var(--app-border)", borderRadius: "0.375rem",
+                padding: "0.375rem 0.625rem", fontSize: "0.8125rem",
+                background: "var(--app-input-bg)",
+              }}
+              searchable
+            />
+          </div>
           <button
             onClick={handleLink}
-            disabled={!selectedId || isPending}
+            disabled={selectedIds.length === 0 || isPending}
             style={{
-              display: "inline-flex", alignItems: "center", gap: "0.25rem",
-              backgroundColor: selectedId ? "#fd1384" : "var(--app-border)",
-              color: selectedId ? "#fff" : "var(--app-text-muted)",
+              display: "inline-flex", alignItems: "center", gap: "0.25rem", flexShrink: 0,
+              backgroundColor: selectedIds.length > 0 ? "#fd1384" : "var(--app-border)",
+              color: selectedIds.length > 0 ? "#fff" : "var(--app-text-muted)",
               padding: "0.375rem 0.75rem", borderRadius: "0.375rem",
               fontSize: "0.8125rem", fontWeight: 500, border: "none",
-              cursor: selectedId && !isPending ? "pointer" : "not-allowed",
+              cursor: selectedIds.length > 0 && !isPending ? "pointer" : "not-allowed",
             }}
           >
             <Plus style={{ width: "0.875rem", height: "0.875rem" }} />
-            Vincular
+            Vincular{selectedIds.length > 1 ? ` (${selectedIds.length})` : ""}
           </button>
         </div>
       )}

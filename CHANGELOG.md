@@ -9,6 +9,17 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.126.1] — 2026-10-27
+
+### Corregido: «Vincular acceso de Bóveda» desbordaba en tareas
+
+- En la vista de tarea, el desplegable para vincular accesos de Bóveda se
+  estiraba con el título más largo y empujaba el botón **Vincular** fuera de la
+  tarjeta, sin poder pulsarlo. Ahora usa el mismo selector con búsqueda y
+  recorte que ya tenía el panel de tickets, y permite vincular varios a la vez.
+
+---
+
 ## [1.126.0] — 2026-10-27
 
 ### Tickets recurrentes desde una plantilla de ticket
