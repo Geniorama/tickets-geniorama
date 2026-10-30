@@ -10,7 +10,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Building2, CalendarClock, Hash, Paperclip } from "lucide-react";
 import type { BillingStatus } from "@/generated/prisma";
 import {
-  BILLING_STATUS_COLORS, BILLING_STATUS_DESCRIPTIONS, BILLING_STATUS_LABELS, isClosed, pendiente,
+  BILLING_STATUS_COLORS, BILLING_STATUS_DESCRIPTIONS, BILLING_STATUS_LABELS, isClosed, isInvoiced, pendiente,
 } from "@/lib/billing/status";
 import { formatAmount, parseAmount } from "@/lib/money";
 import { useRouter } from "next/navigation";
@@ -283,6 +283,10 @@ export function BillingBoard({
   const [abono, setAbono] = useState("");
   const [fechaAbono, setFechaAbono] = useState("");
   const [errorAbono, setErrorAbono] = useState<string | null>(null);
+  // Pasar a «Facturado» exige el número de factura: se pregunta antes de mover.
+  const [pidiendoFactura, setPidiendoFactura] = useState<{ item: BoardItem; destino: BillingStatus } | null>(null);
+  const [numeroFactura, setNumeroFactura] = useState("");
+  const [errorFactura, setErrorFactura] = useState<string | null>(null);
   // Un error al mover se veía como una tarjeta que vuelve sola a su sitio, sin
   // decir por qué. Con abonos de por medio hay motivos reales para negarse.
   const [error, setError] = useState<string | null>(null);
@@ -300,15 +304,19 @@ export function BillingBoard({
     router.refresh();
   }
 
-  function mover(item: BoardItem, destino: BillingStatus) {
+  function mover(item: BoardItem, destino: BillingStatus, invoiceNumber?: string) {
     const anterior = item.status;
-    setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: destino } : i)));
+    setItems((prev) => prev.map((i) => (
+      i.id === item.id ? { ...i, status: destino, invoiceNumber: invoiceNumber ?? i.invoiceNumber } : i
+    )));
 
     setError(null);
     startTransition(async () => {
-      const r = await setBillingStatus(item.id, destino);
+      const r = await setBillingStatus(item.id, destino, invoiceNumber);
       if (r?.error) {
-        setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, status: anterior } : i)));
+        setItems((prev) => prev.map((i) => (
+          i.id === item.id ? { ...i, status: anterior, invoiceNumber: item.invoiceNumber } : i
+        )));
         setError(r.error);
       }
     });
@@ -330,6 +338,12 @@ export function BillingBoard({
       setErrorAbono(null);
       // Por defecto, hoy: es cuando se apunta la inmensa mayoría de los pagos.
       setFechaAbono(new Date().toLocaleDateString("en-CA"));
+      return;
+    }
+    if (isInvoiced(destino) && !isInvoiced(item.status) && !item.invoiceNumber) {
+      setPidiendoFactura({ item, destino });
+      setNumeroFactura("");
+      setErrorFactura(null);
       return;
     }
     mover(item, destino);
@@ -393,6 +407,88 @@ export function BillingBoard({
           )}
         </DragOverlay>
       </DndContext>
+
+      {pidiendoFactura && (
+        <div
+          role="dialog"
+          aria-label="Número de factura"
+          style={{
+            position: "fixed", inset: 0, zIndex: 9600,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem",
+          }}
+          onClick={() => setPidiendoFactura(null)}
+        >
+          <form
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={(e) => {
+              e.preventDefault();
+              const numero = numeroFactura.trim();
+              if (!numero) return setErrorFactura("Escribe el número de factura");
+              const { item, destino } = pidiendoFactura;
+              setPidiendoFactura(null);
+              mover(item, destino, numero);
+            }}
+            style={{
+              width: "100%", maxWidth: "24rem",
+              backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)",
+              borderRadius: "0.75rem", padding: "1.25rem",
+              display: "flex", flexDirection: "column", gap: "0.85rem",
+            }}
+          >
+            <div>
+              <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--app-body-text)" }}>
+                Número de factura
+              </h2>
+              <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
+                {pidiendoFactura.item.concept} · para pasarlo a «{BILLING_STATUS_LABELS[pidiendoFactura.destino]}» hace falta la factura emitida.
+              </p>
+            </div>
+
+            <input
+              autoFocus
+              value={numeroFactura}
+              maxLength={60}
+              onChange={(e) => setNumeroFactura(e.target.value)}
+              placeholder="FV-1042"
+              aria-label="Número de factura"
+              style={{
+                width: "100%", padding: "0.55rem 0.75rem", fontSize: "0.875rem",
+                borderRadius: "0.5rem", border: "1px solid var(--app-border)",
+                backgroundColor: "var(--app-bg)", color: "var(--app-body-text)",
+              }}
+            />
+
+            {errorFactura && (
+              <p style={{ fontSize: "0.8125rem", color: "#b91c1c", margin: 0 }}>{errorFactura}</p>
+            )}
+
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button
+                type="submit"
+                style={{
+                  backgroundColor: BILLING_STATUS_COLORS.FACTURADO, color: "#fff", border: "none",
+                  borderRadius: "0.5rem", padding: "0.5rem 1rem",
+                  fontSize: "0.875rem", fontWeight: 500, cursor: "pointer",
+                }}
+              >
+                Pasar a facturado
+              </button>
+              <button
+                type="button"
+                onClick={() => setPidiendoFactura(null)}
+                style={{
+                  border: "1px solid var(--app-border)", background: "none",
+                  borderRadius: "0.5rem", padding: "0.5rem 0.9rem",
+                  fontSize: "0.875rem", color: "var(--app-text-muted)", cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {pidiendoAbono && (
         <div

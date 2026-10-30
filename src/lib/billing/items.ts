@@ -11,7 +11,7 @@
 import { prisma } from "@/lib/prisma";
 import type { BillingStatus } from "@/generated/prisma";
 import { BILLING_STATUS_LABELS, isInvoiced } from "@/lib/billing/status";
-import { bloqueoDeArchivo, sellosPara } from "@/lib/billing/move";
+import { bloqueoDeArchivo, bloqueoDeFactura, sellosPara } from "@/lib/billing/move";
 import { calcularTotales } from "@/lib/billing/totals";
 import { registrarPago } from "@/lib/billing/payments";
 import { formatAmount } from "@/lib/money";
@@ -80,6 +80,8 @@ export async function crearCobro(actor: Actor, d: CobroInput): Promise<Resultado
   // Un cobro no nace archivado: al archivo se llega después de cobrarlo.
   const bloqueo = bloqueoDeArchivo(d.status, "BACKLOG");
   if (bloqueo) return { ok: false, error: bloqueo };
+  const sinFactura = bloqueoDeFactura(d.status, null, d.invoiceNumber);
+  if (sinFactura) return { ok: false, error: sinFactura };
 
   // Los totales se calculan **siempre en el servidor**: lo que mande quien
   // llama es para pintar, no para guardar.
@@ -138,6 +140,8 @@ export async function actualizarCobro(actor: Actor, id: string, d: CobroInput): 
   // El archivo tiene la misma puerta desde aquí que desde el tablero.
   const bloqueo = bloqueoDeArchivo(d.status, actual.status);
   if (bloqueo) return { ok: false, error: bloqueo };
+  const sinFactura = bloqueoDeFactura(d.status, actual.status, d.invoiceNumber);
+  if (sinFactura) return { ok: false, error: sinFactura };
 
   const lineas = await conCategoriasValidas(d.lines);
   const totales = calcularTotales(lineas);

@@ -148,9 +148,11 @@ export function BillingForm({
       {isInvoiced(status) && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
           <div>
-            <label htmlFor="invoiceNumber" style={labelStyle}>Número de factura {opcional}</label>
+            <label htmlFor="invoiceNumber" style={labelStyle}>Número de factura</label>
             <input
               id="invoiceNumber" name="invoiceNumber" style={inputStyle}
+              // Solo exigido al pasar a facturado; un cobro antiguo ya facturado sin número se puede seguir editando.
+              required={!initial || !isInvoiced(initial.status)}
               defaultValue={initial?.invoiceNumber ?? ""}
               placeholder="FV-1042"
             />

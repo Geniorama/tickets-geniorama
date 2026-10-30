@@ -116,10 +116,10 @@ export async function updateBillingItem(id: string, formData: FormData) {
  * Ya no recibe un importe: soltar en «Abonado» abre el formulario de abonos,
  * que es donde se dice cuánto entró y cuándo. Aquí solo se mueve la tarjeta.
  */
-export async function setBillingStatus(id: string, status: BillingStatus) {
+export async function setBillingStatus(id: string, status: BillingStatus, invoiceNumber?: string) {
   const session = await requireCan("FACTURACION", "editar");
 
-  const r = await moveBillingStatus(id, status, session.user);
+  const r = await moveBillingStatus(id, status, session.user, invoiceNumber);
   if (!r.ok) return { error: r.error };
 
   revalidatePath("/facturacion");

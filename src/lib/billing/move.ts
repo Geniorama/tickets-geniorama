@@ -89,6 +89,29 @@ export function bloqueoDeArchivo(destino: BillingStatus, origen: BillingStatus):
   return "Al archivo solo van cobros ya pagados. Pásalo primero a «Pagado» —o bórralo, si nunca se va a cobrar.";
 }
 
+/**
+ * Por qué no se puede dar por facturado, o `null` si sí se puede.
+ *
+ * Un cobro no pasa a «Facturado» —ni salta directo a «Pagado»— sin el número de
+ * la factura: sin él nadie puede cruzarlo con la contabilidad. Solo aplica al
+ * cruzar la frontera (`origen` sin facturar o `null` si el cobro nace); un cobro
+ * antiguo que ya estaba facturado sin número se puede seguir moviendo.
+ *
+ * Como `bloqueoDeArchivo`, vive aquí porque el tablero, el formulario y el
+ * asistente tienen que decir lo mismo.
+ */
+export function bloqueoDeFactura(
+  destino: BillingStatus,
+  origen: BillingStatus | null,
+  numero: string | null | undefined,
+): string | null {
+  if (!isInvoiced(destino)) return null;
+  if (origen && isInvoiced(origen)) return null;
+  if (!numero?.trim()) return "Indica el número de factura para pasar el cobro a «Facturado».";
+  if (numero.trim().length > 60) return "El número de factura es muy largo (máximo 60 caracteres).";
+  return null;
+}
+
 export type MoveResult = { ok: true } | { ok: false; error: string };
 
 /**
@@ -106,6 +129,8 @@ export async function moveBillingStatus(
   id: string,
   status: BillingStatus,
   actor: { id: string; name?: string | null },
+  /** Obligatorio al cruzar a «Facturado»; ver `bloqueoDeFactura`. */
+  invoiceNumber?: string | null,
 ): Promise<MoveResult> {
   if (!BILLING_STATUSES.includes(status)) return { ok: false, error: "Estado no válido" };
 
@@ -123,6 +148,10 @@ export async function moveBillingStatus(
 
   const bloqueo = bloqueoDeArchivo(status, actual.status);
   if (bloqueo) return { ok: false, error: bloqueo };
+
+  const numero = invoiceNumber?.trim() || actual.invoiceNumber;
+  const sinFactura = bloqueoDeFactura(status, actual.status, numero);
+  if (sinFactura) return { ok: false, error: sinFactura };
 
   const tienePagos = actual._count.payments > 0;
 
@@ -153,7 +182,7 @@ export async function moveBillingStatus(
     data: {
       status,
       // Al volver antes de «Facturado», el número de factura deja de aplicar.
-      invoiceNumber: isInvoiced(status) ? actual.invoiceNumber : null,
+      invoiceNumber: isInvoiced(status) ? numero : null,
       ...sellosPara(status, actual),
     },
   });

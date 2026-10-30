@@ -377,12 +377,17 @@ export async function registerBillingTools(server: McpServer, user: ApiUser, can
         description:
           "Mueve un cobro de columna, como arrastrarlo en el tablero. Pasar a PAGADO o ARCHIVADO registra como " +
           "abono el saldo pendiente. Con abonos registrados no se puede devolver a un estado anterior a " +
-          "ABONADO. Al archivo solo se llega desde PAGADO. Estados: " + STATUS_HELP,
-        inputSchema: { billingItemId: z.string(), status: STATUS },
+          "ABONADO. Al archivo solo se llega desde PAGADO. Para pasar a FACTURADO (o saltar a PAGADO) desde un " +
+          "estado sin facturar es obligatorio invoiceNumber. Estados: " + STATUS_HELP,
+        inputSchema: {
+          billingItemId: z.string(),
+          status: STATUS,
+          invoiceNumber: z.string().trim().max(60).optional().describe("Número de factura; obligatorio al pasar a FACTURADO"),
+        },
         annotations: write,
       },
-      async ({ billingItemId, status }) => {
-        const r = await moveBillingStatus(billingItemId, status, user);
+      async ({ billingItemId, status, invoiceNumber }) => {
+        const r = await moveBillingStatus(billingItemId, status, user, invoiceNumber);
         if (!r.ok) return fail(r.error);
         const row = await prisma.billingItem.findUnique({ where: { id: billingItemId }, select: itemSelect });
         return ok({ item: row ? serialize(row) : { id: billingItemId } });

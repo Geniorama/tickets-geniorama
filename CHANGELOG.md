@@ -9,6 +9,19 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.129.0] — 2026-10-30
+
+### Añadido: un cobro no pasa a «Facturado» sin número de factura
+
+- Al arrastrar un cobro a **Facturado** (o saltarlo directo a **Pagado**) desde
+  un estado sin facturar, el tablero pide el número de factura antes de mover.
+- En el formulario del cobro el número de factura es obligatorio al pasar a un
+  estado facturado.
+- La regla vive en el servidor (`bloqueoDeFactura`), así que también aplica al
+  asistente: `billing_set_status` acepta `invoiceNumber` y lo exige en ese paso.
+- Los cobros antiguos que ya estaban facturados sin número se siguen pudiendo
+  mover y editar.
+
 ## [1.128.0] — 2026-10-30
 
 ### Cambiado: el equipo usa GENIA, igual que los clientes
