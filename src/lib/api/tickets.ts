@@ -476,6 +476,8 @@ export async function updateTicketViaApi(
       createdById: before.createdById,
       assignedToId: before.assignedToId,
       client: before.client,
+      // Un asistente que cambia un estado no debe dejar un reloj corriendo
+      autoStartTimer: false,
     });
     emitTicketHook("ticket.status_changed", ticketId, {
       actor,

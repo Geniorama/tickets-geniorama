@@ -347,6 +347,7 @@ export async function updateTicketStatus(ticketId: string, status: string) {
       createdById: ticket.createdById,
       assignedToId: ticket.assignedToId,
       client: ticket.client,
+      autoStartTimer: true,
     });
   }
 

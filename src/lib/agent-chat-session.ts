@@ -7,8 +7,7 @@
 
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { findClient } from "@/lib/api/agent";
-import { askAgent, getAgentChatConfig } from "@/lib/agent-chat";
+import { askAgent, findAgentUser, getAgentChatConfig } from "@/lib/agent-chat";
 import { AGENT_CHAT_EMBED_ORIGINS_KEY } from "@/lib/agent-chat-keys";
 import { audioTranscriptionAvailable, transcribeAudio } from "@/lib/agent-chat-audio";
 
@@ -42,17 +41,22 @@ const view = (m: { id: string; role: string; content: string; kind: string; crea
 
 /** ¿Puede este usuario usar el asistente ahora? `null` si sí; si no, por qué. */
 async function unavailableReason(userId: string): Promise<{ name: string | null; reason: string | null }> {
-  const [client, config] = await Promise.all([findClient({ id: userId }), getAgentChatConfig()]);
-  if (!client.ok) {
-    return { name: null, reason: "El asistente es para los clientes de Geniorama. Entra con tu cuenta de cliente." };
+  const [who, config] = await Promise.all([findAgentUser(userId), getAgentChatConfig()]);
+  if (!who) {
+    return { name: null, reason: "El asistente es para los clientes y el equipo de Geniorama. Entra con tu cuenta." };
   }
-  if (!client.agentEnabled) {
-    return { name: client.client.name, reason: "Tu plan no incluye el asistente. Si quieres activarlo, escríbele al equipo de Geniorama." };
+  if (who.kind === "client" && !who.agentEnabled) {
+    return { name: who.name, reason: "Tu plan no incluye el asistente. Si quieres activarlo, escríbele al equipo de Geniorama." };
   }
   if (!config.ready) {
-    return { name: client.client.name, reason: "El asistente estará disponible muy pronto: el equipo de Geniorama lo está terminando de configurar." };
+    return {
+      name: who.name,
+      reason: who.kind === "staff"
+        ? "El asistente aún no está configurado: un administrador debe terminarlo en Integraciones."
+        : "El asistente estará disponible muy pronto: el equipo de Geniorama lo está terminando de configurar.",
+    };
   }
-  return { name: client.client.name, reason: null };
+  return { name: who.name, reason: null };
 }
 
 /** El estado del chat al abrirlo: si está disponible y la última conversación. */

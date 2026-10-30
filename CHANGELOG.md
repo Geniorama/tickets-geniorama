@@ -9,6 +9,30 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.128.0] — 2026-10-30
+
+### Cambiado: el equipo usa GENIA, igual que los clientes
+
+- GENIA (widget flotante, página `/mi-asistente`, notas de voz, historial)
+  ahora está disponible para colaboradores y administradores. Sustituye al
+  «Asistente IA» del equipo: se quitan su botón flotante y su entrada del menú,
+  y `/asistente` redirige a GENIA.
+- El webhook del agente recibe `audience: "staff"` y `user` (id, nombre, correo
+  y rol) en el cuerpo firmado, en vez de `client` y `clientToken`. Con clientes
+  nada cambia, salvo el nuevo campo `audience: "client"`.
+- **Pendiente en n8n:** el workflow debe ramificar por `audience` y usar
+  herramientas del equipo (API v1) cuando sea `staff`.
+
+## [1.127.0] — 2026-10-30
+
+### Añadido: el cronómetro del ticket arranca solo al pasar a «En progreso»
+
+- Al mover un ticket a **En progreso** desde la plataforma, el cronómetro
+  arranca a nombre de quien lo mueve, igual que ya pasaba con las tareas.
+- Sigue deteniéndose al pasar a **En revisión** o **Cerrado**.
+- Por la API / asistente no arranca: un cambio de estado de un asistente no
+  deja un reloj corriendo a nombre de nadie.
+
 ## [1.126.1] — 2026-10-27
 
 ### Corregido: «Vincular acceso de Bóveda» desbordaba en tareas

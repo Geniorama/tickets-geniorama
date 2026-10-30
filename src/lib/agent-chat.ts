@@ -16,7 +16,8 @@
 
 import crypto from "node:crypto";
 import { prisma } from "@/lib/prisma";
-import { findClient, issueClientToken } from "@/lib/api/agent";
+import { findClient, issueClientToken, type AgentClient } from "@/lib/api/agent";
+import { isStaff } from "@/lib/roles";
 
 import { AGENT_CHAT_URL_KEY, AGENT_CHAT_SECRET_KEY, AGENT_CHAT_API_KEY_KEY } from "@/lib/agent-chat-keys";
 
@@ -73,10 +74,29 @@ export async function getAgentChatConfig(): Promise<AgentChatConfig> {
   };
 }
 
-/** ¿Se le ofrece el chat a este cliente? Plan con el agente y canal configurado. */
+/** Quien habla con el agente: un cliente (con su plan) o alguien del equipo. */
+export type AgentUser =
+  | { kind: "client"; name: string; agentEnabled: boolean; client: AgentClient }
+  | { kind: "staff"; name: string; user: { id: string; name: string; email: string; role: string } };
+
+/** El usuario como el agente lo atiende; `null` si no es cliente activo ni del equipo. */
+export async function findAgentUser(userId: string): Promise<AgentUser | null> {
+  const user = await prisma.user.findFirst({
+    where: { id: userId, isActive: true },
+    select: { id: true, name: true, email: true, role: true },
+  });
+  if (!user) return null;
+  if (isStaff(user.role)) return { kind: "staff", name: user.name, user };
+  const found = await findClient({ id: userId });
+  if (!found.ok) return null;
+  return { kind: "client", name: found.client.name, agentEnabled: found.agentEnabled, client: found.client };
+}
+
+/** ¿Se le ofrece el chat? Al equipo siempre; al cliente, con el agente en su plan. Con el canal configurado. */
 export async function agentChatAvailableFor(userId: string): Promise<boolean> {
-  const [client, config] = await Promise.all([findClient({ id: userId }), getAgentChatConfig()]);
-  return client.ok && client.agentEnabled && config.ready;
+  const [who, config] = await Promise.all([findAgentUser(userId), getAgentChatConfig()]);
+  if (!who || !config.ready) return false;
+  return who.kind === "staff" || who.agentEnabled;
 }
 
 /**
@@ -140,24 +160,36 @@ export async function askAgent(input: {
     return { ok: false, error: "El asistente todavía no está configurado. Avísale al equipo de Geniorama." };
   }
 
-  const found = await findClient({ id: input.userId });
-  if (!found.ok) return { ok: false, error: "No encontramos tu cuenta de cliente." };
-  if (!found.agentEnabled) return { ok: false, error: "Tu plan no incluye el asistente." };
+  const who = await findAgentUser(input.userId);
+  if (!who) return { ok: false, error: "No encontramos tu cuenta." };
+  if (who.kind === "client" && !who.agentEnabled) return { ok: false, error: "Tu plan no incluye el asistente." };
 
-  const { client } = found;
-  const token = issueClientToken(config.key.id, client.id);
   const sentAt = new Date().toISOString();
-  const body = JSON.stringify({
+  const common = {
     channel: "web",
     conversationId: input.conversationId,
     message: input.message,
     messageType: input.messageType ?? "text",
     history: input.history.slice(-HISTORY_LIMIT),
-    client: { id: client.id, name: client.name, email: client.email, companies: client.companies },
-    clientToken: token.token,
-    clientTokenExpiresAt: token.expiresAt,
     sentAt,
-  });
+  };
+  // El equipo no lleva `clientToken`: su identidad viaja en el cuerpo firmado y
+  // el workflow usa las herramientas del equipo (API v1 con la llave del agente).
+  let payload: Record<string, unknown>;
+  if (who.kind === "staff") {
+    payload = { ...common, audience: "staff", user: who.user };
+  } else {
+    const { client } = who;
+    const token = issueClientToken(config.key.id, client.id);
+    payload = {
+      ...common,
+      audience: "client",
+      client: { id: client.id, name: client.name, email: client.email, companies: client.companies },
+      clientToken: token.token,
+      clientTokenExpiresAt: token.expiresAt,
+    };
+  }
+  const body = JSON.stringify(payload);
 
   let res: Response;
   try {

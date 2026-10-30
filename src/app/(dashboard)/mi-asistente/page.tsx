@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getRequiredSession } from "@/lib/auth-helpers";
 import { loadAgentChat } from "@/lib/agent-chat-session";
 import { AgentChat } from "@/components/agent-chat/agent-chat";
@@ -8,8 +7,6 @@ export const metadata = { title: "GENIA" };
 
 export default async function MiAsistentePage() {
   const session = await getRequiredSession();
-  if (session.user.role !== "CLIENTE") redirect("/dashboard");
-
   const state = await loadAgentChat(session.user.id);
 
   if (!state.available) {
@@ -18,7 +15,7 @@ export default async function MiAsistentePage() {
         <h1 style={{ margin: "0 0 0.75rem", fontSize: "1.25rem", fontWeight: 700, color: "var(--app-body-text)" }}>GENIA</h1>
         <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--app-text-muted)", lineHeight: 1.6 }}>
           {state.reason}{" "}
-          <Link href="/mis-planes" style={{ color: "#fd1384" }}>Ver mis planes</Link>
+          {session.user.role === "CLIENTE" && <Link href="/mis-planes" style={{ color: "#fd1384" }}>Ver mis planes</Link>}
         </p>
       </div>
     );

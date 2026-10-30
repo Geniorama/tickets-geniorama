@@ -21,14 +21,12 @@ export async function getMyAgentChat(): Promise<AgentChatState> {
 /** Un mensaje del cliente con sesión iniciada (página y widget de la plataforma). */
 export async function sendAgentChatMessage(conversationId: string | null, text: string): Promise<SendResult> {
   const session = await getRequiredSession();
-  if (session.user.role !== "CLIENTE") return { error: "El asistente es para los clientes de Geniorama." };
   return sendAgentChat(session.user.id, conversationId, text);
 }
 
 /** Una nota de voz del cliente con sesión: `audio` (el archivo) y `conversationId` en el FormData. */
 export async function sendAgentChatAudioMessage(formData: FormData): Promise<SendResult> {
   const session = await getRequiredSession();
-  if (session.user.role !== "CLIENTE") return { error: "El asistente es para los clientes de Geniorama." };
   const audio = formData.get("audio");
   if (!(audio instanceof File)) return { error: "No llegó la nota de voz." };
   const conversationId = formData.get("conversationId");

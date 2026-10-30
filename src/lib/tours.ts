@@ -69,9 +69,9 @@ export function getWelcomeTour(role: Role): TourDef {
 
   if (isStaff(role)) {
     steps.push({
-      selector: nav("/asistente"),
-      title: "Asistente IA",
-      description: "Te ayuda a diagnosticar, priorizar y avanzar tus tareas, y a planificar proyectos desde documentos.",
+      selector: nav("/mi-asistente"),
+      title: "GENIA",
+      description: "El asistente de Geniorama: te ayuda con tus tickets y tareas por chat o con notas de voz.",
       side: "right",
     });
     steps.push({
@@ -111,9 +111,9 @@ export function getWelcomeTour(role: Role): TourDef {
 
   if (isStaff(role)) {
     steps.push({
-      selector: '[data-tour-id="assistant-fab"]',
-      title: "Asistente a un clic",
-      description: "Este botón abre el Asistente IA desde cualquier pantalla.",
+      selector: '[data-tour-id="agent-chat-fab"]',
+      title: "GENIA a un clic",
+      description: "Este botón abre GENIA desde cualquier pantalla.",
       side: "left",
     });
   }

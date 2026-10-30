@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Sidebar } from "./sidebar";
 import { Topbar } from "./topbar";
 import { FloatingTimer } from "./floating-timer";
-import { AssistantFab } from "@/components/assistant/assistant-fab";
 import { AgentChatFab } from "@/components/agent-chat/agent-chat-fab";
 import { TourController } from "@/components/tour/tour-controller";
 import type { Session } from "next-auth";
@@ -87,7 +86,6 @@ export function DashboardShell({
       </div>
 
       <FloatingTimer />
-      <AssistantFab role={role} apps={apps} />
       {features.includes("agentChat") && <AgentChatFab />}
       <TourController role={role} />
     </div>

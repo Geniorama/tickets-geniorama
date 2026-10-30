@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Ticket, Building2, Users, BookOpen, CreditCard,
   BarChart3, FolderKanban, ListTodo, TrendingUp, Server as ServerIcon, Globe,
-  KeyRound, Plug, Sparkles, Repeat, Webhook, LayoutList, LayoutTemplate, Bot,
+  KeyRound, Plug, Sparkles, Repeat, Webhook, LayoutList, LayoutTemplate,
   CalendarClock, Wrench, Briefcase, ShieldCheck, Handshake, Target, Receipt,
   History,
 } from "lucide-react";
@@ -115,8 +115,7 @@ export const APP_SECTIONS: Record<AppKey, NavSection[]> = {
 export const ALWAYS_VISIBLE: NavSection[] = [
   { href: "/dashboard",    label: "Inicio",       icon: LayoutDashboard },
   { href: "/panel",        label: "Panel",        icon: LayoutList,    roles: STAFF, anyApp: WORK_APPS },
-  { href: "/asistente",    label: "Asistente IA", icon: Bot,           roles: STAFF, anyApp: WORK_APPS },
-  { href: "/mi-asistente", label: "GENIA", icon: GenieIcon, roles: ["CLIENTE"], feature: "agentChat" },
+  { href: "/mi-asistente", label: "GENIA", icon: GenieIcon, roles: ["CLIENTE", ...STAFF], feature: "agentChat" },
   { href: "/boveda",       label: "Bóveda",       icon: KeyRound },
   { href: "/agendar",      label: "Agendar",      icon: CalendarClock },
   { href: "/integraciones",label: "Mis integraciones", icon: Webhook },

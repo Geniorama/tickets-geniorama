@@ -95,12 +95,18 @@ export async function afterTicketStatusChange(input: {
   assignedToId: string | null;
   /** El cliente del ticket, para el correo. */
   client: { name: string; email: string } | null;
+  /** Arrancar el cronómetro al pasar a En progreso; mismo criterio que en tareas. */
+  autoStartTimer: boolean;
 }): Promise<void> {
   const { ticketId, title, from, to, actorId } = input;
   if (from === to) return;
 
   const link = `/tickets/${ticketId}`;
   const label = STATUS_LABELS[to] ?? to;
+
+  if (to === "EN_PROGRESO" && input.autoStartTimer) {
+    await startTimer({ entityType: "TICKET", entityId: ticketId }, actorId);
+  }
 
   if (to === "EN_REVISION" || to === "CERRADO") {
     await stopRunningForEntity({ entityType: "TICKET", entityId: ticketId });

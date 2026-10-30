@@ -115,6 +115,7 @@ export function AgentChatFab() {
         aria-label={open ? "Cerrar GENIA" : "Abrir GENIA"}
         aria-expanded={open}
         title="GENIA"
+        data-tour-id="agent-chat-fab"
         className="no-print"
         style={{
           position: "fixed",

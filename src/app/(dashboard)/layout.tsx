@@ -36,8 +36,8 @@ export default async function DashboardLayout({
     }),
     getAccessibleApps(session.user),
     getGrants(userId),
-    // El chat con el agente solo se ofrece a clientes con el agente en su plan.
-    session.user.role === "CLIENTE" ? agentChatAvailableFor(userId).catch(() => false) : false,
+    // El chat con el agente: al equipo siempre; a los clientes con el agente en su plan.
+    agentChatAvailableFor(userId).catch(() => false),
   ]);
 
   const initialTimers: ActiveTimer[] = runningTimer
