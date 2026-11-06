@@ -28,6 +28,7 @@ export type BoardItem = {
   paidAmount: number;
   dueDate: Date | string | null;
   createdAt: Date | string;
+  updatedAt: Date | string;
   invoiceNumber: string | null;
   company: { id: string; name: string };
   owner: { name: string } | null;
@@ -36,11 +37,12 @@ export type BoardItem = {
   notes: number;
 };
 
-type SortKey = "dueDate" | "createdAt" | "concept" | "company" | "label" | "amount" | "pending";
+type SortKey = "dueDate" | "createdAt" | "updatedAt" | "concept" | "company" | "label" | "amount" | "pending";
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "dueDate", label: "Fecha límite" },
   { key: "createdAt", label: "Fecha de creación" },
+  { key: "updatedAt", label: "Fecha de actualización" },
   { key: "concept", label: "Nombre" },
   { key: "company", label: "Empresa" },
   { key: "label", label: "Etiqueta" },
@@ -74,6 +76,7 @@ function sortItems(items: BoardItem[], key: SortKey, dir: 1 | -1): BoardItem[] {
     switch (key) {
       case "dueDate": return time(i.dueDate);
       case "createdAt": return time(i.createdAt);
+      case "updatedAt": return time(i.updatedAt);
       case "concept": return i.concept;
       case "company": return i.company.name;
       case "label": {

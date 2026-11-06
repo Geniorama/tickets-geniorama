@@ -9,6 +9,12 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.132.1] — 2026-11-06
+
+### Añadido: ordenar el tablero de Facturación por fecha de actualización
+
+---
+
 ## [1.132.0] — 2026-11-06
 
 ### Añadido: filtrar las tarjetas del tablero de Facturación

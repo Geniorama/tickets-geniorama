@@ -33,7 +33,7 @@ export default async function BillingPage({
       orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
       select: {
         id: true, concept: true, status: true, amount: true, paidAmount: true,
-        dueDate: true, invoiceNumber: true, createdAt: true,
+        dueDate: true, invoiceNumber: true, createdAt: true, updatedAt: true,
         company: { select: { id: true, name: true } },
         owner: { select: { name: true } },
         labels: { select: { id: true, name: true, color: true } },
