@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.130.0] — 2026-11-06
+
+### Añadido: ordenar las tarjetas del tablero de Facturación
+
+- Selector «Ordenar por» sobre el tablero: fecha límite, fecha de creación,
+  nombre, empresa, etiqueta, importe y pendiente por cobrar.
+- Botón para invertir el sentido (ascendente/descendente).
+- Los cobros sin valor (p. ej. sin fecha límite o sin etiqueta) van siempre al final.
+- La elección se recuerda en el navegador; por defecto sigue siendo fecha límite ascendente.
+
+---
+
 ## [1.129.0] — 2026-10-30
 
 ### Añadido: un cobro no pasa a «Facturado» sin número de factura

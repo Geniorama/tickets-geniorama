@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
@@ -27,6 +27,7 @@ export type BoardItem = {
   amount: number;
   paidAmount: number;
   dueDate: Date | string | null;
+  createdAt: Date | string;
   invoiceNumber: string | null;
   company: { id: string; name: string };
   owner: { name: string } | null;
@@ -34,6 +35,54 @@ export type BoardItem = {
   /** Cuántos soportes/novedades tiene: se ve sin abrir la tarjeta. */
   notes: number;
 };
+
+type SortKey = "dueDate" | "createdAt" | "concept" | "company" | "label" | "amount" | "pending";
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "dueDate", label: "Fecha límite" },
+  { key: "createdAt", label: "Fecha de creación" },
+  { key: "concept", label: "Nombre" },
+  { key: "company", label: "Empresa" },
+  { key: "label", label: "Etiqueta" },
+  { key: "amount", label: "Importe" },
+  { key: "pending", label: "Pendiente por cobrar" },
+];
+
+const SORT_STORAGE = "billing-board-sort";
+
+const time = (d: Date | string | null) => (d ? new Date(d).getTime() : null);
+
+/** Compara dos valores; los vacíos van siempre al final, sea cual sea el sentido. */
+function cmp<T extends string | number>(a: T | null, b: T | null, dir: 1 | -1): number {
+  if (a === null && b === null) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  const r = typeof a === "string"
+    ? a.localeCompare(b as string, "es", { sensitivity: "base" })
+    : (a as number) - (b as number);
+  return r * dir;
+}
+
+function sortItems(items: BoardItem[], key: SortKey, dir: 1 | -1): BoardItem[] {
+  const value = (i: BoardItem): string | number | null => {
+    switch (key) {
+      case "dueDate": return time(i.dueDate);
+      case "createdAt": return time(i.createdAt);
+      case "concept": return i.concept;
+      case "company": return i.company.name;
+      case "label": {
+        const names = i.labels.map((l) => l.name).sort((x, y) => x.localeCompare(y, "es"));
+        return names[0] ?? null;
+      }
+      case "amount": return i.amount;
+      case "pending": return pendiente(i.amount, i.paidAmount);
+    }
+  };
+  // Desempate estable por fecha de creación (más reciente primero).
+  return [...items].sort((a, b) =>
+    cmp(value(a), value(b), dir) || (time(b.createdAt)! - time(a.createdAt)!),
+  );
+}
 
 function ItemCard({ item, isDragging = false }: { item: BoardItem; isDragging?: boolean }) {
   const falta = pendiente(item.amount, item.paidAmount);
@@ -293,6 +342,25 @@ export function BillingBoard({
   const [, startTransition] = useTransition();
   const router = useRouter();
 
+  // Por defecto, como siempre: fecha límite ascendente. Se recuerda por navegador.
+  const [sortKey, setSortKey] = useState<SortKey>("dueDate");
+  const [sortDir, setSortDir] = useState<1 | -1>(1);
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SORT_STORAGE);
+      if (!raw) return;
+      const s = JSON.parse(raw) as { key?: SortKey; dir?: 1 | -1 };
+      if (s.key && SORT_OPTIONS.some((o) => o.key === s.key)) setSortKey(s.key);
+      if (s.dir === 1 || s.dir === -1) setSortDir(s.dir);
+    } catch { /* sin almacenamiento: se queda el orden por defecto */ }
+  }, []);
+  function cambiarOrden(key: SortKey, dir: 1 | -1) {
+    setSortKey(key);
+    setSortDir(dir);
+    try { localStorage.setItem(SORT_STORAGE, JSON.stringify({ key, dir })); } catch { /* idem */ }
+  }
+  const ordenados = useMemo(() => sortItems(items, sortKey, sortDir), [items, sortKey, sortDir]);
+
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const activo = activeId ? items.find((i) => i.id === activeId) ?? null : null;
 
@@ -371,6 +439,36 @@ export function BillingBoard({
         </div>
       )}
 
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
+        <label htmlFor="billing-sort" style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)" }}>
+          Ordenar por
+        </label>
+        <select
+          id="billing-sort"
+          value={sortKey}
+          onChange={(e) => cambiarOrden(e.target.value as SortKey, sortDir)}
+          style={{
+            padding: "0.4rem 0.6rem", fontSize: "0.8125rem", borderRadius: "0.5rem",
+            border: "1px solid var(--app-border)", backgroundColor: "var(--app-card-bg)",
+            color: "var(--app-body-text)",
+          }}
+        >
+          {SORT_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+        </select>
+        <button
+          type="button"
+          onClick={() => cambiarOrden(sortKey, sortDir === 1 ? -1 : 1)}
+          title="Invertir el orden"
+          style={{
+            padding: "0.4rem 0.7rem", fontSize: "0.8125rem", borderRadius: "0.5rem",
+            border: "1px solid var(--app-border)", background: "none",
+            color: "var(--app-nav-text)", cursor: "pointer",
+          }}
+        >
+          {sortDir === 1 ? "↑ Ascendente" : "↓ Descendente"}
+        </button>
+      </div>
+
       <DndContext
         id="billing-board"
         sensors={sensors}
@@ -390,7 +488,7 @@ export function BillingBoard({
             <Columna
               key={s}
               status={s}
-              items={items.filter((i) => i.status === s)}
+              items={ordenados.filter((i) => i.status === s)}
               canEdit={canEdit}
               canDelete={canDelete}
               isOver={overColumn === s}
