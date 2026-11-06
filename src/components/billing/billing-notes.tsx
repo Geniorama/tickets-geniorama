@@ -4,6 +4,8 @@ import { useRef, useState, useTransition } from "react";
 import { Paperclip, Send, Trash2, FileText, Download } from "lucide-react";
 import { addBillingComment, deleteBillingComment, deleteBillingAttachment } from "@/actions/billing-notes.actions";
 import { formatDateTimeLong } from "@/lib/format-date";
+import { MentionTextarea } from "@/components/ui/mention-textarea";
+import { CommentBody } from "@/components/ui/comment-body";
 
 /**
  * Novedades y soportes de un cobro.
@@ -145,10 +147,9 @@ export function BillingNotes({
 
       {canEdit && (
         <form ref={formRef} action={enviar} style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1rem" }}>
-          <textarea
-            name="body"
+          <MentionTextarea
             rows={2}
-            placeholder="Una novedad: qué dijeron, qué falta, cuándo prometieron pagar…"
+            placeholder="Una novedad: qué dijeron, qué falta, cuándo prometieron pagar… usa @ para mencionar"
             style={{
               width: "100%", padding: "0.55rem 0.75rem", fontSize: "0.875rem",
               borderRadius: "0.5rem", border: "1px solid var(--app-border)",
@@ -230,9 +231,7 @@ export function BillingNotes({
           {comments.map((c) => (
             <div key={c.id} style={{ display: "flex", gap: "0.6rem" }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontSize: "0.875rem", color: "var(--app-body-text)", whiteSpace: "pre-wrap" }}>
-                  {c.body}
-                </p>
+                <CommentBody body={c.body} style={{ fontSize: "0.875rem", color: "var(--app-body-text)" }} />
                 <p style={{ fontSize: "0.6875rem", color: "var(--app-text-muted)", marginTop: "0.15rem" }}>
                   {c.author.name} · {formatDateTimeLong(c.createdAt)}
                 </p>

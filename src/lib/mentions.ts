@@ -14,15 +14,31 @@ import { prisma } from "@/lib/prisma";
 import { extractMentionIds } from "@/lib/comments";
 import { notifyMany } from "@/lib/notify";
 import { sendMentionEmail } from "@/lib/email";
+import { can } from "@/lib/access/can";
 
 export async function notifyMentions(input: {
   author: { id: string; name?: string | null };
-  entityType: "TASK" | "TICKET";
+  entityType: "TASK" | "TICKET" | "BILLING";
   entityId: string;
   body: string;
 }): Promise<void> {
-  const mentionedIds = extractMentionIds(input.body).filter((id) => id !== input.author.id);
+  let mentionedIds = extractMentionIds(input.body).filter((id) => id !== input.author.id);
   if (mentionedIds.length === 0) return;
+
+  // La facturación es interna: avisar a alguien sin acceso al módulo le
+  // mostraría el concepto y la empresa de un cobro que no puede abrir.
+  if (input.entityType === "BILLING") {
+    const users = await prisma.user.findMany({
+      where: { id: { in: mentionedIds }, isActive: true },
+      select: { id: true, role: true },
+    });
+    const permitidos: string[] = [];
+    for (const u of users) {
+      if (await can(u, "FACTURACION", "ver")) permitidos.push(u.id);
+    }
+    mentionedIds = permitidos;
+    if (mentionedIds.length === 0) return;
+  }
 
   const authorName = input.author.name ?? "Alguien";
   let title = "";
@@ -41,6 +57,17 @@ export async function notifyMentions(input: {
     skipGChat = task?.project?.isPrivate ?? false;
     contextLabel = "una tarea";
     where = "En la tarea";
+  } else if (input.entityType === "BILLING") {
+    const cobro = await prisma.billingItem.findUnique({
+      where: { id: input.entityId },
+      select: { concept: true, company: { select: { name: true } } },
+    });
+    title = cobro ? `${cobro.concept} · ${cobro.company.name}` : "";
+    path = `/facturacion/${input.entityId}`;
+    // Los cobros son dinero ajeno: no se publican en el chat del equipo.
+    skipGChat = true;
+    contextLabel = "un cobro";
+    where = "En el cobro";
   } else {
     const ticket = await prisma.ticket.findUnique({ where: { id: input.entityId }, select: { title: true } });
     title = ticket?.title ?? "";

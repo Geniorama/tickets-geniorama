@@ -9,6 +9,18 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.131.0] — 2026-11-06
+
+### Añadido: menciones en las novedades de un cobro
+
+- Al escribir `@` en una novedad de Facturación se elige a un usuario del equipo,
+  igual que en tickets y tareas; la mención se ve como pastilla.
+- El mencionado recibe aviso (campana, push, webhook) y correo.
+- Solo se avisa a quien tiene acceso al módulo de Facturación, y los cobros no
+  se publican en Google Chat.
+
+---
+
 ## [1.130.0] — 2026-11-06
 
 ### Añadido: ordenar las tarjetas del tablero de Facturación

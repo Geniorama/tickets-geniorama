@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCan } from "@/lib/access/can";
 import { isAdmin } from "@/lib/roles";
 import { addFileAttachments, deleteAttachment } from "@/lib/attachments";
+import { notifyMentions } from "@/lib/mentions";
 
 /**
  * Comentarios y adjuntos de un cobro.
@@ -51,6 +52,10 @@ export async function addBillingComment(billingItemId: string, formData: FormDat
         isInternal: true,
       },
     });
+  }
+
+  if (body) {
+    await notifyMentions({ author: session.user, entityType: ENTIDAD, entityId: billingItemId, body });
   }
 
   let errores: string[] = [];
