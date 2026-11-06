@@ -50,6 +50,12 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 
 const SORT_STORAGE = "billing-board-sort";
 
+const controlStyle: React.CSSProperties = {
+  padding: "0.4rem 0.6rem", fontSize: "0.8125rem", borderRadius: "0.5rem",
+  border: "1px solid var(--app-border)", backgroundColor: "var(--app-card-bg)",
+  color: "var(--app-body-text)",
+};
+
 const time = (d: Date | string | null) => (d ? new Date(d).getTime() : null);
 
 /** Compara dos valores; los vacíos van siempre al final, sea cual sea el sentido. */
@@ -359,7 +365,56 @@ export function BillingBoard({
     setSortDir(dir);
     try { localStorage.setItem(SORT_STORAGE, JSON.stringify({ key, dir })); } catch { /* idem */ }
   }
-  const ordenados = useMemo(() => sortItems(items, sortKey, sortDir), [items, sortKey, sortDir]);
+
+  // Filtros: se combinan (todos los activos deben cumplirse). Solo en el cliente,
+  // porque el tablero ya trae todos los cobros.
+  const [busca, setBusca] = useState("");
+  const [fEtiqueta, setFEtiqueta] = useState("");
+  const [fEmpresa, setFEmpresa] = useState("");
+  const [fResponsable, setFResponsable] = useState("");
+  const [fVencimiento, setFVencimiento] = useState<"" | "vencidos" | "sinFecha" | "conFecha">("");
+
+  const opciones = useMemo(() => {
+    const etiquetas = new Map<string, string>();
+    const empresas = new Map<string, string>();
+    const responsables = new Set<string>();
+    for (const i of items) {
+      i.labels.forEach((l) => etiquetas.set(l.id, l.name));
+      empresas.set(i.company.id, i.company.name);
+      if (i.owner) responsables.add(i.owner.name);
+    }
+    const porNombre = (a: [string, string], b: [string, string]) => a[1].localeCompare(b[1], "es");
+    return {
+      etiquetas: [...etiquetas].sort(porNombre),
+      empresas: [...empresas].sort(porNombre),
+      responsables: [...responsables].sort((a, b) => a.localeCompare(b, "es")),
+    };
+  }, [items]);
+
+  const hayFiltros = !!(busca || fEtiqueta || fEmpresa || fResponsable || fVencimiento);
+  function limpiarFiltros() {
+    setBusca(""); setFEtiqueta(""); setFEmpresa(""); setFResponsable(""); setFVencimiento("");
+  }
+
+  const ordenados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+    const filtrados = items.filter((i) => {
+      if (q && !`${i.concept} ${i.company.name} ${i.invoiceNumber ?? ""}`.toLowerCase().includes(q)) return false;
+      if (fEtiqueta && !i.labels.some((l) => l.id === fEtiqueta)) return false;
+      if (fEmpresa && i.company.id !== fEmpresa) return false;
+      if (fResponsable === "__none") { if (i.owner) return false; }
+      else if (fResponsable && i.owner?.name !== fResponsable) return false;
+      if (fVencimiento === "sinFecha" && i.dueDate) return false;
+      if (fVencimiento === "conFecha" && !i.dueDate) return false;
+      if (fVencimiento === "vencidos") {
+        // Vencido: con fecha pasada y sin cerrar el cobro.
+        if (!i.dueDate || isClosed(i.status) || new Date(i.dueDate).getTime() >= hoy.getTime()) return false;
+      }
+      return true;
+    });
+    return sortItems(filtrados, sortKey, sortDir);
+  }, [items, sortKey, sortDir, busca, fEtiqueta, fEmpresa, fResponsable, fVencimiento]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const activo = activeId ? items.find((i) => i.id === activeId) ?? null : null;
@@ -467,6 +522,49 @@ export function BillingBoard({
         >
           {sortDir === 1 ? "↑ Ascendente" : "↓ Descendente"}
         </button>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
+        <input
+          type="search"
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar concepto, empresa o factura…"
+          aria-label="Buscar cobros"
+          style={{ ...controlStyle, minWidth: "14rem" }}
+        />
+        <select value={fEtiqueta} onChange={(e) => setFEtiqueta(e.target.value)} aria-label="Filtrar por etiqueta" style={controlStyle}>
+          <option value="">Todas las etiquetas</option>
+          {opciones.etiquetas.map(([id, n]) => <option key={id} value={id}>{n}</option>)}
+        </select>
+        <select value={fEmpresa} onChange={(e) => setFEmpresa(e.target.value)} aria-label="Filtrar por empresa" style={controlStyle}>
+          <option value="">Todas las empresas</option>
+          {opciones.empresas.map(([id, n]) => <option key={id} value={id}>{n}</option>)}
+        </select>
+        <select value={fResponsable} onChange={(e) => setFResponsable(e.target.value)} aria-label="Filtrar por responsable" style={controlStyle}>
+          <option value="">Todos los responsables</option>
+          <option value="__none">Sin responsable</option>
+          {opciones.responsables.map((n) => <option key={n} value={n}>{n}</option>)}
+        </select>
+        <select
+          value={fVencimiento}
+          onChange={(e) => setFVencimiento(e.target.value as typeof fVencimiento)}
+          aria-label="Filtrar por fecha límite"
+          style={controlStyle}
+        >
+          <option value="">Cualquier fecha límite</option>
+          <option value="vencidos">Vencidos</option>
+          <option value="conFecha">Con fecha límite</option>
+          <option value="sinFecha">Sin fecha límite</option>
+        </select>
+        {hayFiltros && (
+          <button
+            type="button" onClick={limpiarFiltros}
+            style={{ ...controlStyle, background: "none", color: "#fd1384", cursor: "pointer" }}
+          >
+            Limpiar filtros
+          </button>
+        )}
       </div>
 
       <DndContext

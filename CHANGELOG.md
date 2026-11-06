@@ -9,6 +9,17 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.132.0] — 2026-11-06
+
+### Añadido: filtrar las tarjetas del tablero de Facturación
+
+- Búsqueda por concepto, empresa o número de factura.
+- Filtros por etiqueta, empresa, responsable (o sin responsable) y fecha límite
+  (vencidos, con fecha, sin fecha). Se combinan entre sí.
+- «Limpiar filtros» los quita todos. Los totales de cada columna reflejan lo filtrado.
+
+---
+
 ## [1.131.0] — 2026-11-06
 
 ### Añadido: menciones en las novedades de un cobro
