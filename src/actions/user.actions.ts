@@ -53,17 +53,16 @@ export async function createUser(formData: FormData) {
     return { error: parsed.error.issues[0].message };
   }
 
-  // Alguien del equipo nace con un perfil: sin módulos concedidos no vería
-  // nada, porque para el equipo ya no basta el rol para abrir Tickets o
-  // Proyectos. Un cliente no lo necesita; los suyos se abren por rol.
+  // Todo usuario nace con un perfil: sin módulos concedidos no vería nada en
+  // el menú ni en el inicio. Al equipo lo elige quien lo crea; un cliente
+  // parte siempre del perfil del sistema «Cliente» (Tickets, Proyectos en
+  // lectura y Portal). Abrir sus módulos ya iba por rol, pero el menú y el
+  // inicio se arman con los niveles concedidos y salían vacíos.
   const role = parsed.data.role;
-  const profile =
-    role !== "CLIENTE" && parsed.data.profileId
-      ? await prisma.accessProfile.findUnique({
-          where: { id: parsed.data.profileId },
-          select: { id: true, grants: true },
-        })
-      : null;
+  const profile = await prisma.accessProfile.findUnique({
+    where: { id: role === "CLIENTE" ? "prf_cliente" : (parsed.data.profileId ?? "") },
+    select: { id: true, grants: true },
+  });
   if (role !== "CLIENTE" && !profile) {
     return { error: "Elige un perfil de acceso para el usuario" };
   }

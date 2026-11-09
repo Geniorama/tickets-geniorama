@@ -9,6 +9,12 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.134.1] — 2026-11-09
+
+### Corregido: un cliente nuevo no veía ningún módulo
+- Al crear un usuario de tipo Cliente no se le asignaba perfil ni niveles de acceso, así que el menú y «Tus módulos» del inicio salían vacíos (abrir Tickets y Proyectos sí funcionaba, porque va por rol). Ahora nace con el perfil del sistema «Cliente»: Tickets, Proyectos en lectura y Portal.
+- Los clientes ya creados sin perfil se arreglan desde Administración → Usuarios → «Acceso a módulos».
+
 ## [1.134.0] — 2026-11-09
 
 ### Nuevo: aviso de tickets sin movimiento (AG·P-6)
