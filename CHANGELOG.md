@@ -9,6 +9,11 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.135.1] — 2026-11-09
+
+### Corregido: «Informes» fallaba por una columna que faltaba
+- La migración del informe mensual se amplió con `comment_attachments` después de haberse aplicado en alguna base, y Prisma no la repite. Migración complementaria e idempotente que añade `comment_attachments.report_month`.
+
 ## [1.135.0] — 2026-11-09
 
 ### Nuevo: informe mensual del cliente (AG·P-5)
