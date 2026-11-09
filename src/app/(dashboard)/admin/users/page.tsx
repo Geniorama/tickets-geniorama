@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { Suspense } from "react";
-import { SearchInput } from "@/components/ui/search-input";
 import { UsersTable } from "@/components/admin/users-table";
 import { UserFilters } from "@/components/admin/user-filters";
 import { getPageSize } from "@/lib/pagination";
@@ -89,14 +88,9 @@ export default async function UsersPage({
         </Link>
       </div>
 
-      <div style={{ marginBottom: "1rem", display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
-        <Suspense fallback={<div style={{ height: "2.375rem", width: "220px" }} />}>
-          <SearchInput placeholder="Buscar por nombre o email..." />
-        </Suspense>
-        <Suspense fallback={null}>
-          <UserFilters companies={companies} />
-        </Suspense>
-      </div>
+      <Suspense fallback={<div style={{ height: "2.25rem", marginBottom: "1rem" }} />}>
+        <UserFilters companies={companies} />
+      </Suspense>
 
       <UsersTable
         users={users}

@@ -14,6 +14,7 @@ import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
 import { updateTicketStatus, deleteTicket, publishTicket } from "@/actions/ticket.actions";
 import { DuplicateTicketButton } from "./duplicate-ticket-button";
 import { addComment, deleteComment, editComment, getTicketComments } from "@/actions/comment.actions";
+import { runAction, fireAction, MSG_NETWORK } from "@/lib/run-action";
 import { isStaff, isAdmin } from "@/lib/roles";
 import { AttachmentList } from "./attachment-list";
 import { AttachmentUploader } from "./attachment-uploader";
@@ -127,8 +128,14 @@ export function TicketDetail({
   }, [showMenu]);
 
   function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const status = e.target.value;
     startTransition(async () => {
-      await updateTicketStatus(ticket.id, e.target.value);
+      const r = await runAction(() => updateTicketStatus(ticket.id, status));
+      const error = !r.ok ? r.error : (r.data as { error?: string } | undefined)?.error;
+      if (error) {
+        window.alert(error);
+        return;
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     });
@@ -137,7 +144,7 @@ export function TicketDetail({
   function handleDeleteTicket() {
     if (!confirm(`¿Eliminar el ticket "${ticket.title}"? Esta acción no se puede deshacer.`)) return;
     startTransition(async () => {
-      await deleteTicket(ticket.id);
+      await fireAction(() => deleteTicket(ticket.id));
     });
   }
 
@@ -473,7 +480,9 @@ export function TicketDetail({
                   try {
                     const oldest = allComments[0];
                     if (!oldest) return;
-                    const more = await getTicketComments(ticket.id, oldest.createdAt.toISOString());
+                    const r = await runAction(() => getTicketComments(ticket.id, oldest.createdAt.toISOString()));
+                    if (!r.ok) return;
+                    const more = r.data;
                     if (more.length < 50) setHasMore(false);
                     setOlderComments((prev) => [...more.map((c) => ({ ...c, createdAt: new Date(c.createdAt) })), ...prev]);
                   } finally {
@@ -534,19 +543,19 @@ function TicketCommentItem({
   function handleDelete() {
     if (!confirm("¿Eliminar este comentario?")) return;
     startTransition(async () => {
-      await deleteComment(comment.id, ticketId);
+      const r = await runAction(() => deleteComment(comment.id, ticketId));
+      if (!r.ok) window.alert(r.error);
+      else if (r.data?.error) window.alert(r.data.error);
     });
   }
 
   function handleSaveEdit() {
     setError(null);
     startTransition(async () => {
-      const result = await editComment(comment.id, ticketId, editBody);
-      if (result?.error) {
-        setError(result.error);
-      } else {
-        setEditing(false);
-      }
+      const r = await runAction(() => editComment(comment.id, ticketId, editBody));
+      if (!r.ok) return setError(r.error);
+      if (r.data?.error) return setError(r.data.error);
+      setEditing(false);
     });
   }
 
@@ -686,27 +695,27 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
     const hasFile = files.length > 0;
 
     startTransition(async () => {
-      try {
-        const result = await addComment(ticketId, formData);
-        if (result?.error) {
-          setError(result.error);
-        } else {
-          form.reset();
-          setInternal(false);
-          setFiles([]);
-          setLinks([]);
-        }
-      } catch (err) {
-        console.error("[addComment]", err);
-        const msg = err instanceof Error ? err.message : "";
-        if (hasFile && /unexpected response|fetch|network|413/i.test(msg)) {
+      // Con adjuntos la subida puede tardar de verdad: más margen antes de rendirse.
+      const r = await runAction(() => addComment(ticketId, formData), {
+        timeoutMs: hasFile ? 180_000 : 45_000,
+      });
+
+      if (!r.ok) {
+        if (hasFile && !r.timedOut && r.error === MSG_NETWORK) {
           setError(
             "No se pudo enviar el comentario: los archivos adjuntos fueron rechazados por el servidor (pueden ser demasiado pesados). Intenta con archivos más pequeños o compártelos como enlace."
           );
         } else {
-          setError("No se pudo enviar el comentario. Intenta de nuevo en unos segundos.");
+          setError(r.error);
         }
+        return;
       }
+      if (r.data?.error) return setError(r.data.error);
+
+      form.reset();
+      setInternal(false);
+      setFiles([]);
+      setLinks([]);
     });
   }
 

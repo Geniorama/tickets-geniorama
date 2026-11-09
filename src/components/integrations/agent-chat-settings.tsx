@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { CheckCircle2, Circle, Copy, Check, Loader2, KeyRound } from "lucide-react";
 import { saveSetting, deleteSetting } from "@/actions/settings.actions";
 import { generateAgentChatSecret, setAgentChatKey, setAgentChatEmbedOrigins } from "@/actions/agent-chat.actions";
+import { callAction } from "@/lib/run-action";
 import { AGENT_CHAT_URL_KEY } from "@/lib/agent-chat-keys";
 
 /**
@@ -53,7 +54,7 @@ type Notice = { kind: "ok" | "error"; text: string } | null;
 function NoticeLine({ notice }: { notice: Notice }) {
   if (!notice) return null;
   return (
-    <p role={notice.kind === "error" ? "alert" : "status"} style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: notice.kind === "error" ? "#dc2626" : "#15803d" }}>
+    <p role={notice.kind === "error" ? "alert" : "status"} style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: notice.kind === "error" ? "#dc2626" : "var(--tone-green-fg)" }}>
       {notice.text}
     </p>
   );
@@ -83,7 +84,7 @@ export function AgentChatSettings({
   function saveOrigins() {
     setOriginsNotice(null);
     startOrigins(async () => {
-      const res = await setAgentChatEmbedOrigins(originsValue);
+      const res = await callAction(() => setAgentChatEmbedOrigins(originsValue));
       if ("error" in res) return setOriginsNotice({ kind: "error", text: res.error });
       const text = res.origins.join("\n");
       setOriginsValue(text);
@@ -122,7 +123,7 @@ export function AgentChatSettings({
       return;
     }
     startUrl(async () => {
-      const res = next ? await saveSetting(AGENT_CHAT_URL_KEY, next) : await deleteSetting(AGENT_CHAT_URL_KEY);
+      const res = next ? await callAction(() => saveSetting(AGENT_CHAT_URL_KEY, next)) : await callAction(() => deleteSetting(AGENT_CHAT_URL_KEY));
       if (res.error) return setUrlNotice({ kind: "error", text: res.error });
       setSavedUrl(next);
       setUrlNotice({ kind: "ok", text: next ? "Guardado" : "Borrado: el chat deja de mostrarse a los clientes." });
@@ -132,7 +133,7 @@ export function AgentChatSettings({
   function generate() {
     setSecretNotice(null);
     startSecret(async () => {
-      const res = await generateAgentChatSecret();
+      const res = await callAction(() => generateAgentChatSecret());
       if ("error" in res) return setSecretNotice({ kind: "error", text: res.error });
       setSecret(res.secret);
       setHasSecret(true);
@@ -151,7 +152,7 @@ export function AgentChatSettings({
     setSelectedKey(id);
     setKeyNotice(null);
     startKey(async () => {
-      const res = await setAgentChatKey(id);
+      const res = await callAction(() => setAgentChatKey(id));
       setKeyNotice(res.error ? { kind: "error", text: res.error } : { kind: "ok", text: "Guardado" });
     });
   }
@@ -195,7 +196,7 @@ export function AgentChatSettings({
         <div>
           <span style={label}>Secreto de firma</span>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-            <span style={{ fontSize: "0.8125rem", color: hasSecret ? "#15803d" : "var(--app-text-muted)" }}>
+            <span style={{ fontSize: "0.8125rem", color: hasSecret ? "var(--tone-green-fg)" : "var(--app-text-muted)" }}>
               {hasSecret ? "Configurado" : "Sin generar"}
             </span>
             <button type="button" onClick={generate} disabled={generating} style={{ ...button, padding: "0.375rem 0.625rem", fontSize: "0.75rem" }}>

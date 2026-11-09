@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteVaultEntry } from "@/actions/vault.actions";
+import { fireAction } from "@/lib/run-action";
 import { IconAction } from "@/components/ui/icon-action";
 
 export function DeleteVaultButton({ entryId, entryTitle }: { entryId: string; entryTitle: string }) {
@@ -12,7 +13,7 @@ export function DeleteVaultButton({ entryId, entryTitle }: { entryId: string; en
   function handleDelete() {
     if (!confirm(`¿Eliminar "${entryTitle}"? Esta acción no se puede deshacer.`)) return;
     startTransition(async () => {
-      await deleteVaultEntry(entryId);
+      await fireAction(() => deleteVaultEntry(entryId));
       router.push("/boveda");
     });
   }

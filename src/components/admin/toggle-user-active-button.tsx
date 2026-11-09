@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { toggleUserActive } from "@/actions/user.actions";
+import { fireAction } from "@/lib/run-action";
 import { IconAction } from "@/components/ui/icon-action";
 
 export function ToggleUserActiveButton({
@@ -17,7 +18,7 @@ export function ToggleUserActiveButton({
 
   function handleClick() {
     startTransition(async () => {
-      await toggleUserActive(userId, !isActive);
+      await fireAction(() => toggleUserActive(userId, !isActive));
     });
   }
 

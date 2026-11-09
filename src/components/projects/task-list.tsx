@@ -141,7 +141,7 @@ export function TaskList({
                       </span>
                     )}
                     {task.isDraft && (
-                      <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "#b45309", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: "0.25rem", padding: "0.1rem 0.35rem", marginRight: "0.375rem" }}>
+                      <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--tone-amber-fg)", background: "var(--tone-amber-bg)", border: "1px solid var(--tone-amber-bd)", borderRadius: "0.25rem", padding: "0.1rem 0.35rem", marginRight: "0.375rem" }}>
                         Borrador
                       </span>
                     )}
@@ -263,7 +263,7 @@ export function TaskList({
                       </span>
                     )}
                     {task.isDraft && (
-                      <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "#b45309", background: "#fffbeb", border: "1px solid #fcd34d", borderRadius: "0.25rem", padding: "0.1rem 0.35rem", flexShrink: 0 }}>
+                      <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--tone-amber-fg)", background: "var(--tone-amber-bg)", border: "1px solid var(--tone-amber-bd)", borderRadius: "0.25rem", padding: "0.1rem 0.35rem", flexShrink: 0 }}>
                         Borrador
                       </span>
                     )}

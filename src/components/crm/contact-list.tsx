@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Mail, Phone, Star, Trash2, Plus, X, ShieldCheck, UserPlus } from "lucide-react";
 import { createContact, deleteContact, inviteContactAsUser } from "@/actions/crm.actions";
+import { callAction, fireAction } from "@/lib/run-action";
 import { fullName } from "@/lib/crm/contact-name";
 import { COUNTRIES, DEFAULT_DIAL, formatPhone } from "@/lib/crm/phone";
 
@@ -45,7 +46,7 @@ export function ContactList({
     setAviso(null);
     setInvitando(contacto.id);
     startTransition(async () => {
-      const result = await inviteContactAsUser(contacto.id, accountId);
+      const result = await callAction(() => inviteContactAsUser(contacto.id, accountId));
       setInvitando(null);
       if (result?.error) setError(result.error);
       else if (result?.emailError) {
@@ -61,7 +62,7 @@ export function ContactList({
   function handleCreate(formData: FormData) {
     setError(null);
     startTransition(async () => {
-      const result = await createContact(accountId, formData);
+      const result = await callAction(() => createContact(accountId, formData));
       if (result?.error) setError(result.error);
       else setAdding(false);
     });
@@ -69,7 +70,7 @@ export function ContactList({
 
   function handleDelete(id: string, name: string) {
     if (!confirm(`¿Eliminar a ${name} de los contactos?`)) return;
-    startTransition(async () => { await deleteContact(id, accountId); });
+    startTransition(async () => { await fireAction(() => deleteContact(id, accountId)); });
   }
 
   const inputStyle: React.CSSProperties = {
@@ -127,7 +128,7 @@ export function ContactList({
             Contacto principal
           </label>
 
-          {error && <p style={{ fontSize: "0.8125rem", color: "#b91c1c" }}>{error}</p>}
+          {error && <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)" }}>{error}</p>}
 
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
@@ -162,7 +163,7 @@ export function ContactList({
         <p style={{ fontSize: "0.8125rem", color: "#16a34a", marginBottom: "0.75rem" }}>{aviso}</p>
       )}
       {error && !adding && (
-        <p style={{ fontSize: "0.8125rem", color: "#b91c1c", marginBottom: "0.75rem" }}>{error}</p>
+        <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", marginBottom: "0.75rem" }}>{error}</p>
       )}
 
       {contacts.length === 0 && !adding ? (

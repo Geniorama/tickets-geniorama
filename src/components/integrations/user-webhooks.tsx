@@ -9,6 +9,7 @@ import {
   createWebhook, updateWebhook, deleteWebhook, toggleWebhook, testWebhook,
   type UserWebhookItem,
 } from "@/actions/user-webhook.actions";
+import { callAction, fireAction } from "@/lib/run-action";
 import { NOTIFICATION_CATEGORIES } from "@/lib/notification-categories";
 
 const ACCENT = "#fd1384";
@@ -104,7 +105,7 @@ function WebhookCard({ hook }: { hook: UserWebhookItem }) {
 
   function save() {
     startTransition(async () => {
-      const res = await updateWebhook(hook.id, { label, url, events, isActive: hook.isActive });
+      const res = await callAction(() => updateWebhook(hook.id, { label, url, events, isActive: hook.isActive }));
       if (res.error) flash("error", res.error);
       else flash("ok", "Cambios guardados.");
     });
@@ -113,20 +114,20 @@ function WebhookCard({ hook }: { hook: UserWebhookItem }) {
   function remove() {
     if (!confirm("¿Eliminar este webhook?")) return;
     startTransition(async () => {
-      const res = await deleteWebhook(hook.id);
+      const res = await callAction(() => deleteWebhook(hook.id));
       if (res.error) flash("error", res.error);
     });
   }
 
   function toggleActive() {
     startTransition(async () => {
-      await toggleWebhook(hook.id, !hook.isActive);
+      await fireAction(() => toggleWebhook(hook.id, !hook.isActive));
     });
   }
 
   function test() {
     startTransition(async () => {
-      const res = await testWebhook(hook.id);
+      const res = await callAction(() => testWebhook(hook.id));
       if (res.ok) flash("ok", `Prueba enviada (HTTP ${res.status}).`);
       else flash("error", res.error ?? "Falló el envío de prueba.");
     });
@@ -152,9 +153,9 @@ function WebhookCard({ hook }: { hook: UserWebhookItem }) {
             display: "flex", alignItems: "center", gap: "0.375rem",
             fontSize: "0.75rem", fontWeight: 500, padding: "0.25rem 0.625rem",
             borderRadius: "9999px", cursor: "pointer", flexShrink: 0,
-            backgroundColor: hook.isActive ? "#dcfce7" : "var(--app-content-bg)",
-            color: hook.isActive ? "#15803d" : "var(--app-text-muted)",
-            border: `1px solid ${hook.isActive ? "#bbf7d0" : "var(--app-border)"}`,
+            backgroundColor: hook.isActive ? "var(--tone-green-bg)" : "var(--app-content-bg)",
+            color: hook.isActive ? "var(--tone-green-fg)" : "var(--app-text-muted)",
+            border: `1px solid ${hook.isActive ? "var(--tone-green-bd)" : "var(--app-border)"}`,
           }}
         >
           {hook.isActive
@@ -186,7 +187,7 @@ function WebhookCard({ hook }: { hook: UserWebhookItem }) {
       )}
 
       {(hook.lastSentAt || hook.lastError) && (
-        <p style={{ margin: 0, fontSize: "0.75rem", color: hook.lastError ? "#b91c1c" : "var(--app-text-muted)" }}>
+        <p style={{ margin: 0, fontSize: "0.75rem", color: hook.lastError ? "var(--tone-red-fg)" : "var(--app-text-muted)" }}>
           {hook.lastError
             ? `Último envío falló: ${hook.lastError}`
             : `Último envío: HTTP ${hook.lastStatus ?? "?"}`}
@@ -194,7 +195,7 @@ function WebhookCard({ hook }: { hook: UserWebhookItem }) {
       )}
 
       {msg && (
-        <p style={{ margin: 0, fontSize: "0.8125rem", color: msg.kind === "ok" ? "#15803d" : "#b91c1c", display: "flex", alignItems: "center", gap: "0.375rem" }}>
+        <p style={{ margin: 0, fontSize: "0.8125rem", color: msg.kind === "ok" ? "var(--tone-green-fg)" : "var(--tone-red-fg)", display: "flex", alignItems: "center", gap: "0.375rem" }}>
           {msg.kind === "ok" ? <CheckCircle2 style={{ width: "0.875rem", height: "0.875rem" }} /> : <XCircle style={{ width: "0.875rem", height: "0.875rem" }} />}
           {msg.text}
         </p>
@@ -211,7 +212,7 @@ function WebhookCard({ hook }: { hook: UserWebhookItem }) {
           <Send style={{ width: "0.875rem", height: "0.875rem" }} /> Probar
         </button>
         <button type="button" onClick={remove} disabled={isPending}
-          style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", padding: "0.5rem 0.75rem", borderRadius: "0.375rem", border: "1px solid var(--app-border)", backgroundColor: "var(--app-card-bg)", color: "#b91c1c", fontSize: "0.8125rem", fontWeight: 500, cursor: "pointer", marginLeft: "auto" }}>
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", padding: "0.5rem 0.75rem", borderRadius: "0.375rem", border: "1px solid var(--app-border)", backgroundColor: "var(--app-card-bg)", color: "var(--tone-red-fg)", fontSize: "0.8125rem", fontWeight: 500, cursor: "pointer", marginLeft: "auto" }}>
           <Trash2 style={{ width: "0.875rem", height: "0.875rem" }} /> Eliminar
         </button>
       </div>
@@ -232,7 +233,7 @@ function NewWebhookForm() {
   function submit() {
     setError("");
     startTransition(async () => {
-      const res = await createWebhook({ label, url, events });
+      const res = await callAction(() => createWebhook({ label, url, events }));
       if (res.error) { setError(res.error); return; }
       setLabel(""); setUrl(""); setEvents([]); setOpen(false);
     });
@@ -262,7 +263,7 @@ function NewWebhookForm() {
         <label style={labelStyle}>Notificaciones a enviar</label>
         <CategoryPicker selected={events} onChange={setEvents} />
       </div>
-      {error && <p style={{ margin: 0, fontSize: "0.8125rem", color: "#b91c1c" }}>{error}</p>}
+      {error && <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--tone-red-fg)" }}>{error}</p>}
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button type="button" onClick={submit} disabled={isPending}
           style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", padding: "0.5rem 1rem", borderRadius: "0.375rem", border: "none", backgroundColor: ACCENT, color: "#fff", fontSize: "0.8125rem", fontWeight: 500, cursor: isPending ? "not-allowed" : "pointer", opacity: isPending ? 0.7 : 1 }}>

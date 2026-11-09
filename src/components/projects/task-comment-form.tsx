@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { addTaskComment, deleteTaskComment, editTaskComment, getTaskComments } from "@/actions/task-comment.actions";
 import { toggleTaskCommentReaction } from "@/actions/reaction.actions";
+import { callAction, runAction, fireAction } from "@/lib/run-action";
 import { Pencil, Trash2 } from "lucide-react";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { CommentBody } from "@/components/ui/comment-body";
@@ -70,7 +71,9 @@ export function TaskCommentSection({
             try {
               const oldest = allComments[0];
               if (!oldest) return;
-              const more = await getTaskComments(taskId, oldest.createdAt.toISOString());
+              const r = await runAction(() => getTaskComments(taskId, oldest.createdAt.toISOString()), { timeoutMs: 60000 });
+              if (!r.ok) return;
+              const more = r.data;
               if (more.length < 50) setHasMore(false);
               setOlderComments((prev) => [
                 ...more.map((c) => ({
@@ -161,14 +164,14 @@ function TaskCommentItem({
   function handleDelete() {
     if (!confirm("¿Eliminar este comentario?")) return;
     startTransition(async () => {
-      await deleteTaskComment(comment.id, taskId, projectId);
+      await fireAction(() => deleteTaskComment(comment.id, taskId, projectId), { timeoutMs: 120000 });
     });
   }
 
   function handleSaveEdit() {
     setError(null);
     startTransition(async () => {
-      const result = await editTaskComment(comment.id, taskId, projectId, editBody);
+      const result = await callAction(() => editTaskComment(comment.id, taskId, projectId, editBody), { timeoutMs: 120000 });
       if (result?.error) {
         setError(result.error);
       } else {
@@ -262,7 +265,7 @@ function TaskCommentItem({
             style={inputStyle}
           />
           {error && (
-            <p style={{ fontSize: "0.75rem", color: "#b91c1c" }}>{error}</p>
+            <p style={{ fontSize: "0.75rem", color: "var(--tone-red-fg)" }}>{error}</p>
           )}
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button
@@ -359,7 +362,7 @@ function TaskCommentForm({
 
     startTransition(async () => {
       try {
-        const result = await addTaskComment(taskId, projectId, formData);
+        const result = await callAction(() => addTaskComment(taskId, projectId, formData), { timeoutMs: 120000 });
         if (result?.error) {
           setError(result.error);
         } else {
@@ -404,9 +407,9 @@ function TaskCommentForm({
           style={{
             whiteSpace: "pre-line",
             fontSize: "0.875rem",
-            color: "#b91c1c",
-            backgroundColor: "#fef2f2",
-            border: "1px solid #fecaca",
+            color: "var(--tone-red-fg)",
+            backgroundColor: "var(--tone-red-bg)",
+            border: "1px solid var(--tone-red-bd)",
             borderRadius: "0.5rem",
             padding: "0.5rem 0.75rem",
           }}

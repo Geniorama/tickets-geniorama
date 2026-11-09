@@ -125,7 +125,7 @@ export function ServiceCard({
       {/* Internal notes (staff only) */}
       {showNotes && service.notes && (
         <div style={{ backgroundColor: "var(--app-content-bg)", borderRadius: "0.5rem", padding: "0.625rem 0.75rem", fontSize: "0.8125rem", color: "var(--app-text-muted)", borderLeft: "3px solid #f59e0b" }}>
-          <span style={{ fontWeight: 600, color: "#b45309" }}>Notas internas: </span>
+          <span style={{ fontWeight: 600, color: "var(--tone-amber-fg)" }}>Notas internas: </span>
           {service.notes}
         </div>
       )}

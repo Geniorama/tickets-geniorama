@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateUser } from "@/actions/user.actions";
+import { callAction } from "@/lib/run-action";
 
 interface Company { id: string; name: string; }
 interface User {
@@ -26,7 +27,7 @@ export function UserEditForm({ user, companies }: { user: User; companies: Compa
     setError(null);
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      const result = await updateUser(user.id, formData);
+      const result = await callAction(() => updateUser(user.id, formData), { timeoutMs: 60000 });
       if (result?.error) setError(result.error);
       else router.push("/admin/users");
     });

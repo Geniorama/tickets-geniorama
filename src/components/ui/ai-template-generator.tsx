@@ -8,6 +8,7 @@ import {
   type TemplateDraft,
   type TemplateKind,
 } from "@/actions/template-ai.actions";
+import { callAction } from "@/lib/run-action";
 import { DEFAULT_AI_PROVIDER, type AiProvider } from "@/lib/ai-provider";
 
 /**
@@ -45,7 +46,7 @@ export function AiTemplateGenerator({
     setError(null);
     setDone(false);
     startTransition(async () => {
-      const res = await generateTemplateDraft({ kind, prompt, provider });
+      const res = await callAction(() => generateTemplateDraft({ kind, prompt, provider }), { timeoutMs: 120000 });
       if ("error" in res) {
         setError(res.error);
         return;
@@ -125,7 +126,7 @@ export function AiTemplateGenerator({
                 gap: "0.375rem",
                 margin: 0,
                 fontSize: "0.8125rem",
-                color: "#b91c1c",
+                color: "var(--tone-red-fg)",
               }}
             >
               <AlertCircle size={14} style={{ flexShrink: 0, marginTop: "0.125rem" }} />
@@ -134,7 +135,7 @@ export function AiTemplateGenerator({
           )}
 
           {done && !error && (
-            <p style={{ margin: 0, fontSize: "0.8125rem", color: "#15803d" }}>
+            <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--tone-green-fg)" }}>
               Borrador generado. Revisa los campos y ajústalos antes de guardar.
             </p>
           )}

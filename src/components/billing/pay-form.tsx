@@ -118,7 +118,7 @@ export function PayForm({ token, importe }: { token: string; importe: string }) 
       </div>
 
       {error && (
-        <p role="alert" style={{ fontSize: "0.875rem", color: "#b91c1c", margin: 0 }}>{error}</p>
+        <p role="alert" style={{ fontSize: "0.875rem", color: "var(--tone-red-fg)", margin: 0 }}>{error}</p>
       )}
 
       <button

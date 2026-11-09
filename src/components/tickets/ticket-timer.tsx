@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { Play, Pause, Clock, Plus, X, Trash2, RotateCcw } from "lucide-react";
 import { startTimer, pauseTimer, addManualEntry, deleteTimeEntry, resetTimeEntries } from "@/actions/time.actions";
+import { callAction, fireAction } from "@/lib/run-action";
 import { useTimerContext } from "@/providers/timer-provider";
 
 interface TimeEntryRow {
@@ -88,9 +89,9 @@ export function TicketTimer({
   function handleToggle() {
     startTransition(async () => {
       if (activeEntry) {
-        await pauseTimer(ticketId);
+        await fireAction(() => pauseTimer(ticketId));
       } else {
-        await startTimer(ticketId);
+        await fireAction(() => startTimer(ticketId));
       }
     });
   }
@@ -99,7 +100,7 @@ export function TicketTimer({
     e.preventDefault();
     setManualError(null);
     startTransition(async () => {
-      const result = await addManualEntry(ticketId, hours, minutes);
+      const result = await callAction(() => addManualEntry(ticketId, hours, minutes));
       if (result?.error) {
         setManualError(result.error);
       } else {
@@ -112,13 +113,13 @@ export function TicketTimer({
 
   function handleDeleteEntry(entryId: string) {
     startTransition(async () => {
-      await deleteTimeEntry(entryId, ticketId);
+      await fireAction(() => deleteTimeEntry(entryId, ticketId));
     });
   }
 
   function handleReset() {
     startTransition(async () => {
-      await resetTimeEntries(ticketId);
+      await fireAction(() => resetTimeEntries(ticketId));
       setConfirmReset(false);
     });
   }

@@ -6,6 +6,7 @@ import {
   CheckCircle2, XCircle, Loader2, Trash2, ExternalLink, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { saveSetting, deleteSetting } from "@/actions/settings.actions";
+import { callAction, fireAction } from "@/lib/run-action";
 
 // ─── Config de canales ────────────────────────────────────────────────────────
 
@@ -65,12 +66,12 @@ function ChannelCard({
     startTransition(async () => {
       const trimmed = value.trim();
       if (!trimmed) {
-        const res = await deleteSetting(channel.key);
+        const res = await callAction(() => deleteSetting(channel.key));
         if (res.error) { setStatus("error"); setErrorMsg(res.error); }
         else setStatus("ok");
         return;
       }
-      const res = await saveSetting(channel.key, trimmed);
+      const res = await callAction(() => saveSetting(channel.key, trimmed));
       if (res.error) { setStatus("error"); setErrorMsg(res.error); }
       else setStatus("ok");
     });
@@ -79,7 +80,7 @@ function ChannelCard({
   function handleClear() {
     setValue("");
     startTransition(async () => {
-      await deleteSetting(channel.key);
+      await fireAction(() => deleteSetting(channel.key));
       setStatus("ok");
     });
   }
@@ -134,9 +135,9 @@ function ChannelCard({
             fontWeight: 500,
             padding: "0.25rem 0.625rem",
             borderRadius: "9999px",
-            backgroundColor: configured ? "#dcfce7" : "var(--app-content-bg)",
-            color: configured ? "#15803d" : "var(--app-text-muted)",
-            border: `1px solid ${configured ? "#bbf7d0" : "var(--app-border)"}`,
+            backgroundColor: configured ? "var(--tone-green-bg)" : "var(--app-content-bg)",
+            color: configured ? "var(--tone-green-fg)" : "var(--app-text-muted)",
+            border: `1px solid ${configured ? "var(--tone-green-bd)" : "var(--app-border)"}`,
             flexShrink: 0,
           }}
         >
@@ -236,13 +237,13 @@ function ChannelCard({
         </div>
 
         {status === "ok" && (
-          <p style={{ margin: 0, fontSize: "0.8125rem", color: "#15803d", display: "flex", alignItems: "center", gap: "0.375rem" }}>
+          <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--tone-green-fg)", display: "flex", alignItems: "center", gap: "0.375rem" }}>
             <CheckCircle2 style={{ width: "0.875rem", height: "0.875rem" }} />
             {value.trim() ? "Webhook guardado correctamente." : "Webhook eliminado."}
           </p>
         )}
         {status === "error" && (
-          <p style={{ margin: 0, fontSize: "0.8125rem", color: "#b91c1c" }}>{errorMsg}</p>
+          <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--tone-red-fg)" }}>{errorMsg}</p>
         )}
       </div>
     </div>

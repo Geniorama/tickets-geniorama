@@ -65,7 +65,7 @@ export default async function MisServiciosPage() {
               </span>
             )}
             {expiring > 0 && (
-              <span style={{ fontSize: "0.8125rem", fontWeight: 600, padding: "0.25rem 0.75rem", borderRadius: "9999px", backgroundColor: "rgba(245,158,11,0.12)", color: "#b45309" }}>
+              <span style={{ fontSize: "0.8125rem", fontWeight: 600, padding: "0.25rem 0.75rem", borderRadius: "9999px", backgroundColor: "rgba(245,158,11,0.12)", color: "var(--tone-amber-fg)" }}>
                 🕐 {expiring} por vencer
               </span>
             )}

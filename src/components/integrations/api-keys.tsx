@@ -15,6 +15,7 @@ import {
   createApiKey, revokeApiKey, deleteApiKey,
   type ApiKeyItem,
 } from "@/actions/api-key.actions";
+import { callAction, fireAction } from "@/lib/run-action";
 import { API_SCOPES, API_SCOPE_LABELS, displayPrefix } from "@/lib/api/scopes";
 
 const ACCENT = "#0891b2";
@@ -69,8 +70,8 @@ function FreshToken({ token, onDone }: { token: string; onDone: () => void }) {
   return (
     <div
       style={{
-        border: "1px solid #fcd34d",
-        backgroundColor: "#fffbeb",
+        border: "1px solid var(--tone-amber-bd)",
+        backgroundColor: "var(--tone-amber-bg)",
         borderRadius: "0.75rem",
         padding: "1rem 1.25rem",
         display: "flex",
@@ -78,7 +79,7 @@ function FreshToken({ token, onDone }: { token: string; onDone: () => void }) {
         gap: "0.75rem",
       }}
     >
-      <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 600, fontSize: "0.875rem", color: "#92400e" }}>
+      <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 600, fontSize: "0.875rem", color: "var(--tone-amber-fg)" }}>
         <AlertTriangle style={{ width: "1rem", height: "1rem" }} />
         Cópiala ahora: no se vuelve a mostrar
       </p>
@@ -88,7 +89,7 @@ function FreshToken({ token, onDone }: { token: string; onDone: () => void }) {
           padding: "0.75rem",
           borderRadius: "0.5rem",
           backgroundColor: "#fff",
-          border: "1px solid #fde68a",
+          border: "1px solid var(--tone-amber-bd)",
           fontFamily: "monospace",
           fontSize: "0.8125rem",
           color: "#1f2937",
@@ -101,7 +102,7 @@ function FreshToken({ token, onDone }: { token: string; onDone: () => void }) {
         <button
           type="button"
           onClick={copy}
-          style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", padding: "0.5rem 1rem", borderRadius: "0.375rem", border: "none", backgroundColor: "#92400e", color: "#fff", fontSize: "0.8125rem", fontWeight: 500, cursor: "pointer" }}
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", padding: "0.5rem 1rem", borderRadius: "0.375rem", border: "none", backgroundColor: "var(--tone-amber-fg)", color: "#fff", fontSize: "0.8125rem", fontWeight: 500, cursor: "pointer" }}
         >
           {copied ? <Check style={{ width: "0.875rem", height: "0.875rem" }} /> : <Copy style={{ width: "0.875rem", height: "0.875rem" }} />}
           {copied ? "Copiada" : "Copiar"}
@@ -109,7 +110,7 @@ function FreshToken({ token, onDone }: { token: string; onDone: () => void }) {
         <button
           type="button"
           onClick={onDone}
-          style={{ padding: "0.5rem 1rem", borderRadius: "0.375rem", border: "1px solid #fde68a", backgroundColor: "transparent", color: "#92400e", fontSize: "0.8125rem", fontWeight: 500, cursor: "pointer" }}
+          style={{ padding: "0.5rem 1rem", borderRadius: "0.375rem", border: "1px solid var(--tone-amber-bd)", backgroundColor: "transparent", color: "var(--tone-amber-fg)", fontSize: "0.8125rem", fontWeight: 500, cursor: "pointer" }}
         >
           Ya la guardé
         </button>
@@ -143,8 +144,8 @@ function KeyCard({ item }: { item: ApiKeyItem }) {
         <span
           style={{
             fontSize: "0.7rem", fontWeight: 600, padding: "0.2rem 0.6rem", borderRadius: "9999px", flexShrink: 0,
-            backgroundColor: live ? "#dcfce7" : "#fee2e2",
-            color: live ? "#15803d" : "#b91c1c",
+            backgroundColor: live ? "var(--tone-green-bg)" : "var(--tone-red-bg)",
+            color: live ? "var(--tone-green-fg)" : "var(--tone-red-fg)",
           }}
         >
           {live ? "Activa" : item.isExpired ? "Vencida" : "Revocada"}
@@ -173,9 +174,9 @@ function KeyCard({ item }: { item: ApiKeyItem }) {
             disabled={isPending}
             onClick={() => {
               if (!confirm(`¿Revocar "${item.label}"? Dejará de funcionar de inmediato.`)) return;
-              startTransition(async () => { await revokeApiKey(item.id); });
+              startTransition(async () => { await fireAction(() => revokeApiKey(item.id)); });
             }}
-            style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", padding: "0.4rem 0.75rem", borderRadius: "0.375rem", border: "1px solid var(--app-border)", backgroundColor: "var(--app-card-bg)", color: "#b45309", fontSize: "0.8125rem", fontWeight: 500, cursor: "pointer" }}
+            style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", padding: "0.4rem 0.75rem", borderRadius: "0.375rem", border: "1px solid var(--app-border)", backgroundColor: "var(--app-card-bg)", color: "var(--tone-amber-fg)", fontSize: "0.8125rem", fontWeight: 500, cursor: "pointer" }}
           >
             <ShieldOff style={{ width: "0.875rem", height: "0.875rem" }} /> Revocar
           </button>
@@ -185,9 +186,9 @@ function KeyCard({ item }: { item: ApiKeyItem }) {
           disabled={isPending}
           onClick={() => {
             if (!confirm(`¿Eliminar "${item.label}"? Se pierde también su rastro de uso.`)) return;
-            startTransition(async () => { await deleteApiKey(item.id); });
+            startTransition(async () => { await fireAction(() => deleteApiKey(item.id)); });
           }}
-          style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", padding: "0.4rem 0.75rem", borderRadius: "0.375rem", border: "1px solid var(--app-border)", backgroundColor: "var(--app-card-bg)", color: "#b91c1c", fontSize: "0.8125rem", fontWeight: 500, cursor: "pointer", marginLeft: "auto" }}
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", padding: "0.4rem 0.75rem", borderRadius: "0.375rem", border: "1px solid var(--app-border)", backgroundColor: "var(--app-card-bg)", color: "var(--tone-red-fg)", fontSize: "0.8125rem", fontWeight: 500, cursor: "pointer", marginLeft: "auto" }}
         >
           <Trash2 style={{ width: "0.875rem", height: "0.875rem" }} /> Eliminar
         </button>
@@ -220,7 +221,7 @@ function NewKeyForm({
   function submit() {
     setError("");
     startTransition(async () => {
-      const res = await createApiKey({ label, userId, scopes, expiresAt: expiresAt || undefined });
+      const res = await callAction(() => createApiKey({ label, userId, scopes, expiresAt: expiresAt || undefined }));
       if (res.error) { setError(res.error); return; }
       if (res.token) onCreated(res.token);
       setLabel(""); setScopes(["read", "write"]); setExpiresAt(""); setOpen(false);
@@ -302,7 +303,7 @@ function NewKeyForm({
         <input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} style={inputStyle} />
       </div>
 
-      {error && <p style={{ margin: 0, fontSize: "0.8125rem", color: "#b91c1c" }}>{error}</p>}
+      {error && <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--tone-red-fg)" }}>{error}</p>}
 
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button

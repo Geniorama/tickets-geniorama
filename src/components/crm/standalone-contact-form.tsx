@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createContact } from "@/actions/crm.actions";
+import { callAction } from "@/lib/run-action";
 import { COUNTRIES, DEFAULT_DIAL } from "@/lib/crm/phone";
 
 /**
@@ -27,7 +28,7 @@ export function StandaloneContactForm({
   function handleSubmit(formData: FormData) {
     setError(null);
     startTransition(async () => {
-      const result = await createContact(accountId, formData);
+      const result = await callAction(() => createContact(accountId, formData), { timeoutMs: 60000 });
       if (result?.error) setError(result.error);
       // Se vuelve a la ficha de la cuenta: es donde se sigue trabajando con
       // esa persona, no en el listado del que se venía.
@@ -115,7 +116,7 @@ export function StandaloneContactForm({
         guarda en formato internacional para poder usarlo en campañas.
       </p>
 
-      {error && <p style={{ fontSize: "0.8125rem", color: "#b91c1c" }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)" }}>{error}</p>}
 
       <button
         type="submit"

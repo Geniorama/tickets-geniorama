@@ -6,6 +6,7 @@ import { VARIABLES_CORREO } from "@/lib/billing/reminders/template";
 import {
   createEmailTemplate, updateEmailTemplate, deleteEmailTemplate,
 } from "@/actions/billing-emails.actions";
+import { callAction } from "@/lib/run-action";
 
 /**
  * Las plantillas de correo, escritas por quien le escribe al cliente.
@@ -43,8 +44,8 @@ export function EmailTemplates({ plantillas }: { plantillas: Plantilla[] }) {
     setError(null);
     startTransition(async () => {
       const r = editando
-        ? await updateEmailTemplate(editando.id, formData)
-        : await createEmailTemplate(formData);
+        ? await callAction(() => updateEmailTemplate(editando.id, formData))
+        : await callAction(() => createEmailTemplate(formData));
       if (r?.error) return setError(r.error);
       setEditando(null);
       setCreando(false);
@@ -53,7 +54,7 @@ export function EmailTemplates({ plantillas }: { plantillas: Plantilla[] }) {
 
   function borrar(id: string) {
     startTransition(async () => {
-      const r = await deleteEmailTemplate(id);
+      const r = await callAction(() => deleteEmailTemplate(id));
       if (r?.error) setError(r.error);
     });
   }
@@ -63,7 +64,7 @@ export function EmailTemplates({ plantillas }: { plantillas: Plantilla[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       {error && (
-        <p style={{ fontSize: "0.8125rem", color: "#b91c1c", margin: 0 }}>{error}</p>
+        <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", margin: 0 }}>{error}</p>
       )}
 
       {plantillas.length === 0 && !enFormulario && (

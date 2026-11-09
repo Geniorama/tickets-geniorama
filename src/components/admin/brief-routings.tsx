@@ -9,6 +9,7 @@ import {
   createBriefRouting, updateBriefRouting, deleteBriefRouting,
   type BriefRoutingInput,
 } from "@/actions/brief-routing.actions";
+import { callAction } from "@/lib/run-action";
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -259,9 +260,9 @@ function RoutingForm({
         </div>
       </div>
 
-      {error && <p style={{ margin: 0, fontSize: "0.8125rem", color: "#b91c1c" }}>{error}</p>}
+      {error && <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--tone-red-fg)" }}>{error}</p>}
       {saved && !error && (
-        <p style={{ margin: 0, fontSize: "0.8125rem", color: "#15803d", display: "flex", alignItems: "center", gap: "0.375rem" }}>
+        <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--tone-green-fg)", display: "flex", alignItems: "center", gap: "0.375rem" }}>
           <CheckCircle2 style={{ width: "0.875rem", height: "0.875rem" }} /> Regla guardada.
         </p>
       )}
@@ -280,7 +281,7 @@ function RoutingCard({ routing, staff }: { routing: RoutingRow; staff: StaffOpti
     if (!confirm(`¿Eliminar la regla "${routing.label}"? Los briefs de tipo "${routing.briefType}" dejarán de crear tareas.`)) return;
     setError("");
     startTransition(async () => {
-      const res = await deleteBriefRouting(routing.id);
+      const res = await callAction(() => deleteBriefRouting(routing.id));
       if (res.error) setError(res.error);
     });
   }
@@ -341,8 +342,8 @@ function RoutingCard({ routing, staff }: { routing: RoutingRow; staff: StaffOpti
               title="El responsable está inactivo: los briefs de este tipo llegarán sin asignar."
               style={{
                 display: "flex", alignItems: "center", gap: "0.25rem",
-                fontSize: "0.6875rem", color: "#b45309", backgroundColor: "#fef3c7",
-                border: "1px solid #fde68a", padding: "0.2rem 0.5rem", borderRadius: "9999px",
+                fontSize: "0.6875rem", color: "var(--tone-amber-fg)", backgroundColor: "var(--tone-amber-bg)",
+                border: "1px solid var(--tone-amber-bd)", padding: "0.2rem 0.5rem", borderRadius: "9999px",
               }}
             >
               <AlertTriangle style={{ width: "0.75rem", height: "0.75rem" }} /> Responsable inactivo
@@ -374,7 +375,7 @@ function RoutingCard({ routing, staff }: { routing: RoutingRow; staff: StaffOpti
               borderRadius: "0.375rem",
               border: "1px solid var(--app-border)",
               backgroundColor: "var(--app-card-bg)",
-              color: "#b91c1c",
+              color: "var(--tone-red-fg)",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
@@ -385,7 +386,7 @@ function RoutingCard({ routing, staff }: { routing: RoutingRow; staff: StaffOpti
               : <Trash2 style={{ width: "0.875rem", height: "0.875rem" }} />}
           </button>
 
-          {error && <p style={{ margin: 0, width: "100%", fontSize: "0.8125rem", color: "#b91c1c" }}>{error}</p>}
+          {error && <p style={{ margin: 0, width: "100%", fontSize: "0.8125rem", color: "var(--tone-red-fg)" }}>{error}</p>}
         </div>
       )}
     </div>
@@ -524,7 +525,7 @@ function N8nInstructions({
             </p>
             <CodeBlock code={"Authorization: Bearer <INTEGRATION_BRIEF_TOKEN>"} />
             {!tokenConfigured && (
-              <p style={{ margin: "0.5rem 0 0", fontSize: "0.8125rem", color: "#b45309", display: "flex", alignItems: "center", gap: "0.375rem" }}>
+              <p style={{ margin: "0.5rem 0 0", fontSize: "0.8125rem", color: "var(--tone-amber-fg)", display: "flex", alignItems: "center", gap: "0.375rem" }}>
                 <AlertTriangle style={{ width: "0.875rem", height: "0.875rem" }} />
                 Falta definir <code>INTEGRATION_BRIEF_TOKEN</code> en el servidor: mientras no exista, el endpoint responde 401 a todo.
               </p>
@@ -542,10 +543,10 @@ function N8nInstructions({
             style={{
               padding: "0.75rem 1rem",
               borderRadius: "0.5rem",
-              backgroundColor: "#eff6ff",
-              border: "1px solid #bfdbfe",
+              backgroundColor: "var(--tone-blue-bg)",
+              border: "1px solid var(--tone-blue-bd)",
               fontSize: "0.8125rem",
-              color: "#1e40af",
+              color: "var(--tone-blue-fg)",
               lineHeight: 1.5,
             }}
           >

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Link2, Link2Off, Plus, AlertTriangle } from "lucide-react";
 import type { Pareja } from "@/lib/xubio/match";
 import { vincularCliente, desvincularCliente, crearEnXubio } from "@/actions/xubio.actions";
+import { callAction } from "@/lib/run-action";
 
 /**
  * Empresas de aquí frente a clientes de Xubio.
@@ -36,7 +37,7 @@ export function XubioSync({ parejas, muestra }: { parejas: Pareja[]; muestra: un
   ) {
     setError(null); setDetalle(null); setOcupado(id);
     try {
-      const r = await fn();
+      const r = await callAction(fn, { timeoutMs: 60000 });
       if (r?.error) { setError(r.error); setDetalle(r.detalle ?? null); return; }
       router.refresh();
     } finally {
@@ -109,14 +110,14 @@ export function XubioSync({ parejas, muestra }: { parejas: Pareja[]; muestra: un
               </div>
 
               {p.ambiguo && (
-                <p style={{ margin: "0.4rem 0 0", fontSize: "0.75rem", color: "#b45309", display: "flex", gap: "0.35rem", alignItems: "flex-start" }}>
+                <p style={{ margin: "0.4rem 0 0", fontSize: "0.75rem", color: "var(--tone-amber-fg)", display: "flex", gap: "0.35rem", alignItems: "flex-start" }}>
                   <AlertTriangle style={{ width: "0.8rem", height: "0.8rem", flexShrink: 0, marginTop: "0.1rem" }} />
                   Hay varios clientes en Xubio que le encajan. No se empareja sola: elige tú cuál,
                   o crea uno nuevo.
                 </p>
               )}
               {!p.ambiguo && p.empresa.xubioClientId && (
-                <p style={{ margin: "0.4rem 0 0", fontSize: "0.75rem", color: "#b45309" }}>
+                <p style={{ margin: "0.4rem 0 0", fontSize: "0.75rem", color: "var(--tone-amber-fg)" }}>
                   Estaba enlazada con <code>{p.empresa.xubioClientId}</code>, pero ese cliente ya no
                   está en Xubio. Puede que lo borraran allá.
                 </p>
@@ -227,7 +228,7 @@ export function XubioSync({ parejas, muestra }: { parejas: Pareja[]; muestra: un
 
             <div style={{ padding: "0.7rem 0.85rem", borderRadius: "0.5rem", border: "1px solid var(--app-border)", fontSize: "0.8125rem" }}>
               <p style={{ margin: 0, color: "var(--app-body-text)", fontWeight: 600 }}>{confirmando.empresa.name}</p>
-              <p style={{ margin: "0.2rem 0 0", color: confirmando.empresa.taxId ? "var(--app-text-muted)" : "#b45309" }}>
+              <p style={{ margin: "0.2rem 0 0", color: confirmando.empresa.taxId ? "var(--app-text-muted)" : "var(--tone-amber-fg)" }}>
                 {confirmando.empresa.taxId ? `NIT ${confirmando.empresa.taxId}` : "Sin NIT — se creará sin identificación tributaria"}
               </p>
             </div>

@@ -3,6 +3,7 @@
 import { useTransition, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createSite, updateSite } from "@/actions/site.actions";
+import { callAction } from "@/lib/run-action";
 
 interface Company { id: string; name: string; }
 interface SiteData {
@@ -40,8 +41,8 @@ export function SiteForm({
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
       const result = isEdit
-        ? await updateSite(site.id, formData)
-        : await createSite(formData);
+        ? await callAction(() => updateSite(site.id, formData), { timeoutMs: 60000 })
+        : await callAction(() => createSite(formData), { timeoutMs: 60000 });
       if (result?.error) setError(result.error);
     });
   }

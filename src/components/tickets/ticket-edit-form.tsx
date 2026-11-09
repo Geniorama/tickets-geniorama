@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateTicket } from "@/actions/ticket.actions";
+import { runAction } from "@/lib/run-action";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { MultiSelect } from "@/components/ui/multi-select";
 
@@ -55,9 +56,10 @@ export function TicketEditForm({
     setError(null);
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      const result = await updateTicket(ticket.id, formData);
-      if (result?.error) setError(result.error);
-      else router.push(`/tickets/${ticket.id}`);
+      const r = await runAction(() => updateTicket(ticket.id, formData), { timeoutMs: 60_000 });
+      if (!r.ok) return setError(r.error);
+      if (r.data?.error) return setError(r.data.error);
+      router.push(`/tickets/${ticket.id}`);
     });
   }
 

@@ -39,6 +39,7 @@ import {
   updateTaskChecklistItem,
   deleteTaskChecklistItem,
 } from "@/actions/checklist.actions";
+import { fireAction } from "@/lib/run-action";
 import { parseChecklistPaste } from "@/lib/checklist-paste";
 import { DEFAULT_CHECKLIST_TITLE } from "@/lib/checklist";
 import { applyChecklistDrag, itemDragId, listDragId, zoneDragId } from "@/lib/checklist-dnd";
@@ -705,15 +706,15 @@ export function TicketChecklistPanel({
       canDelete={canDelete}
       onToggleItem={(item) => {
         updateItems((items) => items.map((i) => (i.id === item.id ? { ...i, isChecked: !i.isChecked } : i)));
-        startTransition(async () => { await toggleTicketChecklistItem(item.id, ticketId); });
+        startTransition(async () => { await fireAction(() => toggleTicketChecklistItem(item.id, ticketId)); });
       }}
       onDeleteItem={(id) => {
         updateItems((items) => items.filter((i) => i.id !== id));
-        startTransition(async () => { await deleteTicketChecklistItem(id, ticketId); });
+        startTransition(async () => { await fireAction(() => deleteTicketChecklistItem(id, ticketId)); });
       }}
       onRenameItem={(id, title) => {
         updateItems((items) => items.map((i) => (i.id === id ? { ...i, title } : i)));
-        startTransition(async () => { await updateTicketChecklistItem(id, ticketId, title); });
+        startTransition(async () => { await fireAction(() => updateTicketChecklistItem(id, ticketId, title)); });
       }}
       onAddItems={(checklistId, titles) => {
         const temp = titles.map((title, i) => ({ id: tempId(i), title, isChecked: false }));
@@ -721,29 +722,29 @@ export function TicketChecklistPanel({
           prev.map((c) => (c.id === checklistId ? { ...c, items: [...c.items, ...temp] } : c))
         );
         startTransition(async () => {
-          if (titles.length === 1) await addTicketChecklistItem(ticketId, checklistId, titles[0]);
-          else await addTicketChecklistItems(ticketId, checklistId, titles);
+          if (titles.length === 1) await fireAction(() => addTicketChecklistItem(ticketId, checklistId, titles[0]));
+          else await fireAction(() => addTicketChecklistItems(ticketId, checklistId, titles));
         });
       }}
       onAddChecklist={() => {
         setChecklists((prev) => [...prev, { id: tempId(), title: DEFAULT_CHECKLIST_TITLE, items: [] }]);
-        startTransition(async () => { await addTicketChecklist(ticketId, DEFAULT_CHECKLIST_TITLE); });
+        startTransition(async () => { await fireAction(() => addTicketChecklist(ticketId, DEFAULT_CHECKLIST_TITLE)); });
       }}
       onRenameChecklist={(id, title) => {
         setChecklists((prev) => prev.map((c) => (c.id === id ? { ...c, title } : c)));
-        startTransition(async () => { await renameTicketChecklist(id, ticketId, title); });
+        startTransition(async () => { await fireAction(() => renameTicketChecklist(id, ticketId, title)); });
       }}
       onDeleteChecklist={(id) => {
         setChecklists((prev) => prev.filter((c) => c.id !== id));
-        startTransition(async () => { await deleteTicketChecklist(id, ticketId); });
+        startTransition(async () => { await fireAction(() => deleteTicketChecklist(id, ticketId)); });
       }}
       onReorder={(next) => {
         setChecklists(next);
         startTransition(async () => {
-          await reorderTicketChecklists(
+          await fireAction(() => reorderTicketChecklists(
             ticketId,
             next.map((c) => ({ checklistId: c.id, itemIds: c.items.map((i) => i.id) }))
-          );
+          ));
         });
       }}
     />
@@ -776,15 +777,15 @@ export function TaskChecklistPanel({
       readOnly={readOnly}
       onToggleItem={(item) => {
         updateItems((items) => items.map((i) => (i.id === item.id ? { ...i, isChecked: !i.isChecked } : i)));
-        startTransition(async () => { await toggleTaskChecklistItem(item.id, taskId, projectId); });
+        startTransition(async () => { await fireAction(() => toggleTaskChecklistItem(item.id, taskId, projectId)); });
       }}
       onDeleteItem={(id) => {
         updateItems((items) => items.filter((i) => i.id !== id));
-        startTransition(async () => { await deleteTaskChecklistItem(id, taskId, projectId); });
+        startTransition(async () => { await fireAction(() => deleteTaskChecklistItem(id, taskId, projectId)); });
       }}
       onRenameItem={(id, title) => {
         updateItems((items) => items.map((i) => (i.id === id ? { ...i, title } : i)));
-        startTransition(async () => { await updateTaskChecklistItem(id, taskId, projectId, title); });
+        startTransition(async () => { await fireAction(() => updateTaskChecklistItem(id, taskId, projectId, title)); });
       }}
       onAddItems={(checklistId, titles) => {
         const temp = titles.map((title, i) => ({ id: tempId(i), title, isChecked: false }));
@@ -792,30 +793,30 @@ export function TaskChecklistPanel({
           prev.map((c) => (c.id === checklistId ? { ...c, items: [...c.items, ...temp] } : c))
         );
         startTransition(async () => {
-          if (titles.length === 1) await addTaskChecklistItem(taskId, projectId, checklistId, titles[0]);
-          else await addTaskChecklistItems(taskId, projectId, checklistId, titles);
+          if (titles.length === 1) await fireAction(() => addTaskChecklistItem(taskId, projectId, checklistId, titles[0]));
+          else await fireAction(() => addTaskChecklistItems(taskId, projectId, checklistId, titles));
         });
       }}
       onAddChecklist={() => {
         setChecklists((prev) => [...prev, { id: tempId(), title: DEFAULT_CHECKLIST_TITLE, items: [] }]);
-        startTransition(async () => { await addTaskChecklist(taskId, projectId, DEFAULT_CHECKLIST_TITLE); });
+        startTransition(async () => { await fireAction(() => addTaskChecklist(taskId, projectId, DEFAULT_CHECKLIST_TITLE)); });
       }}
       onRenameChecklist={(id, title) => {
         setChecklists((prev) => prev.map((c) => (c.id === id ? { ...c, title } : c)));
-        startTransition(async () => { await renameTaskChecklist(id, taskId, projectId, title); });
+        startTransition(async () => { await fireAction(() => renameTaskChecklist(id, taskId, projectId, title)); });
       }}
       onDeleteChecklist={(id) => {
         setChecklists((prev) => prev.filter((c) => c.id !== id));
-        startTransition(async () => { await deleteTaskChecklist(id, taskId, projectId); });
+        startTransition(async () => { await fireAction(() => deleteTaskChecklist(id, taskId, projectId)); });
       }}
       onReorder={(next) => {
         setChecklists(next);
         startTransition(async () => {
-          await reorderTaskChecklists(
+          await fireAction(() => reorderTaskChecklists(
             taskId,
             projectId,
             next.map((c) => ({ checklistId: c.id, itemIds: c.items.map((i) => i.id) }))
-          );
+          ));
         });
       }}
     />

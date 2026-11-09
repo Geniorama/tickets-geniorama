@@ -9,6 +9,7 @@ import {
   ACCOUNT_STAGE_LABELS,
 } from "@/lib/crm/accounts";
 import { SearchInput } from "@/components/ui/search-input";
+import { FilterBar, SortSelect } from "@/components/ui/filter-kit";
 import { Suspense } from "react";
 import type { AccountStage } from "@/generated/prisma";
 
@@ -27,6 +28,14 @@ export default async function CrmAccountsPage({
     ? (params.stage as AccountStage)
     : undefined;
 
+  const sortDir: "asc" | "desc" = params.sortDir === "desc" ? "desc" : "asc";
+  const accountOrderBy =
+    params.sortBy === "name"
+      ? [{ name: sortDir }]
+      : params.sortBy === "createdAt"
+        ? [{ createdAt: sortDir }, { name: "asc" as const }]
+        : [{ stage: sortDir }, { name: "asc" as const }];
+
   const where = {
     isActive: true,
     ...(stageFilter ? { stage: stageFilter } : {}),
@@ -36,7 +45,7 @@ export default async function CrmAccountsPage({
   const [accounts, stageCounts] = await Promise.all([
     prisma.company.findMany({
       where,
-      orderBy: [{ stage: "asc" }, { name: "asc" }],
+      orderBy: accountOrderBy,
       take: 100,
       select: {
         id: true,
@@ -97,11 +106,22 @@ export default async function CrmAccountsPage({
         ))}
       </div>
 
-      <div className="mb-4 max-w-md">
-        <Suspense fallback={null}>
-          <SearchInput placeholder="Buscar por nombre..." />
-        </Suspense>
-      </div>
+      <FilterBar
+        search={<Suspense fallback={<div style={{ height: "2.25rem" }} />}><SearchInput placeholder="Buscar por nombre..." /></Suspense>}
+        sort={
+          <Suspense fallback={null}>
+            <SortSelect
+              defaultSortBy="stage"
+              defaultSortDir="asc"
+              options={[
+                { value: "stage", label: "Etapa" },
+                { value: "name", label: "Nombre" },
+                { value: "createdAt", label: "Creación" },
+              ]}
+            />
+          </Suspense>
+        }
+      />
 
       {accounts.length === 0 ? (
         <EmptyState hasFilters={!!q || !!stageFilter} />

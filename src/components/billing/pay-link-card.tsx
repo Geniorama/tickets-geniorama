@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Copy, CreditCard, Link2, Mail } from "lucide-react";
 import { generatePayLink } from "@/actions/paylink.actions";
+import { callAction } from "@/lib/run-action";
 import { formatAmount } from "@/lib/money";
 import { formatDate } from "@/lib/format-date";
 
@@ -23,7 +24,7 @@ export type IntentoDePago = {
 
 const ESTADO: Record<string, { label: string; color: string }> = {
   created:   { label: "Sin terminar", color: "#64748b" },
-  pending:   { label: "En proceso",   color: "#b45309" },
+  pending:   { label: "En proceso",   color: "var(--tone-amber-fg)" },
   success:   { label: "Pagado",       color: "#16a34a" },
   failed:    { label: "Rechazado",    color: "#dc2626" },
   cancelled: { label: "Cancelado",    color: "#64748b" },
@@ -67,7 +68,7 @@ export function PayLinkCard({
     setError(null);
     setIsPending(true);
     try {
-      const r = await generatePayLink(billingItemId);
+      const r = await callAction(() => generatePayLink(billingItemId));
       if (r.error) setError(r.error);
       else if (r.url) {
         setLink(r.url);
@@ -146,7 +147,7 @@ export function PayLinkCard({
         </div>
       )}
 
-      {error && <p style={{ fontSize: "0.8125rem", color: "#b91c1c", margin: "0.75rem 0 0" }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", margin: "0.75rem 0 0" }}>{error}</p>}
 
       {intentos.length > 0 && (
         <div style={{ marginTop: "1rem", borderTop: "1px solid var(--app-border)", paddingTop: "0.75rem" }}>

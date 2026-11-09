@@ -2,8 +2,8 @@
 
 import { useRef, useState, useTransition } from "react";
 import { FileText, Paperclip, X } from "lucide-react";
-import { unstable_rethrow } from "next/navigation";
 import { createTicket } from "@/actions/ticket.actions";
+import { runAction } from "@/lib/run-action";
 import { DraftChecklist } from "@/components/ui/draft-checklist";
 import type { ChecklistGroup } from "@/lib/checklist";
 import { MarkdownEditor } from "@/components/ui/markdown-editor";
@@ -94,14 +94,20 @@ export function TicketForm({
     startTransition(async () => {
       // Si todo va bien la acción redirige al ticket; si vuelve, es con un
       // error, y el formulario se queda tal cual para corregir y reintentar.
-      try {
-        const result = await createTicket(formData);
-        if (result?.error) setSubmitError(result.error);
-      } catch (err) {
-        unstable_rethrow(err); // la redirección de éxito viaja como excepción
-        console.error("[createTicket]", err);
-        setSubmitError("No se pudo crear el ticket. Intenta de nuevo en unos segundos.");
+      // Los adjuntos pueden pesar mucho: más margen que una acción normal.
+      const r = await runAction(() => createTicket(formData), {
+        timeoutMs: selectedFiles.length > 0 ? 180_000 : 60_000,
+      });
+      if (!r.ok) {
+        // El servidor pudo terminar aunque la respuesta no llegue: avisar para no duplicar.
+        setSubmitError(
+          r.timedOut || r.error.startsWith("No hay conexión")
+            ? "No hubo respuesta del servidor. Antes de reintentar, revisa en la lista de tickets si ya se creó para no duplicarlo."
+            : r.error
+        );
+        return;
       }
+      if (r.data?.error) setSubmitError(r.data.error);
     });
   }
 
@@ -167,9 +173,9 @@ export function TicketForm({
           </p>
 
           {fileErrors.length > 0 && (
-            <div style={{ marginTop: "0.375rem", padding: "0.5rem 0.75rem", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "0.375rem" }}>
+            <div style={{ marginTop: "0.375rem", padding: "0.5rem 0.75rem", backgroundColor: "var(--tone-red-bg)", border: "1px solid var(--tone-red-bd)", borderRadius: "0.375rem" }}>
               {fileErrors.map((err, i) => (
-                <p key={i} style={{ fontSize: "0.75rem", color: "#b91c1c", margin: 0 }}>{err}</p>
+                <p key={i} style={{ fontSize: "0.75rem", color: "var(--tone-red-fg)", margin: 0 }}>{err}</p>
               ))}
             </div>
           )}

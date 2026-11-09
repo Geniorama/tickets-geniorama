@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { changePassword } from "@/actions/password.actions";
+import { callAction } from "@/lib/run-action";
 
 export function ChangePasswordForm() {
   const [isPending, startTransition] = useTransition();
@@ -18,7 +19,7 @@ export function ChangePasswordForm() {
     const formData = new FormData(e.currentTarget);
 
     startTransition(async () => {
-      const result = await changePassword(formData);
+      const result = await callAction(() => changePassword(formData), { timeoutMs: 60000 });
       if (result?.error) {
         setError(result.error);
       } else {

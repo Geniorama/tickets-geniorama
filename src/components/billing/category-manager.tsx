@@ -5,6 +5,7 @@ import { Plus, Pencil, EyeOff, Eye, Check, X } from "lucide-react";
 import {
   createBillingCategory, renameBillingCategory, toggleBillingCategory,
 } from "@/actions/billing-categories.actions";
+import { callAction } from "@/lib/run-action";
 
 /**
  * El catálogo de categorías.
@@ -47,7 +48,7 @@ export function CategoryManager({
     if (!limpio) return setEditando(null);
     setError(null);
     startTransition(async () => {
-      const r = await renameBillingCategory(id, limpio);
+      const r = await callAction(() => renameBillingCategory(id, limpio));
       if (r?.error) return setError(r.error);
       setEditando(null);
     });
@@ -58,7 +59,7 @@ export function CategoryManager({
     if (!limpio) return;
     setError(null);
     startTransition(async () => {
-      const r = await createBillingCategory(limpio, color);
+      const r = await callAction(() => createBillingCategory(limpio, color));
       if (r?.error) return setError(r.error);
       setNueva("");
       setCreando(false);
@@ -68,7 +69,7 @@ export function CategoryManager({
   function alternar(id: string, activa: boolean) {
     setError(null);
     startTransition(async () => {
-      const r = await toggleBillingCategory(id, activa);
+      const r = await callAction(() => toggleBillingCategory(id, activa));
       if (r?.error) setError(r.error);
     });
   }
@@ -79,7 +80,7 @@ export function CategoryManager({
         Categorías
       </h2>
 
-      {error && <p style={{ fontSize: "0.8125rem", color: "#b91c1c", marginBottom: "0.6rem" }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", marginBottom: "0.6rem" }}>{error}</p>}
 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
         {categorias.map((c) => (

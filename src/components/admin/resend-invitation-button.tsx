@@ -2,6 +2,7 @@
 
 import { useTransition, useState } from "react";
 import { resendInvitation } from "@/actions/invitation.actions";
+import { callAction } from "@/lib/run-action";
 import { IconAction } from "@/components/ui/icon-action";
 
 export function ResendInvitationButton({ userId }: { userId: string }) {
@@ -10,7 +11,7 @@ export function ResendInvitationButton({ userId }: { userId: string }) {
 
   function handleClick() {
     startTransition(async () => {
-      const result = await resendInvitation(userId);
+      const result = await callAction(() => resendInvitation(userId));
       if (result?.error) {
         alert(result.error);
       } else {

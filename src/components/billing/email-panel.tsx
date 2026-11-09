@@ -7,6 +7,7 @@ import { Mail, Send, Clock } from "lucide-react";
 import { renderPlantilla, type DatosCorreo } from "@/lib/billing/reminders/template";
 import { saludoPara, type Direccion } from "@/lib/billing/emails/compose";
 import { sendBillingEmail } from "@/actions/billing-emails.actions";
+import { callAction } from "@/lib/run-action";
 import { EmailLog, type CorreoRegistrado } from "@/components/billing/email-log";
 import { Marcas } from "@/components/billing/email-templates";
 
@@ -127,14 +128,14 @@ export function EmailPanel({
     setError(null);
     setIsPending(true);
     try {
-      const r = await sendBillingEmail({
+      const r = await callAction(() => sendBillingEmail({
         billingItemId,
         templateId: plantilla?.id ?? null,
         subject: asunto,
         body: cuerpo,
         recipients: elegidas,
         cuando: programar ? { fecha, hora } : null,
-      });
+      }), { timeoutMs: 60000 });
       if (r?.error) {
         setError(r.error);
       } else {
@@ -195,7 +196,7 @@ export function EmailPanel({
       {abierto && (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem", marginTop: "1rem" }}>
           {!correoListo && (
-            <p style={{ fontSize: "0.8125rem", color: "#b45309", margin: 0 }}>
+            <p style={{ fontSize: "0.8125rem", color: "var(--tone-amber-fg)", margin: 0 }}>
               El servidor no tiene configurado el envío de correo, así que desde aquí no saldría nada.
             </p>
           )}
@@ -213,7 +214,7 @@ export function EmailPanel({
               <option value="">Sin plantilla</option>
             </select>
             {bloqueadoPorSaldo && (
-              <p style={{ fontSize: "0.75rem", color: "#b45309", marginTop: "0.3rem" }}>
+              <p style={{ fontSize: "0.75rem", color: "var(--tone-amber-fg)", marginTop: "0.3rem" }}>
                 Esta plantilla es de cobranza y este cobro ya no debe nada.
               </p>
             )}
@@ -222,7 +223,7 @@ export function EmailPanel({
           <div>
             <span style={labelStyle}>Para</span>
             {direcciones.length === 0 ? (
-              <p style={{ fontSize: "0.8125rem", color: "#b45309", margin: 0 }}>
+              <p style={{ fontSize: "0.8125rem", color: "var(--tone-amber-fg)", margin: 0 }}>
                 {empresa} no tiene buzón de facturación ni contactos activos con correo.{" "}
                 <Link href={`/crm/${empresaId}`} style={{ color: "#fd1384", textDecoration: "none" }}>
                   Añadirlo en la ficha del cliente
@@ -326,7 +327,7 @@ export function EmailPanel({
             )}
           </div>
 
-          {error && <p style={{ fontSize: "0.8125rem", color: "#b91c1c", margin: 0 }}>{error}</p>}
+          {error && <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", margin: 0 }}>{error}</p>}
 
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button

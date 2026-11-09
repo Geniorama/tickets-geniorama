@@ -8,6 +8,7 @@ import { CHANNEL_LABELS } from "@/lib/billing/reminders/labels";
 import {
   createReminderRule, updateReminderRule, toggleReminderRule, deleteReminderRule,
 } from "@/actions/billing-reminders.actions";
+import { callAction } from "@/lib/run-action";
 
 /**
  * Las reglas de cobro, escritas por quien cobra.
@@ -68,8 +69,8 @@ export function ReminderRules({
     setError(null);
     startTransition(async () => {
       const r = editando
-        ? await updateReminderRule(editando.id, formData)
-        : await createReminderRule(formData);
+        ? await callAction(() => updateReminderRule(editando.id, formData))
+        : await callAction(() => createReminderRule(formData));
       if (r?.error) return setError(r.error);
       setEditando(null);
       setCreando(false);
@@ -78,14 +79,14 @@ export function ReminderRules({
 
   function alternar(regla: Regla) {
     startTransition(async () => {
-      const r = await toggleReminderRule(regla.id, !regla.isActive);
+      const r = await callAction(() => toggleReminderRule(regla.id, !regla.isActive));
       if (r?.error) setError(r.error);
     });
   }
 
   function borrar(id: string) {
     startTransition(async () => {
-      const r = await deleteReminderRule(id);
+      const r = await callAction(() => deleteReminderRule(id));
       if (r?.error) setError(r.error);
     });
   }
@@ -95,7 +96,7 @@ export function ReminderRules({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       {error && (
-        <p style={{ fontSize: "0.8125rem", color: "#b91c1c", margin: 0 }}>{error}</p>
+        <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", margin: 0 }}>{error}</p>
       )}
 
       {reglas.length === 0 && !enFormulario && (

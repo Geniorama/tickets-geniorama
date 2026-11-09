@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { deleteCompany } from "@/actions/company.actions";
+import { callAction } from "@/lib/run-action";
 import { IconAction } from "@/components/ui/icon-action";
 
 export function DeleteCompanyButton({
@@ -21,7 +22,7 @@ export function DeleteCompanyButton({
     )
       return;
     startTransition(async () => {
-      const result = await deleteCompany(companyId);
+      const result = await callAction(() => deleteCompany(companyId));
       if (result?.error) alert(result.error);
     });
   }

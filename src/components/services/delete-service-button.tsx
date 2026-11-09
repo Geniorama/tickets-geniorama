@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { deleteService } from "@/actions/service.actions";
+import { fireAction } from "@/lib/run-action";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { IconAction } from "@/components/ui/icon-action";
 
@@ -11,7 +12,7 @@ export function DeleteServiceButton({ serviceId }: { serviceId: string }) {
 
   function handleConfirm() {
     startTransition(async () => {
-      await deleteService(serviceId);
+      await fireAction(() => deleteService(serviceId));
       setOpen(false);
     });
   }

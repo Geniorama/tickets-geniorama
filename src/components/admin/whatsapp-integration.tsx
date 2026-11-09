@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { CheckCircle2, XCircle, Loader2, ChevronDown, ChevronUp, Send, Copy, Check } from "lucide-react";
 import { saveSetting, deleteSetting } from "@/actions/settings.actions";
 import { sendWhatsAppAdminTest } from "@/actions/whatsapp.actions";
+import { callAction } from "@/lib/run-action";
 import { WHATSAPP_EVENTS, WHATSAPP_FROM_KEY, type WhatsAppEvent } from "@/lib/whatsapp/config";
 
 const WA_GREEN = "#16a34a";
@@ -51,7 +52,7 @@ function SettingField({
     setResult(null);
     const next = value.trim();
     startTransition(async () => {
-      const res = next ? await saveSetting(settingKey, next) : await deleteSetting(settingKey);
+      const res = next ? await callAction(() => saveSetting(settingKey, next)) : await callAction(() => deleteSetting(settingKey));
       if (res.error) {
         setResult({ kind: "error", text: res.error });
         return;
@@ -71,7 +72,7 @@ function SettingField({
         </button>
       </div>
       {result && (
-        <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: result.kind === "error" ? "#dc2626" : "#15803d" }}>{result.text}</p>
+        <p style={{ margin: "0.25rem 0 0", fontSize: "0.75rem", color: result.kind === "error" ? "#dc2626" : "var(--tone-green-fg)" }}>{result.text}</p>
       )}
     </div>
   );
@@ -97,7 +98,7 @@ function EventCard({ event, saved, testPhone }: { event: WhatsAppEvent; saved: s
       return;
     }
     startTest(async () => {
-      const res = await sendWhatsAppAdminTest(event.type, testPhone);
+      const res = await callAction(() => sendWhatsAppAdminTest(event.type, testPhone));
       setResult(
         "error" in res && res.error
           ? { kind: "error", text: res.error }
@@ -151,7 +152,7 @@ function EventCard({ event, saved, testPhone }: { event: WhatsAppEvent; saved: s
             Enviar prueba
           </button>
           {result && (
-            <p role={result.kind === "error" ? "alert" : "status"} style={{ margin: "0.375rem 0 0", fontSize: "0.75rem", color: result.kind === "error" ? "#dc2626" : "#15803d", wordBreak: "break-word" }}>
+            <p role={result.kind === "error" ? "alert" : "status"} style={{ margin: "0.375rem 0 0", fontSize: "0.75rem", color: result.kind === "error" ? "#dc2626" : "var(--tone-green-fg)", wordBreak: "break-word" }}>
               {result.text}
             </p>
           )}
@@ -183,8 +184,8 @@ export function WhatsAppIntegration({
           borderRadius: "0.5rem",
           padding: "0.5rem 0.75rem",
           ...(tokenConfigured
-            ? { color: "#166534", backgroundColor: "#f0fdf4", border: "1px solid #bbf7d0" }
-            : { color: "#92400e", backgroundColor: "#fffbeb", border: "1px solid #fcd34d" }),
+            ? { color: "var(--tone-green-fg)", backgroundColor: "var(--tone-green-bg)", border: "1px solid var(--tone-green-bd)" }
+            : { color: "var(--tone-amber-fg)", backgroundColor: "var(--tone-amber-bg)", border: "1px solid var(--tone-amber-bd)" }),
         }}
       >
         {tokenConfigured

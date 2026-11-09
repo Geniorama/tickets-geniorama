@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updatePlan } from "@/actions/plan.actions";
+import { callAction } from "@/lib/run-action";
 import type { Plan } from "@/generated/prisma";
 
 interface Company {
@@ -41,7 +42,7 @@ export function PlanEditForm({
     setError(null);
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      const result = await updatePlan(plan.id, formData);
+      const result = await callAction(() => updatePlan(plan.id, formData), { timeoutMs: 60000 });
       if (result?.error) {
         setError(result.error);
       } else {

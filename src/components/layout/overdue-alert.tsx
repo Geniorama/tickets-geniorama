@@ -241,7 +241,7 @@ export function OverdueAlert({ items, userId }: OverdueAlertProps) {
               transition: "background-color 0.15s",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#b91c1c";
+              (e.currentTarget as HTMLButtonElement).style.backgroundColor = "var(--tone-red-fg)";
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLButtonElement).style.backgroundColor = "#dc2626";

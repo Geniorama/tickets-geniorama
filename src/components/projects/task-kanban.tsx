@@ -20,6 +20,7 @@ import { TaskPriorityBadge } from "./project-status-badge";
 import { formatDate } from "@/lib/format-date";
 import { isOverdue } from "@/lib/overdue";
 import { updateTaskStatus } from "@/actions/task.actions";
+import { runAction } from "@/lib/run-action";
 import { taskCode } from "@/lib/task-code";
 
 type TaskWithRelations = Task & {
@@ -41,32 +42,32 @@ const columns: {
     label: "Pendiente",
     icon: Circle,
     borderColor: "#9ca3af",
-    countBg: "#f3f4f6",
-    countColor: "#374151",
+    countBg: "var(--tone-gray-bg)",
+    countColor: "var(--tone-gray-fg)",
   },
   {
     status: "EN_PROGRESO",
     label: "En progreso",
     icon: Clock,
     borderColor: "#3b82f6",
-    countBg: "#dbeafe",
-    countColor: "#1d4ed8",
+    countBg: "var(--tone-blue-bg)",
+    countColor: "var(--tone-blue-fg)",
   },
   {
     status: "EN_REVISION",
     label: "En revisión",
     icon: Eye,
     borderColor: "#8b5cf6",
-    countBg: "#ede9fe",
-    countColor: "#6d28d9",
+    countBg: "var(--tone-purple-bg)",
+    countColor: "var(--tone-purple-fg)",
   },
   {
     status: "COMPLETADO",
     label: "Completado",
     icon: CheckCircle2,
     borderColor: "#22c55e",
-    countBg: "#dcfce7",
-    countColor: "#15803d",
+    countBg: "var(--tone-green-bg)",
+    countColor: "var(--tone-green-fg)",
   },
 ];
 
@@ -350,8 +351,9 @@ export function TaskKanban({
     );
 
     startTransition(async () => {
-      const result = await updateTaskStatus(task.id, projectId, newStatus);
-      if (result?.error) {
+      const r = await runAction(() => updateTaskStatus(task.id, projectId, newStatus));
+      // Si no respondió o devolvió error, la tarjeta vuelve a su columna.
+      if (!r.ok || r.data?.error) {
         setTasks((prev) =>
           prev.map((t) => (t.id === task.id ? { ...t, status: task.status } : t))
         );

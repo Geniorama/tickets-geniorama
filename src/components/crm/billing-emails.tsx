@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, X, Receipt } from "lucide-react";
 import { setBillingEmails } from "@/actions/billing-reminders.actions";
+import { callAction } from "@/lib/run-action";
 
 /**
  * Los correos a los que se le reclaman los cobros a este cliente.
@@ -38,7 +39,7 @@ export function BillingEmails({
     setError(null);
     setGuardado(false);
     startTransition(async () => {
-      const r = await setBillingEmails(companyId, siguiente);
+      const r = await callAction(() => setBillingEmails(companyId, siguiente));
       if (r?.error) {
         setCorreos(previos);
         return setError(r.error);
@@ -139,7 +140,7 @@ export function BillingEmails({
         </div>
       )}
 
-      {error && <p style={{ fontSize: "0.75rem", color: "#b91c1c", marginTop: "0.5rem" }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.75rem", color: "var(--tone-red-fg)", marginTop: "0.5rem" }}>{error}</p>}
       {guardado && !error && (
         <p style={{ fontSize: "0.75rem", color: "#16a34a", marginTop: "0.5rem" }}>Guardado.</p>
       )}

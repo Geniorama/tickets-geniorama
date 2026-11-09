@@ -529,7 +529,7 @@ export default async function DashboardPage() {
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", paddingTop: "0.75rem", borderTop: "1px solid var(--app-border)" }}>
                 <span style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)" }}>Tasa de completado</span>
-                <span style={{ fontSize: "1rem", fontWeight: 700, color: taskRate >= 75 ? "#16a34a" : taskRate >= 40 ? "#b45309" : "#dc2626" }}>{taskRate}%</span>
+                <span style={{ fontSize: "1rem", fontWeight: 700, color: taskRate >= 75 ? "#16a34a" : taskRate >= 40 ? "var(--tone-amber-fg)" : "#dc2626" }}>{taskRate}%</span>
               </div>
               {/* El «Resumen de productividad» que había abajo repetía estas
                   mismas cifras. Se queda el enlace a donde de verdad se

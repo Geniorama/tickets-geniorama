@@ -8,6 +8,7 @@ import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { createTicketTemplate, updateTicketTemplate } from "@/actions/ticket-template.actions";
 import { AiTemplateGenerator } from "@/components/ui/ai-template-generator";
 import type { TemplateDraft } from "@/actions/template-ai.actions";
+import { callAction } from "@/lib/run-action";
 import { TICKET_CATEGORIES } from "@/lib/ticket-categories";
 
 export interface TicketTemplateData {
@@ -72,8 +73,8 @@ export function TicketTemplateForm({ template }: { template?: TicketTemplateData
     formData.set("checklist", JSON.stringify(checklist));
     startTransition(async () => {
       const res = isEdit
-        ? await updateTicketTemplate(template.id, formData)
-        : await createTicketTemplate(formData);
+        ? await callAction(() => updateTicketTemplate(template.id, formData), { timeoutMs: 60000 })
+        : await callAction(() => createTicketTemplate(formData), { timeoutMs: 60000 });
       if (res?.error) setError(res.error);
     });
   }
@@ -90,7 +91,7 @@ export function TicketTemplateForm({ template }: { template?: TicketTemplateData
       {/* Se remonta al aplicar un borrador de IA: los campos son no controlados. */}
       <div key={draftKey} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         <div>
-          <label style={labelStyle}>Nombre de la plantilla <span style={{ color: "#b91c1c" }}>*</span></label>
+          <label style={labelStyle}>Nombre de la plantilla <span style={{ color: "var(--tone-red-fg)" }}>*</span></label>
           <input
             name="name"
             required
@@ -101,7 +102,7 @@ export function TicketTemplateForm({ template }: { template?: TicketTemplateData
         </div>
 
         <div>
-          <label style={labelStyle}>Título del ticket <span style={{ color: "#b91c1c" }}>*</span></label>
+          <label style={labelStyle}>Título del ticket <span style={{ color: "var(--tone-red-fg)" }}>*</span></label>
           <input
             name="title"
             required
@@ -112,7 +113,7 @@ export function TicketTemplateForm({ template }: { template?: TicketTemplateData
         </div>
 
         <div>
-          <label style={labelStyle}>Descripción <span style={{ color: "#b91c1c" }}>*</span></label>
+          <label style={labelStyle}>Descripción <span style={{ color: "var(--tone-red-fg)" }}>*</span></label>
           <MarkdownEditor
             name="description"
             defaultValue={values.description}
@@ -122,7 +123,7 @@ export function TicketTemplateForm({ template }: { template?: TicketTemplateData
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
           <div>
-            <label style={labelStyle}>Prioridad <span style={{ color: "#b91c1c" }}>*</span></label>
+            <label style={labelStyle}>Prioridad <span style={{ color: "var(--tone-red-fg)" }}>*</span></label>
             <select name="priority" defaultValue={values.priority} style={inputStyle}>
               <option value="BAJA">Baja</option>
               <option value="MEDIA">Media</option>
@@ -158,7 +159,7 @@ export function TicketTemplateForm({ template }: { template?: TicketTemplateData
       </div>
 
       {error && (
-        <p style={{ fontSize: "0.875rem", color: "#b91c1c", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "0.5rem", padding: "0.5rem 0.75rem", margin: 0 }}>
+        <p style={{ fontSize: "0.875rem", color: "var(--tone-red-fg)", backgroundColor: "var(--tone-red-bg)", border: "1px solid var(--tone-red-bd)", borderRadius: "0.5rem", padding: "0.5rem 0.75rem", margin: 0 }}>
           {error}
         </p>
       )}

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateMyBio } from "@/actions/collaborator.actions";
+import { callAction } from "@/lib/run-action";
 
 export function MyBioForm({ initialBio }: { initialBio: string }) {
   const router = useRouter();
@@ -16,7 +17,7 @@ export function MyBioForm({ initialBio }: { initialBio: string }) {
     setSaved(false);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      const res = await updateMyBio(fd);
+      const res = await callAction(() => updateMyBio(fd), { timeoutMs: 60000 });
       if (res?.error) setError(res.error);
       else {
         setSaved(true);

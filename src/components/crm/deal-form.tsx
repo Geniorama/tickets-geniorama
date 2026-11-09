@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import type { DealStage } from "@/generated/prisma";
 import { DEAL_STAGES, DEAL_STAGE_LABELS } from "@/lib/crm/deals";
 import { createDeal, updateDeal } from "@/actions/crm.actions";
+import { callAction } from "@/lib/run-action";
 import { AmountInput } from "@/components/ui/amount-input";
 
 export type FormAccount = {
@@ -62,8 +63,8 @@ export function DealForm({
     setGuardado(false);
     startTransition(async () => {
       const result = initial
-        ? await updateDeal(initial.id, formData)
-        : await createDeal(formData);
+        ? await callAction(() => updateDeal(initial.id, formData), { timeoutMs: 60000 })
+        : await callAction(() => createDeal(formData), { timeoutMs: 60000 });
       if (result?.error) setError(result.error);
       else if (initial) setGuardado(true);
     });
@@ -161,7 +162,7 @@ export function DealForm({
         />
       </div>
 
-      {error && <p style={{ fontSize: "0.8125rem", color: "#b91c1c" }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)" }}>{error}</p>}
       {guardado && !error && <p style={{ fontSize: "0.8125rem", color: "#16a34a" }}>Cambios guardados.</p>}
 
       <button

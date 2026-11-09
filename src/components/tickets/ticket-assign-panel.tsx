@@ -2,6 +2,7 @@
 import { useState, useTransition } from "react";
 import { AlertTriangle } from "lucide-react";
 import { configureTicket } from "@/actions/ticket.actions";
+import { callAction } from "@/lib/run-action";
 
 interface Collaborator { id: string; name: string; }
 
@@ -31,7 +32,7 @@ export function TicketAssignPanel({
     setError(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      const result = await configureTicket(ticketId, fd);
+      const result = await callAction(() => configureTicket(ticketId, fd));
       if (result?.error) {
         setError(result.error);
       } else {
@@ -62,7 +63,7 @@ export function TicketAssignPanel({
       {/* Banner */}
       <div style={{ backgroundColor: "rgba(245,158,11,0.1)", padding: "0.875rem 1.25rem", display: "flex", alignItems: "center", gap: "0.625rem", borderBottom: "1px solid rgba(245,158,11,0.3)" }}>
         <AlertTriangle style={{ width: "1rem", height: "1rem", color: "#d97706", flexShrink: 0 }} />
-        <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "#92400e" }}>
+        <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--tone-amber-fg)" }}>
           Ticket pendiente de configuración — asigna los datos antes de activarlo
         </p>
       </div>

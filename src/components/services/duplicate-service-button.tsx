@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { duplicateService } from "@/actions/service.actions";
+import { fireAction } from "@/lib/run-action";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { IconAction } from "@/components/ui/icon-action";
 
@@ -11,7 +12,7 @@ export function DuplicateServiceButton({ serviceId }: { serviceId: string }) {
 
   function handleConfirm() {
     startTransition(async () => {
-      await duplicateService(serviceId);
+      await fireAction(() => duplicateService(serviceId));
       setOpen(false);
     });
   }

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { deleteTicketTemplate } from "@/actions/ticket-template.actions";
+import { callAction } from "@/lib/run-action";
 import { IconAction, IconActionLink } from "@/components/ui/icon-action";
 
 export function TicketTemplateActions({ id, name }: { id: string; name: string }) {
@@ -12,7 +13,7 @@ export function TicketTemplateActions({ id, name }: { id: string; name: string }
   function remove() {
     if (!confirm(`¿Eliminar la plantilla "${name}"?`)) return;
     startTransition(async () => {
-      const res = await deleteTicketTemplate(id);
+      const res = await callAction(() => deleteTicketTemplate(id));
       if (res?.error) alert(res.error);
       else router.refresh();
     });

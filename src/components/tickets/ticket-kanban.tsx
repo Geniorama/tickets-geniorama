@@ -20,6 +20,7 @@ import type { Ticket, TicketStatus, Priority } from "@/generated/prisma";
 import { PriorityBadge } from "./ticket-status-badge";
 import { formatDateTime } from "@/lib/format-date";
 import { updateTicketStatus, deleteTicket } from "@/actions/ticket.actions";
+import { runAction, callAction } from "@/lib/run-action";
 import { CardDeleteButton } from "@/components/ui/card-delete-button";
 import { ticketCode } from "@/lib/ticket-code";
 
@@ -50,10 +51,10 @@ const columns: {
     status: "ABIERTO",
     label: "Abierto",
     icon: Circle,
-    topBorder: "border-t-yellow-400",
-    countClass: "bg-yellow-100 text-yellow-700",
+    topBorder: "border-t-amber-400",
+    countClass: "bg-amber-100 text-amber-700",
     dropClass: "bg-white",
-    dropActiveClass: "bg-yellow-50 ring-2 ring-yellow-300",
+    dropActiveClass: "bg-amber-50 ring-2 ring-amber-200",
   },
   {
     status: "EN_PROGRESO",
@@ -161,7 +162,7 @@ function DraggableCard({
             title={`el ticket «${ticket.title}»`}
             message="Se eliminará con sus comentarios, adjuntos, checklists y tiempo registrado. No se puede deshacer."
             onDelete={async () => {
-              const r = await deleteTicket(ticket.id, false);
+              const r = await callAction(() => deleteTicket(ticket.id, false));
               if (r && "error" in r && typeof r.error === "string") return { error: r.error };
               onDeleted(ticket.id);
             }}
@@ -317,8 +318,9 @@ export function TicketKanban({
     );
 
     startTransition(async () => {
-      const result = await updateTicketStatus(ticket.id, newStatus);
-      if (result?.error) {
+      const r = await runAction(() => updateTicketStatus(ticket.id, newStatus));
+      // Si no respondió o devolvió error, la tarjeta vuelve a su columna.
+      if (!r.ok || r.data?.error) {
         // Revert on error
         setTickets((prev) =>
           prev.map((t) => (t.id === ticket.id ? { ...t, status: ticket.status } : t))

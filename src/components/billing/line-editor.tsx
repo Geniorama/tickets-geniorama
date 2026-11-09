@@ -213,7 +213,7 @@ export function LineEditor({
       </button>
 
       {sinCategoria > 0 && (
-        <p style={{ fontSize: "0.75rem", color: "#b45309", marginTop: "0.5rem" }}>
+        <p style={{ fontSize: "0.75rem", color: "var(--tone-amber-fg)", marginTop: "0.5rem" }}>
           {sinCategoria === 1
             ? "Una línea se queda sin categoría."
             : `${sinCategoria} líneas se quedan sin categoría.`}{" "}

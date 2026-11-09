@@ -9,15 +9,13 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
+import { FILTER_CONTROL_STYLE, FilterBar, FilterField } from "@/components/ui/filter-kit";
 import {
   ACTIVITY_MODULES,
   MODULE_LABELS,
   actionsOfModule,
   type ActivityModule,
 } from "@/lib/activity/catalog";
-
-const selectClass =
-  "rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200";
 
 export function ActivityFilters({
   actors,
@@ -51,74 +49,73 @@ export function ActivityFilters({
 
   const acciones = modulo ? actionsOfModule(modulo as ActivityModule) : [];
 
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <input
-        type="search"
-        defaultValue={q}
-        placeholder="Buscar por nombre de la ficha…"
-        onKeyDown={(e) => {
-          if (e.key === "Enter") set("q", (e.target as HTMLInputElement).value.trim());
-        }}
-        className={`${selectClass} min-w-[16rem] flex-1`}
-      />
+  const sel = { ...FILTER_CONTROL_STYLE, cursor: "pointer" } as const;
 
-      <select value={modulo} onChange={(e) => set("modulo", e.target.value)} className={selectClass}>
-        <option value="">Todos los módulos</option>
-        {ACTIVITY_MODULES.map((m) => (
-          <option key={m} value={m}>
-            {MODULE_LABELS[m]}
-          </option>
-        ))}
-      </select>
+  return (
+    <FilterBar
+      search={
+        <input
+          type="search"
+          defaultValue={q}
+          placeholder="Buscar por nombre de la ficha…"
+          onKeyDown={(e) => {
+            if (e.key === "Enter") set("q", (e.target as HTMLInputElement).value.trim());
+          }}
+          style={{ ...FILTER_CONTROL_STYLE, maxWidth: "22.5rem", flex: 1, minWidth: "13.75rem" }}
+        />
+      }
+      extra={
+        hayFiltros ? (
+          <button
+            type="button"
+            onClick={() => router.push("/admin/actividad")}
+            style={{ ...FILTER_CONTROL_STYLE, width: "auto", display: "inline-flex", alignItems: "center", gap: "0.25rem", cursor: "pointer", color: "var(--app-text-muted)" }}
+          >
+            <X style={{ width: "0.875rem", height: "0.875rem" }} aria-hidden />
+            Limpiar
+          </button>
+        ) : null
+      }
+    >
+      <FilterField label="Módulo">
+        <select value={modulo} onChange={(e) => set("modulo", e.target.value)} style={sel}>
+          <option value="">Todos</option>
+          {ACTIVITY_MODULES.map((m) => (
+            <option key={m} value={m}>{MODULE_LABELS[m]}</option>
+          ))}
+        </select>
+      </FilterField>
 
       {/* El selector de acción solo aparece con un módulo elegido: la lista
           entera son más de setenta entradas y no se busca en ella. */}
       {acciones.length > 0 && (
-        <select value={accion} onChange={(e) => set("accion", e.target.value)} className={selectClass}>
-          <option value="">Cualquier acción</option>
-          {acciones.map((a) => (
-            <option key={a.key} value={a.key}>
-              {a.label.charAt(0).toUpperCase() + a.label.slice(1)}
-            </option>
+        <FilterField label="Acción">
+          <select value={accion} onChange={(e) => set("accion", e.target.value)} style={sel}>
+            <option value="">Cualquiera</option>
+            {acciones.map((a) => (
+              <option key={a.key} value={a.key}>
+                {a.label.charAt(0).toUpperCase() + a.label.slice(1)}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+      )}
+
+      <FilterField label="Persona">
+        <select value={persona} onChange={(e) => set("persona", e.target.value)} style={sel}>
+          <option value="">Cualquiera</option>
+          {actors.map((a) => (
+            <option key={a.id} value={a.id}>{a.name}</option>
           ))}
         </select>
-      )}
+      </FilterField>
 
-      <select value={persona} onChange={(e) => set("persona", e.target.value)} className={selectClass}>
-        <option value="">Cualquier persona</option>
-        {actors.map((a) => (
-          <option key={a.id} value={a.id}>
-            {a.name}
-          </option>
-        ))}
-      </select>
-
-      <input
-        type="date"
-        value={desde}
-        onChange={(e) => set("desde", e.target.value)}
-        aria-label="Desde"
-        className={selectClass}
-      />
-      <input
-        type="date"
-        value={hasta}
-        onChange={(e) => set("hasta", e.target.value)}
-        aria-label="Hasta"
-        className={selectClass}
-      />
-
-      {hayFiltros && (
-        <button
-          type="button"
-          onClick={() => router.push("/admin/actividad")}
-          className="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-500 hover:bg-gray-50"
-        >
-          <X className="h-3.5 w-3.5" aria-hidden />
-          Limpiar
-        </button>
-      )}
-    </div>
+      <FilterField label="Desde">
+        <input type="date" value={desde} onChange={(e) => set("desde", e.target.value)} aria-label="Desde" style={FILTER_CONTROL_STYLE} />
+      </FilterField>
+      <FilterField label="Hasta">
+        <input type="date" value={hasta} onChange={(e) => set("hasta", e.target.value)} aria-label="Hasta" style={FILTER_CONTROL_STYLE} />
+      </FilterField>
+    </FilterBar>
   );
 }

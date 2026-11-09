@@ -4,7 +4,14 @@ import { useState, useEffect, useRef, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 
-export function SearchInput({ placeholder = "Buscar..." }: { placeholder?: string }) {
+export function SearchInput({
+  placeholder = "Buscar...",
+  shallow = false,
+}: {
+  placeholder?: string;
+  /** Solo actualiza la URL, sin pedir la página al servidor (tableros que filtran en el cliente). */
+  shallow?: boolean;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -29,6 +36,12 @@ export function SearchInput({ placeholder = "Buscar..." }: { placeholder?: strin
       if (q) next.set("q", q);
       else next.delete("q");
       next.delete("page");
+      if (shallow) {
+        const qs = next.toString();
+        window.history.replaceState(null, "", qs ? `${pathname}?${qs}` : pathname);
+        setTimeout(() => { isSelfPush.current = false; }, 600);
+        return;
+      }
       startTransition(() => {
         router.push(`${pathname}?${next.toString()}`);
         // Reset flag after navigation settles
@@ -53,10 +66,10 @@ export function SearchInput({ placeholder = "Buscar..." }: { placeholder?: strin
         onChange={(e) => setValue(e.target.value)}
         style={{
           width: "100%", boxSizing: "border-box",
-          paddingLeft: "2.25rem", paddingRight: value ? "2rem" : "0.75rem",
-          paddingTop: "0.5rem", paddingBottom: "0.5rem",
+
+          height: "2.25rem", padding: 0, paddingLeft: "2.25rem", paddingRight: value ? "2rem" : "0.75rem",
           border: "1px solid var(--app-border)", borderRadius: "0.5rem",
-          fontSize: "0.875rem", color: "var(--app-body-text)",
+          fontSize: "0.8125rem", color: "var(--app-body-text)",
           backgroundColor: "var(--app-card-bg)", outline: "none",
         }}
       />

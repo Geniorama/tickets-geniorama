@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { createAccount } from "@/actions/crm.actions";
+import { callAction } from "@/lib/run-action";
 import { ACCOUNT_STAGES, ACCOUNT_STAGE_DESCRIPTIONS, ACCOUNT_STAGE_LABELS } from "@/lib/crm/accounts";
 
 export function AccountForm({ owners }: { owners: { id: string; name: string }[] }) {
@@ -11,7 +12,7 @@ export function AccountForm({ owners }: { owners: { id: string; name: string }[]
   function handleSubmit(formData: FormData) {
     setError(null);
     startTransition(async () => {
-      const result = await createAccount(formData);
+      const result = await callAction(() => createAccount(formData), { timeoutMs: 60000 });
       if (result?.error) setError(result.error);
     });
   }
@@ -91,7 +92,7 @@ export function AccountForm({ owners }: { owners: { id: string; name: string }[]
         <input id="taxId" name="taxId" style={inputStyle} />
       </div>
 
-      {error && <p style={{ fontSize: "0.8125rem", color: "#b91c1c" }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)" }}>{error}</p>}
 
       <button
         type="submit"

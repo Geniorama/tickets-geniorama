@@ -12,6 +12,7 @@ import { TaskCalendar } from "./task-calendar";
 import { formatDate } from "@/lib/format-date";
 import { Plus, Pencil, List, LayoutGrid, CalendarDays, User2, Building2, Calendar, Lock, Webhook } from "lucide-react";
 import { deleteProject, publishProject } from "@/actions/project.actions";
+import { fireAction } from "@/lib/run-action";
 import { ProjectVaultPanel } from "@/components/vault/project-vault-panel";
 import { ProjectAttachmentsPanel } from "@/components/projects/project-attachments-panel";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
@@ -83,13 +84,13 @@ export function ProjectDetail({
 
   function handleDeleteProject() {
     if (!confirm(`¿Eliminar el proyecto "${project.name}"? Se eliminarán también todas sus tareas. Esta acción no se puede deshacer.`)) return;
-    startTransition(async () => { await deleteProject(project.id); });
+    startTransition(async () => { await fireAction(() => deleteProject(project.id)); });
   }
 
   function handlePublish() {
     if (!confirm("¿Publicar este proyecto? Sus tareas pasarán a verse para su equipo y su cliente.")) return;
     startTransition(async () => {
-      await publishProject(project.id);
+      await fireAction(() => publishProject(project.id));
     });
   }
 
@@ -149,14 +150,14 @@ export function ProjectDetail({
             alignItems: "center",
             justifyContent: "space-between",
             gap: "0.75rem",
-            border: "1px solid #fcd34d",
-            backgroundColor: "#fffbeb",
+            border: "1px solid var(--tone-amber-bd)",
+            backgroundColor: "var(--tone-amber-bg)",
             borderRadius: "0.75rem",
             padding: "0.75rem 1rem",
             marginBottom: "1rem",
           }}
         >
-          <p style={{ margin: 0, fontSize: "0.875rem", color: "#92400e" }}>
+          <p style={{ margin: 0, fontSize: "0.875rem", color: "var(--tone-amber-fg)" }}>
             <strong>Borrador.</strong> Solo tú ves este proyecto y sus tareas, y nadie recibe avisos hasta que lo publiques.
           </p>
           <button

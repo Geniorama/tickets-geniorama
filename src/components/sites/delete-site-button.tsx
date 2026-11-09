@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { deleteSite } from "@/actions/site.actions";
+import { fireAction } from "@/lib/run-action";
 import { IconAction } from "@/components/ui/icon-action";
 
 export function DeleteSiteButton({ siteId, siteName }: { siteId: string; siteName: string }) {
@@ -9,7 +10,7 @@ export function DeleteSiteButton({ siteId, siteName }: { siteId: string; siteNam
 
   function handleDelete() {
     if (!confirm(`¿Eliminar el sitio "${siteName}"? Los tickets vinculados perderán esta referencia.`)) return;
-    startTransition(async () => { await deleteSite(siteId); });
+    startTransition(async () => { await fireAction(() => deleteSite(siteId)); });
   }
 
   return <IconAction icon="trash" label="Eliminar sitio" tone="danger" onClick={handleDelete} pending={isPending} />;

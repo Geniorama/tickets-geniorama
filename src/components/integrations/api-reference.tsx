@@ -115,9 +115,9 @@ export function ApiReference({ specUrl }: { specUrl: string }) {
         style={{
           padding: "0.875rem 1rem",
           borderRadius: "0.5rem",
-          border: "1px solid #fcd34d",
-          backgroundColor: "#fffbeb",
-          color: "#92400e",
+          border: "1px solid var(--tone-amber-bd)",
+          backgroundColor: "var(--tone-amber-bg)",
+          color: "var(--tone-amber-fg)",
           fontSize: "0.8125rem",
           lineHeight: 1.5,
         }}

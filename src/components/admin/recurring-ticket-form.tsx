@@ -22,6 +22,7 @@ import {
   deleteRecurringTicket,
   runRecurringTicketNow,
 } from "@/actions/recurring-ticket.actions";
+import { callAction, fireAction } from "@/lib/run-action";
 
 type Option = { id: string; name: string };
 export type PlanOption = { id: string; name: string; companyName: string };
@@ -200,9 +201,10 @@ export function RecurringTicketForm({
 
     startTransition(async () => {
       const fd = buildFormData();
-      const r = initial?.id
-        ? await updateRecurringTicket(initial.id, fd)
-        : await createRecurringTicket(fd);
+      const editId = initial?.id;
+      const r = editId
+        ? await callAction(() => updateRecurringTicket(editId, fd), { timeoutMs: 60000 })
+        : await callAction(() => createRecurringTicket(fd), { timeoutMs: 60000 });
 
       // `create` redirige, así que solo se llega aquí si falló o si se editó.
       if (r && "error" in r && r.error) {
@@ -220,7 +222,7 @@ export function RecurringTicketForm({
     setSuccess(null);
 
     startTransition(async () => {
-      const r = await runRecurringTicketNow(initial.id!);
+      const r = await callAction(() => runRecurringTicketNow(initial.id!), { timeoutMs: 60000 });
       if (r && "error" in r && r.error) {
         setError(r.error);
         return;
@@ -233,7 +235,7 @@ export function RecurringTicketForm({
   function handleDelete() {
     if (!initial?.id) return;
     startTransition(async () => {
-      await deleteRecurringTicket(initial.id!);
+      await fireAction(() => deleteRecurringTicket(initial.id!), { timeoutMs: 60000 });
     });
   }
 

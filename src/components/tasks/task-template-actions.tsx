@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { createTaskFromTemplate, deleteTaskTemplate } from "@/actions/task-template.actions";
+import { callAction } from "@/lib/run-action";
 import { IconAction, IconActionLink } from "@/components/ui/icon-action";
 
 export function TaskTemplateActions({ id, name }: { id: string; name: string }) {
@@ -11,7 +12,7 @@ export function TaskTemplateActions({ id, name }: { id: string; name: string }) 
 
   function create() {
     startTransition(async () => {
-      const res = await createTaskFromTemplate(id);
+      const res = await callAction(() => createTaskFromTemplate(id));
       if (res?.error) alert(res.error);
       // si tiene éxito, la acción redirige a la tarea creada
     });
@@ -20,7 +21,7 @@ export function TaskTemplateActions({ id, name }: { id: string; name: string }) 
   function remove() {
     if (!confirm(`¿Eliminar la plantilla "${name}"?`)) return;
     startTransition(async () => {
-      const res = await deleteTaskTemplate(id);
+      const res = await callAction(() => deleteTaskTemplate(id));
       if (res?.error) alert(res.error);
       else router.refresh();
     });

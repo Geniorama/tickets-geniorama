@@ -5,6 +5,7 @@ import { Sparkles, RotateCcw, AlertCircle, X, Minus, Maximize2, Stethoscope } fr
 import { AiToolHeader, aiButtonStyle, useAiToolBusy } from "@/components/ui/ai-tools-panel";
 import { createPortal } from "react-dom";
 import { getTicketDiagnosis } from "@/actions/ai.actions";
+import { callAction } from "@/lib/run-action";
 import { MarkdownText } from "@/components/ui/markdown-text";
 import { ProviderToggle } from "@/components/assistant/provider-toggle";
 import { DEFAULT_AI_PROVIDER, type AiProvider } from "@/lib/ai-provider";
@@ -34,7 +35,7 @@ export function TicketAiAssistant({
     setOpen(true);
     setMinimized(false);
     startTransition(async () => {
-      const res = await getTicketDiagnosis(ticketId, provider);
+      const res = await callAction(() => getTicketDiagnosis(ticketId, provider), { timeoutMs: 120000 });
       if (res.error) setError(res.error);
       else setResult(res.text ?? null);
     });

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Lightbulb, ImageIcon, Copy, Check, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { generateDesignBrief, generateDesignSketches } from "@/actions/design.actions";
+import { callAction } from "@/lib/run-action";
 import { AiToolHeader, aiButtonStyle, useAiToolBusy, AI_ACCENT } from "@/components/ui/ai-tools-panel";
 import { MarkdownRenderer } from "@/components/ui/markdown-renderer";
 import { SKETCH_FORMATS, MAX_SKETCHES, type SketchFormatId } from "@/lib/design-tasks";
@@ -32,7 +33,7 @@ const spin: React.CSSProperties = { width: "0.875rem", height: "0.875rem", anima
 
 function ErrorLine({ children }: { children: React.ReactNode }) {
   return (
-    <p style={{ margin: 0, padding: "0.75rem 1.25rem", fontSize: "0.8125rem", color: "#b91c1c", backgroundColor: "#fef2f2", borderTop: "1px solid #fecaca" }}>
+    <p style={{ margin: 0, padding: "0.75rem 1.25rem", fontSize: "0.8125rem", color: "var(--tone-red-fg)", backgroundColor: "var(--tone-red-bg)", borderTop: "1px solid var(--tone-red-bd)" }}>
       {children}
     </p>
   );
@@ -85,7 +86,7 @@ function BriefTool({
   function generate() {
     setError(null);
     startTransition(async () => {
-      const res = await generateDesignBrief(taskId, provider);
+      const res = await callAction(() => generateDesignBrief(taskId, provider), { timeoutMs: 120000 });
       if (res.error) { setError(res.error); return; }
       if (res.brief) { onBrief(res.brief); setOpen(true); }
     });
@@ -179,12 +180,12 @@ function SketchesTool({
   function generate() {
     setError(null);
     startTransition(async () => {
-      const res = await generateDesignSketches(taskId, {
+      const res = await callAction(() => generateDesignSketches(taskId, {
         format,
         count,
         instructions,
         brief: useBrief && brief ? brief : undefined,
-      });
+      }), { timeoutMs: 120000 });
       if (res.error) { setError(res.error); return; }
       setImages(res.images ?? []);
       if (res.saveErrors?.length) setError(`Algunos bocetos no se guardaron: ${res.saveErrors.join("; ")}`);

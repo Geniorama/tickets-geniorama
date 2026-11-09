@@ -15,6 +15,7 @@
 import { useState, useTransition } from "react";
 import { History } from "lucide-react";
 import { getMoreActivity, type ActivityPage } from "@/actions/activity.actions";
+import { runAction } from "@/lib/run-action";
 import { describeActivity } from "@/lib/activity/describe";
 import { formatDateTimeLong } from "@/lib/format-date";
 import type { EntityType } from "@/generated/prisma";
@@ -99,9 +100,10 @@ export function ActivityTimeline({
     if (!oldest) return;
 
     startTransition(async () => {
-      const page = await getMoreActivity(entityType, entityId, oldest.createdAt);
-      setItems((prev) => [...prev, ...page.entries]);
-      setHasMore(page.hasMore);
+      const r = await runAction(() => getMoreActivity(entityType, entityId, oldest.createdAt));
+      if (!r.ok) return;
+      setItems((prev) => [...prev, ...r.data.entries]);
+      setHasMore(r.data.hasMore);
     });
   }
 

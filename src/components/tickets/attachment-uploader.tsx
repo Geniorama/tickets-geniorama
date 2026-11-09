@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { FileText, Paperclip, X } from "lucide-react";
 import { addAttachment } from "@/actions/attachment.actions";
+import { callAction } from "@/lib/run-action";
 import { FILE_RULES, formatFileSize, splitFiles } from "@/lib/file-rules";
 
 export function AttachmentUploader({ ticketId }: { ticketId: string }) {
@@ -35,7 +36,7 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
     }
 
     startTransition(async () => {
-      const result = await addAttachment(ticketId, formData);
+      const result = await callAction(() => addAttachment(ticketId, formData), { timeoutMs: 120000 });
       if (result?.error) {
         setError(result.error);
       } else {
@@ -152,7 +153,7 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
       )}
 
       {error && (
-        <p style={{ fontSize: "0.75rem", color: "#b91c1c", margin: 0, whiteSpace: "pre-line" }}>{error}</p>
+        <p style={{ fontSize: "0.75rem", color: "var(--tone-red-fg)", margin: 0, whiteSpace: "pre-line" }}>{error}</p>
       )}
     </form>
   );

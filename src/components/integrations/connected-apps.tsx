@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Bot, Copy, Check, Unplug } from "lucide-react";
 import { revokeConnectedApp, type ConnectedApp } from "@/actions/oauth.actions";
+import { callAction } from "@/lib/run-action";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { OAUTH_SCOPE_LABELS, isOAuthScope } from "@/lib/oauth/config";
 import { formatDateTime } from "@/lib/format-date";
@@ -35,7 +36,7 @@ export function ConnectedApps({ mcpUrl, apps }: { mcpUrl: string; apps: Connecte
     if (!revoking) return;
     setError(null);
     startTransition(async () => {
-      const res = await revokeConnectedApp(revoking.id);
+      const res = await callAction(() => revokeConnectedApp(revoking.id));
       if (res?.error) {
         setError(res.error);
         return;

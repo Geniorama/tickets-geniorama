@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Copy, Wand2, Check } from "lucide-react";
 import { createUser } from "@/actions/user.actions";
+import { callAction } from "@/lib/run-action";
 
 interface Company { id: string; name: string; }
 interface Profile { id: string; name: string; description: string | null; }
@@ -72,7 +73,7 @@ export function UserForm({ companies, profiles }: { companies: Company[]; profil
     const formData = new FormData(e.currentTarget);
 
     startTransition(async () => {
-      const result = await createUser(formData);
+      const result = await callAction(() => createUser(formData), { timeoutMs: 60000 });
       if (result?.error) {
         setError(result.error);
       } else if (result?.emailError) {

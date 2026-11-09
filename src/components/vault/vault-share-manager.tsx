@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { UserPlus, X } from "lucide-react";
 import { addVaultShare, removeVaultShare } from "@/actions/vault.actions";
+import { callAction, fireAction } from "@/lib/run-action";
 
 interface SharedUser { id: string; name: string; email: string; }
 interface AvailableUser { id: string; name: string; email: string; }
@@ -26,7 +27,7 @@ export function VaultShareManager({ entryId, sharedWith, availableUsers, canMana
     if (!selectedUserId) return;
     setError(null);
     startTransition(async () => {
-      const result = await addVaultShare(entryId, selectedUserId);
+      const result = await callAction(() => addVaultShare(entryId, selectedUserId));
       if (result?.error) setError(result.error);
       else setSelectedUserId("");
     });
@@ -34,7 +35,7 @@ export function VaultShareManager({ entryId, sharedWith, availableUsers, canMana
 
   function handleRemove(userId: string) {
     startTransition(async () => {
-      await removeVaultShare(entryId, userId);
+      await fireAction(() => removeVaultShare(entryId, userId));
     });
   }
 
@@ -115,7 +116,7 @@ export function VaultShareManager({ entryId, sharedWith, availableUsers, canMana
       )}
 
       {error && (
-        <p style={{ fontSize: "0.8125rem", color: "#b91c1c", marginTop: "0.5rem" }}>{error}</p>
+        <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", marginTop: "0.5rem" }}>{error}</p>
       )}
     </div>
   );

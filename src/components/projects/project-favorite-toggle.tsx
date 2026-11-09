@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Star } from "lucide-react";
 import { toggleProjectFavorite } from "@/actions/project.actions";
+import { runAction } from "@/lib/run-action";
 
 export function ProjectFavoriteToggle({
   projectId,
@@ -24,8 +25,10 @@ export function ProjectFavoriteToggle({
     const next = !favorited;
     setFavorited(next);
     startTransition(async () => {
-      const result = await toggleProjectFavorite(projectId);
-      if (result?.favorited !== next) setFavorited(result.favorited);
+      const r = await runAction(() => toggleProjectFavorite(projectId));
+      // Se pintó al instante; si no respondió, vuelve a como estaba.
+      if (!r.ok) setFavorited(!next);
+      else if (r.data.favorited !== next) setFavorited(r.data.favorited);
     });
   }
 

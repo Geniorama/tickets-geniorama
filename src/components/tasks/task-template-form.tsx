@@ -10,6 +10,7 @@ import { splitEstimatedHours } from "@/lib/estimated-time";
 import { createTaskTemplate, updateTaskTemplate } from "@/actions/task-template.actions";
 import { AiTemplateGenerator } from "@/components/ui/ai-template-generator";
 import type { TemplateDraft } from "@/actions/template-ai.actions";
+import { callAction } from "@/lib/run-action";
 
 export interface TaskTemplateData {
   id: string;
@@ -76,8 +77,8 @@ export function TaskTemplateForm({ template }: { template?: TaskTemplateData }) 
     formData.set("checklist", JSON.stringify(checklist));
     startTransition(async () => {
       const res = isEdit
-        ? await updateTaskTemplate(template.id, formData)
-        : await createTaskTemplate(formData);
+        ? await callAction(() => updateTaskTemplate(template.id, formData), { timeoutMs: 60000 })
+        : await callAction(() => createTaskTemplate(formData), { timeoutMs: 60000 });
       if (res?.error) setError(res.error);
     });
   }
@@ -94,7 +95,7 @@ export function TaskTemplateForm({ template }: { template?: TaskTemplateData }) 
       {/* Se remonta al aplicar un borrador de IA: los campos son no controlados. */}
       <div key={draftKey} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
         <div>
-          <label style={labelStyle}>Nombre de la plantilla <span style={{ color: "#b91c1c" }}>*</span></label>
+          <label style={labelStyle}>Nombre de la plantilla <span style={{ color: "var(--tone-red-fg)" }}>*</span></label>
           <input
             name="name"
             required
@@ -105,7 +106,7 @@ export function TaskTemplateForm({ template }: { template?: TaskTemplateData }) 
         </div>
 
         <div>
-          <label style={labelStyle}>Título de la tarea <span style={{ color: "#b91c1c" }}>*</span></label>
+          <label style={labelStyle}>Título de la tarea <span style={{ color: "var(--tone-red-fg)" }}>*</span></label>
           <input
             name="title"
             required
@@ -116,7 +117,7 @@ export function TaskTemplateForm({ template }: { template?: TaskTemplateData }) 
         </div>
 
         <div>
-          <label style={labelStyle}>Descripción <span style={{ color: "#b91c1c" }}>*</span></label>
+          <label style={labelStyle}>Descripción <span style={{ color: "var(--tone-red-fg)" }}>*</span></label>
           <MarkdownEditor
             name="description"
             defaultValue={values.description}
@@ -126,7 +127,7 @@ export function TaskTemplateForm({ template }: { template?: TaskTemplateData }) 
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
           <div>
-            <label style={labelStyle}>Prioridad <span style={{ color: "#b91c1c" }}>*</span></label>
+            <label style={labelStyle}>Prioridad <span style={{ color: "var(--tone-red-fg)" }}>*</span></label>
             <select name="priority" defaultValue={values.priority} style={inputStyle}>
               <option value="BAJA">Baja</option>
               <option value="MEDIA">Media</option>
@@ -194,7 +195,7 @@ export function TaskTemplateForm({ template }: { template?: TaskTemplateData }) 
       </div>
 
       {error && (
-        <p style={{ fontSize: "0.875rem", color: "#b91c1c", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "0.5rem", padding: "0.5rem 0.75rem", margin: 0 }}>
+        <p style={{ fontSize: "0.875rem", color: "var(--tone-red-fg)", backgroundColor: "var(--tone-red-bg)", border: "1px solid var(--tone-red-bd)", borderRadius: "0.5rem", padding: "0.5rem 0.75rem", margin: 0 }}>
           {error}
         </p>
       )}

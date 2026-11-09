@@ -11,6 +11,7 @@ import {
   deleteRecurringTemplate,
   runRecurringNow,
 } from "@/actions/recurring-task.actions";
+import { callAction, fireAction } from "@/lib/run-action";
 import { RecurrenceFields } from "@/components/ui/recurrence-fields";
 import { TASK_CATEGORY_GROUPS, TASK_CATEGORIES } from "@/lib/task-categories";
 import { splitEstimatedHours, combineEstimatedTime } from "@/lib/estimated-time";
@@ -172,9 +173,10 @@ export function RecurringTaskForm({
       const fd = buildFormData();
       // En creación el action redirige (lanza), así que el éxito se muestra al
       // aterrizar en la página de edición vía ?created=1.
-      const result = initial?.id
-        ? await updateRecurringTemplate(initial.id, fd)
-        : await createRecurringTemplate(fd);
+      const editId = initial?.id;
+      const result = editId
+        ? await callAction(() => updateRecurringTemplate(editId, fd), { timeoutMs: 60000 })
+        : await callAction(() => createRecurringTemplate(fd), { timeoutMs: 60000 });
       if (result && "error" in result && result.error) {
         setError(result.error);
       } else {
@@ -188,7 +190,7 @@ export function RecurringTaskForm({
     if (!initial?.id) return;
     if (!confirm("¿Eliminar esta plantilla? Las tareas ya generadas no se eliminarán.")) return;
     startTransition(async () => {
-      await deleteRecurringTemplate(initial.id!);
+      await fireAction(() => deleteRecurringTemplate(initial.id!), { timeoutMs: 60000 });
     });
   }
 
@@ -198,7 +200,7 @@ export function RecurringTaskForm({
     setError(null);
     setSuccess(null);
     startTransition(async () => {
-      const result = await runRecurringNow(initial.id!);
+      const result = await callAction(() => runRecurringNow(initial.id!), { timeoutMs: 60000 });
       if (result && "error" in result && result.error) setError(result.error);
       else {
         setSuccess("Tarea generada correctamente.");

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { KeyRound, ExternalLink, X, Plus } from "lucide-react";
 import { linkVaultToProject, unlinkVaultFromProject } from "@/actions/vault.actions";
+import { callAction } from "@/lib/run-action";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { vaultOptionLabel } from "@/lib/vault-options";
 import Link from "next/link";
@@ -36,7 +37,7 @@ export function ProjectVaultPanel({
     setError(null);
     startTransition(async () => {
       for (const id of selectedIds) {
-        const result = await linkVaultToProject(projectId, id);
+        const result = await callAction(() => linkVaultToProject(projectId, id));
         if (result?.error) {
           setError(result.error);
           return;
@@ -48,7 +49,7 @@ export function ProjectVaultPanel({
 
   function handleUnlink(vaultEntryId: string) {
     startTransition(async () => {
-      const result = await unlinkVaultFromProject(projectId, vaultEntryId);
+      const result = await callAction(() => unlinkVaultFromProject(projectId, vaultEntryId));
       if (result?.error) setError(result.error);
     });
   }
@@ -177,7 +178,7 @@ export function ProjectVaultPanel({
       )}
 
       {error && (
-        <p style={{ fontSize: "0.8125rem", color: "#b91c1c", marginTop: "0.5rem" }}>{error}</p>
+        <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", marginTop: "0.5rem" }}>{error}</p>
       )}
     </div>
   );

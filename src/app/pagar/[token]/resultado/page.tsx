@@ -24,12 +24,12 @@ const MENSAJES: Record<string, { titulo: string; texto: string; color: string }>
   pending: {
     titulo: "Pago en proceso",
     texto: "Estamos esperando la confirmación del banco. No hace falta que pagues de nuevo: quedará registrado en cuanto se acredite.",
-    color: "#b45309",
+    color: "var(--tone-amber-fg)",
   },
   created: {
     titulo: "Estamos verificando tu pago",
     texto: "Si completaste el pago, quedará registrado en unos minutos. No hace falta que pagues de nuevo.",
-    color: "#b45309",
+    color: "var(--tone-amber-fg)",
   },
   failed: {
     titulo: "El pago no se completó",

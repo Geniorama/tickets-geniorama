@@ -10,6 +10,7 @@ import {
   addBillingPayment, updateBillingPayment, deleteBillingPayment,
   addPaymentReceipt, deletePaymentReceipt,
 } from "@/actions/billing-payments.actions";
+import { callAction } from "@/lib/run-action";
 
 /**
  * Los abonos de un cobro.
@@ -97,8 +98,8 @@ export function PaymentList({
     setIsPending(true);
     try {
       const r = editando
-        ? await updateBillingPayment(editando.id, billingItemId, formData)
-        : await addBillingPayment(billingItemId, formData);
+        ? await callAction(() => updateBillingPayment(editando.id, billingItemId, formData), { timeoutMs: 60000 })
+        : await callAction(() => addBillingPayment(billingItemId, formData), { timeoutMs: 60000 });
       if (r?.error) return setError(r.error);
       cerrar();
       router.refresh();
@@ -130,7 +131,7 @@ export function PaymentList({
     try {
       const fd = new FormData();
       Array.from(files).forEach((f) => fd.append("files", f));
-      const r = await addPaymentReceipt(pagoId, billingItemId, fd);
+      const r = await callAction(() => addPaymentReceipt(pagoId, billingItemId, fd), { timeoutMs: 120000 });
       if (r?.error) return setError(r.error);
       if (r?.warning) setError(r.warning);
       router.refresh();
@@ -143,7 +144,7 @@ export function PaymentList({
     setError(null);
     setIsPending(true);
     try {
-      const r = await deletePaymentReceipt(attachmentId, pagoId, billingItemId);
+      const r = await callAction(() => deletePaymentReceipt(attachmentId, pagoId, billingItemId));
       if (r?.error) return setError(r.error);
       router.refresh();
     } finally {
@@ -155,7 +156,7 @@ export function PaymentList({
     setError(null);
     setIsPending(true);
     try {
-      const r = await deleteBillingPayment(id, billingItemId);
+      const r = await callAction(() => deleteBillingPayment(id, billingItemId));
       if (r?.error) return setError(r.error);
       router.refresh();
     } finally {
@@ -187,7 +188,7 @@ export function PaymentList({
         </p>
       </div>
 
-      {error && <p style={{ fontSize: "0.8125rem", color: "#b91c1c", marginTop: "0.6rem" }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", marginTop: "0.6rem" }}>{error}</p>}
 
       {abonos.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem", marginTop: "0.85rem" }}>

@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { Paperclip, Send, Trash2, FileText, Download } from "lucide-react";
 import { addBillingComment, deleteBillingComment, deleteBillingAttachment } from "@/actions/billing-notes.actions";
+import { callAction } from "@/lib/run-action";
 import { formatDateTimeLong } from "@/lib/format-date";
 import { MentionTextarea } from "@/components/ui/mention-textarea";
 import { CommentBody } from "@/components/ui/comment-body";
@@ -62,7 +63,7 @@ export function BillingNotes({
     archivos.forEach((f) => formData.append("files", f));
 
     startTransition(async () => {
-      const r = await addBillingComment(billingItemId, formData);
+      const r = await callAction(() => addBillingComment(billingItemId, formData), { timeoutMs: 120000 });
       if (r?.error) return setError(r.error);
       if (r?.warning) setAviso(r.warning);
       setArchivos([]);
@@ -73,14 +74,14 @@ export function BillingNotes({
 
   function borrarComentario(id: string) {
     startTransition(async () => {
-      const r = await deleteBillingComment(id, billingItemId);
+      const r = await callAction(() => deleteBillingComment(id, billingItemId));
       if (r?.error) setError(r.error);
     });
   }
 
   function borrarAdjunto(id: string) {
     startTransition(async () => {
-      const r = await deleteBillingAttachment(id, billingItemId);
+      const r = await callAction(() => deleteBillingAttachment(id, billingItemId));
       if (r?.error) setError(r.error);
     });
   }
@@ -219,8 +220,8 @@ export function BillingNotes({
         </form>
       )}
 
-      {error && <p style={{ fontSize: "0.8125rem", color: "#b91c1c", marginBottom: "0.75rem" }}>{error}</p>}
-      {aviso && <p style={{ fontSize: "0.8125rem", color: "#b45309", marginBottom: "0.75rem" }}>{aviso}</p>}
+      {error && <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", marginBottom: "0.75rem" }}>{error}</p>}
+      {aviso && <p style={{ fontSize: "0.8125rem", color: "var(--tone-amber-fg)", marginBottom: "0.75rem" }}>{aviso}</p>}
 
       {comments.length === 0 && attachments.length === 0 ? (
         <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)" }}>

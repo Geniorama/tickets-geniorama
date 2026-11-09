@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Bell, BellOff, Loader2, Send } from "lucide-react";
 import { subscribeToPush, unsubscribeFromPush, sendTestPush } from "@/actions/push.actions";
+import { callAction, fireAction } from "@/lib/run-action";
 
 /**
  * Interruptor de las notificaciones push.
@@ -79,12 +80,12 @@ export function PushToggle({ publicKey }: { publicKey: string }) {
       });
 
       const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
-      const result = await subscribeToPush({
+      const result = await callAction(() => subscribeToPush({
         endpoint: json.endpoint ?? "",
         p256dh: json.keys?.p256dh ?? "",
         auth: json.keys?.auth ?? "",
         userAgent: navigator.userAgent,
-      });
+      }));
 
       if (result?.error) {
         await sub.unsubscribe().catch(() => {});
@@ -111,7 +112,7 @@ export function PushToggle({ publicKey }: { publicKey: string }) {
       if (sub) {
         // Primero el servidor: si se cancela en el navegador y falla el
         // servidor, quedaría una fila mandando avisos a la nada.
-        await unsubscribeFromPush(sub.endpoint);
+        await fireAction(() => unsubscribeFromPush(sub.endpoint));
         await sub.unsubscribe().catch(() => {});
       }
       setEstado("inactivo");
@@ -150,7 +151,7 @@ export function PushToggle({ publicKey }: { publicKey: string }) {
     setAviso(null);
     setOcupado(true);
 
-    const r = await sendTestPush();
+    const r = await callAction(() => sendTestPush());
     if (r?.error) {
       setError(r.error);
       setOcupado(false);
@@ -215,7 +216,7 @@ export function PushToggle({ publicKey }: { publicKey: string }) {
       </p>
 
       {aviso && <p style={{ fontSize: "0.8125rem", color: "#16a34a", marginBottom: "0.75rem" }}>{aviso}</p>}
-      {error && <p style={{ fontSize: "0.8125rem", color: "#b91c1c", marginBottom: "0.75rem" }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", marginBottom: "0.75rem" }}>{error}</p>}
 
       {puedeActuar && (
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>

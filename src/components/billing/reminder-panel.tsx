@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { BellOff, Bell } from "lucide-react";
 import type { ReminderChannel, ReminderStatus } from "@/generated/prisma";
 import { setRemindersOff } from "@/actions/billing-reminders.actions";
+import { callAction } from "@/lib/run-action";
 import { CHANNEL_LABELS } from "@/lib/billing/reminders/labels";
 import { formatDateTimeLong } from "@/lib/format-date";
 
@@ -56,7 +57,7 @@ export function ReminderPanel({
     const siguiente = !silenciado;
     setSilenciado(siguiente);
     startTransition(async () => {
-      const r = await setRemindersOff(billingItemId, siguiente);
+      const r = await callAction(() => setRemindersOff(billingItemId, siguiente));
       if (r?.error) {
         setSilenciado(!siguiente);
         setError(r.error);
@@ -96,7 +97,7 @@ export function ReminderPanel({
         )}
       </div>
 
-      {error && <p style={{ fontSize: "0.75rem", color: "#b91c1c", marginTop: "0.5rem" }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.75rem", color: "var(--tone-red-fg)", marginTop: "0.5rem" }}>{error}</p>}
 
       {/* A quién le llega, siempre a la vista. La pregunta «¿y esto a quién le
           va a llegar?» se hace antes del primer envío, no después. */}
@@ -107,7 +108,7 @@ export function ReminderPanel({
         }}
       >
         {"motivo" in destino ? (
-          <p style={{ margin: 0, color: "#b45309" }}>
+          <p style={{ margin: 0, color: "var(--tone-amber-fg)" }}>
             No saldría: {destino.motivo}.{" "}
             <Link href={`/crm/${empresaId}`} style={{ color: "#fd1384", textDecoration: "none" }}>
               Arreglarlo en la ficha del cliente
@@ -164,7 +165,7 @@ export function ReminderPanel({
                   {s.regla ?? "regla borrada"} · {formatDateTimeLong(s.sentAt)}
                 </span>
                 {s.error && (
-                  <span style={{ display: "block", fontSize: "0.6875rem", color: "#b45309" }}>{s.error}</span>
+                  <span style={{ display: "block", fontSize: "0.6875rem", color: "var(--tone-amber-fg)" }}>{s.error}</span>
                 )}
               </div>
             ))}

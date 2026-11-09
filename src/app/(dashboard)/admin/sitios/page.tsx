@@ -5,6 +5,7 @@ import { Plus, Globe } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/search-input";
+import { FilterBar, SortSelect } from "@/components/ui/filter-kit";
 import { SitesTable } from "@/components/admin/sites-table";
 import { getPageSize } from "@/lib/pagination";
 
@@ -71,11 +72,23 @@ export default async function SitiosPage({
         </Link>
       </div>
 
-      <div>
-        <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
-          <SearchInput placeholder="Buscar por nombre o dominio..." />
-        </Suspense>
-      </div>
+      <FilterBar
+        search={<Suspense fallback={<div style={{ height: "2.25rem" }} />}><SearchInput placeholder="Buscar por nombre o dominio..." /></Suspense>}
+        sort={
+          <Suspense fallback={null}>
+            <SortSelect
+              defaultSortBy="name"
+              defaultSortDir="asc"
+              options={[
+                { value: "name", label: "Nombre" },
+                { value: "domain", label: "Dominio" },
+                { value: "company", label: "Empresa" },
+                { value: "isActive", label: "Estado" },
+              ]}
+            />
+          </Suspense>
+        }
+      />
 
       {totalSites === 0 && !q ? (
         <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">

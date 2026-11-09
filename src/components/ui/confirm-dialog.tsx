@@ -40,7 +40,7 @@ export function ConfirmDialog({
   if (!open) return null;
 
   const confirmColor = variant === "danger" ? "#dc2626" : "#fd1384";
-  const confirmHoverColor = variant === "danger" ? "#b91c1c" : "#d40069";
+  const confirmHoverColor = variant === "danger" ? "var(--tone-red-fg)" : "#d40069";
 
   return (
     <div

@@ -12,7 +12,6 @@ import { Plus } from "lucide-react";
 import { fromZonedTime } from "date-fns-tz";
 import { Pagination } from "@/components/ui/pagination";
 import { Suspense } from "react";
-import { SearchInput } from "@/components/ui/search-input";
 import { getPageSize } from "@/lib/pagination";
 import { redirect } from "next/navigation";
 import { FilterTags, type FilterTag } from "@/components/ui/filter-tags";
@@ -212,20 +211,16 @@ export default async function TicketsPage({
         </div>
       </div>
 
-      <div style={{ marginBottom: "1rem" }} data-tour-id="page-filters">
-        <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
-          <SearchInput placeholder="Buscar tickets..." />
+      <div data-tour-id="page-filters">
+        <Suspense fallback={<div style={{ height: "2.25rem", marginBottom: "1rem" }} />}>
+          <TicketFilters
+            collaborators={collaborators}
+            creators={creators}
+            companies={companies}
+            showFilters={!!staff}
+          />
         </Suspense>
       </div>
-
-      {staff && (
-        <TicketFilters
-          collaborators={collaborators}
-          creators={creators}
-          companies={companies}
-          current={Object.fromEntries(Object.entries(params).filter(([k]) => k !== "page"))}
-        />
-      )}
 
       {/* Contador, filtros activos y vista, pegados a los resultados: la
           vista es una preferencia de lectura, no una acción de la página */}

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { createVaultEntry, updateVaultEntry } from "@/actions/vault.actions";
+import { callAction } from "@/lib/run-action";
 import { Eye, EyeOff } from "lucide-react";
 
 interface Company  { id: string; name: string; }
@@ -57,8 +58,8 @@ export function VaultForm({ companies, sites, services, entry, decryptedPassword
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
       const result = isEdit
-        ? await updateVaultEntry(entry.id, formData)
-        : await createVaultEntry(formData);
+        ? await callAction(() => updateVaultEntry(entry.id, formData), { timeoutMs: 120000 })
+        : await callAction(() => createVaultEntry(formData), { timeoutMs: 120000 });
       if (result?.error) setError(result.error);
     });
   }
@@ -155,8 +156,8 @@ export function VaultForm({ companies, sites, services, entry, decryptedPassword
 
       {error && (
         <p style={{
-          fontSize: "0.875rem", color: "#b91c1c", backgroundColor: "#fef2f2",
-          border: "1px solid #fecaca", borderRadius: "0.5rem", padding: "0.625rem 0.75rem",
+          fontSize: "0.875rem", color: "var(--tone-red-fg)", backgroundColor: "var(--tone-red-bg)",
+          border: "1px solid var(--tone-red-bd)", borderRadius: "0.5rem", padding: "0.625rem 0.75rem",
         }}>
           {error}
         </p>

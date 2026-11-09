@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Copy, Loader2 } from "lucide-react";
 import { duplicateTicket } from "@/actions/ticket.actions";
+import { fireAction } from "@/lib/run-action";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DuplicateChecklistsOption } from "@/components/ui/duplicate-checklists-option";
 
@@ -21,7 +22,7 @@ export function DuplicateTicketButton({
 
   function handleConfirm() {
     startTransition(async () => {
-      await duplicateTicket(ticketId, checklistItemCount > 0 && withChecklists);
+      await fireAction(() => duplicateTicket(ticketId, checklistItemCount > 0 && withChecklists));
       setOpen(false);
     });
   }

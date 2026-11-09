@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Plus, Check } from "lucide-react";
 import { setBillingLabels, createBillingLabel } from "@/actions/billing-notes.actions";
+import { callAction, fireAction } from "@/lib/run-action";
 
 /**
  * Las etiquetas de un cobro.
@@ -49,7 +50,7 @@ export function LabelPicker({
     // una etiqueta debe sentirse inmediato.
     setSeleccion(siguiente);
     startTransition(async () => {
-      const r = await setBillingLabels(billingItemId, siguiente);
+      const r = await callAction(() => setBillingLabels(billingItemId, siguiente));
       if (r?.error) {
         setSeleccion(seleccion);
         setError(r.error);
@@ -62,7 +63,7 @@ export function LabelPicker({
     if (!limpio) return;
     setError(null);
     startTransition(async () => {
-      const r = await createBillingLabel(limpio, color);
+      const r = await callAction(() => createBillingLabel(limpio, color));
       if (r?.error || !r?.id) return setError(r?.error ?? "No se pudo crear");
 
       setDisponibles((prev) =>
@@ -71,7 +72,7 @@ export function LabelPicker({
       // Recién creada se pone al cobro: es para lo que se estaba creando.
       const siguiente = [...seleccion, r.id];
       setSeleccion(siguiente);
-      await setBillingLabels(billingItemId, siguiente);
+      await fireAction(() => setBillingLabels(billingItemId, siguiente));
 
       setNombre("");
       setCreando(false);
@@ -180,7 +181,7 @@ export function LabelPicker({
         </div>
       )}
 
-      {error && <p style={{ fontSize: "0.75rem", color: "#b91c1c", marginTop: "0.4rem" }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.75rem", color: "var(--tone-red-fg)", marginTop: "0.4rem" }}>{error}</p>}
     </div>
   );
 }

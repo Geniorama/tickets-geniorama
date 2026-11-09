@@ -14,7 +14,7 @@ import { formatDate } from "@/lib/format-date";
 export const metadata = { title: "Mi facturación" };
 
 const ESTADO: Record<EstadoFactura, { label: string; color: string }> = {
-  PENDIENTE: { label: "Pendiente", color: "#b45309" },
+  PENDIENTE: { label: "Pendiente", color: "var(--tone-amber-fg)" },
   ABONADA:   { label: "Abonada",   color: "#2563eb" },
   PAGADA:    { label: "Pagada",    color: "#16a34a" },
 };

@@ -3,7 +3,7 @@ import { Plus, Mail, Phone, Star, ShieldCheck, Building2 } from "lucide-react";
 import { requireCan, can } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { ACCOUNT_STAGE_COLORS, ACCOUNT_STAGE_LABELS } from "@/lib/crm/accounts";
-import { SearchInput } from "@/components/ui/search-input";
+import { ContactFilters } from "@/components/crm/contact-filters";
 import { fullName } from "@/lib/crm/contact-name";
 import { formatPhone } from "@/lib/crm/phone";
 import { Suspense } from "react";
@@ -19,11 +19,18 @@ export const metadata = { title: "Contactos" };
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; portal?: string }>;
+  searchParams: Promise<{ q?: string; portal?: string; sortBy?: string; sortDir?: string }>;
 }) {
   const session = await requireCan("CRM", "ver");
   const canCreate = await can(session.user, "CRM", "crear");
-  const { q, portal } = await searchParams;
+  const { q, portal, sortBy, sortDir: rawDir } = await searchParams;
+  const sortDir: "asc" | "desc" = rawDir === "desc" ? "desc" : "asc";
+  const contactOrderBy =
+    sortBy === "name"
+      ? [{ lastName: sortDir }, { firstName: sortDir }]
+      : sortBy === "createdAt"
+        ? [{ createdAt: sortDir }]
+        : [{ company: { name: sortDir } }, { isPrimary: "desc" as const }, { lastName: "asc" as const }, { firstName: "asc" as const }];
 
   const busqueda = q?.trim();
   const soloPortal = portal === "1";
@@ -44,7 +51,7 @@ export default async function ContactsPage({
           }
         : {}),
     },
-    orderBy: [{ company: { name: "asc" } }, { isPrimary: "desc" }, { lastName: "asc" }, { firstName: "asc" }],
+    orderBy: contactOrderBy,
     select: {
       id: true, firstName: true, lastName: true, email: true, phone: true, position: true,
       isPrimary: true, userId: true,
@@ -82,22 +89,9 @@ export default async function ContactsPage({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
-          <SearchInput placeholder="Buscar por nombre, correo o empresa..." />
-        </Suspense>
-        <Link
-          href={soloPortal ? "/crm/contactos" : "/crm/contactos?portal=1"}
-          style={{
-            fontSize: "0.8125rem", padding: "0.45rem 0.85rem", borderRadius: "0.5rem",
-            border: `1px solid ${soloPortal ? "#22c55e" : "var(--app-border)"}`,
-            color: soloPortal ? "#22c55e" : "var(--app-nav-text)",
-            textDecoration: "none", whiteSpace: "nowrap",
-          }}
-        >
-          {soloPortal ? "Ver todos" : "Solo con portal"}
-        </Link>
-      </div>
+      <Suspense fallback={<div style={{ height: "2.25rem", marginBottom: "1rem" }} />}>
+        <ContactFilters />
+      </Suspense>
 
       {contactos.length === 0 ? (
         <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)" }}>

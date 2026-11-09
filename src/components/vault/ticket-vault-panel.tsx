@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { KeyRound, ExternalLink, X, Plus } from "lucide-react";
 import { linkVaultToTicket, unlinkVaultFromTicket } from "@/actions/vault.actions";
+import { callAction } from "@/lib/run-action";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { vaultOptionLabel } from "@/lib/vault-options";
 import Link from "next/link";
@@ -33,7 +34,7 @@ export function TicketVaultPanel({
     if (selectedIds.length === 0) return;
     setError(null);
     startTransition(async () => {
-      const result = await linkVaultToTicket(ticketId, selectedIds);
+      const result = await callAction(() => linkVaultToTicket(ticketId, selectedIds));
       if (result?.error) setError(result.error);
       else setSelectedIds([]);
     });
@@ -41,7 +42,7 @@ export function TicketVaultPanel({
 
   function handleUnlink(vaultEntryId: string) {
     startTransition(async () => {
-      const result = await unlinkVaultFromTicket(ticketId, vaultEntryId);
+      const result = await callAction(() => unlinkVaultFromTicket(ticketId, vaultEntryId));
       if (result?.error) setError(result.error);
     });
   }
@@ -174,7 +175,7 @@ export function TicketVaultPanel({
       )}
 
       {error && (
-        <p style={{ fontSize: "0.8125rem", color: "#b91c1c", marginTop: "0.5rem" }}>{error}</p>
+        <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", marginTop: "0.5rem" }}>{error}</p>
       )}
     </div>
   );

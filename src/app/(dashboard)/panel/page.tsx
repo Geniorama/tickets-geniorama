@@ -8,7 +8,6 @@ import { Suspense } from "react";
 import { LayoutList } from "lucide-react";
 import { PanelTable } from "@/components/panel/panel-table";
 import { PanelFilters } from "@/components/panel/panel-filters";
-import { SearchInput } from "@/components/ui/search-input";
 import { FilterTags, type FilterTag } from "@/components/ui/filter-tags";
 import { Pagination } from "@/components/ui/pagination";
 import { getPageSize } from "@/lib/pagination";
@@ -212,10 +211,9 @@ export default async function PanelPage({
       </p>
 
       <div className="flex flex-col gap-3 mb-5">
-        <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
-          <SearchInput placeholder="Buscar en tickets y tareas..." />
+        <Suspense fallback={<div style={{ height: "2.25rem" }} />}>
+          <PanelFilters staff={staffUsers} />
         </Suspense>
-        <PanelFilters staff={staffUsers} />
         <FilterTags tags={filterTags} />
       </div>
 

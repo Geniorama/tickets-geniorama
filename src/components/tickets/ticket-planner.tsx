@@ -18,6 +18,7 @@ import {
   getTicketPlannerOptions, generateTicketPlan, applyTicketPlan,
   type TicketPlannerOptions, type GeneratedTicketPlan, type TicketPlannerFile,
 } from "@/actions/ticket-planner.actions";
+import { callAction } from "@/lib/run-action";
 import { ProviderToggle } from "@/components/assistant/provider-toggle";
 import { DEFAULT_AI_PROVIDER, type AiProvider } from "@/lib/ai-provider";
 import type { Priority } from "@/generated/prisma";
@@ -119,12 +120,12 @@ function TicketPlannerModal({ onClose }: { onClose: () => void }) {
         plannerFile = { name: file.name, mimeType: file.type || "application/octet-stream", dataBase64 };
       }
 
-      const res = await generateTicketPlan({
+      const res = await callAction(() => generateTicketPlan({
         text: text.trim() || undefined,
         file: plannerFile,
         clientId: clientId || undefined,
         provider,
-      });
+      }), { timeoutMs: 120000 });
       if ("error" in res) {
         setError(res.error);
         return;
@@ -159,7 +160,7 @@ function TicketPlannerModal({ onClose }: { onClose: () => void }) {
     }
 
     startTransition(async () => {
-      const res = await applyTicketPlan({
+      const res = await callAction(() => applyTicketPlan({
         clientId: clientId || null,
         planId: planId || null,
         tickets: included.map((t) => ({
@@ -172,7 +173,7 @@ function TicketPlannerModal({ onClose }: { onClose: () => void }) {
           fechaLimite: t.fechaLimite || null,
           subtareas: t.subtareas,
         })),
-      });
+      }), { timeoutMs: 120000 });
       if ("error" in res) {
         setError(res.error);
         return;

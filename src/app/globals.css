@@ -28,8 +28,8 @@
 
 /* ── Tipografías (inline: valores estáticos, no cambian por tema) ── */
 @theme inline {
-  --font-sans:    'Poppins', system-ui, sans-serif;
-  --font-heading: 'Qanelas', 'Poppins', system-ui, sans-serif;
+  --font-sans:    var(--font-inter), 'Inter', system-ui, sans-serif;
+  --font-heading: 'Qanelas', var(--font-inter), 'Inter', system-ui, sans-serif;
   --font-mono:    ui-monospace, 'Cascadia Code', monospace;
 }
 
@@ -62,17 +62,17 @@
   --color-indigo-900: #85003f;
 
   /* ── Grises invertidos (modo oscuro por defecto) ── */
-  --color-white:     #0f1e6a;
-  --color-gray-50:   #0c1960;
-  --color-gray-100:  #182878;
-  --color-gray-200:  #1f3080;
-  --color-gray-300:  #2e4090;
-  --color-gray-400:  #5a70a8;
-  --color-gray-500:  #7a8ec0;
-  --color-gray-600:  #9aabd5;
-  --color-gray-700:  #becae5;
-  --color-gray-800:  #d8e0f5;
-  --color-gray-900:  #eef2fc;
+  --color-white:     #1a2252;
+  --color-gray-50:   #161d4a;
+  --color-gray-100:  #1f2858;
+  --color-gray-200:  #283262;
+  --color-gray-300:  #36426f;
+  --color-gray-400:  #5f6c98;
+  --color-gray-500:  #7f8bb0;
+  --color-gray-600:  #9ba5c6;
+  --color-gray-700:  #b8c0da;
+  --color-gray-800:  #cdd3e8;
+  --color-gray-900:  #dde2f2;
 
   /* ── Colores de estado (modo oscuro por defecto) ── */
   --color-green-50:  color-mix(in srgb, #4ade80 12%, transparent);
@@ -108,26 +108,38 @@
 
 /* ── Variables de layout — modo oscuro por defecto ── */
 :root {
-  --app-body-bg:        #000a3d;
-  --app-body-text:      #eef2fc;
-  --app-sidebar-bg:     #000a3d;
-  --app-header-bg:      #000a3d;
-  --app-content-bg:     #071245;
-  --app-card-bg:        #0c1960;
-  --app-border:         rgba(255, 255, 255, 0.08);
-  --app-text-muted:     rgba(255, 255, 255, 0.45);
-  --app-nav-text:       rgba(255, 255, 255, 0.6);
-  --app-nav-hover-bg:   rgba(255, 255, 255, 0.07);
-  --app-icon-color:     rgba(255, 255, 255, 0.25);
-  --app-footer-text:    rgba(255, 255, 255, 0.25);
-  --app-input-bg:       #0a1550;
-  --app-input-text:     #eef2fc;
-  --app-placeholder:    #5a70a8;
-  --app-scrollbar-track: #071245;
-  --app-scrollbar-thumb: #1f3080;
+  --app-body-bg:        #0b1030;
+  --app-body-text:      #d4daee;
+  --app-sidebar-bg:     #0b1030;
+  --app-header-bg:      #0b1030;
+  --app-content-bg:     #0f1538;
+  --app-card-bg:        #161d4a;
+  --app-border:         rgba(255, 255, 255, 0.06);
+  --app-text-muted:     rgba(255, 255, 255, 0.55);
+  --app-nav-text:       rgba(255, 255, 255, 0.65);
+  --app-nav-hover-bg:   rgba(255, 255, 255, 0.06);
+  --app-icon-color:     rgba(255, 255, 255, 0.3);
+  --app-footer-text:    rgba(255, 255, 255, 0.3);
+  --app-input-bg:       #121940;
+  --app-input-text:     #d4daee;
+  --app-placeholder:    #5f6c98;
+  --app-scrollbar-track: #0f1538;
+  --app-scrollbar-thumb: #283262;
+
+  /* ── Tonos semánticos para badges / pills / avisos (bg, fg, borde) ──
+     En oscuro: tinte translúcido + texto suave. En claro: pastel clásico. */
+  --tone-gray-bg:   rgba(255, 255, 255, 0.06);   --tone-gray-fg:   #9ba5c6; --tone-gray-bd:   rgba(255, 255, 255, 0.12);
+  --tone-slate-bg:  rgba(148, 163, 184, 0.14);   --tone-slate-fg:  #c3cce0; --tone-slate-bd:  rgba(148, 163, 184, 0.28);
+  --tone-green-bg:  rgba(74, 222, 128, 0.12);    --tone-green-fg:  #6fd698; --tone-green-bd:  rgba(74, 222, 128, 0.25);
+  --tone-amber-bg:  rgba(251, 191, 36, 0.12);    --tone-amber-fg:  #e9bd55; --tone-amber-bd:  rgba(251, 191, 36, 0.28);
+  --tone-orange-bg: rgba(251, 146, 60, 0.14);    --tone-orange-fg: #f1a066; --tone-orange-bd: rgba(251, 146, 60, 0.30);
+  --tone-red-bg:    rgba(248, 113, 113, 0.18);   --tone-red-fg:    #f59a9a; --tone-red-bd:    rgba(248, 113, 113, 0.38);
+  --tone-blue-bg:   rgba(96, 165, 250, 0.12);    --tone-blue-fg:   #84b8f4; --tone-blue-bd:   rgba(96, 165, 250, 0.26);
+  --tone-purple-bg: rgba(192, 132, 252, 0.12);   --tone-purple-fg: #bb97f0; --tone-purple-bd: rgba(192, 132, 252, 0.26);
+  --tone-indigo-bg: rgba(129, 140, 248, 0.14);   --tone-indigo-fg: #a5aef8; --tone-indigo-bd: rgba(129, 140, 248, 0.28);
 
   /* ── Dropdown menu ── */
-  --dropdown-bg:              #000a3d;
+  --dropdown-bg:              #0b1030;
   --dropdown-border:          rgba(255, 255, 255, 0.14);
   --dropdown-text:            rgba(255, 255, 255, 0.75);
   --dropdown-hover-bg:        rgba(255, 255, 255, 0.1);
@@ -214,6 +226,17 @@ html.light {
   --app-scrollbar-track: #dde5ff;
   --app-scrollbar-thumb: #b0bfe8;
 
+  /* Tonos semánticos — modo claro */
+  --tone-gray-bg:   #f3f4f6; --tone-gray-fg:   #6b7280; --tone-gray-bd:   #e5e7eb;
+  --tone-slate-bg:  #f1f5f9; --tone-slate-fg:  #475569; --tone-slate-bd:  #cbd5e1;
+  --tone-green-bg:  #f0fdf4; --tone-green-fg:  #15803d; --tone-green-bd:  #bbf7d0;
+  --tone-amber-bg:  #fffbeb; --tone-amber-fg:  #b45309; --tone-amber-bd:  #fde68a;
+  --tone-orange-bg: #fff7ed; --tone-orange-fg: #c2410c; --tone-orange-bd: #fed7aa;
+  --tone-red-bg:    #fef2f2; --tone-red-fg:    #b91c1c; --tone-red-bd:    #fecaca;
+  --tone-blue-bg:   #eff6ff; --tone-blue-fg:   #1d4ed8; --tone-blue-bd:   #bfdbfe;
+  --tone-purple-bg: #faf5ff; --tone-purple-fg: #7e22ce; --tone-purple-bd: #e9d5ff;
+  --tone-indigo-bg: #eef2ff; --tone-indigo-fg: #4338ca; --tone-indigo-bd: #c7d2fe;
+
   /* ── Dropdown menu ── */
   --dropdown-bg:              #ffffff;
   --dropdown-border:          #d1d5db;
@@ -226,7 +249,12 @@ html.light {
 }
 
 body {
-  font-family: 'Poppins', system-ui, sans-serif;
+  font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  line-height: 1.6;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background: var(--app-body-bg);
   color: var(--app-body-text);
 }
@@ -237,7 +265,7 @@ body {
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Qanelas', 'Poppins', system-ui, sans-serif;
+  font-family: 'Qanelas', var(--font-inter), 'Inter', system-ui, sans-serif;
 }
 
 /* ── Inputs / selects / textareas ── */
@@ -443,4 +471,29 @@ textarea::placeholder {
   [aria-disabled="true"] {
     cursor: not-allowed;
   }
+}
+
+/* ── Skeletons de carga (components/ui/skeleton.tsx) ─────────────────── */
+:root {
+  --skeleton-base: rgba(255, 255, 255, 0.06);
+  --skeleton-hi:   rgba(255, 255, 255, 0.12);
+}
+html.light {
+  --skeleton-base: rgba(0, 10, 61, 0.07);
+  --skeleton-hi:   rgba(0, 10, 61, 0.13);
+}
+.skeleton {
+  border-radius: 0.375rem;
+  background-color: var(--skeleton-base);
+  background-image: linear-gradient(90deg, transparent 0%, var(--skeleton-hi) 50%, transparent 100%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  background-position: 200% 0;
+  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+}
+@keyframes skeleton-shimmer {
+  to { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
 }

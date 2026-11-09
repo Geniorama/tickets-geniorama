@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
@@ -17,8 +17,13 @@ import { useRouter } from "next/navigation";
 import { setBillingStatus, deleteBillingItem } from "@/actions/billing.actions";
 import { CardDeleteButton } from "@/components/ui/card-delete-button";
 import { addBillingPayment } from "@/actions/billing-payments.actions";
+import { callAction } from "@/lib/run-action";
 import { formatDate } from "@/lib/format-date";
 import { AmountInput } from "@/components/ui/amount-input";
+import {
+  FILTER_CONTROL_STYLE, FilterBar, FilterField, FilterSelect, SortSelect, useUrlFilters,
+} from "@/components/ui/filter-kit";
+import { SearchInput } from "@/components/ui/search-input";
 
 export type BoardItem = {
   id: string;
@@ -50,13 +55,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "pending", label: "Pendiente por cobrar" },
 ];
 
-const SORT_STORAGE = "billing-board-sort";
-
-const controlStyle: React.CSSProperties = {
-  padding: "0.4rem 0.6rem", fontSize: "0.8125rem", borderRadius: "0.5rem",
-  border: "1px solid var(--app-border)", backgroundColor: "var(--app-card-bg)",
-  color: "var(--app-body-text)",
-};
+const SORT_SELECT_OPTIONS = SORT_OPTIONS.map((o) => ({ value: o.key, label: o.label }));
 
 const time = (d: Date | string | null) => (d ? new Date(d).getTime() : null);
 
@@ -204,7 +203,7 @@ function DraggableItem({
                 : `Se eliminará el cobro de ${item.company.name}, con sus novedades y soportes. No se puede deshacer.`
             }
             onDelete={async () => {
-              const r = await deleteBillingItem(item.id, false);
+              const r = await callAction(() => deleteBillingItem(item.id, false));
               if (r && "error" in r && typeof r.error === "string") return { error: r.error };
               onDeleted(item.id);
             }}
@@ -351,31 +350,23 @@ export function BillingBoard({
   const [, startTransition] = useTransition();
   const router = useRouter();
 
-  // Por defecto, como siempre: fecha límite ascendente. Se recuerda por navegador.
-  const [sortKey, setSortKey] = useState<SortKey>("dueDate");
-  const [sortDir, setSortDir] = useState<1 | -1>(1);
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SORT_STORAGE);
-      if (!raw) return;
-      const s = JSON.parse(raw) as { key?: SortKey; dir?: 1 | -1 };
-      if (s.key && SORT_OPTIONS.some((o) => o.key === s.key)) setSortKey(s.key);
-      if (s.dir === 1 || s.dir === -1) setSortDir(s.dir);
-    } catch { /* sin almacenamiento: se queda el orden por defecto */ }
-  }, []);
-  function cambiarOrden(key: SortKey, dir: 1 | -1) {
-    setSortKey(key);
-    setSortDir(dir);
-    try { localStorage.setItem(SORT_STORAGE, JSON.stringify({ key, dir })); } catch { /* idem */ }
-  }
+  // Orden y filtros viven en la URL (compartibles, sobreviven al refresh) pero se
+  // aplican en el cliente: el tablero ya trae todos los cobros, así que la URL
+  // se actualiza en modo "shallow", sin pedirle nada al servidor.
+  const filters = useUrlFilters({ shallow: true });
+  const sortParam = filters.get("sortBy");
+  const sortKey: SortKey = SORT_OPTIONS.some((o) => o.key === sortParam) ? (sortParam as SortKey) : "dueDate";
+  const sortDir: 1 | -1 = filters.get("sortDir") === "desc" ? -1 : 1;
 
-  // Filtros: se combinan (todos los activos deben cumplirse). Solo en el cliente,
-  // porque el tablero ya trae todos los cobros.
-  const [busca, setBusca] = useState("");
-  const [fEtiqueta, setFEtiqueta] = useState("");
-  const [fEmpresa, setFEmpresa] = useState("");
-  const [fResponsable, setFResponsable] = useState("");
-  const [fVencimiento, setFVencimiento] = useState<"" | "vencidos" | "sinFecha" | "conFecha">("");
+  const busca = filters.get("q");
+  const fEtiqueta = filters.get("etiqueta");
+  const fEmpresa = filters.get("empresa");
+  const fResponsable = filters.get("responsable");
+  const fVencimientoRaw = filters.get("vencimiento");
+  const fVencimiento: "" | "vencidos" | "sinFecha" | "conFecha" =
+    fVencimientoRaw === "vencidos" || fVencimientoRaw === "sinFecha" || fVencimientoRaw === "conFecha"
+      ? fVencimientoRaw
+      : "";
 
   const opciones = useMemo(() => {
     const etiquetas = new Map<string, string>();
@@ -396,7 +387,9 @@ export function BillingBoard({
 
   const hayFiltros = !!(busca || fEtiqueta || fEmpresa || fResponsable || fVencimiento);
   function limpiarFiltros() {
-    setBusca(""); setFEtiqueta(""); setFEmpresa(""); setFResponsable(""); setFVencimiento("");
+    const next = new URLSearchParams(filters.params.toString());
+    ["q", "etiqueta", "empresa", "responsable", "vencimiento"].forEach((k) => next.delete(k));
+    filters.push(next);
   }
 
   const ordenados = useMemo(() => {
@@ -438,7 +431,7 @@ export function BillingBoard({
 
     setError(null);
     startTransition(async () => {
-      const r = await setBillingStatus(item.id, destino, invoiceNumber);
+      const r = await callAction(() => setBillingStatus(item.id, destino, invoiceNumber));
       if (r?.error) {
         setItems((prev) => prev.map((i) => (
           i.id === item.id ? { ...i, status: anterior, invoiceNumber: item.invoiceNumber } : i
@@ -497,78 +490,59 @@ export function BillingBoard({
         </div>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
-        <label htmlFor="billing-sort" style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)" }}>
-          Ordenar por
-        </label>
-        <select
-          id="billing-sort"
-          value={sortKey}
-          onChange={(e) => cambiarOrden(e.target.value as SortKey, sortDir)}
-          style={{
-            padding: "0.4rem 0.6rem", fontSize: "0.8125rem", borderRadius: "0.5rem",
-            border: "1px solid var(--app-border)", backgroundColor: "var(--app-card-bg)",
-            color: "var(--app-body-text)",
-          }}
-        >
-          {SORT_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-        </select>
-        <button
-          type="button"
-          onClick={() => cambiarOrden(sortKey, sortDir === 1 ? -1 : 1)}
-          title="Invertir el orden"
-          style={{
-            padding: "0.4rem 0.7rem", fontSize: "0.8125rem", borderRadius: "0.5rem",
-            border: "1px solid var(--app-border)", background: "none",
-            color: "var(--app-nav-text)", cursor: "pointer",
-          }}
-        >
-          {sortDir === 1 ? "↑ Ascendente" : "↓ Descendente"}
-        </button>
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
-        <input
-          type="search"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar concepto, empresa o factura…"
-          aria-label="Buscar cobros"
-          style={{ ...controlStyle, minWidth: "14rem" }}
-        />
-        <select value={fEtiqueta} onChange={(e) => setFEtiqueta(e.target.value)} aria-label="Filtrar por etiqueta" style={controlStyle}>
-          <option value="">Todas las etiquetas</option>
-          {opciones.etiquetas.map(([id, n]) => <option key={id} value={id}>{n}</option>)}
-        </select>
-        <select value={fEmpresa} onChange={(e) => setFEmpresa(e.target.value)} aria-label="Filtrar por empresa" style={controlStyle}>
-          <option value="">Todas las empresas</option>
-          {opciones.empresas.map(([id, n]) => <option key={id} value={id}>{n}</option>)}
-        </select>
-        <select value={fResponsable} onChange={(e) => setFResponsable(e.target.value)} aria-label="Filtrar por responsable" style={controlStyle}>
-          <option value="">Todos los responsables</option>
-          <option value="__none">Sin responsable</option>
-          {opciones.responsables.map((n) => <option key={n} value={n}>{n}</option>)}
-        </select>
-        <select
-          value={fVencimiento}
-          onChange={(e) => setFVencimiento(e.target.value as typeof fVencimiento)}
-          aria-label="Filtrar por fecha límite"
-          style={controlStyle}
-        >
-          <option value="">Cualquier fecha límite</option>
-          <option value="vencidos">Vencidos</option>
-          <option value="conFecha">Con fecha límite</option>
-          <option value="sinFecha">Sin fecha límite</option>
-        </select>
-        {hayFiltros && (
-          <button
-            type="button" onClick={limpiarFiltros}
-            style={{ ...controlStyle, background: "none", color: "#fd1384", cursor: "pointer" }}
-          >
-            Limpiar filtros
-          </button>
-        )}
-      </div>
+      <FilterBar
+        search={<SearchInput shallow placeholder="Buscar concepto, empresa o factura…" />}
+        sort={<SortSelect shallow options={SORT_SELECT_OPTIONS} defaultSortBy="dueDate" defaultSortDir="asc" />}
+        extra={
+          hayFiltros ? (
+            <button
+              type="button"
+              onClick={limpiarFiltros}
+              style={{ ...FILTER_CONTROL_STYLE, width: "auto", cursor: "pointer", color: "var(--app-text-muted)" }}
+            >
+              Limpiar filtros
+            </button>
+          ) : null
+        }
+      >
+        <FilterField label="Etiqueta">
+          <FilterSelect
+            filters={filters}
+            param="etiqueta"
+            options={[{ value: "", label: "Todas" }, ...opciones.etiquetas.map(([id, n]) => ({ value: id, label: n }))]}
+          />
+        </FilterField>
+        <FilterField label="Empresa">
+          <FilterSelect
+            filters={filters}
+            param="empresa"
+            options={[{ value: "", label: "Todas" }, ...opciones.empresas.map(([id, n]) => ({ value: id, label: n }))]}
+          />
+        </FilterField>
+        <FilterField label="Responsable">
+          <FilterSelect
+            filters={filters}
+            param="responsable"
+            options={[
+              { value: "", label: "Todos" },
+              { value: "__none", label: "Sin responsable" },
+              ...opciones.responsables.map((n) => ({ value: n, label: n })),
+            ]}
+          />
+        </FilterField>
+        <FilterField label="Fecha límite">
+          <FilterSelect
+            filters={filters}
+            param="vencimiento"
+            options={[
+              { value: "", label: "Cualquiera" },
+              { value: "vencidos", label: "Vencidos" },
+              { value: "conFecha", label: "Con fecha límite" },
+              { value: "sinFecha", label: "Sin fecha límite" },
+            ]}
+          />
+        </FilterField>
+      </FilterBar>
 
       <DndContext
         id="billing-board"
@@ -659,7 +633,7 @@ export function BillingBoard({
             />
 
             {errorFactura && (
-              <p style={{ fontSize: "0.8125rem", color: "#b91c1c", margin: 0 }}>{errorFactura}</p>
+              <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", margin: 0 }}>{errorFactura}</p>
             )}
 
             <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -748,7 +722,7 @@ export function BillingBoard({
             </div>
 
             {errorAbono && (
-              <p style={{ fontSize: "0.8125rem", color: "#b91c1c", margin: 0 }}>{errorAbono}</p>
+              <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", margin: 0 }}>{errorAbono}</p>
             )}
 
             <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -766,7 +740,7 @@ export function BillingBoard({
                     const fd = new FormData();
                     fd.set("amount", String(monto));
                     fd.set("paidOn", fechaAbono);
-                    const r = await addBillingPayment(item.id, fd);
+                    const r = await callAction(() => addBillingPayment(item.id, fd), { timeoutMs: 60000 });
                     if (r?.error) return setError(r.error);
                     // El estado lo decide el dinero: con esto puede quedar en
                     // «Abonado» o saltar a «Pagado» si cubre el total.

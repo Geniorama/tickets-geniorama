@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import type { DealStage } from "@/generated/prisma";
 import { DEAL_STAGES, DEAL_STAGE_COLORS, DEAL_STAGE_DESCRIPTIONS, DEAL_STAGE_LABELS } from "@/lib/crm/deals";
 import { setDealStage } from "@/actions/crm.actions";
+import { fireAction } from "@/lib/run-action";
 
 /**
  * Mover la oportunidad de etapa desde su ficha.
@@ -24,7 +25,7 @@ export function DealStageSelector({
 
   function mover(stage: DealStage, razon?: string) {
     startTransition(async () => {
-      await setDealStage(dealId, stage, razon);
+      await fireAction(() => setDealStage(dealId, stage, razon));
       setPidiendoMotivo(false);
       setMotivo("");
     });

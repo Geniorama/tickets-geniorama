@@ -1,8 +1,9 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
-import { MultiSelect } from "@/components/ui/multi-select";
+import {
+  FilterBar, FilterField, FilterMulti, SortSelect, useUrlFilters,
+} from "@/components/ui/filter-kit";
+import { SearchInput } from "@/components/ui/search-input";
 
 const STATUS_OPTIONS = [
   { value: "PENDIENTE",   label: "Pendiente" },
@@ -18,18 +19,20 @@ const PRIORITY_OPTIONS = [
   { value: "BAJA",    label: "Baja" },
 ];
 
+const SORT_OPTIONS = [
+  { value: "dueDate",        label: "Fecha límite" },
+  { value: "priority",       label: "Prioridad" },
+  { value: "status",         label: "Estado" },
+  { value: "title",          label: "Título" },
+  { value: "project",        label: "Proyecto" },
+  { value: "assignedTo",     label: "Responsable" },
+  { value: "startDate",      label: "Inicio" },
+  { value: "estimatedHours", label: "Horas estimadas" },
+  { value: "createdAt",      label: "Creación" },
+];
+
 type Project = { id: string; name: string };
 type Staff   = { id: string; name: string };
-
-const TRIGGER_STYLE: React.CSSProperties = {
-  border: "1px solid var(--app-border)",
-  borderRadius: "0.5rem",
-  padding: "0.375rem 0.75rem",
-  fontSize: "0.875rem",
-  color: "var(--app-body-text)",
-  backgroundColor: "var(--app-card-bg)",
-  width: "100%",
-};
 
 export function TaskFilters({
   projects,
@@ -40,84 +43,37 @@ export function TaskFilters({
   staff: Staff[];
   showAssignee: boolean;
 }) {
-  const router = useRouter();
-  const params = useSearchParams();
-  const [, startTransition] = useTransition();
-
-  function update(key: string, values: string[]) {
-    const next = new URLSearchParams(params.toString());
-    const encoded = values.join(",");
-    if (encoded) {
-      next.set(key, encoded);
-      next.delete("clear");
-    } else {
-      next.delete(key);
-    }
-    next.delete("page");
-    // Sin filtros: marca la vista como vacía para evitar los filtros por defecto.
-    if ([...next.keys()].length === 0) next.set("clear", "1");
-    startTransition(() => router.push(`/tareas?${next.toString()}`));
-  }
-
-  function getValues(key: string): string[] {
-    return params.get(key)?.split(",").filter(Boolean) ?? [];
-  }
+  const filters = useUrlFilters({ clearSentinel: true });
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">
-      <div>
-        <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
-          Estado
-        </label>
-        <MultiSelect
-          options={STATUS_OPTIONS}
-          value={getValues("status")}
-          onChange={(v) => update("status", v)}
-          placeholder="Todos los estados"
-          triggerStyle={TRIGGER_STYLE}
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
-          Prioridad
-        </label>
-        <MultiSelect
-          options={PRIORITY_OPTIONS}
-          value={getValues("priority")}
-          onChange={(v) => update("priority", v)}
-          placeholder="Todas las prioridades"
-          triggerStyle={TRIGGER_STYLE}
-        />
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
-          Proyecto
-        </label>
-        <MultiSelect
+    <FilterBar
+      search={<SearchInput placeholder="Buscar tareas..." />}
+      sort={<SortSelect options={SORT_OPTIONS} defaultSortBy="dueDate" defaultSortDir="asc" />}
+    >
+      <FilterField label="Estado">
+        <FilterMulti filters={filters} param="status" options={STATUS_OPTIONS} placeholder="Todos" />
+      </FilterField>
+      <FilterField label="Prioridad">
+        <FilterMulti filters={filters} param="priority" options={PRIORITY_OPTIONS} placeholder="Todas" />
+      </FilterField>
+      <FilterField label="Proyecto">
+        <FilterMulti
+          filters={filters}
+          param="projectId"
           options={projects.map((p) => ({ value: p.id, label: p.name }))}
-          value={getValues("projectId")}
-          onChange={(v) => update("projectId", v)}
-          placeholder="Todos los proyectos"
-          triggerStyle={TRIGGER_STYLE}
+          placeholder="Todos"
         />
-      </div>
-
+      </FilterField>
       {showAssignee && (
-        <div>
-          <label className="block text-xs font-medium mb-1" style={{ color: "var(--app-text-muted)" }}>
-            Responsable
-          </label>
-          <MultiSelect
+        <FilterField label="Responsable">
+          <FilterMulti
+            filters={filters}
+            param="assignedToId"
             options={staff.map((u) => ({ value: u.id, label: u.name }))}
-            value={getValues("assignedToId")}
-            onChange={(v) => update("assignedToId", v)}
-            placeholder="Todos los responsables"
-            triggerStyle={TRIGGER_STYLE}
+            placeholder="Todos"
           />
-        </div>
+        </FilterField>
       )}
-    </div>
+    </FilterBar>
   );
 }

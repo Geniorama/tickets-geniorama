@@ -158,7 +158,7 @@ export function AppLauncher({
                       <span style={{
                         fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.04em",
                         textTransform: "uppercase", padding: "0.1rem 0.4rem",
-                        borderRadius: "9999px", backgroundColor: "rgba(245,158,11,0.15)", color: "#b45309",
+                        borderRadius: "9999px", backgroundColor: "rgba(245,158,11,0.15)", color: "var(--tone-amber-fg)",
                       }}>
                         Próximamente
                       </span>

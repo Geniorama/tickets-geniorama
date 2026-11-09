@@ -263,7 +263,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
         <StatCard
           label="Tasa de éxito"
           value={total > 0 ? `${rate}%` : "—"}
-          color={rate >= 75 ? "#16a34a" : rate >= 40 ? "#b45309" : total > 0 ? "#dc2626" : "var(--app-text-muted)"}
+          color={rate >= 75 ? "#16a34a" : rate >= 40 ? "var(--tone-amber-fg)" : total > 0 ? "#dc2626" : "var(--app-text-muted)"}
         />
       </div>
 

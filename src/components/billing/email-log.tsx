@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BillingEmailStatus } from "@/generated/prisma";
 import { cancelBillingEmail } from "@/actions/billing-emails.actions";
+import { callAction } from "@/lib/run-action";
 import { EMAIL_STATUS_COLORS, EMAIL_STATUS_LABELS } from "@/lib/billing/emails/labels";
 import { formatDateTimeLong } from "@/lib/format-date";
 
@@ -44,7 +45,7 @@ export function EmailLog({ correos }: { correos: CorreoRegistrado[] }) {
     setError(null);
     setCancelando(id);
     try {
-      const r = await cancelBillingEmail(id);
+      const r = await callAction(() => cancelBillingEmail(id));
       if (r?.error) setError(r.error);
       router.refresh();
     } finally {
@@ -54,7 +55,7 @@ export function EmailLog({ correos }: { correos: CorreoRegistrado[] }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-      {error && <p style={{ fontSize: "0.75rem", color: "#b91c1c", margin: 0 }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.75rem", color: "var(--tone-red-fg)", margin: 0 }}>{error}</p>}
 
       {correos.map((c) => (
         <div
@@ -94,7 +95,7 @@ export function EmailLog({ correos }: { correos: CorreoRegistrado[] }) {
             </button>
           )}
           {c.error && (
-            <span style={{ width: "100%", color: "#b45309", fontSize: "0.75rem" }}>{c.error}</span>
+            <span style={{ width: "100%", color: "var(--tone-amber-fg)", fontSize: "0.75rem" }}>{c.error}</span>
           )}
         </div>
       ))}

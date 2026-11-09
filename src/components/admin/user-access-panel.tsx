@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import type { AccessLevel, AppKey, Role } from "@/generated/prisma";
 import { APPS, ACCESS_LEVEL_LABELS } from "@/lib/access/apps";
 import { updateUserAccess } from "@/actions/access.actions";
+import { callAction } from "@/lib/run-action";
 
 type ProfileOption = {
   id: string;
@@ -60,7 +61,7 @@ export function UserAccessPanel({
   function save() {
     setError(null);
     startTransition(async () => {
-      const result = await updateUserAccess(userId, profileId, levels);
+      const result = await callAction(() => updateUserAccess(userId, profileId, levels));
       if (result?.error) {
         setError(result.error);
         return;
@@ -163,7 +164,7 @@ export function UserAccessPanel({
                       padding: "0.1rem 0.4rem",
                       borderRadius: "9999px",
                       backgroundColor: "rgba(245,158,11,0.15)",
-                      color: "#b45309",
+                      color: "var(--tone-amber-fg)",
                     }}
                   >
                     Módulo aún no construido
@@ -220,7 +221,7 @@ export function UserAccessPanel({
       </div>
 
       {error && (
-        <p style={{ fontSize: "0.8125rem", color: "#b91c1c", marginTop: "0.75rem" }}>{error}</p>
+        <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", marginTop: "0.75rem" }}>{error}</p>
       )}
 
       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginTop: "1.25rem" }}>

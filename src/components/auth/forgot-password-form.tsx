@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { requestPasswordReset } from "@/actions/password.actions";
+import { callAction } from "@/lib/run-action";
 
 export function ForgotPasswordForm() {
   const [isPending, startTransition] = useTransition();
@@ -18,7 +19,7 @@ export function ForgotPasswordForm() {
     const formData = new FormData(e.currentTarget);
 
     startTransition(async () => {
-      const result = await requestPasswordReset(formData);
+      const result = await callAction(() => requestPasswordReset(formData), { timeoutMs: 60000 });
       if (result?.error) {
         setError(result.error);
       } else {

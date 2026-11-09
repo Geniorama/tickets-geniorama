@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { AtSign } from "lucide-react";
 import { getMentionableUsers } from "@/actions/user.actions";
+import { runAction } from "@/lib/run-action";
 
 type User = { id: string; name: string };
 
@@ -55,10 +56,12 @@ export function MentionTextarea({
 
   async function loadUsers(): Promise<User[]> {
     if (usersLoaded) return users;
-    const result = await getMentionableUsers();
-    setUsers(result);
+    const r = await runAction(() => getMentionableUsers());
+    // Sin respuesta no se marca como cargada: se reintenta en la próxima mención.
+    if (!r.ok) return [];
+    setUsers(r.data);
     setUsersLoaded(true);
-    return result;
+    return r.data;
   }
 
   async function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setPassword } from "@/actions/set-password.actions";
+import { callAction } from "@/lib/run-action";
 
 export function SetPasswordForm({ token }: { token: string }) {
   const router = useRouter();
@@ -16,7 +17,7 @@ export function SetPasswordForm({ token }: { token: string }) {
     formData.set("token", token);
 
     startTransition(async () => {
-      const result = await setPassword(formData);
+      const result = await callAction(() => setPassword(formData), { timeoutMs: 60000 });
       if (result?.error) {
         setError(result.error);
       } else {

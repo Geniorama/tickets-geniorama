@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { createService, updateService } from "@/actions/service.actions";
+import { callAction } from "@/lib/run-action";
 
 interface Company { id: string; name: string }
 interface Service {
@@ -56,8 +57,8 @@ export function ServiceForm({
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
       const result = isEdit
-        ? await updateService(service.id, formData)
-        : await createService(formData);
+        ? await callAction(() => updateService(service.id, formData), { timeoutMs: 60000 })
+        : await callAction(() => createService(formData), { timeoutMs: 60000 });
       if (result?.error) setError(result.error);
     });
   }
@@ -158,7 +159,7 @@ export function ServiceForm({
       </div>
 
       {error && (
-        <p style={{ fontSize: "0.875rem", color: "#b91c1c", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "0.5rem", padding: "0.625rem 0.75rem" }}>
+        <p style={{ fontSize: "0.875rem", color: "var(--tone-red-fg)", backgroundColor: "var(--tone-red-bg)", border: "1px solid var(--tone-red-bd)", borderRadius: "0.5rem", padding: "0.625rem 0.75rem" }}>
           {error}
         </p>
       )}

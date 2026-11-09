@@ -139,7 +139,7 @@ export default async function RecordatoriosPage() {
                   {r.recipientName ?? r.recipient} · {formatDateTimeLong(r.sentAt)}
                 </span>
                 {r.error && (
-                  <span style={{ width: "100%", color: "#b45309", fontSize: "0.75rem" }}>{r.error}</span>
+                  <span style={{ width: "100%", color: "var(--tone-amber-fg)", fontSize: "0.75rem" }}>{r.error}</span>
                 )}
               </div>
             ))}

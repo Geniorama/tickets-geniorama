@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { updateCompany } from "@/actions/company.actions";
+import { callAction } from "@/lib/run-action";
 import type { Company } from "@/generated/prisma";
 import { Building2, Upload, X } from "lucide-react";
 import Image from "next/image";
@@ -48,7 +49,7 @@ export function CompanyEditForm({
     const formData = new FormData(e.currentTarget);
     if (removeLogo) formData.set("removeLogo", "1");
     startTransition(async () => {
-      const result = await updateCompany(company.id, formData);
+      const result = await callAction(() => updateCompany(company.id, formData), { timeoutMs: 60000 });
       if (result?.error) setError(result.error);
       else router.push("/admin/companies");
     });

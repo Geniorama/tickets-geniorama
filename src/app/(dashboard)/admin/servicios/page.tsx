@@ -6,8 +6,7 @@ import { Plus } from "lucide-react";
 import { ServiceCard } from "@/components/services/service-card";
 import { ServiceRow } from "@/components/services/service-row";
 import { Suspense } from "react";
-import { SearchInput } from "@/components/ui/search-input";
-import { ViewToggle } from "@/components/ui/view-toggle";
+import { ServiceFilters } from "@/components/services/service-filters";
 
 export const metadata = { title: "Servicios" };
 
@@ -22,6 +21,16 @@ export default async function ServiciosPage({
   const typeFilter    = params.type;
   const q = params.q?.trim() || undefined;
   const view = params.view === "list" ? "list" : "grid";
+  const sortDir: "asc" | "desc" = params.sortDir === "desc" ? "desc" : "asc";
+  const serviceOrderBy = (() => {
+    switch (params.sortBy) {
+      case "name":      return { name: sortDir } as const;
+      case "type":      return { type: sortDir } as const;
+      case "price":     return { price: { sort: sortDir, nulls: "last" } } as const;
+      case "createdAt": return { createdAt: sortDir } as const;
+      default:          return { dueDate: { sort: sortDir, nulls: "last" } } as const;
+    }
+  })();
 
   const [services, companies] = await Promise.all([
     prisma.service.findMany({
@@ -33,7 +42,7 @@ export default async function ServiciosPage({
       include: {
         company: { select: { id: true, name: true } },
       },
-      orderBy: [{ companyId: "asc" }, { dueDate: "asc" }],
+      orderBy: [{ company: { name: "asc" } }, serviceOrderBy],
     }),
     prisma.company.findMany({
       where: operationalCompanyWhere,
@@ -50,15 +59,6 @@ export default async function ServiciosPage({
     grouped.get(key)!.services.push(s);
   }
 
-  const SERVICE_TYPES = [
-    { value: "DOMINIO", label: "Dominio" },
-    { value: "HOSTING", label: "Hosting" },
-    { value: "CORREO",  label: "Correos" },
-    { value: "SSL",     label: "SSL" },
-    { value: "MANTENIMIENTO", label: "Mantenimiento" },
-    { value: "OTRO",    label: "Otro" },
-  ];
-
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", gap: "1rem", flexWrap: "wrap" }}>
@@ -70,41 +70,9 @@ export default async function ServiciosPage({
         </Link>
       </div>
 
-      <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginBottom: "1rem" }}>
-        <div style={{ flex: 1 }}>
-          <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
-            <SearchInput placeholder="Buscar servicios..." />
-          </Suspense>
-        </div>
-        <Suspense fallback={<div style={{ width: "4.5rem", height: "2rem" }} />}>
-          <ViewToggle current={view} />
-        </Suspense>
-      </div>
-
-      {/* Filters */}
-      <form method="GET" style={{ display: "flex", gap: "0.75rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
-        <input type="hidden" name="view" value={view} />
-        <select name="companyId" defaultValue={companyFilter ?? ""}
-          style={{ border: "1px solid var(--app-border)", borderRadius: "0.5rem", padding: "0.4rem 0.75rem", fontSize: "0.875rem", backgroundColor: "var(--app-card-bg)", color: "var(--app-body-text)", cursor: "pointer" }}>
-          <option value="">Todas las empresas</option>
-          {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <select name="type" defaultValue={typeFilter ?? ""}
-          style={{ border: "1px solid var(--app-border)", borderRadius: "0.5rem", padding: "0.4rem 0.75rem", fontSize: "0.875rem", backgroundColor: "var(--app-card-bg)", color: "var(--app-body-text)", cursor: "pointer" }}>
-          <option value="">Todos los tipos</option>
-          {SERVICE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-        </select>
-        <button type="submit"
-          style={{ padding: "0.4rem 0.875rem", fontSize: "0.875rem", backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.5rem", color: "var(--app-body-text)", cursor: "pointer" }}>
-          Filtrar
-        </button>
-        {(companyFilter || typeFilter) && (
-          <Link href={`/admin/servicios${view === "list" ? "?view=list" : ""}`}
-            style={{ padding: "0.4rem 0.875rem", fontSize: "0.875rem", color: "var(--app-text-muted)", textDecoration: "none" }}>
-            Limpiar
-          </Link>
-        )}
-      </form>
+      <Suspense fallback={<div style={{ height: "2.25rem", marginBottom: "1rem" }} />}>
+        <ServiceFilters companies={companies} view={view} />
+      </Suspense>
 
       <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginBottom: "1.25rem" }}>
         {services.length} {services.length === 1 ? "servicio" : "servicios"}

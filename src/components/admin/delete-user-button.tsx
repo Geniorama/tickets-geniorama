@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { deleteUser } from "@/actions/user.actions";
+import { callAction } from "@/lib/run-action";
 import { IconAction } from "@/components/ui/icon-action";
 
 export function DeleteUserButton({
@@ -25,7 +26,7 @@ export function DeleteUserButton({
     )
       return;
     startTransition(async () => {
-      const result = await deleteUser(userId);
+      const result = await callAction(() => deleteUser(userId));
       if (result?.error) alert(result.error);
     });
   }

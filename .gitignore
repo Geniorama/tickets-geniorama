@@ -50,3 +50,11 @@ next-env.d.ts
 
 # Swagger UI: se copia desde node_modules en predev/prebuild (scripts/copy-swagger-ui.mjs)
 public/swagger-ui/
+
+# Scripts de un solo uso (correos perdidos / alertas PHP): no van al repo
+scripts/apology-duplicate-emails.mts
+scripts/missed-emails-detail.ts
+scripts/missed-emails-inventory.ts
+scripts/preview-php-alert-emails.mts
+scripts/resend-missed-emails.mts
+scripts/send-php-alert-emails.mts

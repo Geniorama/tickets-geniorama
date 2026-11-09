@@ -13,13 +13,17 @@ import {
   Zap,
 } from "lucide-react";
 
+/** Tonos que cambian con el tema (definidos en globals.css). */
+const tone = (n: string) => `var(--tone-${n}-bg)`;
+const toneFg = (n: string) => `var(--tone-${n}-fg)`;
+
 const projectStateConfig: Record<
   ProjectState,
   { bg: string; color: string; icon: React.ElementType }
 > = {
-  ACTIVO:   { bg: "#f0fdf4", color: "#15803d", icon: CheckCircle2 },
-  INACTIVO: { bg: "#f9fafb", color: "#6b7280", icon: PauseCircle },
-  BORRADOR: { bg: "#fffbeb", color: "#b45309", icon: FilePen },
+  ACTIVO:   { bg: tone("green"), color: toneFg("green"), icon: CheckCircle2 },
+  INACTIVO: { bg: tone("gray"),  color: toneFg("gray"),  icon: PauseCircle },
+  BORRADOR: { bg: tone("amber"), color: toneFg("amber"), icon: FilePen },
 };
 
 const taskStatusConfig: Record<
@@ -28,26 +32,26 @@ const taskStatusConfig: Record<
 > = {
   PENDIENTE: {
     label: "Pendiente",
-    bg: "#f9fafb",
-    color: "#6b7280",
+    bg: tone("gray"),
+    color: toneFg("gray"),
     icon: Circle,
   },
   EN_PROGRESO: {
     label: "En progreso",
-    bg: "#eff6ff",
-    color: "#1d4ed8",
+    bg: tone("blue"),
+    color: toneFg("blue"),
     icon: Clock,
   },
   EN_REVISION: {
     label: "En revisión",
-    bg: "#faf5ff",
-    color: "#7e22ce",
+    bg: tone("purple"),
+    color: toneFg("purple"),
     icon: Eye,
   },
   COMPLETADO: {
     label: "Completado",
-    bg: "#f0fdf4",
-    color: "#15803d",
+    bg: tone("green"),
+    color: toneFg("green"),
     icon: CheckCircle2,
   },
 };
@@ -56,15 +60,16 @@ const priorityConfig: Record<
   Priority,
   { label: string; bg: string; color: string; icon: React.ElementType }
 > = {
-  BAJA: { label: "Baja", bg: "#f9fafb", color: "#6b7280", icon: ArrowDown },
-  MEDIA: { label: "Media", bg: "#eff6ff", color: "#1d4ed8", icon: Minus },
+  // Escala de intensidad: neutro → naranja → rojo (no repite los colores de estado).
+  BAJA: { label: "Baja", bg: "transparent", color: toneFg("gray"), icon: ArrowDown },
+  MEDIA: { label: "Media", bg: tone("slate"), color: toneFg("slate"), icon: Minus },
   ALTA: {
     label: "Alta",
-    bg: "#fff7ed",
-    color: "#c2410c",
+    bg: tone("orange"),
+    color: toneFg("orange"),
     icon: ArrowUp,
   },
-  CRITICA: { label: "Crítica", bg: "#fef2f2", color: "#b91c1c", icon: Zap },
+  CRITICA: { label: "Crítica", bg: tone("red"), color: toneFg("red"), icon: Zap },
 };
 
 /** Activo, Inactivo o Borrador, derivado de isActive e isDraft. */

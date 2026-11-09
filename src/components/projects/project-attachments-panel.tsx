@@ -23,6 +23,7 @@ import {
   deleteProjectAttachment,
   reorderProjectAttachments,
 } from "@/actions/project-attachment.actions";
+import { callAction, fireAction } from "@/lib/run-action";
 // Mismos tipos que un comentario (sin video), como hasta ahora.
 import { FILE_RULES, checkFile } from "@/lib/file-rules";
 
@@ -198,7 +199,7 @@ export function ProjectAttachmentsPanel({
     setItems(reordered); // optimistic
 
     startTransition(async () => {
-      await reorderProjectAttachments(projectId, reordered.map((a) => a.id));
+      await fireAction(() => reorderProjectAttachments(projectId, reordered.map((a) => a.id)), { timeoutMs: 120000 });
     });
   }
 
@@ -214,7 +215,7 @@ export function ProjectAttachmentsPanel({
     const fd = new FormData();
     fd.append("file", file);
     startTransition(async () => {
-      const result = await addProjectFile(projectId, fd);
+      const result = await callAction(() => addProjectFile(projectId, fd), { timeoutMs: 120000 });
       if (result?.error) setFileError(result.error);
       if (fileInputRef.current) fileInputRef.current.value = "";
     });
@@ -225,7 +226,7 @@ export function ProjectAttachmentsPanel({
     setLinkError(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      const result = await addProjectLink(projectId, fd);
+      const result = await callAction(() => addProjectLink(projectId, fd), { timeoutMs: 120000 });
       if (result?.error) {
         setLinkError(result.error);
       } else {
@@ -238,7 +239,7 @@ export function ProjectAttachmentsPanel({
   function handleDelete(attachmentId: string) {
     if (!confirm("¿Eliminar este adjunto?")) return;
     startTransition(async () => {
-      await deleteProjectAttachment(attachmentId, projectId);
+      await fireAction(() => deleteProjectAttachment(attachmentId, projectId), { timeoutMs: 120000 });
     });
   }
 
@@ -323,7 +324,7 @@ export function ProjectAttachmentsPanel({
       </div>
 
       {fileError && (
-        <p style={{ fontSize: "0.8125rem", color: "#b91c1c", marginBottom: "0.75rem" }}>{fileError}</p>
+        <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)", marginBottom: "0.75rem" }}>{fileError}</p>
       )}
 
       {showLinkForm && (
@@ -370,7 +371,7 @@ export function ProjectAttachmentsPanel({
             </button>
           </div>
           {linkError && (
-            <p style={{ width: "100%", fontSize: "0.8125rem", color: "#b91c1c", marginTop: "0.25rem" }}>{linkError}</p>
+            <p style={{ width: "100%", fontSize: "0.8125rem", color: "var(--tone-red-fg)", marginTop: "0.25rem" }}>{linkError}</p>
           )}
         </form>
       )}

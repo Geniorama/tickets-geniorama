@@ -2,9 +2,9 @@
 
 import { useState, useTransition, useRef } from "react";
 import Link from "next/link";
-import { unstable_rethrow } from "next/navigation";
 import { Paperclip, Link2, X, Plus, FileText } from "lucide-react";
 import { createTask, updateTask } from "@/actions/task.actions";
+import { runAction, callAction } from "@/lib/run-action";
 import type { TaskConflict } from "@/actions/task.actions";
 import type { Task } from "@/generated/prisma";
 import { DraftChecklist } from "@/components/ui/draft-checklist";
@@ -173,23 +173,27 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
     startTransition(async () => {
       // Si todo va bien la acción redirige a la tarea; si vuelve, es con un
       // error, conflictos o una tarea ya creada con avisos.
-      try {
-        const result = isEdit
-          ? await updateTask(task.id, projectId ?? task.projectId ?? null, formData)
-          : await createTask(projectId ?? null, formData);
-        if (result && "error" in result && result.error) setError(result.error);
-        if (result && "conflicts" in result && result.conflicts) setConflicts(result.conflicts);
-        if (result && "taskUrl" in result && result.taskUrl) {
-          setCreated({ url: result.taskUrl, warnings: result.warnings });
-        }
-      } catch (err) {
-        unstable_rethrow(err); // la redirección de éxito viaja como excepción
-        console.error(isEdit ? "[updateTask]" : "[createTask]", err);
-        setError(
+      const r = await runAction(
+        async () =>
           isEdit
-            ? "No se pudieron guardar los cambios. Revisa tu conexión e intenta de nuevo."
-            : "No hubo respuesta del servidor. Antes de reintentar, revisa en el proyecto si la tarea ya se creó para no duplicarla."
+            ? await callAction(() => updateTask(task.id, projectId ?? task.projectId ?? null, formData), { timeoutMs: 60000 })
+            : await callAction(() => createTask(projectId ?? null, formData), { timeoutMs: 60000 }),
+        { timeoutMs: 60_000 },
+      );
+      if (!r.ok) {
+        // Crear: el servidor pudo terminar aunque la respuesta no llegue; avisar para no duplicar.
+        setError(
+          !isEdit && (r.timedOut || r.error.startsWith("No hay conexión"))
+            ? "No hubo respuesta del servidor. Antes de reintentar, revisa en el proyecto si la tarea ya se creó para no duplicarla."
+            : r.error
         );
+        return;
+      }
+      const result = r.data;
+      if (result && "error" in result && result.error) setError(result.error);
+      if (result && "conflicts" in result && result.conflicts) setConflicts(result.conflicts);
+      if (result && "taskUrl" in result && result.taskUrl) {
+        setCreated({ url: result.taskUrl, warnings: result.warnings });
       }
     });
   }
@@ -206,7 +210,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
     <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
       {projects && !projectId && (
         <div>
-          <label style={labelStyle}>Proyecto <span style={{ color: "#b91c1c" }}>*</span></label>
+          <label style={labelStyle}>Proyecto <span style={{ color: "var(--tone-red-fg)" }}>*</span></label>
           <select name="projectId" required style={inputStyle}>
             <option value="">Seleccionar proyecto...</option>
             {projects.map((p) => (
@@ -343,9 +347,9 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
             </p>
 
             {fileErrors.length > 0 && (
-              <div style={{ marginTop: "0.375rem", padding: "0.5rem 0.75rem", backgroundColor: "#fef2f2", border: "1px solid #fecaca", borderRadius: "0.375rem" }}>
+              <div style={{ marginTop: "0.375rem", padding: "0.5rem 0.75rem", backgroundColor: "var(--tone-red-bg)", border: "1px solid var(--tone-red-bd)", borderRadius: "0.375rem" }}>
                 {fileErrors.map((err, i) => (
-                  <p key={i} style={{ fontSize: "0.75rem", color: "#b91c1c", margin: 0 }}>{err}</p>
+                  <p key={i} style={{ fontSize: "0.75rem", color: "var(--tone-red-fg)", margin: 0 }}>{err}</p>
                 ))}
               </div>
             )}
@@ -466,7 +470,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
             </div>
 
             {linkError && (
-              <p style={{ fontSize: "0.75rem", color: "#b91c1c", marginTop: "0.25rem" }}>{linkError}</p>
+              <p style={{ fontSize: "0.75rem", color: "var(--tone-red-fg)", marginTop: "0.25rem" }}>{linkError}</p>
             )}
 
             {/* Lista de enlaces */}
@@ -693,9 +697,9 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
         <p
           style={{
             fontSize: "0.875rem",
-            color: "#b91c1c",
-            backgroundColor: "#fef2f2",
-            border: "1px solid #fecaca",
+            color: "var(--tone-red-fg)",
+            backgroundColor: "var(--tone-red-bg)",
+            border: "1px solid var(--tone-red-bd)",
             borderRadius: "0.5rem",
             padding: "0.625rem 0.75rem",
           }}
@@ -707,13 +711,13 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
       {created && (
         <div
           style={{
-            backgroundColor: "#fffbeb",
-            border: "1px solid #fcd34d",
+            backgroundColor: "var(--tone-amber-bg)",
+            border: "1px solid var(--tone-amber-bd)",
             borderRadius: "0.5rem",
             padding: "0.875rem 1rem",
           }}
         >
-          <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "#92400e", margin: "0 0 0.5rem" }}>
+          <p style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--tone-amber-fg)", margin: "0 0 0.5rem" }}>
             La tarea se creó, pero con avisos:
           </p>
           <ul style={{ margin: "0 0 0.75rem 1rem", padding: 0, listStyle: "disc" }}>
@@ -745,8 +749,8 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
       {conflicts && conflicts.length > 0 && (
         <div
           style={{
-            backgroundColor: "#fffbeb",
-            border: "1px solid #fcd34d",
+            backgroundColor: "var(--tone-amber-bg)",
+            border: "1px solid var(--tone-amber-bd)",
             borderRadius: "0.5rem",
             padding: "0.875rem 1rem",
           }}
@@ -755,7 +759,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
             style={{
               fontSize: "0.875rem",
               fontWeight: 600,
-              color: "#92400e",
+              color: "var(--tone-amber-fg)",
               marginBottom: "0.5rem",
             }}
           >
@@ -766,7 +770,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
               <li key={c.taskId} style={{ fontSize: "0.8125rem", color: "#78350f", marginBottom: "0.25rem" }}>
                 <strong>{c.taskTitle}</strong> — {c.projectName}
                 {(c.startDate || c.dueDate) && (
-                  <span style={{ color: "#92400e" }}>
+                  <span style={{ color: "var(--tone-amber-fg)" }}>
                     {" "}({c.startDate ?? "?"} → {c.dueDate ?? "?"})
                   </span>
                 )}
@@ -798,9 +802,9 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
               style={{
                 padding: "0.375rem 0.875rem",
                 fontSize: "0.8125rem",
-                color: "#92400e",
+                color: "var(--tone-amber-fg)",
                 background: "none",
-                border: "1px solid #fcd34d",
+                border: "1px solid var(--tone-amber-bd)",
                 borderRadius: "0.5rem",
                 cursor: "pointer",
               }}

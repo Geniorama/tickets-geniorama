@@ -10,6 +10,7 @@ import type { Session } from "next-auth";
 import { TaskStatusBadge, TaskPriorityBadge } from "./project-status-badge";
 import { TaskCommentSection } from "./task-comment-form";
 import { updateTaskStatus, deleteTask, moveTask, publishTask } from "@/actions/task.actions";
+import { runAction, fireAction } from "@/lib/run-action";
 import { DuplicateTaskButton } from "./duplicate-task-button";
 import { TaskTimer } from "./task-timer";
 import { formatDate, formatDateTimeLong } from "@/lib/format-date";
@@ -159,8 +160,14 @@ export function TaskDetail({
   ];
 
   function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    const status = e.target.value;
     startTransition(async () => {
-      await updateTaskStatus(task.id, task.project?.id ?? null, e.target.value);
+      const r = await runAction(() => updateTaskStatus(task.id, task.project?.id ?? null, status));
+      const error = !r.ok ? r.error : (r.data as { error?: string } | undefined)?.error;
+      if (error) {
+        window.alert(error);
+        return;
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     });
@@ -169,7 +176,7 @@ export function TaskDetail({
   function handleDelete() {
     if (!confirm("¿Eliminar esta tarea? Esta acción no se puede deshacer.")) return;
     startTransition(async () => {
-      await deleteTask(task.id, task.project?.id ?? null);
+      await fireAction(() => deleteTask(task.id, task.project?.id ?? null));
     });
   }
 
@@ -177,14 +184,14 @@ export function TaskDetail({
     if (!moveTarget || !task.project) return;
     if (!confirm("¿Mover esta tarea al proyecto seleccionado?")) return;
     startTransition(async () => {
-      await moveTask(task.id, task.project!.id, moveTarget);
+      await fireAction(() => moveTask(task.id, task.project!.id, moveTarget));
     });
   }
 
   function handlePublish() {
     if (!confirm("¿Publicar esta tarea? Se notificará a los implicados.")) return;
     startTransition(async () => {
-      await publishTask(task.id, task.project?.id ?? null);
+      await fireAction(() => publishTask(task.id, task.project?.id ?? null));
     });
   }
 
@@ -210,12 +217,12 @@ export function TaskDetail({
             justifyContent: "space-between",
             gap: "0.75rem",
             borderRadius: "0.75rem",
-            border: "1px solid #fcd34d",
-            backgroundColor: "#fffbeb",
+            border: "1px solid var(--tone-amber-bd)",
+            backgroundColor: "var(--tone-amber-bg)",
             padding: "0.75rem 1rem",
           }}
         >
-          <p style={{ fontSize: "0.875rem", color: "#92400e", margin: 0 }}>
+          <p style={{ fontSize: "0.875rem", color: "var(--tone-amber-fg)", margin: 0 }}>
             <strong>Borrador.</strong> Esta tarea es privada y no notifica a nadie hasta que la publiques.
           </p>
           {canPublish && (
@@ -416,7 +423,7 @@ export function TaskDetail({
                           alignItems: "center",
                           gap: "0.25rem",
                           fontSize: "0.75rem",
-                          color: "#15803d",
+                          color: "var(--tone-green-fg)",
                           fontWeight: 500,
                         }}
                       >

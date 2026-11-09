@@ -2,6 +2,7 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import { setProjectActive } from "@/actions/project.actions";
+import { callAction } from "@/lib/run-action";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 /**
@@ -37,7 +38,7 @@ export function ProjectActiveSwitch({
     setError(null);
     startTransition(async () => {
       setOptimisticActive(next);
-      const result = await setProjectActive(projectId, next);
+      const result = await callAction(() => setProjectActive(projectId, next));
       if (result?.error) {
         setError(result.error);
         return;
@@ -67,7 +68,7 @@ export function ProjectActiveSwitch({
           opacity: isPending ? 0.6 : 1,
           fontSize: size === "sm" ? "0.75rem" : "0.8125rem",
           fontWeight: 500,
-          color: active ? "#15803d" : "var(--app-text-muted)",
+          color: active ? "var(--tone-green-fg)" : "var(--app-text-muted)",
           whiteSpace: "nowrap",
         }}
       >

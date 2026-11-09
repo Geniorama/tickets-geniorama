@@ -33,8 +33,8 @@ const DIRECTIONS: Record<IntegrationDirection, { label: string; Icon: typeof Arr
 };
 
 const TONES = {
-  ok: { color: "#15803d", dot: "#16a34a" },
-  warn: { color: "#b45309", dot: "#f59e0b" },
+  ok: { color: "var(--tone-green-fg)", dot: "#16a34a" },
+  warn: { color: "var(--tone-amber-fg)", dot: "#f59e0b" },
   off: { color: "var(--app-text-muted)", dot: "#9ca3af" },
 } as const;
 

@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createCompany } from "@/actions/company.actions";
+import { callAction } from "@/lib/run-action";
 import { Building2, Upload, X } from "lucide-react";
 import Image from "next/image";
 
@@ -34,7 +35,7 @@ export function CompanyForm({ agencies }: { agencies: Agency[] }) {
     setError(null);
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      const result = await createCompany(formData);
+      const result = await callAction(() => createCompany(formData), { timeoutMs: 60000 });
       if (result?.error) setError(result.error);
       else router.push("/admin/companies");
     });

@@ -8,6 +8,7 @@ import { useTimerContext } from "@/providers/timer-provider";
 import type { ActiveTimer } from "@/providers/timer-provider";
 import { pauseTimer } from "@/actions/time.actions";
 import { pauseTaskTimer } from "@/actions/task-time.actions";
+import { fireAction } from "@/lib/run-action";
 
 function formatDuration(ms: number): string {
   if (ms < 0) ms = 0;
@@ -44,9 +45,9 @@ export function FloatingTimer() {
   function handleStop(timer: ActiveTimer) {
     startTransition(async () => {
       if (timer.type === "ticket") {
-        await pauseTimer(timer.resourceId);
+        await fireAction(() => pauseTimer(timer.resourceId));
       } else {
-        await pauseTaskTimer(timer.resourceId, timer.projectId!);
+        await fireAction(() => pauseTaskTimer(timer.resourceId, timer.projectId!));
       }
       unregisterTimer(timer.type, timer.resourceId);
     });

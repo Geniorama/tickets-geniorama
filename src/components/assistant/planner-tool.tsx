@@ -10,6 +10,7 @@ import {
   getPlannerOptions, generatePlan, applyPlan,
   type PlannerOptions, type GeneratedPlan, type PlannerFile,
 } from "@/actions/planner.actions";
+import { callAction } from "@/lib/run-action";
 import { ProviderToggle } from "@/components/assistant/provider-toggle";
 import { DEFAULT_AI_PROVIDER, type AiProvider } from "@/lib/ai-provider";
 import type { Priority } from "@/generated/prisma";
@@ -148,7 +149,7 @@ function PlannerModal({
         plannerFile = { name: file.name, mimeType: file.type || "application/octet-stream", dataBase64 };
       }
 
-      const res = await generatePlan({ text: text.trim() || undefined, file: plannerFile, mode, projectId: projectId || undefined, provider });
+      const res = await callAction(() => generatePlan({ text: text.trim() || undefined, file: plannerFile, mode, projectId: projectId || undefined, provider }), { timeoutMs: 120000 });
       if ("error" in res) {
         setError(res.error);
         return;
@@ -197,7 +198,7 @@ function PlannerModal({
     }
 
     startTransition(async () => {
-      const res = await applyPlan({
+      const res = await callAction(() => applyPlan({
         mode,
         projectId: mode === "existing" ? projectId : undefined,
         newProject:
@@ -222,7 +223,7 @@ function PlannerModal({
           dueDate: t.fechaFin || null,
           subtareas: t.subtareas,
         })),
-      });
+      }), { timeoutMs: 120000 });
       if ("error" in res) {
         setError(res.error);
         return;

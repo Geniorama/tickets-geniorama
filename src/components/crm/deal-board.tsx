@@ -18,6 +18,7 @@ import { GripVertical, Building2, CalendarClock } from "lucide-react";
 import type { DealStage } from "@/generated/prisma";
 import { DEAL_STAGE_COLORS, DEAL_STAGE_DESCRIPTIONS, DEAL_STAGE_LABELS, formatAmount } from "@/lib/crm/deals";
 import { setDealStage } from "@/actions/crm.actions";
+import { callAction } from "@/lib/run-action";
 import { formatDate } from "@/lib/format-date";
 
 export type BoardDeal = {
@@ -216,7 +217,7 @@ export function DealBoard({
     setDeals((prev) => prev.map((d) => (d.id === deal.id ? { ...d, stage: destino } : d)));
 
     startTransition(async () => {
-      const result = await setDealStage(deal.id, destino);
+      const result = await callAction(() => setDealStage(deal.id, destino));
       if (result?.error) {
         setDeals((prev) => prev.map((d) => (d.id === deal.id ? { ...d, stage: anterior } : d)));
       }

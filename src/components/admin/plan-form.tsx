@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPlan } from "@/actions/plan.actions";
+import { callAction } from "@/lib/run-action";
 
 interface Company {
   id: string;
@@ -26,7 +27,7 @@ export function PlanForm({ companies }: { companies: Company[] }) {
     setError(null);
     const formData = new FormData(e.currentTarget);
     startTransition(async () => {
-      const result = await createPlan(formData);
+      const result = await callAction(() => createPlan(formData), { timeoutMs: 60000 });
       if (result?.error) {
         setError(result.error);
       } else {

@@ -1,19 +1,22 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
+import {
+  FilterBar, FilterField, FilterSelect, SortSelect, useUrlFilters,
+} from "@/components/ui/filter-kit";
+import { SearchInput } from "@/components/ui/search-input";
 
 type Option = { id: string; name: string };
 
-const SELECT_STYLE: React.CSSProperties = {
-  border: "1px solid var(--app-border)",
-  borderRadius: "0.5rem",
-  padding: "0.375rem 0.75rem",
-  fontSize: "0.875rem",
-  color: "var(--app-body-text)",
-  backgroundColor: "var(--app-card-bg)",
-  outline: "none",
-};
+const SORT_OPTIONS = [
+  { value: "updatedAt", label: "Actualización" },
+  { value: "createdAt", label: "Creación" },
+  { value: "title",     label: "Título" },
+];
+
+const withAll = (label: string, list: Option[]) => [
+  { value: "", label },
+  ...list.map((o) => ({ value: o.id, label: o.name })),
+];
 
 export function VaultFilters({
   companies,
@@ -26,98 +29,35 @@ export function VaultFilters({
   creators: Option[];
   showAccess: boolean;
 }) {
-  const router = useRouter();
-  const params = useSearchParams();
-  const [, startTransition] = useTransition();
-
-  function update(key: string, value: string) {
-    const next = new URLSearchParams(params.toString());
-    if (value) next.set(key, value);
-    else next.delete(key);
-    next.delete("page");
-    startTransition(() => router.push(`/boveda?${next.toString()}`));
-  }
-
-  const FILTER_KEYS = ["access", "companyId", "serviceId", "createdById"];
-  const hasFilters = FILTER_KEYS.some((k) => params.get(k));
-
-  function clearFilters() {
-    const next = new URLSearchParams(params.toString());
-    for (const k of FILTER_KEYS) next.delete(k);
-    next.delete("page");
-    const qs = next.toString();
-    startTransition(() => router.push(qs ? `/boveda?${qs}` : "/boveda"));
-  }
+  const filters = useUrlFilters();
 
   return (
-    <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
+    <FilterBar
+      search={<SearchInput placeholder="Buscar por título, usuario, empresa, sitio o servicio..." />}
+      sort={<SortSelect options={SORT_OPTIONS} defaultSortBy="updatedAt" defaultSortDir="desc" />}
+    >
       {showAccess && (
-        <select
-          value={params.get("access") ?? ""}
-          onChange={(e) => update("access", e.target.value)}
-          style={SELECT_STYLE}
-        >
-          <option value="">Todas las entradas</option>
-          <option value="owned">Solo mías</option>
-          <option value="shared">Compartidas conmigo</option>
-        </select>
+        <FilterField label="Acceso">
+          <FilterSelect
+            filters={filters}
+            param="access"
+            options={[
+              { value: "", label: "Todas" },
+              { value: "owned", label: "Solo mías" },
+              { value: "shared", label: "Compartidas conmigo" },
+            ]}
+          />
+        </FilterField>
       )}
-
       {companies.length > 0 && (
-        <select
-          value={params.get("companyId") ?? ""}
-          onChange={(e) => update("companyId", e.target.value)}
-          style={SELECT_STYLE}
-        >
-          <option value="">Todas las empresas</option>
-          {companies.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+        <FilterField label="Empresa"><FilterSelect filters={filters} param="companyId" options={withAll("Todas", companies)} /></FilterField>
       )}
-
       {services.length > 0 && (
-        <select
-          value={params.get("serviceId") ?? ""}
-          onChange={(e) => update("serviceId", e.target.value)}
-          style={SELECT_STYLE}
-        >
-          <option value="">Todos los servicios</option>
-          {services.map((s) => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
+        <FilterField label="Servicio"><FilterSelect filters={filters} param="serviceId" options={withAll("Todos", services)} /></FilterField>
       )}
-
       {creators.length > 0 && (
-        <select
-          value={params.get("createdById") ?? ""}
-          onChange={(e) => update("createdById", e.target.value)}
-          style={SELECT_STYLE}
-        >
-          <option value="">Cualquier creador</option>
-          {creators.map((u) => (
-            <option key={u.id} value={u.id}>{u.name}</option>
-          ))}
-        </select>
+        <FilterField label="Creado por"><FilterSelect filters={filters} param="createdById" options={withAll("Cualquiera", creators)} /></FilterField>
       )}
-
-      {hasFilters && (
-        <button
-          type="button"
-          onClick={clearFilters}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            fontSize: "0.8125rem",
-            color: "var(--app-text-muted)",
-            padding: "0.375rem 0.5rem",
-          }}
-        >
-          Limpiar filtros
-        </button>
-      )}
-    </div>
+    </FilterBar>
   );
 }

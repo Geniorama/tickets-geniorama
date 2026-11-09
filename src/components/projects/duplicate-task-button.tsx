@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Copy, Loader2 } from "lucide-react";
 import { duplicateTask } from "@/actions/task.actions";
+import { fireAction } from "@/lib/run-action";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DuplicateChecklistsOption } from "@/components/ui/duplicate-checklists-option";
 
@@ -23,7 +24,7 @@ export function DuplicateTaskButton({
 
   function handleConfirm() {
     startTransition(async () => {
-      await duplicateTask(taskId, projectId, checklistItemCount > 0 && withChecklists);
+      await fireAction(() => duplicateTask(taskId, projectId, checklistItemCount > 0 && withChecklists));
       setOpen(false);
     });
   }

@@ -9,6 +9,7 @@ import {
   deleteTaskTimeEntry,
   resetTaskTimeEntries,
 } from "@/actions/task-time.actions";
+import { callAction, fireAction } from "@/lib/run-action";
 import { useTimerContext } from "@/providers/timer-provider";
 
 interface TimeEntryRow {
@@ -97,9 +98,9 @@ export function TaskTimer({
   function handleToggle() {
     startTransition(async () => {
       if (activeEntry) {
-        await pauseTaskTimer(taskId, projectId);
+        await fireAction(() => pauseTaskTimer(taskId, projectId));
       } else {
-        await startTaskTimer(taskId, projectId);
+        await fireAction(() => startTaskTimer(taskId, projectId));
       }
     });
   }
@@ -108,7 +109,7 @@ export function TaskTimer({
     e.preventDefault();
     setManualError(null);
     startTransition(async () => {
-      const result = await addManualTaskEntry(taskId, projectId, hours, minutes);
+      const result = await callAction(() => addManualTaskEntry(taskId, projectId, hours, minutes));
       if (result?.error) {
         setManualError(result.error);
       } else {
@@ -121,13 +122,13 @@ export function TaskTimer({
 
   function handleDeleteEntry(entryId: string) {
     startTransition(async () => {
-      await deleteTaskTimeEntry(entryId, taskId, projectId);
+      await fireAction(() => deleteTaskTimeEntry(entryId, taskId, projectId));
     });
   }
 
   function handleReset() {
     startTransition(async () => {
-      await resetTaskTimeEntries(taskId, projectId);
+      await fireAction(() => resetTaskTimeEntries(taskId, projectId));
       setConfirmReset(false);
     });
   }
@@ -184,8 +185,8 @@ export function TaskTimer({
               border: "none",
               cursor: "pointer",
               opacity: isPending ? 0.6 : 1,
-              backgroundColor: activeEntry ? "#fef3c7" : "#dcfce7",
-              color: activeEntry ? "#b45309" : "#15803d",
+              backgroundColor: activeEntry ? "var(--tone-amber-bg)" : "var(--tone-green-bg)",
+              color: activeEntry ? "var(--tone-amber-fg)" : "var(--tone-green-fg)",
             }}
           >
             {activeEntry ? (

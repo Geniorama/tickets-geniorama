@@ -366,7 +366,7 @@ export function ReportGenerator({
       )}
 
       {error && (
-        <p style={{ padding: "0.75rem 1rem", fontSize: "0.875rem", color: "#b91c1c", backgroundColor: "#fef2f2", borderTop: "1px solid #fecaca" }}>
+        <p style={{ padding: "0.75rem 1rem", fontSize: "0.875rem", color: "var(--tone-red-fg)", backgroundColor: "var(--tone-red-bg)", borderTop: "1px solid var(--tone-red-bd)" }}>
           {error}
         </p>
       )}

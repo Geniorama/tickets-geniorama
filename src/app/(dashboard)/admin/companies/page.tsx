@@ -5,7 +5,6 @@ import { Plus } from "lucide-react";
 import { CompanyTable } from "@/components/admin/company-table";
 import { CompanyFilters } from "@/components/admin/company-filters";
 import { Pagination } from "@/components/ui/pagination";
-import { SearchInput } from "@/components/ui/search-input";
 import { Suspense } from "react";
 import { getPageSize } from "@/lib/pagination";
 
@@ -102,14 +101,9 @@ export default async function CompaniesPage({
         </Link>
       </div>
 
-      <div style={{ marginBottom: "1rem", display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
-        <Suspense fallback={<div style={{ height: "2.375rem", width: "220px" }} />}>
-          <SearchInput placeholder="Buscar por nombre o NIT..." />
-        </Suspense>
-        <Suspense fallback={null}>
-          <CompanyFilters agencies={agencies} />
-        </Suspense>
-      </div>
+      <Suspense fallback={<div style={{ height: "2.25rem", marginBottom: "1rem" }} />}>
+        <CompanyFilters agencies={agencies} />
+      </Suspense>
 
       <CompanyTable rows={rows} sortBy={sortBy} sortDir={sortDir} paramsStr={paramsStr} />
 

@@ -233,7 +233,7 @@ export default async function ProyectosReportesPage({
               { label: "Tareas",       value: individual.total,     color: "var(--app-body-text)" },
               { label: "Completadas",  value: individual.completed, color: "#22c55e" },
               { label: "Vencidas",     value: individual.overdue,   color: individual.overdue > 0 ? "#dc2626" : "var(--app-text-muted)" },
-              { label: "Progreso",     value: individual.total > 0 ? `${individual.rate}%` : "—", color: individual.rate >= 75 ? "#16a34a" : individual.rate >= 40 ? "#b45309" : individual.total > 0 ? "#dc2626" : "var(--app-text-muted)" },
+              { label: "Progreso",     value: individual.total > 0 ? `${individual.rate}%` : "—", color: individual.rate >= 75 ? "#16a34a" : individual.rate >= 40 ? "var(--tone-amber-fg)" : individual.total > 0 ? "#dc2626" : "var(--app-text-muted)" },
               { label: "Tiempo est.",  value: individual.estimated > 0 ? formatEstimatedTime(individual.estimated) : "—", color: "var(--app-body-text)" },
             ].map(({ label, value, color }) => (
               <div key={label} style={{ backgroundColor: "var(--app-content-bg)", border: "1px solid var(--app-border)", borderRadius: "0.5rem", padding: "0.75rem 1rem" }}>
@@ -317,7 +317,7 @@ export default async function ProyectosReportesPage({
           { label: "Tareas totales", value: totalTasks,     color: "var(--app-body-text)" },
           { label: "Completadas",    value: completedTasks, color: "#22c55e" },
           { label: "Vencidas",       value: overdueTasks,   color: overdueTasks > 0 ? "#dc2626" : "var(--app-text-muted)" },
-          { label: "Tasa global",    value: totalTasks > 0 ? `${completionRate}%` : "—", color: completionRate >= 75 ? "#16a34a" : completionRate >= 40 ? "#b45309" : totalTasks > 0 ? "#dc2626" : "var(--app-text-muted)" },
+          { label: "Tasa global",    value: totalTasks > 0 ? `${completionRate}%` : "—", color: completionRate >= 75 ? "#16a34a" : completionRate >= 40 ? "var(--tone-amber-fg)" : totalTasks > 0 ? "#dc2626" : "var(--app-text-muted)" },
         ].map(({ label, value, color }) => (
           <div key={label} style={{ backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.75rem", padding: "1rem 1.25rem" }}>
             <p style={{ fontSize: "1.75rem", fontWeight: 700, color }}>{value}</p>
@@ -435,7 +435,7 @@ export default async function ProyectosReportesPage({
                           value={row.rate}
                           color={row.rate >= 75 ? "#22c55e" : row.rate >= 40 ? "#f59e0b" : "#ef4444"}
                         />
-                        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: row.rate >= 75 ? "#16a34a" : row.rate >= 40 ? "#b45309" : "#dc2626", minWidth: "2.5rem", textAlign: "right" }}>
+                        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: row.rate >= 75 ? "#16a34a" : row.rate >= 40 ? "var(--tone-amber-fg)" : "#dc2626", minWidth: "2.5rem", textAlign: "right" }}>
                           {row.rate}%
                         </span>
                       </div>

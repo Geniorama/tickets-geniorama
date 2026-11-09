@@ -2,18 +2,20 @@ import type { TicketStatus, Priority } from "@/generated/prisma";
 import { Circle, Clock, Eye, CheckCircle2, ArrowDown, Minus, ArrowUp, Zap, Inbox } from "lucide-react";
 
 const statusConfig: Record<TicketStatus, { label: string; className: string; icon: React.ElementType }> = {
-  POR_ASIGNAR: { label: "Por asignar",  className: "bg-gray-100 text-gray-600 border-gray-300",     icon: Inbox },
-  ABIERTO:     { label: "Abierto",      className: "bg-yellow-50 text-yellow-700 border-yellow-200", icon: Circle },
-  EN_PROGRESO: { label: "En progreso",  className: "bg-blue-50 text-blue-700 border-blue-200",       icon: Clock },
-  EN_REVISION: { label: "En revisión",  className: "bg-purple-50 text-purple-700 border-purple-200", icon: Eye },
-  CERRADO:     { label: "Cerrado",      className: "bg-green-50 text-green-700 border-green-200",    icon: CheckCircle2 },
+  POR_ASIGNAR: { label: "Por asignar",  className: "bg-[var(--tone-gray-bg)] text-[var(--tone-gray-fg)] border-[var(--tone-gray-bd)]",       icon: Inbox },
+  ABIERTO:     { label: "Abierto",      className: "bg-[var(--tone-amber-bg)] text-[var(--tone-amber-fg)] border-[var(--tone-amber-bd)]",    icon: Circle },
+  EN_PROGRESO: { label: "En progreso",  className: "bg-[var(--tone-blue-bg)] text-[var(--tone-blue-fg)] border-[var(--tone-blue-bd)]",        icon: Clock },
+  EN_REVISION: { label: "En revisión",  className: "bg-[var(--tone-purple-bg)] text-[var(--tone-purple-fg)] border-[var(--tone-purple-bd)]", icon: Eye },
+  CERRADO:     { label: "Cerrado",      className: "bg-[var(--tone-green-bg)] text-[var(--tone-green-fg)] border-[var(--tone-green-bd)]",    icon: CheckCircle2 },
 };
 
+/* Prioridad = escala de intensidad (neutro → naranja → rojo), sin repetir los
+   colores de estado: así, estado y prioridad juntos no se confunden. */
 const priorityConfig: Record<Priority, { label: string; className: string; icon: React.ElementType }> = {
-  BAJA:    { label: "Baja",    className: "bg-gray-50 text-gray-600 border-gray-200",       icon: ArrowDown },
-  MEDIA:   { label: "Media",   className: "bg-blue-50 text-blue-700 border-blue-200",       icon: Minus },
-  ALTA:    { label: "Alta",    className: "bg-orange-50 text-orange-700 border-orange-200", icon: ArrowUp },
-  CRITICA: { label: "Crítica", className: "bg-red-50 text-red-700 border-red-200",          icon: Zap },
+  BAJA:    { label: "Baja",    className: "bg-transparent text-[var(--tone-gray-fg)] border-[var(--tone-gray-bd)]",                          icon: ArrowDown },
+  MEDIA:   { label: "Media",   className: "bg-[var(--tone-slate-bg)] text-[var(--tone-slate-fg)] border-[var(--tone-slate-bd)]",              icon: Minus },
+  ALTA:    { label: "Alta",    className: "bg-[var(--tone-orange-bg)] text-[var(--tone-orange-fg)] border-[var(--tone-orange-bd)]",           icon: ArrowUp },
+  CRITICA: { label: "Crítica", className: "bg-[var(--tone-red-bg)] text-[var(--tone-red-fg)] border-[var(--tone-red-bd)] font-semibold",      icon: Zap },
 };
 
 export function StatusBadge({ status }: { status: TicketStatus }) {

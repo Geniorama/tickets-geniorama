@@ -6,7 +6,6 @@ import { VaultList } from "@/components/vault/vault-list";
 import { VaultFilters } from "@/components/vault/vault-filters";
 import { Pagination } from "@/components/ui/pagination";
 import { getPageSize } from "@/lib/pagination";
-import { SearchInput } from "@/components/ui/search-input";
 import { Suspense } from "react";
 
 export const metadata = { title: "Bóveda" };
@@ -21,6 +20,11 @@ export default async function BovedaPage({
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const pageSize = getPageSize(params.pageSize);
   const q = params.q?.trim() || undefined;
+  const sortDir: "asc" | "desc" = params.sortDir === "asc" ? "asc" : "desc";
+  const vaultOrderBy =
+    params.sortBy === "title" ? ({ title: sortDir } as const)
+    : params.sortBy === "createdAt" ? ({ createdAt: sortDir } as const)
+    : ({ updatedAt: sortDir } as const);
 
   const companyFilter = params.companyId || undefined;
   const serviceFilter = params.serviceId || undefined;
@@ -80,7 +84,7 @@ export default async function BovedaPage({
         createdBy:  { select: { name: true } },
         sharedWith: { select: { userId: true } },
       },
-      orderBy: { updatedAt: "desc" },
+      orderBy: vaultOrderBy,
       take: pageSize,
       skip: (page - 1) * pageSize,
     }),
@@ -122,19 +126,14 @@ export default async function BovedaPage({
         </Link>
       </div>
 
-      <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
-        <Suspense fallback={<div style={{ height: "2.375rem", width: "220px" }} />}>
-          <SearchInput placeholder="Buscar por título, usuario, empresa, sitio o servicio..." />
-        </Suspense>
-        <Suspense fallback={null}>
-          <VaultFilters
-            companies={companies}
-            services={services}
-            creators={creators}
-            showAccess
-          />
-        </Suspense>
-      </div>
+      <Suspense fallback={<div style={{ height: "2.25rem", marginBottom: "1rem" }} />}>
+        <VaultFilters
+          companies={companies}
+          services={services}
+          creators={creators}
+          showAccess
+        />
+      </Suspense>
 
       {q && (
         <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)" }}>

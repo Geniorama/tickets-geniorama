@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import {
   getNotifications,
-  getUnreadCount,
   markAsRead,
   markAllAsRead,
   type NotificationItem,
 } from "@/actions/notification.actions";
+import { runAction } from "@/lib/run-action";
 
 function timeAgo(date: Date | string): string {
   const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
@@ -39,15 +39,40 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
     return () => document.removeEventListener("mousedown", onMouseDown);
   }, []);
 
-  // Polling del contador cada 60 segundos
+  /*
+   * Sondeo del contador cada 60 s.
+   *
+   * Es un `fetch` y no un Server Action a propósito: los Server Actions corren
+   * en fila por navegador, y un sondeo colgado dejaba sin respuesta a todos los
+   * botones de la app. Aquí tiene tiempo límite, no corre con la pestaña
+   * oculta y, al volver a ella, se actualiza al momento.
+   */
   useEffect(() => {
-    const interval = setInterval(async () => {
-      if (!isOpen) {
-        const count = await getUnreadCount();
-        setUnreadCount(count);
+    if (isOpen) return;
+    let cancelled = false;
+
+    async function refresh() {
+      if (document.hidden) return;
+      try {
+        const res = await fetch("/api/notifications/unread-count", {
+          cache: "no-store",
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (!res.ok) return;
+        const { count } = (await res.json()) as { count: number };
+        if (!cancelled && typeof count === "number") setUnreadCount(count);
+      } catch {
+        // Sin red o lento: se reintenta en el siguiente ciclo.
       }
-    }, 60_000);
-    return () => clearInterval(interval);
+    }
+
+    const interval = setInterval(refresh, 60_000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", refresh);
+    };
   }, [isOpen]);
 
   async function handleToggle() {
@@ -56,20 +81,28 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
     if (opening) {
       // El contador viene del servidor, no de la lista: la lista puede tener
       // tope y el número de la campana debe ser el real.
-      const { items, unreadCount: count } = await getNotifications();
-      setNotifications(items);
-      setUnreadCount(count);
+      const r = await runAction(() => getNotifications(), { timeoutMs: 15_000 });
+      if (!r.ok) {
+        // Se muestra la lista vacía en vez de dejar el panel cargando para siempre.
+        setLoaded(true);
+        return;
+      }
+      setNotifications(r.data.items);
+      setUnreadCount(r.data.unreadCount);
       setLoaded(true);
     }
   }
 
   async function handleItemClick(n: NotificationItem) {
     if (!n.isRead) {
-      await markAsRead(n.id);
-      setNotifications((prev) =>
-        prev.map((item) => (item.id === n.id ? { ...item, isRead: true } : item))
-      );
-      setUnreadCount((c) => Math.max(0, c - 1));
+      // Marcarla como leída no debe impedir abrir el enlace.
+      const r = await runAction(() => markAsRead(n.id), { timeoutMs: 8_000 });
+      if (r.ok) {
+        setNotifications((prev) =>
+          prev.map((item) => (item.id === n.id ? { ...item, isRead: true } : item))
+        );
+        setUnreadCount((c) => Math.max(0, c - 1));
+      }
     }
     setIsOpen(false);
     if (n.link) router.push(n.link);
@@ -77,7 +110,8 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
 
   function handleMarkAll() {
     startTransition(async () => {
-      await markAllAsRead();
+      const r = await runAction(() => markAllAsRead(), { timeoutMs: 15_000 });
+      if (!r.ok) return;
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
     });

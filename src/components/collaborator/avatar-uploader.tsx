@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Camera, Trash2 } from "lucide-react";
 import { updateMyAvatar, removeMyAvatar } from "@/actions/profile.actions";
+import { callAction } from "@/lib/run-action";
 
 export function AvatarUploader({
   currentUrl,
@@ -37,7 +38,7 @@ export function AvatarUploader({
     const formData = new FormData();
     formData.set("avatar", file);
     startTransition(async () => {
-      const res = await updateMyAvatar(formData);
+      const res = await callAction(() => updateMyAvatar(formData), { timeoutMs: 120000 });
       if (res?.error) {
         setError(res.error);
         setPreview(null);
@@ -51,7 +52,7 @@ export function AvatarUploader({
   function handleRemove() {
     setError(null);
     startTransition(async () => {
-      const res = await removeMyAvatar();
+      const res = await callAction(() => removeMyAvatar(), { timeoutMs: 120000 });
       if (res?.error) setError(res.error);
       else {
         setPreview(null);

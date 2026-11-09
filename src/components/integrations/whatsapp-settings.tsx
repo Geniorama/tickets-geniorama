@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Loader2, Send } from "lucide-react";
 import { WhatsAppIcon, WHATSAPP_GREEN } from "@/components/ui/whatsapp-icon";
 import { saveMyWhatsApp, sendMyWhatsAppTest, type MyWhatsApp } from "@/actions/whatsapp.actions";
+import { callAction } from "@/lib/run-action";
 import { COUNTRIES, splitPhone } from "@/lib/crm/phone";
 import { NOTIFICATION_CATEGORIES } from "@/lib/notification-categories";
 
@@ -63,7 +64,7 @@ export function WhatsAppSettings({
   function save() {
     setNotice(null);
     startTransition(async () => {
-      const res = await saveMyWhatsApp({ dial, number, enabled, events });
+      const res = await callAction(() => saveMyWhatsApp({ dial, number, enabled, events }));
       if ("error" in res && res.error) {
         setNotice({ kind: "error", text: res.error });
         return;
@@ -76,7 +77,7 @@ export function WhatsAppSettings({
   function test() {
     setNotice(null);
     startTest(async () => {
-      const res = await sendMyWhatsAppTest();
+      const res = await callAction(() => sendMyWhatsAppTest());
       setNotice(
         "error" in res && res.error
           ? { kind: "error", text: res.error }
@@ -104,9 +105,9 @@ export function WhatsAppSettings({
             margin: "0 0 1rem",
             fontSize: "0.8125rem",
             lineHeight: 1.55,
-            color: "#166534",
-            backgroundColor: "#f0fdf4",
-            border: "1px solid #bbf7d0",
+            color: "var(--tone-green-fg)",
+            backgroundColor: "var(--tone-green-bg)",
+            border: "1px solid var(--tone-green-bd)",
             borderRadius: "0.5rem",
             padding: "0.5rem 0.75rem",
           }}
@@ -115,7 +116,7 @@ export function WhatsAppSettings({
           tickets, proyectos, plan o facturas. Te reconoce por este número, así que guárdalo aunque no actives
           los avisos.
           {!savedPhone && " Todavía no tienes uno guardado."}
-          {agentChat && <> También puedes escribirle sin WhatsApp, desde <a href="/mi-asistente" style={{ color: "#166534", fontWeight: 600 }}>GENIA</a>.</>}
+          {agentChat && <> También puedes escribirle sin WhatsApp, desde <a href="/mi-asistente" style={{ color: "var(--tone-green-fg)", fontWeight: 600 }}>GENIA</a>.</>}
         </p>
       )}
 
@@ -124,9 +125,9 @@ export function WhatsAppSettings({
           style={{
             margin: "0 0 1rem",
             fontSize: "0.8125rem",
-            color: "#92400e",
-            backgroundColor: "#fffbeb",
-            border: "1px solid #fcd34d",
+            color: "var(--tone-amber-fg)",
+            backgroundColor: "var(--tone-amber-bg)",
+            border: "1px solid var(--tone-amber-bd)",
             borderRadius: "0.5rem",
             padding: "0.5rem 0.75rem",
           }}
@@ -226,7 +227,7 @@ export function WhatsAppSettings({
       </fieldset>
 
       {notice && (
-        <p role={notice.kind === "error" ? "alert" : "status"} style={{ margin: "0 0 0.75rem", fontSize: "0.8125rem", color: notice.kind === "error" ? "#dc2626" : "#15803d" }}>
+        <p role={notice.kind === "error" ? "alert" : "status"} style={{ margin: "0 0 0.75rem", fontSize: "0.8125rem", color: notice.kind === "error" ? "#dc2626" : "var(--tone-green-fg)" }}>
           {notice.text}
         </p>
       )}

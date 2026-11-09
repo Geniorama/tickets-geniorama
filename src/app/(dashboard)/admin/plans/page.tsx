@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Suspense } from "react";
 import { SearchInput } from "@/components/ui/search-input";
+import { FilterBar, SortSelect } from "@/components/ui/filter-kit";
 import { PlansTable } from "@/components/admin/plans-table";
 
 export const metadata = { title: "Planes" };
@@ -114,11 +115,25 @@ export default async function PlansPage({
         </Link>
       </div>
 
-      <div style={{ marginBottom: "1rem" }}>
-        <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
-          <SearchInput placeholder="Buscar planes..." />
-        </Suspense>
-      </div>
+      <FilterBar
+        search={<Suspense fallback={<div style={{ height: "2.25rem" }} />}><SearchInput placeholder="Buscar planes..." /></Suspense>}
+        sort={
+          <Suspense fallback={null}>
+            <SortSelect
+              defaultSortBy="createdAt"
+              defaultSortDir="desc"
+              options={[
+                { value: "createdAt", label: "Creación" },
+                { value: "name", label: "Nombre" },
+                { value: "company", label: "Empresa" },
+                { value: "type", label: "Tipo" },
+                { value: "expiresAt", label: "Vencimiento" },
+                { value: "isActive", label: "Estado" },
+              ]}
+            />
+          </Suspense>
+        }
+      />
 
       <PlansTable plans={planRows} sortBy={sortBy} sortDir={sortDir} paramsStr={paramsStr} />
     </div>

@@ -17,6 +17,7 @@ import {
   createHook, updateHook, deleteHook, toggleHook, testHook, getHookDeliveries,
   type HookItem, type HookDeliveryItem,
 } from "@/actions/hook.actions";
+import { callAction, runAction, fireAction } from "@/lib/run-action";
 import {
   HOOK_EVENTS,
   RESOURCE_LABELS,
@@ -184,7 +185,11 @@ function Deliveries({ hookId }: { hookId: string }) {
     const next = !open;
     setOpen(next);
     if (next && rows === null) {
-      startTransition(async () => setRows(await getHookDeliveries(hookId)));
+      startTransition(async () => {
+        const r = await runAction(() => getHookDeliveries(hookId));
+        // Si falla se deja en «cargando» (null): al reabrir se vuelve a intentar.
+        if (r.ok) setRows(r.data);
+      });
     }
   }
 
@@ -236,7 +241,7 @@ function Deliveries({ hookId }: { hookId: string }) {
                       color: "var(--app-text-muted)",
                     }}
                   >
-                    <span style={{ color: ok ? "#15803d" : "#b91c1c", fontWeight: 600, minWidth: "2.5rem" }}>
+                    <span style={{ color: ok ? "var(--tone-green-fg)" : "var(--tone-red-fg)", fontWeight: 600, minWidth: "2.5rem" }}>
                       {row.status ?? "×"}
                     </span>
                     <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -272,7 +277,7 @@ function HookCard({ hook }: { hook: HookItem }) {
 
   function save() {
     startTransition(async () => {
-      const res = await updateHook(hook.id, { label, url, events });
+      const res = await callAction(() => updateHook(hook.id, { label, url, events }));
       if (res.error) flash("error", res.error);
       else flash("ok", "Cambios guardados.");
     });
@@ -281,14 +286,14 @@ function HookCard({ hook }: { hook: HookItem }) {
   function remove() {
     if (!confirm(`¿Eliminar el hook "${hook.label}"?`)) return;
     startTransition(async () => {
-      const res = await deleteHook(hook.id);
+      const res = await callAction(() => deleteHook(hook.id));
       if (res.error) flash("error", res.error);
     });
   }
 
   function test() {
     startTransition(async () => {
-      const res = await testHook(hook.id);
+      const res = await callAction(() => testHook(hook.id));
       if (res.ok) flash("ok", `Prueba enviada (HTTP ${res.status}).`);
       else flash("error", res.error ?? "Falló el envío de prueba.");
     });
@@ -307,16 +312,16 @@ function HookCard({ hook }: { hook: HookItem }) {
         </div>
         <button
           type="button"
-          onClick={() => startTransition(async () => { await toggleHook(hook.id, !hook.isActive); })}
+          onClick={() => startTransition(async () => { await fireAction(() => toggleHook(hook.id, !hook.isActive)); })}
           disabled={isPending}
           title={hook.isActive ? "Desactivar" : "Activar"}
           style={{
             display: "flex", alignItems: "center", gap: "0.375rem",
             fontSize: "0.75rem", fontWeight: 500, padding: "0.25rem 0.625rem",
             borderRadius: "9999px", cursor: "pointer", flexShrink: 0,
-            backgroundColor: hook.isActive ? "#dcfce7" : "var(--app-content-bg)",
-            color: hook.isActive ? "#15803d" : "var(--app-text-muted)",
-            border: `1px solid ${hook.isActive ? "#bbf7d0" : "var(--app-border)"}`,
+            backgroundColor: hook.isActive ? "var(--tone-green-bg)" : "var(--app-content-bg)",
+            color: hook.isActive ? "var(--tone-green-fg)" : "var(--app-text-muted)",
+            border: `1px solid ${hook.isActive ? "var(--tone-green-bd)" : "var(--app-border)"}`,
           }}
         >
           {hook.isActive
@@ -356,7 +361,7 @@ function HookCard({ hook }: { hook: HookItem }) {
       </div>
 
       {(hook.lastSentAt || hook.lastError) && (
-        <p style={{ margin: 0, fontSize: "0.75rem", color: hook.lastError ? "#b91c1c" : "var(--app-text-muted)" }}>
+        <p style={{ margin: 0, fontSize: "0.75rem", color: hook.lastError ? "var(--tone-red-fg)" : "var(--app-text-muted)" }}>
           {hook.lastError
             ? `Último envío falló: ${hook.lastError}`
             : `Último envío: HTTP ${hook.lastStatus ?? "?"}`}
@@ -366,7 +371,7 @@ function HookCard({ hook }: { hook: HookItem }) {
       <Deliveries hookId={hook.id} />
 
       {msg && (
-        <p style={{ margin: 0, fontSize: "0.8125rem", color: msg.kind === "ok" ? "#15803d" : "#b91c1c", display: "flex", alignItems: "center", gap: "0.375rem" }}>
+        <p style={{ margin: 0, fontSize: "0.8125rem", color: msg.kind === "ok" ? "var(--tone-green-fg)" : "var(--tone-red-fg)", display: "flex", alignItems: "center", gap: "0.375rem" }}>
           {msg.kind === "ok"
             ? <CheckCircle2 style={{ width: "0.875rem", height: "0.875rem" }} />
             : <XCircle style={{ width: "0.875rem", height: "0.875rem" }} />}
@@ -386,7 +391,7 @@ function HookCard({ hook }: { hook: HookItem }) {
           type="button"
           onClick={remove}
           disabled={isPending}
-          style={{ ...secondaryButton, color: "#b91c1c", marginLeft: "auto" }}
+          style={{ ...secondaryButton, color: "var(--tone-red-fg)", marginLeft: "auto" }}
         >
           <Trash2 style={{ width: "0.875rem", height: "0.875rem" }} /> Eliminar
         </button>
@@ -408,7 +413,7 @@ function NewHookForm({ scope, projectId }: { scope: "ORG" | "PROJECT"; projectId
   function submit() {
     setError("");
     startTransition(async () => {
-      const res = await createHook({ label, url, events, scope, projectId });
+      const res = await callAction(() => createHook({ label, url, events, scope, projectId }));
       if (res.error) { setError(res.error); return; }
       setLabel(""); setUrl(""); setEvents([]); setOpen(false);
     });
@@ -455,7 +460,7 @@ function NewHookForm({ scope, projectId }: { scope: "ORG" | "PROJECT"; projectId
         <label style={labelStyle}>Eventos suscritos</label>
         <EventPicker scope={scope} selected={events} onChange={setEvents} />
       </div>
-      {error && <p style={{ margin: 0, fontSize: "0.8125rem", color: "#b91c1c" }}>{error}</p>}
+      {error && <p style={{ margin: 0, fontSize: "0.8125rem", color: "var(--tone-red-fg)" }}>{error}</p>}
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button type="button" onClick={submit} disabled={isPending} style={primaryButton(isPending)}>
           {isPending ? <Loader2 style={{ width: "0.875rem", height: "0.875rem", animation: "spin 1s linear infinite" }} /> : null}

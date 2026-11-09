@@ -8,7 +8,6 @@ import { TaskFilters } from "@/components/projects/task-filters";
 import type { TaskStatus, Priority } from "@/generated/prisma";
 import { Pagination } from "@/components/ui/pagination";
 import { Suspense } from "react";
-import { SearchInput } from "@/components/ui/search-input";
 import { FilterTags, type FilterTag } from "@/components/ui/filter-tags";
 import Link from "next/link";
 import { Plus, Repeat } from "lucide-react";
@@ -219,14 +218,13 @@ export default async function TareasPage({
       </div>
 
       <div className="flex flex-col gap-3 mb-5" data-tour-id="page-filters">
-        <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
-          <SearchInput placeholder="Buscar tareas..." />
+        <Suspense fallback={<div style={{ height: "2.25rem" }} />}>
+          <TaskFilters
+            projects={projects}
+            staff={staffUsers}
+            showAssignee={admin || staff}
+          />
         </Suspense>
-        <TaskFilters
-          projects={projects}
-          staff={staffUsers}
-          showAssignee={admin || staff}
-        />
         <FilterTags tags={filterTags} />
       </div>
 

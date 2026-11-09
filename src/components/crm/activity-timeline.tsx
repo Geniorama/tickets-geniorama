@@ -5,6 +5,7 @@ import { Phone, Mail, Users, MessageCircle, StickyNote, Plus, X, Trash2 } from "
 import type { ActivityType } from "@/generated/prisma";
 import { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS } from "@/lib/crm/deals";
 import { logActivity, deleteActivity } from "@/actions/crm.actions";
+import { callAction, fireAction } from "@/lib/run-action";
 import { formatDateTimeLong } from "@/lib/format-date";
 
 export type TimelineActivity = {
@@ -71,14 +72,14 @@ export function ActivityTimeline({
     setError(null);
     if (lockedDealId) formData.set("dealId", lockedDealId);
     startTransition(async () => {
-      const result = await logActivity(accountId, formData);
+      const result = await callAction(() => logActivity(accountId, formData));
       if (result?.error) setError(result.error);
       else setAdding(false);
     });
   }
 
   function handleDelete(id: string) {
-    startTransition(async () => { await deleteActivity(id, accountId); });
+    startTransition(async () => { await fireAction(() => deleteActivity(id, accountId)); });
   }
 
   return (
@@ -137,7 +138,7 @@ export function ActivityTimeline({
             )}
           </div>
 
-          {error && <p style={{ fontSize: "0.8125rem", color: "#b91c1c" }}>{error}</p>}
+          {error && <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)" }}>{error}</p>}
 
           <div style={{ display: "flex", gap: "0.5rem" }}>
             <button

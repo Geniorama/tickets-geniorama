@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { BillingStatus } from "@/generated/prisma";
 import { BILLING_STATUSES, BILLING_STATUS_LABELS, isInvoiced } from "@/lib/billing/status";
 import { createBillingItem, updateBillingItem } from "@/actions/billing.actions";
+import { callAction } from "@/lib/run-action";
 import { LineEditor, type Categoria } from "@/components/billing/line-editor";
 import type { LineaConCategoria } from "@/lib/billing/totals";
 
@@ -64,8 +65,8 @@ export function BillingForm({
     setError(null);
     startTransition(async () => {
       const r = initial
-        ? await updateBillingItem(initial.id, formData)
-        : await createBillingItem(formData);
+        ? await callAction(() => updateBillingItem(initial.id, formData), { timeoutMs: 60000 })
+        : await callAction(() => createBillingItem(formData), { timeoutMs: 60000 });
       if (r?.error) return setError(r.error);
       // Al editar se vuelve al cobro: el formulario vive ahora en su propia
       // pantalla, y quedarse en él tras guardar deja la duda de si guardó.
@@ -178,7 +179,7 @@ export function BillingForm({
         />
       </div>
 
-      {error && <p style={{ fontSize: "0.8125rem", color: "#b91c1c" }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.8125rem", color: "var(--tone-red-fg)" }}>{error}</p>}
 
       <button
         type="submit"

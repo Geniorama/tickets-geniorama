@@ -9,6 +9,57 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.133.0] — 2026-11-09
+
+### Mejorado: modo oscuro más suave y filtros unificados
+
+- **Modo oscuro:** superficies menos saturadas, texto atenuado y tipografía Inter
+  (los títulos conservan Qanelas). El modo claro no cambia.
+- **Badges y avisos:** estados, prioridades, pills y avisos de error/aviso ya no
+  salen como parches claros en modo oscuro; siguen el tema. La prioridad sube de
+  intensidad (neutro → naranja → rojo) y no repite los colores de estado.
+- **Filtros y orden unificados** en tickets, tareas, panel, proyectos, bóveda,
+  servicios, usuarios, empresas, planes, sitios, actividad, CRM y facturación:
+  misma barra (búsqueda, filtros con etiqueta, «Ordenar por» con dirección) y
+  mismo tamaño de controles.
+- Ahora se puede ordenar también en proyectos, bóveda, servicios, cuentas y contactos.
+- El tablero de Facturación guarda filtros y orden en la URL (se pueden compartir).
+- **Skeletons de carga:** mientras llegan los datos, cada módulo muestra el esqueleto
+  de su pantalla (tabla, tarjetas, tablero, detalle o formulario) en vez de un spinner
+  o cajas invisibles. Funcionan en ambos temas y respetan «reducir movimiento».
+
+### Corregido: botones que se quedaban congelados
+
+- **Comentarios (publicar, editar, borrar):** ahora tienen tiempo límite. Si la
+  respuesta no llega, el botón se libera y se avisa («puede que ya se haya
+  guardado, recarga antes de reintentar») en vez de quedarse en «Enviando…».
+- **Campana de notificaciones:** el contador se consulta con una petición normal
+  (`/api/notifications/unread-count`) con tiempo límite, y no con una acción del
+  servidor. Las acciones del servidor corren en fila, así que un sondeo colgado
+  dejaba sin respuesta a todos los botones. Además no sondea con la pestaña
+  oculta y se actualiza al volver a ella.
+- **Cambio de estado** de tickets y tareas (selector del detalle y arrastre en el
+  tablero) y **formularios** de crear/editar ticket y tarea: mismo tiempo límite.
+  Si falla, la tarjeta vuelve a su columna o se muestra el motivo; al crear, el
+  aviso pide revisar la lista antes de reintentar para no duplicar.
+- **Facturación:** todas las acciones de pantalla (mover de columna, abonos y
+  soportes, novedades, etiquetas, categorías, correos y plantillas, recordatorios,
+  enlace de pago, sincronización con Xubio) tienen tiempo límite y devuelven el
+  error de siempre si no hay respuesta, en vez de dejar el botón en «Guardando…».
+- **Resto de la aplicación** (CRM, proyectos y tareas, bóveda, servicios, sitios,
+  administración, integraciones, timers, checklists, adjuntos, asistentes de IA,
+  autenticación…): las acciones del servidor lanzadas desde pantalla tienen tiempo
+  límite (30 s; 60 s en formularios; 120 s con archivos o IA). Cuando una acción
+  que nadie esperaba falla (pausar un timer, borrar, reordenar), aparece un aviso
+  rojo abajo a la derecha en vez de dejar la pantalla como si hubiera funcionado.
+  Quedan fuera la pasarela de pago pública y el chat del asistente.
+- Nuevo `runAction` / `callAction` / `fireAction` (`src/lib/run-action.ts`) y
+  `<ActionToaster />` (`src/components/ui/action-toaster.tsx`): llamar acciones del
+  servidor desde el cliente con tiempo límite y mensajes legibles.
+  Ya no recuerda el último orden por navegador: arranca por fecha límite.
+
+---
+
 ## [1.132.1] — 2026-11-06
 
 ### Añadido: ordenar el tablero de Facturación por fecha de actualización

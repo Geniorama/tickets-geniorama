@@ -121,7 +121,7 @@ export default async function CategoriasPage({
             {filas.map((f) => (
               <div key={f.categoryId ?? "sin"}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem", marginBottom: "0.25rem" }}>
-                  <span style={{ fontSize: "0.875rem", color: f.categoryId ? "var(--app-body-text)" : "#b45309", fontWeight: 500 }}>
+                  <span style={{ fontSize: "0.875rem", color: f.categoryId ? "var(--app-body-text)" : "var(--tone-amber-fg)", fontWeight: 500 }}>
                     {f.nombre}
                     <span style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", fontWeight: 400 }}>
                       {" "}· {f.lineas} {f.lineas === 1 ? "línea" : "líneas"}

@@ -252,7 +252,7 @@ export default async function EstadisticasPage() {
                         style={{
                           fontSize: "0.75rem",
                           fontWeight: 600,
-                          color: r.rate >= 75 ? "#16a34a" : r.rate >= 40 ? "#b45309" : "#dc2626",
+                          color: r.rate >= 75 ? "#16a34a" : r.rate >= 40 ? "var(--tone-amber-fg)" : "#dc2626",
                           minWidth: "2.5rem",
                           textAlign: "right",
                         }}

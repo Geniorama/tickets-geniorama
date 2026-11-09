@@ -313,7 +313,7 @@ export default async function BillingItemPage({
               </p>
               {reparto.map((r) => (
                 <div key={r.categoryId ?? "sin"} style={{ display: "flex", justifyContent: "space-between", gap: "1rem", fontSize: "0.8125rem", marginBottom: "0.2rem" }}>
-                  <span style={{ color: r.categoryId ? "var(--app-nav-text)" : "#b45309" }}>
+                  <span style={{ color: r.categoryId ? "var(--app-nav-text)" : "var(--tone-amber-fg)" }}>
                     {r.nombre}
                     <span style={{ color: "var(--app-text-muted)" }}> · {r.porcentaje.toFixed(0)}%</span>
                   </span>

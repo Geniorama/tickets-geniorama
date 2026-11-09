@@ -8,6 +8,7 @@ import {
   updateSchedulingLink,
   deleteSchedulingLink,
 } from "@/actions/collaborator.actions";
+import { callAction } from "@/lib/run-action";
 import { PriorityTag } from "@/components/collaborator/scheduling-card";
 import {
   SCHEDULING_CATEGORIES,
@@ -130,7 +131,7 @@ function LinkForm({
         </span>
       </label>
 
-      {error && <p style={{ fontSize: "0.75rem", color: "#b91c1c", margin: 0 }}>{error}</p>}
+      {error && <p style={{ fontSize: "0.75rem", color: "var(--tone-red-fg)", margin: 0 }}>{error}</p>}
 
       <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end" }}>
         <button
@@ -180,7 +181,7 @@ export function SchedulingLinksManager({
   function handleCreate(values: FormValues) {
     setError(null);
     startTransition(async () => {
-      const res = await createSchedulingLink(userId, toFormData(values));
+      const res = await callAction(() => createSchedulingLink(userId, toFormData(values)));
       if (res?.error) { setError(res.error); return; }
       setAdding(false);
       router.refresh();
@@ -190,7 +191,7 @@ export function SchedulingLinksManager({
   function handleUpdate(linkId: string, values: FormValues) {
     setError(null);
     startTransition(async () => {
-      const res = await updateSchedulingLink(linkId, toFormData(values));
+      const res = await callAction(() => updateSchedulingLink(linkId, toFormData(values)));
       if (res?.error) { setError(res.error); return; }
       setEditingId(null);
       router.refresh();
@@ -201,7 +202,7 @@ export function SchedulingLinksManager({
     if (!confirm("¿Eliminar este link de agendamiento?")) return;
     setError(null);
     startTransition(async () => {
-      const res = await deleteSchedulingLink(linkId);
+      const res = await callAction(() => deleteSchedulingLink(linkId));
       if (res?.error) { setError(res.error); return; }
       router.refresh();
     });
@@ -289,7 +290,7 @@ export function SchedulingLinksManager({
       )}
 
       {!adding && editingId === null && error && (
-        <p style={{ fontSize: "0.75rem", color: "#b91c1c", margin: 0 }}>{error}</p>
+        <p style={{ fontSize: "0.75rem", color: "var(--tone-red-fg)", margin: 0 }}>{error}</p>
       )}
     </div>
   );

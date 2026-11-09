@@ -12,7 +12,6 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { Pagination } from "@/components/ui/pagination";
 import { Suspense } from "react";
-import { SearchInput } from "@/components/ui/search-input";
 import { getPageSize } from "@/lib/pagination";
 
 export const metadata = { title: "Proyectos" };
@@ -89,6 +88,16 @@ export default async function ProyectosPage({
   const totalProjects = await prisma.project.count({ where });
 
   // Página: primero los favoritos en orden, luego el resto
+  const sortDir: "asc" | "desc" = params.sortDir === "asc" ? "asc" : "desc";
+  const projectOrderBy = (() => {
+    switch (params.sortBy) {
+      case "name":      return { name: sortDir } as const;
+      case "updatedAt": return { updatedAt: sortDir } as const;
+      case "dueDate":   return { dueDate: { sort: sortDir, nulls: "last" } } as const;
+      case "startDate": return { startDate: { sort: sortDir, nulls: "last" } } as const;
+      default:          return { createdAt: sortDir } as const;
+    }
+  })();
   const offset = (page - 1) * pageSize;
   const favCount = favoriteIds.length;
   // notIn no acepta arrays vacíos en algunos drivers — usamos sentinel
@@ -99,7 +108,7 @@ export default async function ProyectosPage({
       ? prisma.project.findMany({
           where: { ...where, id: { in: favoriteIds } },
           include: projectInclude,
-          orderBy: { createdAt: "desc" },
+          orderBy: projectOrderBy,
           take: pageSize,
           skip: offset,
         })
@@ -110,14 +119,14 @@ export default async function ProyectosPage({
       ? prisma.project.findMany({
           where: { ...where, id: { notIn: notInIds } },
           include: projectInclude,
-          orderBy: { createdAt: "desc" },
+          orderBy: projectOrderBy,
           take: pageSize,
           skip: 0,
         })
       : prisma.project.findMany({
           where: { ...where, id: { notIn: notInIds } },
           include: projectInclude,
-          orderBy: { createdAt: "desc" },
+          orderBy: projectOrderBy,
           take: pageSize,
           skip: offset - favCount,
         });
@@ -179,15 +188,14 @@ export default async function ProyectosPage({
 
       {/* Filters */}
       <div className="flex flex-col gap-3 mb-5" data-tour-id="page-filters">
-        <Suspense fallback={<div style={{ height: "2.375rem" }} />}>
-          <SearchInput placeholder="Buscar proyectos..." />
+        <Suspense fallback={<div style={{ height: "2.25rem" }} />}>
+          <ProjectFilters
+            companies={companies}
+            managers={managers}
+            showCompany={admin || staff}
+            showManager={admin}
+          />
         </Suspense>
-        <ProjectFilters
-          companies={companies}
-          managers={managers}
-          showCompany={admin || staff}
-          showManager={admin}
-        />
       </div>
 
       {/* Contador y vista, pegados a los resultados: la vista es una

@@ -3,6 +3,7 @@
 import { useTransition } from "react";
 import type { Attachment } from "@/generated/prisma";
 import { deleteAttachment } from "@/actions/attachment.actions";
+import { fireAction } from "@/lib/run-action";
 
 function fileIcon(fileName: string) {
   const ext = fileName.split(".").pop()?.toLowerCase();
@@ -67,7 +68,7 @@ function AttachmentRow({
           disabled={isPending}
           onClick={() =>
             startTransition(async () => {
-              await deleteAttachment(attachment.id, ticketId);
+              await fireAction(() => deleteAttachment(attachment.id, ticketId), { timeoutMs: 120000 });
             })
           }
           className="text-red-500 hover:text-red-700 disabled:opacity-50 shrink-0"

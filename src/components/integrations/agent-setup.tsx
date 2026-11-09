@@ -102,7 +102,7 @@ export function AgentSetupPanel({ setup }: { setup: AgentSetup }) {
                   <Link href={`/admin/users/${c.id}`} style={{ fontSize: "0.8125rem", color: "var(--app-body-text)", textDecoration: "none", minWidth: 0 }}>
                     {c.name} <span style={{ color: "var(--app-text-muted)" }}>· {c.email}</span>
                   </Link>
-                  <span style={{ fontSize: "0.75rem", fontVariantNumeric: "tabular-nums", color: c.duplicated ? "#b45309" : c.phone ? "#15803d" : "var(--app-text-muted)" }}>
+                  <span style={{ fontSize: "0.75rem", fontVariantNumeric: "tabular-nums", color: c.duplicated ? "var(--tone-amber-fg)" : c.phone ? "var(--tone-green-fg)" : "var(--app-text-muted)" }}>
                     {c.duplicated ? `${c.phone} · repetido en otra cuenta` : c.phone ?? "Sin número registrado"}
                   </span>
                 </li>

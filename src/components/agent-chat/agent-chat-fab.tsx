@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { X, Maximize2, Loader2 } from "lucide-react";
 import { GenieIcon } from "@/components/ui/genie-icon";
 import { getMyAgentChat, type AgentChatState } from "@/actions/agent-chat.actions";
+import { runAction } from "@/lib/run-action";
 import { AgentChat } from "./agent-chat";
 
 const ACCENT = "#fd1384";
@@ -46,11 +47,9 @@ export function AgentChatFab() {
     setOpen(true);
     setLoadError(false);
     startLoad(async () => {
-      try {
-        setState(await getMyAgentChat());
-      } catch {
-        setLoadError(true);
-      }
+      const r = await runAction(() => getMyAgentChat(), { timeoutMs: 120000 });
+      if (r.ok) setState(r.data);
+      else setLoadError(true);
     });
   }
 
