@@ -9,6 +9,34 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.134.0] — 2026-11-09
+
+### Nuevo: aviso de tickets sin movimiento (AG·P-6)
+
+- Un ticket **Abierto o En progreso** sin movimiento por más de 5 días se marca
+  como «sin movimiento». Cuenta cualquier señal de vida: editar el ticket, un
+  comentario, un cambio en el historial, tiempo registrado o un cronómetro
+  corriendo. Por Asignar y En revisión no cuentan (ahí esperar es normal).
+- Aviso diario, de lunes a viernes a las 8:00 (Colombia): un resumen en Google
+  Chat con los más quietos y un aviso por responsable con *sus* tickets, no uno
+  por ticket. Lo que no tiene responsable solo sale en el canal.
+- Nuevo filtro **Sin movimiento (5+ días)** en la lista de tickets (equipo).
+- Workflow `cron-sin-movimiento.yml` y endpoint `/api/cron/stale-tickets`.
+
+### Nuevo: el cliente aprueba o pide cambios en un ticket En revisión (AG·P-2)
+
+- Cuando el equipo deja un ticket **En revisión**, el cliente ve en su detalle un
+  bloque con **Aprobar y cerrar** y **Pedir cambios**.
+- Aprobar cierra el ticket. Pedir cambios lo reabre (Abierto) y exige contar qué
+  falta; el motivo queda como comentario visible en el hilo.
+- La decisión avisa al equipo (campana y Google Chat al reabrir) y sigue los
+  mismos hooks de cambio de estado que el resto de la app. Si dos personas de la
+  empresa responden a la vez, gana la primera y la otra recibe un aviso.
+- Acción nueva `respondToReview` (`src/actions/ticket-review.actions.ts`); solo
+  para clientes con acceso al ticket, el equipo sigue usando el selector de estado.
+
+---
+
 ## [1.133.0] — 2026-11-09
 
 ### Mejorado: modo oscuro más suave y filtros unificados

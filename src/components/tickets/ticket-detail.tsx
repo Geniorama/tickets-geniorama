@@ -11,6 +11,7 @@ import type { Ticket, Comment as CommentRecord, Attachment, TimeEntry, User, Tic
 import { TicketTimer } from "./ticket-timer";
 import { TicketAiAssistant } from "./ticket-ai-assistant";
 import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
+import { ReviewDecision } from "./review-decision";
 import { updateTicketStatus, deleteTicket, publishTicket } from "@/actions/ticket.actions";
 import { DuplicateTicketButton } from "./duplicate-ticket-button";
 import { addComment, deleteComment, editComment, getTicketComments } from "@/actions/comment.actions";
@@ -443,6 +444,9 @@ export function TicketDetail({
 
         {/* ── Right column ── */}
         <div className="space-y-6">
+          {/* El equipo lo dejó En revisión: el cliente aprueba o pide cambios aquí */}
+          {!staff && ticket.status === "EN_REVISION" && <ReviewDecision ticketId={ticket.id} />}
+
           {/* Herramientas IA: el equipo siempre; el cliente, si su plan las incluye */}
           {staff || clientAiTools ? (
             <AiToolsPanel showProviderToggle={staff}>

@@ -3,7 +3,7 @@
  * Los webhooks se almacenan en la tabla app_settings de la BD.
  *
  * Claves usadas:
- *   gchat_webhook_tickets   → ticket_new, ticket_assigned, ticket_status, ticket_overdue
+ *   gchat_webhook_tickets   → ticket_new, ticket_assigned, ticket_status, ticket_overdue, ticket_stale
  *   gchat_webhook_tasks     → task_assigned, task_completed, task_overdue
  *   gchat_webhook_comments  → ticket_comment, task_comment
  *   gchat_webhook_mentions  → mention
@@ -25,6 +25,7 @@ const EMOJI: Record<string, string> = {
   task_comment:        "💬",
   mention:             "📣",
   ticket_overdue:      "⚠️",
+  ticket_stale:        "⏳",
   task_overdue:        "⚠️",
 };
 
@@ -42,6 +43,7 @@ const SETTING_KEY: Record<string, string> = {
   task_comment:        "gchat_webhook_comments",
   mention:             "gchat_webhook_mentions",
   ticket_overdue:      "gchat_webhook_tickets",
+  ticket_stale:        "gchat_webhook_tickets",
   task_overdue:        "gchat_webhook_tasks",
 };
 

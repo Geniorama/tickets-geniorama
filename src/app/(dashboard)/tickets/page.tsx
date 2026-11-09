@@ -13,6 +13,7 @@ import { fromZonedTime } from "date-fns-tz";
 import { Pagination } from "@/components/ui/pagination";
 import { Suspense } from "react";
 import { getPageSize } from "@/lib/pagination";
+import { findStaleTickets } from "@/lib/stale-tickets";
 import { redirect } from "next/navigation";
 import { FilterTags, type FilterTag } from "@/components/ui/filter-tags";
 
@@ -103,9 +104,16 @@ export default async function TicketsPage({
   const createdByValues   = params.createdById?.split(",").filter(Boolean) ?? [];
   const companyValues     = params.companyId?.split(",").filter(Boolean) ?? [];
 
+  // «Sin movimiento»: solo el equipo; lo calcula lib/stale-tickets (comentarios,
+  // historial y tiempo cuentan como movimiento, no solo editar el ticket).
+  const staleIds = staff && params.stale === "1"
+    ? (await findStaleTickets({ limit: 1000 })).map((t) => t.id)
+    : null;
+
   const where = {
     ...baseWhere,
     ...dateFilters,
+    ...(staleIds ? { id: { in: staleIds } } : {}),
     ...(assignedToValues.length  ? { assignedToId: { in: assignedToValues } }                                     : {}),
     ...(createdByValues.length   ? { createdById:  { in: createdByValues } }                                      : {}),
     ...(companyValues.length     ? { createdBy: { companies: { some: { id: { in: companyValues } } } } }          : {}),
@@ -186,6 +194,7 @@ export default async function TicketsPage({
   if (params.createdTo) filterTags.push({ key: "createdTo", value: params.createdTo, label: `Creado hasta: ${params.createdTo}` });
   if (params.updatedFrom) filterTags.push({ key: "updatedFrom", value: params.updatedFrom, label: `Actualizado desde: ${params.updatedFrom}` });
   if (params.updatedTo) filterTags.push({ key: "updatedTo", value: params.updatedTo, label: `Actualizado hasta: ${params.updatedTo}` });
+  if (staleIds) filterTags.push({ key: "stale", value: "1", label: "Sin movimiento (5+ días)" });
   if (q) filterTags.push({ key: "q", value: q, label: `Búsqueda: ${q}` });
 
   return (

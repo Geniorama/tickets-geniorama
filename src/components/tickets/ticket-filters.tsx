@@ -1,7 +1,8 @@
 "use client";
 
+import { Hourglass } from "lucide-react";
 import {
-  FilterBar, FilterDate, FilterField, FilterMulti, SortSelect, useUrlFilters,
+  FilterBar, FilterDate, FilterField, FilterMulti, FilterToggle, SortSelect, useUrlFilters,
 } from "@/components/ui/filter-kit";
 import { SearchInput } from "@/components/ui/search-input";
 
@@ -65,6 +66,9 @@ export function TicketFilters({
           <FilterField label="Creado hasta"><FilterDate filters={filters} param="createdTo" /></FilterField>
           <FilterField label="Actualizado desde"><FilterDate filters={filters} param="updatedFrom" /></FilterField>
           <FilterField label="Actualizado hasta"><FilterDate filters={filters} param="updatedTo" /></FilterField>
+          <FilterToggle filters={filters} param="stale" tone="amber" icon={Hourglass}>
+            Sin movimiento (5+ días)
+          </FilterToggle>
         </>
       )}
     </FilterBar>

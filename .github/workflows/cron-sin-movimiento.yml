@@ -1,0 +1,43 @@
+# Avisa de los tickets que llevan días sin movimiento (AG·P-6).
+#
+# Va en Actions por el mismo motivo que el resto de crons del repo (ver
+# cron-recurrentes.yml): un solo sitio donde mirar cuándo corrió y qué contestó.
+
+name: Tickets sin movimiento
+
+on:
+  schedule:
+    # 13:00 UTC = 08:00 en Colombia, de lunes a viernes: el aviso llega al
+    # empezar la jornada, y no se repite en fin de semana.
+    - cron: "0 13 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  avisar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Avisar de tickets sin movimiento
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          respuesta=$(curl -s -w "\n%{http_code}" -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            --max-time 60 \
+            https://app.geniorama.co/api/cron/stale-tickets)
+
+          codigo=$(echo "$respuesta" | tail -n1)
+          cuerpo=$(echo "$respuesta" | sed '$d')
+
+          echo "HTTP $codigo"
+          echo "$cuerpo"
+
+          if [ "$codigo" != "200" ]; then
+            echo "::error::El aviso devolvió HTTP $codigo. Si es 401, falta el secreto CRON_SECRET o no coincide con el del servidor."
+            exit 1
+          fi
+
+          echo "### Tickets sin movimiento" >> "$GITHUB_STEP_SUMMARY"
+          echo '```json' >> "$GITHUB_STEP_SUMMARY"
+          echo "$cuerpo" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

@@ -5,7 +5,7 @@ import { notificationCategory } from "@/lib/notification-categories";
 const EMOJI: Record<string, string> = {
   ticket_new: "🎫", ticket_assigned: "👤", ticket_status: "🔄", ticket_date_changed: "📅",
   task_new: "📋", task_assigned: "👤", task_status: "🔄", task_completed: "✅", task_date_changed: "📅",
-  ticket_comment: "💬", task_comment: "💬", mention: "📣", ticket_overdue: "⚠️", task_overdue: "⚠️",
+  ticket_comment: "💬", task_comment: "💬", mention: "📣", ticket_overdue: "⚠️", ticket_stale: "⏳", task_overdue: "⚠️",
 };
 
 export type WebhookPayload = {
