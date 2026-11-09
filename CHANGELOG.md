@@ -9,6 +9,12 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.136.1] — 2026-11-09
+
+### Corregido: el cliente no podía elegir su plan al crear un ticket
+- Con varios planes vigentes, el formulario de «Nuevo ticket» del cliente no los mostraba y el ticket se cargaba al primero sin preguntar. Ahora el cliente ve sus planes vigentes y elige a cuál se carga, con el aviso de que debe hacerlo. Con un solo plan no cambia nada.
+- El servidor comprueba que el plan elegido sea uno de los vigentes del cliente.
+
 ## [1.136.0] — 2026-11-09
 
 ### Nuevo: tickets que nacen completos (AG·P-4)

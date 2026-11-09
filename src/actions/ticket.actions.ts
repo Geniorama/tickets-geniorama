@@ -7,7 +7,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { isAdmin } from "@/lib/roles";
-import { getClientActivePlan } from "@/lib/plans.server";
+import { getClientActivePlans } from "@/lib/plans.server";
 import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { afterTicketStatusChange } from "@/lib/status-change";
@@ -134,11 +134,18 @@ export async function createTicket(formData: FormData) {
   // Determinar planId
   let planId: string | null = null;
   if (session.user.role === "CLIENTE") {
-    const activePlan = await getClientActivePlan(session.user.id);
-    if (!activePlan) {
+    const activePlans = await getClientActivePlans(session.user.id);
+    if (activePlans.length === 0) {
       return { error: "No tienes un plan activo. Contacta a tu agente para activar un plan." };
     }
-    planId = activePlan.id;
+    // Con varios planes vigentes elige el cliente; sin elección, el primero.
+    if (parsed.data.planId) {
+      const chosen = activePlans.find((p) => p.id === parsed.data.planId);
+      if (!chosen) return { error: "El plan elegido no está disponible. Elige otro." };
+      planId = chosen.id;
+    } else {
+      planId = activePlans[0].id;
+    }
   } else {
     planId = parsed.data.planId ?? null;
   }

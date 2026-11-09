@@ -28,17 +28,20 @@ export async function clientHasPrioritySupport(userId: string): Promise<boolean>
 }
 
 /** Todos los planes vigentes del cliente, en el orden en que se evalúan. */
-async function getClientActivePlans(userId: string) {
+export async function getClientActivePlans(userId: string) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
       companies: {
         where: { isActive: true },
         select: {
+          name: true,
           plans: {
             where: { isActive: true },
             select: {
               id: true,
+              name: true,
+              companyId: true,
               type: true,
               totalHours: true,
               durationDays: true,
@@ -57,7 +60,7 @@ async function getClientActivePlans(userId: string) {
 
   if (!user) return [];
 
-  const allPlans = user.companies.flatMap((c) => c.plans);
+  const allPlans = user.companies.flatMap((c) => c.plans.map((p) => ({ ...p, companyName: c.name })));
   const valid: typeof allPlans = [];
 
   for (const plan of allPlans) {

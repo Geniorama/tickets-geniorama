@@ -56,7 +56,10 @@ export function TicketForm({
   const submitAsDraft = useRef(false);
   const [selectedClientId, setSelectedClientId] = useState("");
   const [companyId, setCompanyId] = useState("");
-  const [planId, setPlanId] = useState("");
+  // Un cliente (sin lista de empresas ni de clientes) recibe solo sus planes
+  // vigentes: si hay uno, ese; si hay varios, elige.
+  const isClientForm = companies.length === 0 && clients.length === 0 && plans.length > 0;
+  const [planId, setPlanId] = useState(isClientForm && plans.length === 1 ? plans[0].id : "");
   const [siteId, setSiteId] = useState("");
   const [category, setCategory] = useState(prefill?.category ?? "");
   // true mientras la categoría que se ve la puso la sugerencia y no una persona
@@ -135,6 +138,10 @@ export function TicketForm({
     if (byCompany && !companyId && !submitAsDraft.current) {
       submitAsDraft.current = false;
       setSubmitError("Elige la empresa del ticket");
+      return;
+    }
+    if (isClientForm && plans.length > 1 && !planId) {
+      setSubmitError("Elige a qué plan se carga este ticket");
       return;
     }
     const formData = new FormData(e.currentTarget);
@@ -434,6 +441,30 @@ export function TicketForm({
             )}
           </div>
         </>
+      )}
+
+      {isClientForm && plans.length > 1 && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
+          <select
+            name="planId"
+            value={planId}
+            onChange={(e) => setPlanId(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">Elige un plan…</option>
+            {plans.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name} — {p.type === "BOLSA_HORAS" ? "Bolsa de horas" : "Soporte mensual"}
+              </option>
+            ))}
+          </select>
+          {!planId && (
+            <p className="text-xs text-amber-600 mt-1">
+              Tienes {plans.length} planes vigentes: elige a cuál se cargan las horas de este ticket.
+            </p>
+          )}
+        </div>
       )}
 
       {sites.length > 0 && (

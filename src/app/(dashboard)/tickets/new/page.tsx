@@ -3,7 +3,7 @@ import { isAdmin, isStaff } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { TicketForm } from "@/components/tickets/ticket-form";
 import { TemplatePicker } from "@/components/tasks/template-picker";
-import { getClientActivePlan } from "@/lib/plans.server";
+import { getClientActivePlans } from "@/lib/plans.server";
 import { normalizeChecklistGroups } from "@/lib/checklist";
 import { vaultAccessFilter } from "@/lib/vault-links";
 
@@ -19,10 +19,11 @@ export default async function NewTicketPage({
   const staff = isStaff(session.user.role);
   const { template: templateId } = await searchParams;
 
-  // Check plan for clients
+  // Check plan for clients. Con varios planes vigentes el cliente elige a
+  // cuál se carga el ticket, así que se le ofrecen todos.
+  const clientPlans = session.user.role === "CLIENTE" ? await getClientActivePlans(session.user.id) : [];
   if (session.user.role === "CLIENTE") {
-    const activePlan = await getClientActivePlan(session.user.id);
-    if (!activePlan) {
+    if (clientPlans.length === 0) {
       return (
         <div className="max-w-2xl">
           <h1 className="text-2xl font-bold text-gray-900 mb-6">Nuevo ticket</h1>
@@ -131,7 +132,13 @@ export default async function NewTicketPage({
           collaborators={collaborators}
           companies={companies}
           clients={clients}
-          plans={plans}
+          plans={staff ? plans : clientPlans.map((p) => ({
+            id: p.id,
+            name: p.name,
+            type: p.type as string,
+            companyId: p.companyId,
+            company: { name: p.companyName },
+          }))}
           sites={sites}
           reviewerCandidates={reviewerCandidates}
           vaultEntries={vaultEntries}
