@@ -257,6 +257,28 @@ export function TicketDetail({
         </div>
       )}
 
+      {/* Un ticket abierto sin empresa, plan o sitio daña el consumo de horas y los
+          reportes por sitio (AG·P-4): se avisa al equipo mientras siga abierto. */}
+      {staff && !ticket.isDraft && ticket.status !== "CERRADO" && (() => {
+        const missing: string[] = [];
+        if (!ticket.plan && !ticket.client?.companies.length) missing.push("empresa");
+        if (!ticket.plan) missing.push("plan");
+        if (!ticket.site) missing.push("sitio");
+        if (missing.length === 0) return null;
+        return (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-sm text-amber-800">
+              <strong>Falta {missing.join(", ")}.</strong>{" "}
+              {!ticket.plan
+                ? "Sin plan, las horas de este ticket no se descuentan de ningún paquete. "
+                : ""}
+              {!ticket.site ? "Sin sitio, no entra en los reportes por sitio. " : ""}
+              Complétalo desde «Editar».
+            </p>
+          </div>
+        );
+      })()}
+
       {/* Full-width top panel */}
       {isAdmin(role) && ticket.status === "POR_ASIGNAR" && (
         <div className="mb-6">

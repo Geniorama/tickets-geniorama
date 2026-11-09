@@ -9,6 +9,16 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.136.0] — 2026-11-09
+
+### Nuevo: tickets que nacen completos (AG·P-4)
+- Al crear un ticket, el equipo elige primero la **empresa** (obligatoria para publicarlo). Los clientes, planes y sitios que se ofrecen son los de esa empresa, y se pueden elegir subempresas de una agencia (por ejemplo Asohofrucol bajo Ekon 7).
+- Si la empresa tiene un solo cliente, plan o sitio, se preselecciona. Con varios planes, se avisa de que hay que elegir cuál.
+- El servidor comprueba que el cliente, el plan y el sitio pertenezcan a la empresa elegida, y que el ticket quede asociado a ella por cliente o por plan.
+- La **categoría** se sugiere a partir del título, y se puede cambiar. Deja de sugerirse en cuanto se elige una a mano.
+- Los colaboradores también ven ahora cliente y plan al crear un ticket, como los administradores.
+- En la ficha, un aviso para el equipo en los tickets abiertos que no tengan empresa, plan o sitio.
+
 ## [1.135.1] — 2026-11-09
 
 ### Corregido: «Informes» fallaba por una columna que faltaba

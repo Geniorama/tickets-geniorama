@@ -10,8 +10,10 @@ import { MarkdownEditor } from "@/components/ui/markdown-editor";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { vaultOptionLabel } from "@/lib/vault-options";
 import { FILE_RULES, formatFileSize, splitFiles } from "@/lib/file-rules";
+import { TICKET_CATEGORIES, suggestCategory } from "@/lib/ticket-suggestions";
 
 interface Collaborator { id: string; name: string; role: string; }
+interface Company { id: string; name: string; type: string; parentId: string | null; }
 interface Client { id: string; name: string; companies: { id: string; name: string }[]; }
 interface Plan { id: string; name: string; type: string; companyId: string; company: { name: string }; }
 interface Site { id: string; name: string; domain: string; companyId: string; }
@@ -27,6 +29,7 @@ interface TicketPrefill {
 
 export function TicketForm({
   collaborators = [],
+  companies = [],
   clients = [],
   plans = [],
   sites = [],
@@ -37,6 +40,8 @@ export function TicketForm({
   prefill,
 }: {
   collaborators?: Collaborator[];
+  /** Solo para el equipo: el ticket se abre dentro de una empresa. */
+  companies?: Company[];
   clients?: Client[];
   plans?: Plan[];
   sites?: Site[];
@@ -50,6 +55,13 @@ export function TicketForm({
   const [isPending, startTransition] = useTransition();
   const submitAsDraft = useRef(false);
   const [selectedClientId, setSelectedClientId] = useState("");
+  const [companyId, setCompanyId] = useState("");
+  const [planId, setPlanId] = useState("");
+  const [siteId, setSiteId] = useState("");
+  const [category, setCategory] = useState(prefill?.category ?? "");
+  // true mientras la categoría que se ve la puso la sugerencia y no una persona
+  const [categorySuggested, setCategorySuggested] = useState(false);
+  const categoryTouched = useRef(!!prefill?.category);
   const [reviewerIds, setReviewerIds] = useState<string[]>([]);
   const [vaultEntryIds, setVaultEntryIds] = useState<string[]>([]);
   const [checklistItems, setChecklistItems] = useState<ChecklistGroup[]>(prefill?.checklist ?? []);
@@ -69,18 +81,62 @@ export function TicketForm({
   const inputClass =
     "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500";
 
+  // Con empresas (el equipo), todo se filtra por la empresa elegida. Sin ellas
+  // (un cliente), el formulario se comporta como siempre.
+  const byCompany = companies.length > 0;
   const selectedClient = clients.find((c) => c.id === selectedClientId);
-  const availablePlans = selectedClient
-    ? plans.filter((p) => selectedClient.companies.some((co) => co.id === p.companyId))
-    : [];
-  // Filtrar sitios: si hay cliente seleccionado, mostrar solo los de sus empresas;
-  // si no hay cliente (o no hay lista de clientes = CLIENTE role), mostrar todos.
-  const availableSites = selectedClientId && selectedClient
-    ? sites.filter((s) => selectedClient.companies.some((co) => co.id === s.companyId))
-    : sites;
+  const availableClients = byCompany
+    ? clients.filter((c) => c.companies.some((co) => co.id === companyId))
+    : clients;
+  const availablePlans = byCompany
+    ? plans.filter((p) => p.companyId === companyId)
+    : selectedClient
+      ? plans.filter((p) => selectedClient.companies.some((co) => co.id === p.companyId))
+      : [];
+  const availableSites = byCompany
+    ? sites.filter((st) => st.companyId === companyId)
+    : selectedClientId && selectedClient
+      ? sites.filter((st) => selectedClient.companies.some((co) => co.id === st.companyId))
+      : sites;
+
+  // Las empresas en orden de lectura: cada agencia seguida de sus subempresas
+  // (Ekon 7 → Asohofrucol). Una subempresa cuya agencia no está activa sale suelta.
+  const companyOptions = (() => {
+    const ids = new Set(companies.map((c) => c.id));
+    const roots = companies.filter((c) => !c.parentId || !ids.has(c.parentId));
+    return roots.flatMap((root) => [
+      { id: root.id, label: root.name },
+      ...companies
+        .filter((c) => c.parentId === root.id)
+        .map((c) => ({ id: c.id, label: `   ↳ ${c.name} (${root.name})` })),
+    ]);
+  })();
+
+  /** Al elegir empresa se preselecciona lo que no admite duda: el único cliente, plan o sitio. */
+  function handleCompanyChange(id: string) {
+    setCompanyId(id);
+    const cl = clients.filter((c) => c.companies.some((co) => co.id === id));
+    const pl = plans.filter((p) => p.companyId === id);
+    const si = sites.filter((st) => st.companyId === id);
+    setSelectedClientId(cl.length === 1 ? cl[0].id : "");
+    setPlanId(pl.length === 1 ? pl[0].id : "");
+    setSiteId(si.length === 1 ? si[0].id : "");
+  }
+
+  function handleTitleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (categoryTouched.current) return;
+    const suggestion = suggestCategory(e.target.value);
+    setCategory(suggestion ?? "");
+    setCategorySuggested(!!suggestion);
+  }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (byCompany && !companyId && !submitAsDraft.current) {
+      submitAsDraft.current = false;
+      setSubmitError("Elige la empresa del ticket");
+      return;
+    }
     const formData = new FormData(e.currentTarget);
     if (checklistItems.length > 0) {
       formData.set("checklist", JSON.stringify(checklistItems));
@@ -119,6 +175,7 @@ export function TicketForm({
           name="title"
           required
           defaultValue={prefill?.title ?? ""}
+          onChange={handleTitleChange}
           className={inputClass}
           placeholder="Resumen breve del problema"
         />
@@ -239,18 +296,24 @@ export function TicketForm({
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-          <select name="category" defaultValue={prefill?.category ?? ""} className={inputClass}>
+          <select
+            name="category"
+            value={category}
+            onChange={(e) => {
+              categoryTouched.current = true;
+              setCategorySuggested(false);
+              setCategory(e.target.value);
+            }}
+            className={inputClass}
+          >
             <option value="">Sin categoría</option>
-            <option value="Soporte técnico">Soporte técnico</option>
-            <option value="Facturación">Facturación</option>
-            <option value="Desarrollo">Desarrollo</option>
-            <option value="Diseño">Diseño</option>
-            <option value="Consultoría">Consultoría</option>
-            <option value="Hosting">Hosting</option>
-            <option value="Dominio">Dominio</option>
-            <option value="Correos">Correos</option>
-            <option value="Otro">Otro</option>
+            {TICKET_CATEGORIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
           </select>
+          {categorySuggested && (
+            <p className="text-xs text-indigo-600 mt-1">Sugerida por el título; puedes cambiarla.</p>
+          )}
         </div>
       </div>
 
@@ -295,7 +358,27 @@ export function TicketForm({
         </div>
       )}
 
-      {clients.length > 0 && (
+      {byCompany && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Empresa</label>
+          <select
+            name="companyId"
+            value={companyId}
+            onChange={(e) => handleCompanyChange(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">Selecciona la empresa…</option>
+            {companyOptions.map((c) => (
+              <option key={c.id} value={c.id}>{c.label}</option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-400 mt-1">
+            Define de quién es el ticket y qué clientes, planes y sitios puedes elegir.
+          </p>
+        </div>
+      )}
+
+      {(byCompany || clients.length > 0) && (
         <>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
@@ -304,31 +387,50 @@ export function TicketForm({
               value={selectedClientId}
               onChange={(e) => setSelectedClientId(e.target.value)}
               className={inputClass}
+              disabled={byCompany && !companyId}
             >
               <option value="">Sin cliente asignado</option>
-              {clients.map((c) => (
+              {availableClients.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.name}{c.companies.length > 0 ? ` — ${c.companies.map((co) => co.name).join(", ")}` : ""}
+                  {c.name}{!byCompany && c.companies.length > 0 ? ` — ${c.companies.map((co) => co.name).join(", ")}` : ""}
                 </option>
               ))}
             </select>
+            {byCompany && !companyId && (
+              <p className="text-xs text-gray-400 mt-1">Selecciona una empresa para ver sus clientes.</p>
+            )}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
-            <select name="planId" defaultValue="" className={inputClass} disabled={!selectedClientId}>
+            <select
+              name="planId"
+              value={planId}
+              onChange={(e) => setPlanId(e.target.value)}
+              className={inputClass}
+              disabled={byCompany ? !companyId : !selectedClientId}
+            >
               <option value="">Sin plan asignado</option>
               {availablePlans.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name} — {p.type === "BOLSA_HORAS" ? "Bolsa de horas" : "Soporte mensual"} · {p.id}
+                  {p.name} — {p.type === "BOLSA_HORAS" ? "Bolsa de horas" : "Soporte mensual"}
                 </option>
               ))}
             </select>
-            {selectedClientId && availablePlans.length === 0 && (
-              <p className="text-xs text-amber-600 mt-1">Este cliente no tiene planes activos.</p>
+            {(byCompany ? companyId : selectedClientId) && availablePlans.length === 0 && (
+              <p className="text-xs text-amber-600 mt-1">
+                {byCompany ? "Esta empresa no tiene planes activos." : "Este cliente no tiene planes activos."}
+              </p>
             )}
-            {!selectedClientId && (
-              <p className="text-xs text-gray-400 mt-1">Selecciona un cliente para ver sus planes.</p>
+            {byCompany && companyId && availablePlans.length > 1 && !planId && (
+              <p className="text-xs text-amber-600 mt-1">
+                Hay {availablePlans.length} planes: elige a cuál cargar las horas.
+              </p>
+            )}
+            {!(byCompany ? companyId : selectedClientId) && (
+              <p className="text-xs text-gray-400 mt-1">
+                {byCompany ? "Selecciona una empresa para ver sus planes." : "Selecciona un cliente para ver sus planes."}
+              </p>
             )}
           </div>
         </>
@@ -341,19 +443,24 @@ export function TicketForm({
           </label>
           <select
             name="siteId"
-            defaultValue=""
+            value={siteId}
+            onChange={(e) => setSiteId(e.target.value)}
             className={inputClass}
-            disabled={clients.length > 0 && !selectedClientId}
+            disabled={byCompany ? !companyId : clients.length > 0 && !selectedClientId}
           >
             <option value="">Sin sitio vinculado</option>
-            {availableSites.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} — {s.domain}
+            {availableSites.map((st) => (
+              <option key={st.id} value={st.id}>
+                {st.name} — {st.domain}
               </option>
             ))}
           </select>
-          {clients.length > 0 && !selectedClientId && (
-            <p className="text-xs text-gray-400 mt-1">Selecciona un cliente para ver sus sitios.</p>
+          {byCompany ? (
+            !companyId && <p className="text-xs text-gray-400 mt-1">Selecciona una empresa para ver sus sitios.</p>
+          ) : (
+            clients.length > 0 && !selectedClientId && (
+              <p className="text-xs text-gray-400 mt-1">Selecciona un cliente para ver sus sitios.</p>
+            )
           )}
         </div>
       )}

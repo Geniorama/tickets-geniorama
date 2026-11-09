@@ -37,7 +37,7 @@ export default async function NewTicketPage({
     }
   }
 
-  const [collaborators, clients, plans, sites, reviewerCandidates, templates, vaultEntries] = await Promise.all([
+  const [collaborators, clients, plans, sites, reviewerCandidates, templates, vaultEntries, companies] = await Promise.all([
     admin
       ? prisma.user.findMany({
           where: { role: { in: ["ADMINISTRADOR", "COLABORADOR"] }, isActive: true },
@@ -45,14 +45,14 @@ export default async function NewTicketPage({
           select: { id: true, name: true, role: true },
         })
       : Promise.resolve([]),
-    admin
+    staff
       ? prisma.user.findMany({
           where: { role: "CLIENTE", isActive: true },
           orderBy: { name: "asc" },
           select: { id: true, name: true, companies: { select: { id: true, name: true } } },
         })
       : Promise.resolve([]),
-    admin
+    staff
       ? prisma.plan.findMany({
           where: { isActive: true },
           orderBy: { name: "asc" },
@@ -96,6 +96,15 @@ export default async function NewTicketPage({
           select: { id: true, title: true, username: true },
         })
       : Promise.resolve([]),
+    // Empresas activas, con su agencia: un ticket nace dentro de una empresa
+    // (o de una subempresa, como Asohofrucol bajo Ekon 7).
+    staff
+      ? prisma.company.findMany({
+          where: { isActive: true },
+          orderBy: { name: "asc" },
+          select: { id: true, name: true, type: true, parentId: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   // Plantilla seleccionada para prellenar el formulario
@@ -120,6 +129,7 @@ export default async function NewTicketPage({
         <TicketForm
           key={templateId ?? "blank"}
           collaborators={collaborators}
+          companies={companies}
           clients={clients}
           plans={plans}
           sites={sites}

@@ -36,6 +36,7 @@ const createTicketSchema = z.object({
   clientId: z.string().optional(),
   planId: z.string().optional(),
   siteId: z.string().optional(),
+  companyId: z.string().optional(),
   dueDate: z.string().optional(),
 });
 
@@ -51,6 +52,7 @@ export async function createTicket(formData: FormData) {
     clientId: formData.get("clientId") || undefined,
     planId: formData.get("planId") || undefined,
     siteId: formData.get("siteId") || undefined,
+    companyId: formData.get("companyId") || undefined,
     dueDate: formData.get("dueDate") || undefined,
   });
 
@@ -61,6 +63,56 @@ export async function createTicket(formData: FormData) {
   // Modo borrador: solo el staff puede guardar borradores; el ticket queda
   // privado para su creador y no dispara notificaciones hasta publicarse.
   const isDraft = isStaff(session.user.role) && formData.get("isDraft") === "true";
+
+  // Empresa (AG·P-4): el equipo no abre un ticket sin decir de quién es. Un
+  // ticket no guarda la empresa aparte —sale de su plan o, sin plan, de su
+  // cliente—, así que además de pedirla se comprueba que lo elegido
+  // pertenezca a ella y que el ticket quede atado por alguno de los dos.
+  let companyName: string | null = null;
+  if (isStaff(session.user.role)) {
+    if (!parsed.data.companyId) {
+      if (!isDraft) return { error: "Elige la empresa del ticket" };
+    } else {
+      const company = await prisma.company.findUnique({
+        where: { id: parsed.data.companyId },
+        select: { id: true, name: true, isActive: true },
+      });
+      if (!company || !company.isActive) return { error: "La empresa elegida no existe o está inactiva" };
+      companyName = company.name;
+
+      const { clientId: pickedClient, planId: pickedPlan, siteId: pickedSite } = parsed.data;
+      if (pickedClient) {
+        const ok = await prisma.user.findFirst({
+          where: { id: pickedClient, companies: { some: { id: company.id } } },
+          select: { id: true },
+        });
+        if (!ok) return { error: "El cliente elegido no pertenece a esa empresa" };
+      }
+      if (pickedPlan) {
+        const ok = await prisma.plan.findFirst({
+          where: { id: pickedPlan, companyId: company.id },
+          select: { id: true },
+        });
+        if (!ok) return { error: "El plan elegido no pertenece a esa empresa" };
+      }
+      if (pickedSite) {
+        const ok = await prisma.site.findFirst({
+          where: { id: pickedSite, companyId: company.id },
+          select: { id: true },
+        });
+        if (!ok) return { error: "El sitio elegido no pertenece a esa empresa" };
+      }
+      if (!pickedClient && !pickedPlan && !isDraft) {
+        const [clients, plans] = await Promise.all([
+          prisma.user.count({ where: { role: "CLIENTE", isActive: true, companies: { some: { id: company.id } } } }),
+          prisma.plan.count({ where: { companyId: company.id, isActive: true } }),
+        ]);
+        if (clients + plans > 0) {
+          return { error: "Elige un cliente o un plan de la empresa, para que el ticket quede asociado a ella" };
+        }
+      }
+    }
+  }
 
   // Los clientes no pueden asignar tickets a ningún usuario
   if (session.user.role === "CLIENTE") {
@@ -97,9 +149,8 @@ export async function createTicket(formData: FormData) {
       ? new Date(parsed.data.dueDate)
       : null;
 
-  // Resolver empresa para el prefijo: plan.company → client.companies[0] → null
-  let companyName: string | null = null;
-  if (planId) {
+  // Resolver empresa para el prefijo: la elegida → plan.company → client.companies[0] → null
+  if (!companyName && planId) {
     const plan = await prisma.plan.findUnique({
       where: { id: planId },
       select: { company: { select: { name: true } } },
