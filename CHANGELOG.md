@@ -9,6 +9,14 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.135.0] — 2026-11-09
+
+### Nuevo: informe mensual del cliente (AG·P-5)
+- El equipo puede marcar un archivo como «Es el informe mensual del cliente» y elegir el mes, tanto al adjuntarlo al ticket como en un comentario (por donde suele llegar al cliente). En un comentario, la casilla sale al añadir un archivo y no aplica a notas internas.
+- El cliente recibe una notificación y un correo con el enlace directo a su informe.
+- Nueva sección **Informes** para el cliente (módulo Portal): sus informes por mes, del más reciente al más antiguo, con estado Publicado o Pendiente. Los meses sin informe, desde el primero recibido hasta el último mes completo, salen como Pendiente.
+- Migración aditiva: columna `report_month` con su índice en `attachments` y en `comment_attachments`.
+
 ## [1.134.1] — 2026-11-09
 
 ### Corregido: un cliente nuevo no veía ningún módulo

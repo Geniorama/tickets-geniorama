@@ -16,6 +16,7 @@ import { updateTicketStatus, deleteTicket, publishTicket } from "@/actions/ticke
 import { DuplicateTicketButton } from "./duplicate-ticket-button";
 import { addComment, deleteComment, editComment, getTicketComments } from "@/actions/comment.actions";
 import { runAction, fireAction, MSG_NETWORK } from "@/lib/run-action";
+import { currentMonthKey } from "@/lib/monthly-reports";
 import { isStaff, isAdmin } from "@/lib/roles";
 import { AttachmentList } from "./attachment-list";
 import { AttachmentUploader } from "./attachment-uploader";
@@ -688,6 +689,8 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
   const [files, setFiles] = useState<File[]>([]);
   const [links, setLinks] = useState<PendingLink[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isReport, setIsReport] = useState(false);
+  const [reportMonth, setReportMonth] = useState(() => currentMonthKey());
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -695,6 +698,7 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
     const form = e.currentTarget;
     const formData = new FormData(form);
     formData.set("isInternal", String(internal));
+    if (isStaff && isReport && !internal && files.length > 0) formData.set("reportMonth", reportMonth);
     appendCommentAttachments(formData, files, links);
     const hasFile = files.length > 0;
 
@@ -718,6 +722,7 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
 
       form.reset();
       setInternal(false);
+      setIsReport(false);
       setFiles([]);
       setLinks([]);
     });
@@ -745,6 +750,35 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
         allowLinks={isStaff}
         onFileError={setError}
       />
+
+      {/* Informe mensual: liga el archivo a un mes y avisa al cliente por correo */}
+      {isStaff && files.length > 0 && !internal && (
+        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isReport}
+              onChange={(e) => setIsReport(e.target.checked)}
+              className="rounded"
+            />
+            Es el informe mensual del cliente
+          </label>
+          {isReport && (
+            <>
+              <input
+                type="month"
+                value={reportMonth}
+                onChange={(e) => setReportMonth(e.target.value)}
+                aria-label="Mes del informe"
+                className="border border-gray-300 rounded-md px-2 py-1 text-sm bg-white text-gray-900"
+              />
+              <span className="text-xs text-gray-400">
+                Al enviarlo, el cliente recibe un correo con el enlace.
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       {error && (
         <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 whitespace-pre-line">

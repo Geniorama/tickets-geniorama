@@ -5,12 +5,15 @@ import { FileText, Paperclip, X } from "lucide-react";
 import { addAttachment } from "@/actions/attachment.actions";
 import { callAction } from "@/lib/run-action";
 import { FILE_RULES, formatFileSize, splitFiles } from "@/lib/file-rules";
+import { currentMonthKey } from "@/lib/monthly-reports";
 
 export function AttachmentUploader({ ticketId }: { ticketId: string }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isReport, setIsReport] = useState(false);
+  const [reportMonth, setReportMonth] = useState(() => currentMonthKey());
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const { valid, errors } = splitFiles(Array.from(e.target.files ?? []), FILE_RULES.attachment);
@@ -34,6 +37,7 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
     for (const file of selectedFiles) {
       formData.append("files", file);
     }
+    if (isReport && reportMonth) formData.append("reportMonth", reportMonth);
 
     startTransition(async () => {
       const result = await callAction(() => addAttachment(ticketId, formData), { timeoutMs: 120000 });
@@ -41,6 +45,7 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
         setError(result.error);
       } else {
         setSelectedFiles([]);
+        setIsReport(false);
       }
     });
   }
@@ -127,6 +132,28 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
           ))}
         </ul>
       )}
+
+      {/* Informe mensual del cliente: lo liga a un mes y le avisa por correo */}
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.75rem", fontSize: "0.8125rem", color: "var(--app-body-text)" }}>
+          <label style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem", cursor: "pointer" }}>
+            <input type="checkbox" checked={isReport} onChange={(e) => setIsReport(e.target.checked)} />
+            Es el informe mensual del cliente
+          </label>
+          {isReport && (
+            <>
+              <input
+                type="month"
+                value={reportMonth}
+                onChange={(e) => setReportMonth(e.target.value)}
+                aria-label="Mes del informe"
+                style={{ border: "1px solid var(--app-border)", borderRadius: "0.375rem", padding: "0.25rem 0.5rem", backgroundColor: "var(--app-bg)", color: "var(--app-body-text)" }}
+              />
+              <span style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
+                Al subirlo, el cliente recibe un correo con el enlace.
+              </span>
+            </>
+          )}
+        </div>
 
       {/* Botón subir */}
       {selectedFiles.length > 0 && (

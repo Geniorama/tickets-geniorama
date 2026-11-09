@@ -879,12 +879,16 @@ model CommentAttachment {
   name        String?
   storagePath String? @map("storage_path") // null para enlaces
 
+  // «YYYY-MM» cuando es el informe mensual de un cliente (AG·P-5).
+  reportMonth String? @map("report_month")
+
   commentId String   @map("comment_id")
   createdAt DateTime @default(now()) @map("created_at")
 
   comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
 
   @@index([commentId])
+  @@index([reportMonth])
   @@map("comment_attachments")
 }
 
@@ -908,12 +912,17 @@ model Attachment {
   storagePath String? @map("storage_path") // null en enlaces
   position    Int     @default(0)
 
+  // «YYYY-MM» cuando el archivo es el informe mensual de un cliente (AG·P-5).
+  // null en cualquier otro adjunto. Alimenta la sección «Informes» del cliente.
+  reportMonth String? @map("report_month")
+
   uploadedById String   @map("uploaded_by_id")
   createdAt    DateTime @default(now()) @map("created_at")
 
   uploadedBy User @relation("AttachmentUploadedBy", fields: [uploadedById], references: [id])
 
   @@index([entityType, entityId, position, createdAt])
+  @@index([reportMonth])
   @@index([uploadedById])
   @@map("attachments")
 }

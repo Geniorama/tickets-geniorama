@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { requireCan } from "@/lib/access/can";
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
 import { addFileAttachments, deleteAttachment as removeAttachment } from "@/lib/attachments";
+import { parseReportMonth } from "@/lib/monthly-reports";
+import { announceMonthlyReport } from "@/lib/monthly-report-notice";
 
 export async function addAttachment(ticketId: string, formData: FormData) {
   const session = await getRequiredSession();
@@ -18,15 +20,27 @@ export async function addAttachment(ticketId: string, formData: FormData) {
     return { error: "No se seleccionó ningún archivo" };
   }
 
-  const { errors } = await addFileAttachments({
+  // «Informe mensual»: el archivo queda ligado a un mes y el cliente recibe aviso.
+  const reportMonth = parseReportMonth(formData.get("reportMonth"));
+  if (formData.get("reportMonth") && !reportMonth) {
+    return { error: "El mes del informe no es válido" };
+  }
+
+  const { errors, uploaded } = await addFileAttachments({
     entityType: "TICKET",
     entityId: ticketId,
     storageKey: ticketId,
     files,
     uploadedById: session.user.id,
+    reportMonth,
   });
 
+  if (reportMonth && uploaded > 0) {
+    await announceMonthlyReport(ticketId, reportMonth);
+  }
+
   revalidatePath(`/tickets/${ticketId}`);
+  revalidatePath("/informes");
   if (errors.length > 0) return { error: errors.join(" | ") };
   return { success: true };
 }

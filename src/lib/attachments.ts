@@ -54,6 +54,7 @@ export async function addFileAttachments({
   storageKey,
   files,
   uploadedById,
+  reportMonth,
 }: {
   entityType: EntityType;
   entityId: string;
@@ -61,10 +62,13 @@ export async function addFileAttachments({
   storageKey: string;
   files: File[];
   uploadedById: string;
-}): Promise<{ errors: string[] }> {
+  /** «YYYY-MM» si los archivos son el informe mensual del cliente. */
+  reportMonth?: string | null;
+}): Promise<{ errors: string[]; uploaded: number }> {
   const errors: string[] = [];
+  let uploaded = 0;
   const valid = files.filter((f) => f instanceof File && f.size > 0);
-  if (valid.length === 0) return { errors };
+  if (valid.length === 0) return { errors, uploaded };
 
   let position = await nextPosition(entityType, entityId);
 
@@ -85,15 +89,17 @@ export async function addFileAttachments({
           fileUrl,
           storagePath,
           position: position++,
+          reportMonth: reportMonth ?? null,
           uploadedById,
         },
       });
+      uploaded++;
     } catch (err) {
       errors.push(`${file.name}: ${err instanceof Error ? err.message : "Error desconocido"}`);
     }
   }
 
-  return { errors };
+  return { errors, uploaded };
 }
 
 /** Registra enlaces. Devuelve el primer error de validación, si lo hay. */

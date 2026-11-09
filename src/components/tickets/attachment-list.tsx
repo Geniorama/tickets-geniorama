@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import type { Attachment } from "@/generated/prisma";
 import { deleteAttachment } from "@/actions/attachment.actions";
 import { fireAction } from "@/lib/run-action";
+import { reportMonthLabel } from "@/lib/monthly-reports";
 
 function fileIcon(fileName: string) {
   const ext = fileName.split(".").pop()?.toLowerCase();
@@ -55,6 +56,11 @@ function AttachmentRow({
     <li className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 border border-gray-200 text-sm">
       <span className="text-base">{fileIcon(attachment.fileName)}</span>
       <span className="flex-1 truncate text-gray-700">{attachment.fileName}</span>
+      {attachment.reportMonth && (
+        <span className="shrink-0 rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
+          Informe · {reportMonthLabel(attachment.reportMonth)}
+        </span>
+      )}
       <a
         href={attachment.fileUrl}
         target="_blank"

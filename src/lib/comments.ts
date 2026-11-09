@@ -47,6 +47,8 @@ export type NewAttachment = {
   url: string;
   name: string | null;
   storagePath: string | null;
+  /** «YYYY-MM» si es el informe mensual de un cliente. */
+  reportMonth?: string | null;
 };
 
 /**

@@ -16,6 +16,8 @@ import {
 import { emitCommentHook } from "@/lib/hooks/dispatch";
 import { recordActivity } from "@/lib/activity/record";
 import { entityLabel } from "@/lib/activity/label";
+import { parseReportMonth } from "@/lib/monthly-reports";
+import { announceMonthlyReport } from "@/lib/monthly-report-notice";
 
 const addCommentSchema = z.object({
   body: z.string().min(1, "El comentario no puede estar vacío"),
@@ -57,6 +59,10 @@ export async function addComment(ticketId: string, formData: FormData) {
     }
   }
 
+  // «Informe mensual»: solo el equipo, en un comentario visible y con archivo.
+  const reportMonth =
+    staff && !parsed.data.isInternal ? parseReportMonth(formData.get("reportMonth")) : null;
+
   const files = formData.getAll("attachmentFiles").filter((f): f is File => f instanceof File && f.size > 0);
   for (const file of files) {
     if (!staff) {
@@ -67,7 +73,7 @@ export async function addComment(ticketId: string, formData: FormData) {
     if (validationError) return { error: `"${file.name}": ${validationError}` };
     try {
       const { storagePath, fileUrl } = await uploadFile(file, ticketId);
-      attachmentsData.push({ type: "file", url: fileUrl, name: file.name, storagePath });
+      attachmentsData.push({ type: "file", url: fileUrl, name: file.name, storagePath, reportMonth });
     } catch (err) {
       return { error: err instanceof Error ? err.message : "Error al subir archivo" };
     }
@@ -83,6 +89,10 @@ export async function addComment(ticketId: string, formData: FormData) {
       ...(attachmentsData.length ? { attachments: { create: attachmentsData } } : {}),
     },
   });
+
+  if (reportMonth && attachmentsData.some((a) => a.type === "file")) {
+    await announceMonthlyReport(ticketId, reportMonth);
+  }
 
   // Las notas internas las descarta el propio despachador; aquí se avisa igual
   // para no tener dos criterios distintos sobre qué es interno.

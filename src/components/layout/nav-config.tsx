@@ -3,7 +3,7 @@ import {
   BarChart3, FolderKanban, ListTodo, TrendingUp, Server as ServerIcon, Globe,
   KeyRound, Plug, Sparkles, Repeat, Webhook, LayoutList, LayoutTemplate,
   CalendarClock, Wrench, Briefcase, ShieldCheck, Handshake, Target, Receipt,
-  History,
+  History, FileText,
 } from "lucide-react";
 import { GenieIcon } from "@/components/ui/genie-icon";
 import type { AppKey, Role } from "@/generated/prisma";
@@ -86,6 +86,7 @@ export const APP_SECTIONS: Record<AppKey, NavSection[]> = {
     { href: "/mis-empresas",  label: "Mis empresas",  icon: Building2,  isRoot: true },
     { href: "/mis-planes",    label: "Mis planes",    icon: CreditCard },
     { href: "/mis-servicios", label: "Mis servicios", icon: ServerIcon },
+    { href: "/informes",      label: "Informes",      icon: FileText, roles: ["CLIENTE"] },
   ],
   ADMIN: [
     { href: "/admin/users",         label: "Usuarios",      icon: Users,      isRoot: true, requires: "gestionar" },
@@ -127,7 +128,7 @@ const EXTRA_PREFIXES: Partial<Record<AppKey, string[]>> = {
   PROYECTOS: ["/proyectos", "/tareas", "/admin/tareas-recurrentes"],
   TICKETS:   ["/tickets", "/reportes", "/admin/tickets-recurrentes"],
   INFRAESTRUCTURA: ["/admin/sitios", "/admin/servicios"],
-  PORTAL:    ["/mis-empresas", "/mis-planes", "/mis-servicios"],
+  PORTAL:    ["/mis-empresas", "/mis-planes", "/mis-servicios", "/informes"],
   ADMIN:     ["/admin/users", "/admin/companies", "/admin/plans", "/admin/estadisticas", "/admin/integraciones", "/admin/actividad"],
   CRM:       ["/crm"],
   FACTURACION: ["/facturacion"],
