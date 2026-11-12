@@ -38,7 +38,63 @@ const createTicketSchema = z.object({
   siteId: z.string().optional(),
   companyId: z.string().optional(),
   dueDate: z.string().optional(),
+  /** Ids de empresa separados por coma: la misma incidencia en otras empresas (AG·P-8). */
+  alsoCompanyIds: z.string().optional(),
 });
+
+/** Una empresa a la que se replica un ticket, con lo que se le cargó. */
+interface SiblingTarget {
+  companyName: string;
+  clientId: string | null;
+  planId: string | null;
+  siteId: string | null;
+}
+
+/**
+ * Resuelve a qué cliente, plan y sitio de cada empresa va la copia de un ticket
+ * transversal. Solo se decide por ellos cuando no hay duda —el único cliente,
+ * plan o sitio—: con varios no se adivina, se pide abrir ese ticket aparte.
+ * Devuelve el error en lugar de crear nada a medias.
+ */
+async function resolveSiblingTargets(
+  companyIds: string[],
+): Promise<{ targets: SiblingTarget[] } | { error: string }> {
+  const targets: SiblingTarget[] = [];
+  for (const id of companyIds) {
+    const company = await prisma.company.findUnique({
+      where: { id },
+      select: { name: true, isActive: true },
+    });
+    if (!company || !company.isActive) return { error: "Una de las empresas elegidas no existe o está inactiva" };
+
+    const [clients, plans, sites] = await Promise.all([
+      prisma.user.findMany({
+        where: { role: "CLIENTE", isActive: true, companies: { some: { id } } },
+        select: { id: true },
+        take: 2,
+      }),
+      prisma.plan.findMany({ where: { companyId: id, isActive: true }, select: { id: true }, take: 2 }),
+      prisma.site.findMany({ where: { companyId: id, isActive: true }, select: { id: true }, take: 2 }),
+    ]);
+
+    const clientId = clients.length === 1 ? clients[0].id : null;
+    const planId = plans.length === 1 ? plans[0].id : null;
+    // Un ticket queda atado a su empresa por el plan o el cliente: sin ninguno de
+    // los dos no se sabría de quién es.
+    if (!clientId && !planId && clients.length + plans.length > 0) {
+      return {
+        error: `«${company.name}» tiene varios clientes o planes y no se puede elegir uno solo: ábrele su ticket aparte`,
+      };
+    }
+    targets.push({
+      companyName: company.name,
+      clientId,
+      planId,
+      siteId: sites.length === 1 ? sites[0].id : null,
+    });
+  }
+  return { targets };
+}
 
 export async function createTicket(formData: FormData) {
   const session = await getRequiredSession();
@@ -54,6 +110,7 @@ export async function createTicket(formData: FormData) {
     siteId: formData.get("siteId") || undefined,
     companyId: formData.get("companyId") || undefined,
     dueDate: formData.get("dueDate") || undefined,
+    alsoCompanyIds: formData.get("alsoCompanyIds") || undefined,
   });
 
   if (!parsed.success) {
@@ -111,6 +168,19 @@ export async function createTicket(formData: FormData) {
           return { error: "Elige un cliente o un plan de la empresa, para que el ticket quede asociado a ella" };
         }
       }
+    }
+  }
+
+  // Incidencia transversal (AG·P-8): el mismo ticket en otras empresas. Solo el
+  // equipo, y no en borradores —un borrador es privado y aún no existe para nadie—.
+  let siblingTargets: SiblingTarget[] = [];
+  if (isStaff(session.user.role) && !isDraft && parsed.data.alsoCompanyIds) {
+    const ids = [...new Set(parsed.data.alsoCompanyIds.split(",").map((s) => s.trim()).filter(Boolean))]
+      .filter((id) => id !== parsed.data.companyId);
+    if (ids.length > 0) {
+      const resolved = await resolveSiblingTargets(ids);
+      if ("error" in resolved) return { error: resolved.error };
+      siblingTargets = resolved.targets;
     }
   }
 
@@ -231,12 +301,54 @@ export async function createTicket(formData: FormData) {
     );
   }
 
+  // Las copias para las demás empresas: mismo contenido, cada una con su
+  // código, cliente, plan y sitio. Sin adjuntos ni accesos de Bóveda: son del
+  // ticket original y no se duplican sin que nadie lo pida.
+  const checklistGroups = parseChecklistGroups(formData.get("checklist"));
+  const siblings: { id: string; companyName: string }[] = [];
+  for (const target of siblingTargets) {
+    const siblingPrefix = ticketPrefix(target.companyName);
+    const sibling = await prisma.$transaction(async (tx) => {
+      const last = await tx.ticket.findFirst({
+        where: { prefix: siblingPrefix },
+        orderBy: { number: "desc" },
+        select: { number: true },
+      });
+      return tx.ticket.create({
+        data: {
+          title: parsed.data.title,
+          description: parsed.data.description,
+          priority: parsed.data.priority,
+          category: parsed.data.category ?? null,
+          assignedToId: parsed.data.assignedToId ?? null,
+          clientId: target.clientId,
+          createdById: session.user.id,
+          planId: target.planId,
+          siteId: target.siteId,
+          dueDate,
+          prefix: siblingPrefix,
+          number: (last?.number ?? 0) + 1,
+          reviewers: { connect: reviewerIds.map((id) => ({ id })) },
+        },
+      });
+    });
+    await createChecklistGroups(
+      { entityType: "TICKET", entityId: sibling.id },
+      checklistGroups,
+      session.user.id,
+    );
+    siblings.push({ id: sibling.id, companyName: target.companyName });
+  }
+
   // Resolver nombre del asignado para enriquecer notificaciones
   const assignee = ticket.assignedToId
     ? await prisma.user.findUnique({ where: { id: ticket.assignedToId }, select: { name: true } })
     : null;
 
   const gchatParts: string[] = [`"${ticket.title}"`];
+  if (siblings.length > 0) {
+    gchatParts.push(`También en: ${siblings.map((x) => x.companyName).join(", ")}`);
+  }
   if (assignee?.name) gchatParts.push(`Asignado a: ${assignee.name}`);
   if (ticket.dueDate) {
     const fmt = ticket.dueDate.toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
@@ -285,6 +397,7 @@ export async function createTicket(formData: FormData) {
   // que un borrador no sale de aquí hasta que alguien lo publica.
   if (!isDraft) {
     emitTicketHook("ticket.created", ticket.id, { actor: session.user });
+    for (const x of siblings) emitTicketHook("ticket.created", x.id, { actor: session.user });
   }
 
   revalidatePath("/tickets");

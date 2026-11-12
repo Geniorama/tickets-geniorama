@@ -9,6 +9,15 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.137.0] — 2026-11-12
+
+### Nuevo: un ticket para varias empresas a la vez (AG·P-8)
+- Al crear un ticket, el equipo puede elegir **«También en estas empresas»**: se abre el mismo ticket en cada una, con su propio código, para incidencias que afectan a varios clientes (por ejemplo una actualización de seguridad).
+- A cada empresa se le carga su único cliente, plan y sitio. Si tiene varios clientes o planes y no hay uno solo que elegir, el servidor lo avisa **antes de crear nada** y ese ticket se abre aparte.
+- Las copias llevan el mismo contenido, prioridad, categoría, responsable, revisores, fecha límite y checklists. No copian los adjuntos ni los accesos de Bóveda, y no aplica a borradores.
+- Cada copia dispara su evento `ticket.created`; el aviso al canal del equipo es uno solo y nombra las demás empresas.
+- Sin migración.
+
 ## [1.136.1] — 2026-11-09
 
 ### Corregido: el cliente no podía elegir su plan al crear un ticket

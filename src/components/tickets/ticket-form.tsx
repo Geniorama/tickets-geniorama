@@ -67,6 +67,8 @@ export function TicketForm({
   const categoryTouched = useRef(!!prefill?.category);
   const [reviewerIds, setReviewerIds] = useState<string[]>([]);
   const [vaultEntryIds, setVaultEntryIds] = useState<string[]>([]);
+  // Otras empresas a las que afecta la misma incidencia (AG·P-8)
+  const [alsoCompanyIds, setAlsoCompanyIds] = useState<string[]>([]);
   const [checklistItems, setChecklistItems] = useState<ChecklistGroup[]>(prefill?.checklist ?? []);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -381,6 +383,34 @@ export function TicketForm({
           </select>
           <p className="text-xs text-gray-400 mt-1">
             Define de quién es el ticket y qué clientes, planes y sitios puedes elegir.
+          </p>
+        </div>
+      )}
+
+      {byCompany && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            También en estas empresas <span className="text-gray-400 font-normal">(opcional)</span>
+          </label>
+          <MultiSelect
+            options={companyOptions
+              .filter((c) => c.id !== companyId)
+              .map((c) => ({ value: c.id, label: c.label.trim() }))}
+            value={alsoCompanyIds.filter((id) => id !== companyId)}
+            onChange={setAlsoCompanyIds}
+            placeholder="Solo en la empresa elegida"
+            triggerClassName={inputClass}
+            searchable
+          />
+          <input
+            type="hidden"
+            name="alsoCompanyIds"
+            value={alsoCompanyIds.filter((id) => id !== companyId).join(",")}
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Para una incidencia que afecta a varias empresas: se abre un ticket igual en cada una, con su
+            propio código. A cada una se le carga su único cliente, plan y sitio; si tiene varios, avisa
+            para abrirle el ticket aparte. No aplica a borradores ni copia los adjuntos.
           </p>
         </div>
       )}
