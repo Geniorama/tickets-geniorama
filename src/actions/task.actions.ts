@@ -28,6 +28,8 @@ import { deleteTimeEntriesFor } from "@/lib/time-entries";
 import { emitDeletedHook, emitTaskHook } from "@/lib/hooks/dispatch";
 import { diffFields } from "@/lib/activity/record";
 import { taskPayload } from "@/lib/hooks/payload";
+import { nextTaskNumber } from "@/lib/task-number";
+import { taskCode } from "@/lib/task-code";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -174,15 +176,10 @@ export async function createTask(projectIdArg: string | null, formData: FormData
     const reviewerIds = await resolveReviewerIds(parseReviewerIds(formData), session.user.id);
 
     task = await prisma.$transaction(async (tx) => {
-      const last = await tx.task.findFirst({
-        where: { projectId },
-        orderBy: { number: "desc" },
-        select: { number: true },
-      });
       return tx.task.create({
         data: {
           // El número se asigna solo al publicar; los borradores quedan en 0
-          number:         isDraft ? 0 : (last?.number ?? 0) + 1,
+          number:         isDraft ? 0 : await nextTaskNumber(tx, projectId),
           title:          parsed.data.title,
           description:    parsed.data.description,
           status:         parsed.data.status,
@@ -294,14 +291,9 @@ export async function publishTask(taskId: string, projectId: string | null) {
 
   // Asignar el número/código consecutivo recién al publicar
   await prisma.$transaction(async (tx) => {
-    const last = await tx.task.findFirst({
-      where: { projectId: task.projectId },
-      orderBy: { number: "desc" },
-      select: { number: true },
-    });
     await tx.task.update({
       where: { id: taskId },
-      data: { isDraft: false, number: (last?.number ?? 0) + 1 },
+      data: { isDraft: false, number: await nextTaskNumber(tx, task.projectId) },
     });
   });
 
@@ -658,16 +650,51 @@ export async function moveTask(taskId: string, fromProjectId: string, toProjectI
   const session = await getRequiredSession();
   if (!isAdmin(session.user.role)) return { error: "Sin permisos" };
 
-  const maxTask = await prisma.task.findFirst({
-    where: { projectId: toProjectId },
-    orderBy: { number: "desc" },
-    select: { number: true },
-  });
-  const newNumber = (maxTask?.number ?? 0) + 1;
-
-  await prisma.task.update({
+  // Lo que manda es dónde está la tarea de verdad, no lo que diga el navegador.
+  const task = await prisma.task.findUnique({
     where: { id: taskId },
-    data: { projectId: toProjectId, number: newNumber },
+    select: { number: true, isDraft: true, projectId: true, project: { select: { name: true } } },
+  });
+  if (!task) return { error: "Tarea no encontrada" };
+  if (!task.projectId || !task.project) return { error: "Esta tarea no pertenece a ningún proyecto" };
+  if (task.projectId !== fromProjectId) {
+    return { error: "La tarea ya no está en ese proyecto. Recarga la página e inténtalo de nuevo" };
+  }
+  if (task.projectId === toProjectId) return { error: "La tarea ya está en ese proyecto" };
+
+  // El destino tiene que poder recibirla: un proyecto inactivo no ofrece tareas
+  // nuevas y uno en borrador solo lo ve su creador, así que la tarea
+  // desaparecería para el resto del equipo.
+  const target = await prisma.project.findUnique({
+    where: { id: toProjectId },
+    select: { id: true, name: true, isActive: true, isDraft: true, isPrivate: true },
+  });
+  if (!target) return { error: "El proyecto de destino no existe" };
+  if (!target.isActive) return { error: "El proyecto de destino está inactivo" };
+  if (target.isDraft) return { error: "El proyecto de destino es un borrador: publícalo antes de mover tareas a él" };
+
+  // Un borrador no tiene número todavía; lo recibirá al publicarse.
+  const oldCode = task.isDraft ? null : taskCode(task.project.name, task.number);
+  const newNumber = await prisma.$transaction(async (tx) => {
+    const next = task.isDraft ? 0 : await nextTaskNumber(tx, toProjectId);
+    await tx.task.update({
+      where: { id: taskId },
+      data: { projectId: toProjectId, number: next },
+    });
+    return next;
+  });
+
+  // Al historial y a los hooks, con el código de antes y el de ahora: quien
+  // citó el viejo en un comentario, un correo o un webhook puede seguirle la
+  // pista. Se avisa con el ámbito del destino, que es donde la tarea vive ya.
+  emitTaskHook("task.updated", taskId, {
+    actor: session.user,
+    projectId: target.id,
+    projectIsPrivate: target.isPrivate,
+    changes: {
+      project: { from: task.project.name, to: target.name },
+      ...(oldCode ? { code: { from: oldCode, to: taskCode(target.name, newNumber) } } : {}),
+    },
   });
 
   revalidatePath(`/proyectos/${fromProjectId}`);
@@ -695,10 +722,9 @@ export async function duplicateTask(
   if (!original) return { error: "Tarea no encontrada" };
 
   const copy = await prisma.$transaction(async (tx) => {
-    const count = await tx.task.count({ where: { projectId: original.projectId } });
     const created = await tx.task.create({
       data: {
-        number:         count + 1,
+        number:         await nextTaskNumber(tx, original.projectId),
         title:          `Copia de ${original.title}`,
         description:    original.description,
         status:         "PENDIENTE",

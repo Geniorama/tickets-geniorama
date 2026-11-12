@@ -162,6 +162,8 @@ export const FIELDS: Record<string, FieldSpec> = {
   assignedToId:   { label: "el responsable",      kind: "user" },
   reviewers:      { label: "los revisores",       kind: "list" },
   category:       { label: "la categoría",        kind: "text" },
+  project:        { label: "el proyecto",         kind: "text" },
+  code:           { label: "el código",           kind: "text" },
   isPrivate:      { label: "la privacidad",       kind: "bool", boolLabels: ["público", "privado"] },
   estimatedHours: { label: "las horas estimadas", kind: "text" },
 

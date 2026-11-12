@@ -9,6 +9,15 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.137.1] — 2026-11-12
+
+### Corregido: mover una tarea a otro proyecto ya no puede repetir códigos
+- **Numeración sin choques.** El número de tarea (`SWG-3`) se calculaba como «máximo + 1» sin bloqueo: dos movimientos o creaciones a la vez en el mismo proyecto podían quedarse con el mismo código. Ahora el proyecto se bloquea mientras se asigna el número (crear, publicar, duplicar y mover).
+- **Duplicar una tarea** numeraba contando las tareas del proyecto; tras mover o borrar una, la cuenta bajaba y la copia repetía un código existente. Ahora usa el siguiente número real.
+- **El código anterior queda en el historial.** Al mover una tarea se registra «cambió el proyecto» y «cambió el código» (de `AG·P-4` a `XXX-7`), y el evento `task.updated` sale a los webhooks con ese antes y después, para poder seguirle la pista a quien citó el código viejo.
+- **El destino se valida en el servidor.** Se rechaza un proyecto que no exista, esté inactivo o sea un borrador, y mover a donde ya está. También se comprueba que la tarea siga en el proyecto de origen, para no actuar sobre una pantalla desactualizada. Un borrador movido conserva el número 0 hasta publicarse.
+- Sin migración.
+
 ## [1.137.0] — 2026-11-12
 
 ### Nuevo: un ticket para varias empresas a la vez (AG·P-8)
