@@ -8,6 +8,7 @@ import type { ActiveTimer } from "@/providers/timer-provider";
 import { findRunningTimerForUser } from "@/lib/time-entries";
 import { getAccessibleApps, getGrants } from "@/lib/access/can";
 import { agentChatAvailableFor } from "@/lib/agent-chat";
+import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 
 // Evitar que Next.js cachee el layout protegido en el cliente.
 // Sin esto, después del logout el router cache puede servir el dashboard
@@ -67,6 +68,7 @@ export default async function DashboardLayout({
           <OverdueAlertLoader userId={userId} />
         </Suspense>
         {children}
+        <FeedbackWidget />
       </DashboardShell>
     </TimerProvider>
   );

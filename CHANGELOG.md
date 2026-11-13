@@ -9,6 +9,17 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.138.0] — 2026-11-12
+
+### Nuevo: buzón de feedback dentro de la app (AG·P-1)
+- **Botón «Feedback»** flotante en todas las pantallas, para cualquier rol (cliente, colaborador, administrador). Formulario corto: tipo (Error / Idea / Algo confuso / Otro), mensaje y captura de pantalla opcional (imagen, hasta 5 MB).
+- **Contexto automático:** quién escribe, su rol y su empresa (los pone el servidor), más la pantalla, el navegador y el tamaño de ventana (los manda el navegador). Se congela al enviar, aunque el usuario o la empresa cambien después.
+- **Nueva pantalla Administración → Feedback** (nivel Gestor): listado con filtros por tipo, estado y empresa, contadores por estado y estados Nuevo / En revisión / Convertido en tarea / Descartado.
+- **«Convertir en tarea»:** crea la tarea en el proyecto elegido (por defecto el de Producto) con el mensaje y todo el contexto en la descripción, la prioridad Alta si era un error, y deja el feedback enlazado y en «Convertido». «Convertido» solo se alcanza convirtiendo.
+- **MCP:** nueva herramienta `list_feedback` (solo con nivel Gestor en Administración) para que el Agente de Producto lea el buzón; filtra por estado, tipo, empresa y fecha.
+- Cada feedback nuevo avisa al canal del equipo.
+- **Migración aditiva** `20261112230000_feedback`: tablas y tipos nuevos, sin tocar datos existentes.
+
 ## [1.137.1] — 2026-11-12
 
 ### Corregido: mover una tarea a otro proyecto ya no puede repetir códigos

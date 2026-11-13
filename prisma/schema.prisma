@@ -202,6 +202,7 @@ model Company {
   taxId           String?     @map("tax_id")
   logoUrl         String?     @map("logo_url")
   logoStoragePath String?     @map("logo_storage_path")
+  feedback        Feedback[]  @relation("FeedbackCompany")
   isActive        Boolean     @default(true) @map("is_active")
 
   // ── CRM ────────────────────────────────────────────────────────────────────
@@ -412,6 +413,7 @@ model User {
   assignedTasks         Task[]               @relation("TaskAssignedTo")
   reviewingTasks        Task[]               @relation("TaskReviewers")
   createdTasks          Task[]               @relation("TaskCreatedBy")
+  feedback              Feedback[]           @relation("FeedbackAuthor")
   createdServices       Service[]            @relation("ServiceCreatedBy")
   createdVaultEntries   VaultEntry[]         @relation("VaultCreatedBy")
   vaultShares           VaultShare[]         @relation("VaultSharedWith")
@@ -729,6 +731,7 @@ model Task {
   reviewers         User[]                 @relation("TaskReviewers")
   createdBy         User                   @relation("TaskCreatedBy", fields: [createdById], references: [id])
   recurringTemplate RecurringTaskTemplate? @relation(fields: [recurringTemplateId], references: [id], onDelete: SetNull)
+  feedback          Feedback[]             @relation("FeedbackTask")
 
   @@map("tasks")
 }
@@ -1897,4 +1900,64 @@ model OAuthGrant {
 
   @@index([userId])
   @@map("oauth_grants")
+}
+
+// ─── Buzón de feedback (AG·P-1) ───────────────────────────────────────────────
+
+enum FeedbackType {
+  ERROR
+  IDEA
+  CONFUSO
+  OTRO
+}
+
+enum FeedbackStatus {
+  NUEVO
+  EN_REVISION
+  CONVERTIDO
+  DESCARTADO
+}
+
+/// Lo que clientes y equipo dejan desde cualquier pantalla de la app.
+///
+/// El contexto (quién, de qué empresa, en qué pantalla, con qué navegador) se
+/// congela al enviarlo: si el usuario o la empresa cambian después, el mensaje
+/// debe seguir diciendo desde dónde se escribió. De ahí que `userName`,
+/// `userRole` y `companyName` vivan aquí además de las relaciones, que se
+/// sueltan (`SetNull`) en lugar de arrastrar el feedback al borrar.
+model Feedback {
+  id      String         @id @default(cuid())
+  type    FeedbackType
+  message String         @db.Text
+  status  FeedbackStatus @default(NUEVO)
+
+  userId      String? @map("user_id")
+  userName    String  @map("user_name")
+  userEmail   String  @map("user_email")
+  userRole    String  @map("user_role")
+  companyId   String? @map("company_id")
+  companyName String? @map("company_name")
+
+  pageUrl   String? @map("page_url")
+  userAgent String? @map("user_agent")
+  viewport  String?
+
+  screenshotUrl  String? @map("screenshot_url")
+  screenshotPath String? @map("screenshot_path")
+
+  /// La tarea en la que se convirtió, si se convirtió.
+  taskId String? @map("task_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user    User?    @relation("FeedbackAuthor", fields: [userId], references: [id], onDelete: SetNull)
+  company Company? @relation("FeedbackCompany", fields: [companyId], references: [id], onDelete: SetNull)
+  task    Task?    @relation("FeedbackTask", fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([type])
+  @@index([companyId])
+  @@index([userId])
+  @@map("feedback")
 }

@@ -194,6 +194,20 @@ export async function uploadAvatar(
   return { storagePath, fileUrl };
 }
 
+/** Captura de pantalla que acompaña a un feedback (AG·P-1). */
+export async function uploadFeedbackScreenshot(
+  file: File,
+  feedbackId: string
+): Promise<{ storagePath: string; fileUrl: string }> {
+  const ext = file.name.split(".").pop();
+  const storagePath = `feedback/${feedbackId}/${crypto.randomUUID()}.${ext}`;
+
+  await putObject(storagePath, file);
+  const fileUrl = await getFileUrl(storagePath);
+
+  return { storagePath, fileUrl };
+}
+
 export async function deleteFile(storagePath: string): Promise<void> {
   await r2.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: storagePath }));
 }

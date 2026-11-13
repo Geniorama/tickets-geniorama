@@ -145,6 +145,64 @@ export async function registerAdminTools(server: McpServer, user: ApiUser, canWr
     },
   );
 
+  // ─── Feedback (AG·P-1) ─────────────────────────────────────────────────────
+
+  server.registerTool(
+    "list_feedback",
+    {
+      title: "Administración: listar feedback",
+      description:
+        "Feedback que clientes y equipo dejaron desde el botón «Feedback» de la app, del más reciente al más " +
+        "antiguo: tipo, mensaje, quién y de qué empresa, pantalla, navegador, captura y la tarea en la que se " +
+        "convirtió. Filtra por estado (NUEVO, EN_REVISION, CONVERTIDO, DESCARTADO), tipo o fecha de envío; " +
+        "para la revisión semanal basta status=NUEVO.",
+      inputSchema: {
+        status: z.enum(["NUEVO", "EN_REVISION", "CONVERTIDO", "DESCARTADO"]).optional(),
+        type: z.enum(["ERROR", "IDEA", "CONFUSO", "OTRO"]).optional(),
+        companyId: z.string().optional(),
+        since: date.optional().describe("Solo el enviado desde esta fecha"),
+        limit: z.number().int().min(1).max(100).optional(),
+        cursor: z.string().optional(),
+      },
+      annotations: readOnly,
+    },
+    async ({ status, type, companyId, since, limit, cursor }) => {
+      const take = limit ?? 25;
+      const rows = await prisma.feedback.findMany({
+        where: {
+          ...(status ? { status } : {}),
+          ...(type ? { type } : {}),
+          ...(companyId ? { companyId } : {}),
+          ...(since ? { createdAt: { gte: toDate(since) as Date } } : {}),
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: take + 1,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        include: { task: { select: { id: true, projectId: true } } },
+      });
+      const hasMore = rows.length > take;
+      const page = hasMore ? rows.slice(0, take) : rows;
+      return ok({
+        feedback: page.map((f) => ({
+          id: f.id,
+          type: f.type,
+          status: f.status,
+          message: f.message,
+          author: { name: f.userName, email: f.userEmail, role: f.userRole },
+          company: f.companyId ? { id: f.companyId, name: f.companyName } : null,
+          pageUrl: f.pageUrl,
+          userAgent: f.userAgent,
+          viewport: f.viewport,
+          screenshotUrl: f.screenshotUrl,
+          taskId: f.taskId,
+          taskUrl: f.task ? `/proyectos/${f.task.projectId}/tareas/${f.task.id}` : null,
+          createdAt: f.createdAt.toISOString(),
+        })),
+        nextCursor: hasMore ? page[page.length - 1].id : null,
+      });
+    },
+  );
+
   server.registerTool(
     "admin_get_company",
     {
