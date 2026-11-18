@@ -9,6 +9,12 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.139.0] — 2026-11-18
+
+### Nuevo: duplicar cobros desde el tablero
+- Botón **Duplicar** en cada tarjeta de Facturación (requiere permiso de crear). Crea un cobro nuevo en Backlog con la misma empresa, líneas, etiquetas, responsable, fecha límite y notas, y el concepto como «Copia [nombre original]».
+- No se copian factura, abonos, link de pago ni novedades.
+
 ## [1.138.0] — 2026-11-12
 
 ### Nuevo: buzón de feedback dentro de la app (AG·P-1)

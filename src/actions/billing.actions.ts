@@ -111,6 +111,51 @@ export async function updateBillingItem(id: string, formData: FormData) {
 }
 
 /**
+ * Duplica un cobro: misma empresa, líneas, etiquetas, responsable y notas, pero
+ * como cobro nuevo en Backlog. No se copia nada que sea del hecho y no del
+ * molde: ni la factura, ni los abonos, ni el link de pago, ni las novedades.
+ */
+export async function duplicateBillingItem(id: string) {
+  const session = await requireCan("FACTURACION", "crear");
+
+  const origen = await prisma.billingItem.findUnique({
+    where: { id },
+    select: {
+      concept: true, companyId: true, dueDate: true, ownerId: true, notes: true,
+      labels: { select: { id: true } },
+      lines: {
+        orderBy: { position: "asc" },
+        select: { concept: true, amount: true, taxRate: true, categoryId: true },
+      },
+    },
+  });
+  if (!origen) return { error: "Cobro no encontrado" };
+  if (origen.lines.length === 0) return { error: "El cobro no tiene líneas que copiar" };
+
+  const r = await crearCobro(session.user, {
+    concept: `Copia ${origen.concept}`.slice(0, 200),
+    companyId: origen.companyId,
+    status: "BACKLOG",
+    lines: origen.lines,
+    dueDate: origen.dueDate,
+    invoiceDueDate: null,
+    ownerId: origen.ownerId ?? undefined,
+    notes: origen.notes ?? undefined,
+  });
+  if (!r.ok) return { error: r.error };
+
+  if (origen.labels.length > 0) {
+    await prisma.billingItem.update({
+      where: { id: r.id },
+      data: { labels: { connect: origen.labels.map((l) => ({ id: l.id })) } },
+    });
+  }
+
+  revalidatePath("/facturacion");
+  return { ok: true as const, id: r.id };
+}
+
+/**
  * Mueve un cobro de estado. Es lo que se hace arrastrando en el tablero.
  *
  * Ya no recibe un importe: soltar en «Abonado» abre el formulario de abonos,

@@ -7,14 +7,14 @@ import {
   useDroppable, useDraggable, type DragEndEvent, type DragStartEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Building2, CalendarClock, Hash, Paperclip } from "lucide-react";
+import { GripVertical, Building2, CalendarClock, Hash, Paperclip, Copy } from "lucide-react";
 import type { BillingStatus } from "@/generated/prisma";
 import {
   BILLING_STATUS_COLORS, BILLING_STATUS_DESCRIPTIONS, BILLING_STATUS_LABELS, isClosed, isInvoiced, pendiente,
 } from "@/lib/billing/status";
 import { formatAmount, parseAmount } from "@/lib/money";
 import { useRouter } from "next/navigation";
-import { setBillingStatus, deleteBillingItem } from "@/actions/billing.actions";
+import { setBillingStatus, deleteBillingItem, duplicateBillingItem } from "@/actions/billing.actions";
 import { CardDeleteButton } from "@/components/ui/card-delete-button";
 import { addBillingPayment } from "@/actions/billing-payments.actions";
 import { callAction } from "@/lib/run-action";
@@ -169,12 +169,14 @@ function ItemCard({ item, isDragging = false }: { item: BoardItem; isDragging?: 
 }
 
 function DraggableItem({
-  item, canEdit, canDelete, onDeleted,
+  item, canEdit, canDelete, canCreate, onDeleted, onDuplicate,
 }: {
   item: BoardItem;
   canEdit: boolean;
   canDelete: boolean;
+  canCreate: boolean;
   onDeleted: (id: string) => void;
+  onDuplicate: (id: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: item.id, disabled: !canEdit,
@@ -191,6 +193,22 @@ function DraggableItem({
           display: "flex", alignItems: "center", gap: "0.15rem",
         }}
       >
+        {canCreate && (
+          <button
+            type="button"
+            title="Duplicar cobro"
+            aria-label={`Duplicar el cobro «${item.concept}»`}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDuplicate(item.id); }}
+            style={{
+              display: "inline-flex", padding: "0.125rem", borderRadius: "0.25rem",
+              background: "none", border: "none", cursor: "pointer", color: "var(--app-text-muted)",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--app-body-text)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--app-text-muted)"; }}
+          >
+            <Copy style={{ width: "1rem", height: "1rem" }} />
+          </button>
+        )}
         {canDelete && (
           <CardDeleteButton
             title={`el cobro «${item.concept}»`}
@@ -230,14 +248,16 @@ function DraggableItem({
 }
 
 function Columna({
-  status, items, canEdit, canDelete, isOver, onDeleted,
+  status, items, canEdit, canDelete, canCreate, isOver, onDeleted, onDuplicate,
 }: {
   status: BillingStatus;
   items: BoardItem[];
   canEdit: boolean;
   canDelete: boolean;
+  canCreate: boolean;
   isOver: boolean;
   onDeleted: (id: string) => void;
+  onDuplicate: (id: string) => void;
 }) {
   const { setNodeRef } = useDroppable({ id: status });
   const color = BILLING_STATUS_COLORS[status];
@@ -297,7 +317,9 @@ function Columna({
               item={i}
               canEdit={canEdit}
               canDelete={canDelete}
+              canCreate={canCreate}
               onDeleted={onDeleted}
+              onDuplicate={onDuplicate}
             />
           ))
         )}
@@ -317,10 +339,13 @@ export function BillingBoard({
   statuses,
   canEdit,
   canDelete = false,
+  canCreate = false,
 }: {
   items: BoardItem[];
   statuses: BillingStatus[];
   canEdit: boolean;
+  /** Duplicar crea un cobro nuevo: pide el permiso de crear. */
+  canCreate?: boolean;
   /** Borrar un cobro se lleva el rastro de un dinero: pide GESTOR, no EDITAR. */
   canDelete?: boolean;
 }) {
@@ -421,6 +446,16 @@ export function BillingBoard({
     // Los totales por columna los calcula el servidor: sin esto, la cabecera
     // seguiría sumando un cobro que ya no está.
     router.refresh();
+  }
+
+  function duplicar(id: string) {
+    setError(null);
+    startTransition(async () => {
+      const r = await callAction(() => duplicateBillingItem(id), { timeoutMs: 60000 });
+      if (r && "error" in r && typeof r.error === "string") return setError(r.error);
+      // La copia nace en Backlog con totales calculados en el servidor.
+      router.refresh();
+    });
   }
 
   function mover(item: BoardItem, destino: BillingStatus, invoiceNumber?: string) {
@@ -566,8 +601,10 @@ export function BillingBoard({
               items={ordenados.filter((i) => i.status === s)}
               canEdit={canEdit}
               canDelete={canDelete}
+              canCreate={canCreate}
               isOver={overColumn === s}
               onDeleted={quitar}
+              onDuplicate={duplicar}
             />
           ))}
         </div>

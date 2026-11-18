@@ -16,6 +16,7 @@ export default async function BillingPage({
   const session = await requireCan("FACTURACION", "ver");
   const canEdit = await can(session.user, "FACTURACION", "editar");
   const canManage = await can(session.user, "FACTURACION", "gestionar");
+  const canCreate = await can(session.user, "FACTURACION", "crear");
   const { archivo } = await searchParams;
 
   // El archivo se acumula sin límite y en unos meses taparía lo que falta por
@@ -169,7 +170,7 @@ export default async function BillingPage({
         </div>
       </div>
 
-      <BillingBoard items={conNovedades as BoardItem[]} statuses={statuses} canEdit={canEdit} canDelete={canManage} />
+      <BillingBoard items={conNovedades as BoardItem[]} statuses={statuses} canEdit={canEdit} canDelete={canManage} canCreate={canCreate} />
     </div>
   );
 }
