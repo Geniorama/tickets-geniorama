@@ -9,6 +9,12 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ---
 
+## [1.140.0] — 2026-11-18
+
+### Nuevo: menú de acciones y mover listas en Facturación
+- **Menú «⋯» en cada tarjeta** con Duplicar y Eliminar: sustituye a los iconos sueltos que se montaban sobre el título. El título y las etiquetas reservan su hueco.
+- **«Mover todas a…»** en la cabecera de cada lista: pasa todos los cobros visibles de una columna a otra, previa confirmación. Respeta las mismas reglas que al arrastrar: los que no pueden pasar (sin número de factura, con abonos hacia atrás, al archivo sin estar pagados) se quedan donde están y se avisa de cuántos y por qué. «Abonado» no es destino en bloque.
+
 ## [1.139.0] — 2026-11-18
 
 ### Nuevo: duplicar cobros desde el tablero

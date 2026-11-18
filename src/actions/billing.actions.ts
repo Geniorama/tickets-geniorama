@@ -173,6 +173,40 @@ export async function setBillingStatus(id: string, status: BillingStatus, invoic
 }
 
 /**
+ * Mueve varios cobros de golpe a otra columna (la acción «Mover todas»).
+ *
+ * Cada uno pasa por `moveBillingStatus`, así que se aplican las mismas reglas
+ * que al arrastrar: los que no pueden ir —sin número de factura para
+ * «Facturado», con abonos hacia atrás, al archivo sin estar pagados— se saltan
+ * y se cuentan, en vez de abortar todo el lote. «Abonado» queda fuera: pide
+ * cuánto entró en cada cobro y no se puede deducir en masa.
+ */
+export async function moveBillingItems(ids: string[], status: BillingStatus) {
+  const session = await requireCan("FACTURACION", "editar");
+
+  if (!BILLING_STATUSES.includes(status)) return { error: "Estado no válido" };
+  if (status === "ABONADO") return { error: "A «Abonado» no se mueve en bloque: cada cobro necesita su abono." };
+  const unicos = [...new Set(ids)].slice(0, 500);
+  if (unicos.length === 0) return { error: "No hay cobros que mover" };
+
+  let movidos = 0;
+  const fallos = new Map<string, number>();
+  for (const id of unicos) {
+    const r = await moveBillingStatus(id, status, session.user);
+    if (r.ok) movidos++;
+    else fallos.set(r.error, (fallos.get(r.error) ?? 0) + 1);
+  }
+
+  revalidatePath("/facturacion");
+  return {
+    ok: true as const,
+    movidos,
+    omitidos: unicos.length - movidos,
+    motivos: [...fallos].map(([error, n]) => `${n} · ${error}`),
+  };
+}
+
+/**
  * Borra un cobro.
  *
  * `volverAlListado` distingue quién llama: desde la ficha hay que salir de una

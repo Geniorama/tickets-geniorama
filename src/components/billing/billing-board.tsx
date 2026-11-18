@@ -7,15 +7,16 @@ import {
   useDroppable, useDraggable, type DragEndEvent, type DragStartEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Building2, CalendarClock, Hash, Paperclip, Copy } from "lucide-react";
+import { GripVertical, Building2, CalendarClock, Hash, Paperclip, Copy, Trash2, MoveRight } from "lucide-react";
 import type { BillingStatus } from "@/generated/prisma";
 import {
   BILLING_STATUS_COLORS, BILLING_STATUS_DESCRIPTIONS, BILLING_STATUS_LABELS, isClosed, isInvoiced, pendiente,
 } from "@/lib/billing/status";
 import { formatAmount, parseAmount } from "@/lib/money";
 import { useRouter } from "next/navigation";
-import { setBillingStatus, deleteBillingItem, duplicateBillingItem } from "@/actions/billing.actions";
-import { CardDeleteButton } from "@/components/ui/card-delete-button";
+import { setBillingStatus, deleteBillingItem, duplicateBillingItem, moveBillingItems } from "@/actions/billing.actions";
+import { ActionMenu } from "@/components/ui/action-menu";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { addBillingPayment } from "@/actions/billing-payments.actions";
 import { callAction } from "@/lib/run-action";
 import { formatDate } from "@/lib/format-date";
@@ -106,7 +107,7 @@ function ItemCard({ item, isDragging = false }: { item: BoardItem; isDragging?: 
       }}
     >
       {item.labels.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginBottom: "0.4rem", paddingRight: "1.25rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginBottom: "0.4rem", paddingRight: "3.25rem" }}>
           {item.labels.map((l) => (
             <span
               key={l.id}
@@ -122,7 +123,7 @@ function ItemCard({ item, isDragging = false }: { item: BoardItem; isDragging?: 
         </div>
       )}
 
-      <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", lineHeight: 1.35, paddingRight: "1.25rem" }}>
+      <p style={{ fontSize: "0.875rem", fontWeight: 500, color: "var(--app-body-text)", lineHeight: 1.35, paddingRight: "3.25rem" }}>
         {item.concept}
       </p>
 
@@ -182,51 +183,27 @@ function DraggableItem({
     id: item.id, disabled: !canEdit,
   });
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
+  const [borrando, setBorrando] = useState(false);
+  const [errorBorrar, setErrorBorrar] = useState<string | null>(null);
+  const [borrandoPendiente, startBorrar] = useTransition();
 
   return (
     <div ref={setNodeRef} style={{ ...style, position: "relative" }}>
-      {/* El asa y la papelera comparten esquina: las dos van por encima del
-          enlace que cubre la tarjeta. */}
+      {/* El asa y el menú de acciones comparten esquina, por encima del enlace
+          que cubre la tarjeta. El título y las etiquetas reservan ese hueco. */}
       <div
         style={{
           position: "absolute", top: "0.5rem", right: "0.5rem", zIndex: 20,
           display: "flex", alignItems: "center", gap: "0.15rem",
         }}
       >
-        {canCreate && (
-          <button
-            type="button"
-            title="Duplicar cobro"
-            aria-label={`Duplicar el cobro «${item.concept}»`}
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDuplicate(item.id); }}
-            style={{
-              display: "inline-flex", padding: "0.125rem", borderRadius: "0.25rem",
-              background: "none", border: "none", cursor: "pointer", color: "var(--app-text-muted)",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = "var(--app-body-text)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = "var(--app-text-muted)"; }}
-          >
-            <Copy style={{ width: "1rem", height: "1rem" }} />
-          </button>
-        )}
-        {canDelete && (
-          <CardDeleteButton
-            title={`el cobro «${item.concept}»`}
-            // Con dinero ya registrado se dice el importe: mover una tarjeta
-            // con abonos hacia atrás está prohibido justamente por esto, y
-            // borrarla se lo lleva todo por delante sin más aviso que este.
-            message={
-              item.paidAmount > 0
-                ? `Este cobro de ${item.company.name} tiene ${formatAmount(item.paidAmount)} ya registrados en abonos. Se eliminarán también, con sus comprobantes. No se puede deshacer.`
-                : `Se eliminará el cobro de ${item.company.name}, con sus novedades y soportes. No se puede deshacer.`
-            }
-            onDelete={async () => {
-              const r = await callAction(() => deleteBillingItem(item.id, false));
-              if (r && "error" in r && typeof r.error === "string") return { error: r.error };
-              onDeleted(item.id);
-            }}
-          />
-        )}
+        <ActionMenu
+          ariaLabel={`Acciones del cobro «${item.concept}»`}
+          items={[
+            ...(canCreate ? [{ label: "Duplicar", icon: <Copy style={{ width: "0.875rem", height: "0.875rem" }} />, onClick: () => onDuplicate(item.id) }] : []),
+            ...(canDelete ? [{ label: "Eliminar", danger: true, icon: <Trash2 style={{ width: "0.875rem", height: "0.875rem" }} />, onClick: () => { setErrorBorrar(null); setBorrando(true); } }] : []),
+          ]}
+        />
         {canEdit && (
           <div
             {...listeners}
@@ -240,6 +217,38 @@ function DraggableItem({
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={borrando}
+        title={`¿Eliminar el cobro «${item.concept}»?`}
+        // Con dinero ya registrado se dice el importe: mover una tarjeta con
+        // abonos hacia atrás está prohibido justamente por esto, y borrarla se
+        // lo lleva todo por delante sin más aviso que este.
+        message={
+          item.paidAmount > 0
+            ? `Este cobro de ${item.company.name} tiene ${formatAmount(item.paidAmount)} ya registrados en abonos. Se eliminarán también, con sus comprobantes. No se puede deshacer.`
+            : `Se eliminará el cobro de ${item.company.name}, con sus novedades y soportes. No se puede deshacer.`
+        }
+        confirmLabel="Eliminar"
+        variant="danger"
+        isPending={borrandoPendiente}
+        onConfirm={() => {
+          setErrorBorrar(null);
+          startBorrar(async () => {
+            const r = await callAction(() => deleteBillingItem(item.id, false));
+            if (r && "error" in r && typeof r.error === "string") return setErrorBorrar(r.error);
+            setBorrando(false);
+            onDeleted(item.id);
+          });
+        }}
+        onCancel={() => { setBorrando(false); setErrorBorrar(null); }}
+      >
+        {errorBorrar && (
+          <p role="alert" style={{ padding: "0.5rem 0.75rem", backgroundColor: "rgba(220,38,38,0.1)", border: "1px solid #dc2626", borderRadius: "0.5rem", color: "#dc2626", fontSize: "0.8125rem", margin: 0 }}>
+            {errorBorrar}
+          </p>
+        )}
+      </ConfirmDialog>
       <Link href={`/facturacion/${item.id}`} style={{ display: "block", textDecoration: "none" }}>
         <ItemCard item={item} isDragging={isDragging} />
       </Link>
@@ -248,7 +257,7 @@ function DraggableItem({
 }
 
 function Columna({
-  status, items, canEdit, canDelete, canCreate, isOver, onDeleted, onDuplicate,
+  status, items, canEdit, canDelete, canCreate, isOver, onDeleted, onDuplicate, destinos, onMoveAll,
 }: {
   status: BillingStatus;
   items: BoardItem[];
@@ -258,8 +267,15 @@ function Columna({
   isOver: boolean;
   onDeleted: (id: string) => void;
   onDuplicate: (id: string) => void;
+  /** Columnas a las que se puede mandar todo lo de esta. */
+  destinos: BillingStatus[];
+  onMoveAll: (ids: string[], destino: BillingStatus) => Promise<{ error?: string; aviso?: string }>;
 }) {
   const { setNodeRef } = useDroppable({ id: status });
+  const [moviendo, setMoviendo] = useState(false);
+  const [destino, setDestino] = useState<BillingStatus | "">("");
+  const [errorMover, setErrorMover] = useState<string | null>(null);
+  const [pendienteMover, startMover] = useTransition();
   const color = BILLING_STATUS_COLORS[status];
 
   // En las columnas de cobro lo que interesa es lo que falta por entrar, no lo
@@ -284,8 +300,20 @@ function Columna({
           <span title={BILLING_STATUS_DESCRIPTIONS[status]} style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--app-body-text)" }}>
             {BILLING_STATUS_LABELS[status]}
           </span>
-          <span style={{ fontSize: "0.6875rem", fontWeight: 700, padding: "0.125rem 0.5rem", borderRadius: "9999px", backgroundColor: `${color}22`, color }}>
-            {items.length}
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
+            <span style={{ fontSize: "0.6875rem", fontWeight: 700, padding: "0.125rem 0.5rem", borderRadius: "9999px", backgroundColor: `${color}22`, color }}>
+              {items.length}
+            </span>
+            {canEdit && items.length > 0 && (
+              <ActionMenu
+                ariaLabel={`Acciones de la lista ${BILLING_STATUS_LABELS[status]}`}
+                items={[{
+                  label: "Mover todas a…",
+                  icon: <MoveRight style={{ width: "0.875rem", height: "0.875rem" }} />,
+                  onClick: () => { setDestino(""); setErrorMover(null); setMoviendo(true); },
+                }]}
+              />
+            )}
           </span>
         </div>
         {total > 0 && (
@@ -295,6 +323,48 @@ function Columna({
           </p>
         )}
       </div>
+
+      <ConfirmDialog
+        open={moviendo}
+        title={`¿Mover ${items.length} ${items.length === 1 ? "cobro" : "cobros"}?`}
+        message={
+          destino
+            ? `Los ${items.length === 1 ? "cobros" : items.length + " cobros"} de «${BILLING_STATUS_LABELS[status]}» pasarán a «${BILLING_STATUS_LABELS[destino]}».${destino === "PAGADO" || destino === "ARCHIVADO" ? " Quedarán como cobrados: se registrará como abono lo que falte de cada uno." : ""} Los que no puedan pasar (por ejemplo, sin número de factura) se quedan donde están.`
+            : `Elige a qué lista pasan todos los cobros de «${BILLING_STATUS_LABELS[status]}» que ves ahora (respeta los filtros activos).`
+        }
+        confirmLabel="Mover todas"
+        isPending={pendienteMover}
+        onConfirm={() => {
+          if (!destino) return setErrorMover("Elige la lista de destino");
+          setErrorMover(null);
+          startMover(async () => {
+            const r = await onMoveAll(items.map((i) => i.id), destino);
+            if (r.error) return setErrorMover(r.error);
+            setMoviendo(false);
+          });
+        }}
+        onCancel={() => { setMoviendo(false); setErrorMover(null); }}
+      >
+        <select
+          value={destino}
+          onChange={(e) => setDestino(e.target.value as BillingStatus | "")}
+          aria-label="Lista de destino"
+          style={{
+            width: "100%", padding: "0.5rem 0.7rem", fontSize: "0.875rem", borderRadius: "0.5rem",
+            border: "1px solid var(--app-border)", backgroundColor: "var(--app-bg)", color: "var(--app-body-text)",
+          }}
+        >
+          <option value="">Elige la lista de destino…</option>
+          {destinos.filter((d) => d !== status && d !== "ABONADO").map((d) => (
+            <option key={d} value={d}>{BILLING_STATUS_LABELS[d]}</option>
+          ))}
+        </select>
+        {errorMover && (
+          <p role="alert" style={{ padding: "0.5rem 0.75rem", backgroundColor: "rgba(220,38,38,0.1)", border: "1px solid #dc2626", borderRadius: "0.5rem", color: "#dc2626", fontSize: "0.8125rem", margin: 0 }}>
+            {errorMover}
+          </p>
+        )}
+      </ConfirmDialog>
 
       <div
         ref={setNodeRef}
@@ -458,6 +528,21 @@ export function BillingBoard({
     });
   }
 
+  /** Mueve en bloque lo que ve la columna y cuenta qué quedó sin mover. */
+  async function moverTodas(ids: string[], destino: BillingStatus): Promise<{ error?: string }> {
+    setError(null);
+    const r = await callAction(() => moveBillingItems(ids, destino), { timeoutMs: 120000 });
+    if (!r) return { error: "No se pudo completar la acción" };
+    if ("error" in r && typeof r.error === "string") return { error: r.error };
+    if ("movidos" in r) {
+      if (r.omitidos > 0) {
+        setError(`Se movieron ${r.movidos} y ${r.omitidos} se quedaron donde estaban: ${r.motivos.join(" · ")}`);
+      }
+    }
+    router.refresh();
+    return {};
+  }
+
   function mover(item: BoardItem, destino: BillingStatus, invoiceNumber?: string) {
     const anterior = item.status;
     setItems((prev) => prev.map((i) => (
@@ -605,6 +690,8 @@ export function BillingBoard({
               isOver={overColumn === s}
               onDeleted={quitar}
               onDuplicate={duplicar}
+              destinos={statuses}
+              onMoveAll={moverTodas}
             />
           ))}
         </div>
