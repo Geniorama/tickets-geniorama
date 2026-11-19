@@ -99,7 +99,7 @@ export function AssistantChat({ userName }: { userName: string }) {
   return (
     <div
       className="flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden"
-      style={{ height: "calc(100vh - 11rem)", minHeight: "32rem" }}
+      style={{ height: "calc(100dvh - 11rem)", minHeight: "32rem" }}
     >
       {/* Header */}
       <div className="flex items-center gap-2 px-5 py-3.5 border-b border-gray-100 shrink-0">

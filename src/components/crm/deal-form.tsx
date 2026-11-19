@@ -106,7 +106,7 @@ export function DealForm({
         )}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+      <div className="rg-2" style={{ display: "grid", gap: "0.75rem" }}>
         <div>
           <label htmlFor="stage" style={labelStyle}>Etapa</label>
           <select id="stage" name="stage" defaultValue={initial?.stage ?? "NUEVA"} style={inputStyle}>
@@ -123,7 +123,7 @@ export function DealForm({
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+      <div className="rg-2" style={{ display: "grid", gap: "0.75rem" }}>
         <div>
           <label htmlFor="expectedCloseAt" style={labelStyle}>Cierre esperado {opcional}</label>
           <input

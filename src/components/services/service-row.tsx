@@ -62,6 +62,7 @@ export function ServiceRow({
         alignItems: "center",
         gap: "0 1rem",
         padding: "0.625rem 1rem",
+        minWidth: "40rem",
         borderBottom: "1px solid var(--app-border)",
         opacity: service.isActive ? 1 : 0.6,
       }}

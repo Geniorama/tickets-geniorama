@@ -228,7 +228,7 @@ export default async function ProyectosReportesPage({
           </div>
 
           {/* KPIs del proyecto */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "0.75rem", marginBottom: "1.5rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 120px), 1fr))", gap: "0.75rem", marginBottom: "1.5rem" }}>
             {[
               { label: "Tareas",       value: individual.total,     color: "var(--app-body-text)" },
               { label: "Completadas",  value: individual.completed, color: "#22c55e" },
@@ -243,7 +243,7 @@ export default async function ProyectosReportesPage({
             ))}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "1.5rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))", gap: "1.5rem" }}>
             {/* Por estado */}
             <div>
               <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.625rem" }}>
@@ -311,7 +311,7 @@ export default async function ProyectosReportesPage({
       {!selectedProject && (
       <>
       {/* Global KPIs */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "0.75rem", marginBottom: "1.75rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: "0.75rem", marginBottom: "1.75rem" }}>
         {[
           { label: "Proyectos",      value: totalProjects,  color: "var(--app-body-text)" },
           { label: "Tareas totales", value: totalTasks,     color: "var(--app-body-text)" },
@@ -352,7 +352,7 @@ export default async function ProyectosReportesPage({
       </div>
 
       {/* Per-project table */}
-      <div style={{ backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.75rem", overflow: "hidden" }}>
+      <div style={{ backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.75rem", overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
           <thead>
             <tr style={{ backgroundColor: "var(--app-content-bg)", borderBottom: "1px solid var(--app-border)" }}>

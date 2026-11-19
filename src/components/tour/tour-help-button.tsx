@@ -42,7 +42,7 @@ export function TourHelpButton() {
 
       {open && (
         <div
-          className="absolute right-0 top-full mt-1 z-30 rounded-lg shadow-xl py-1 min-w-[220px]"
+          className="mobile-popover absolute right-0 top-full mt-1 z-30 rounded-lg shadow-xl py-1 min-w-[220px]"
           style={{ backgroundColor: "var(--dropdown-bg)", border: "1px solid var(--dropdown-border)" }}
         >
           <button

@@ -521,7 +521,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
           </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "1rem" }}>
+      <div className="rg-4" style={{ display: "grid", gap: "1rem" }}>
         <div>
           <label style={labelStyle}>Estado</label>
           <select name="status" defaultValue={task?.status ?? "PENDIENTE"} style={inputStyle}>
@@ -593,7 +593,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
         </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "1rem", alignItems: "end" }}>
+      <div className="rg-2a" style={{ display: "grid", gap: "1rem", alignItems: "end" }}>
         {/* Inicio */}
         <div
           style={{
@@ -601,7 +601,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
             borderRadius: "0.5rem",
             padding: "0.75rem",
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 9rem), 1fr))",
             gap: "0.75rem",
           }}
         >
@@ -635,7 +635,7 @@ export function TaskForm({ projectId, projects, staffUsers, reviewerCandidates =
             borderRadius: "0.5rem",
             padding: "0.75rem",
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 9rem), 1fr))",
             gap: "0.75rem",
           }}
         >

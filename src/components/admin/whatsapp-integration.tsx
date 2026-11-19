@@ -193,7 +193,7 @@ export function WhatsAppIntegration({
           : "Falta la clave de Zoho CPaaS en el servidor (variable ZOHO_CPAAS_WHATSAPP_TOKEN). Sin ella no sale ningún mensaje."}
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(16rem, 1fr))", gap: "0.75rem", marginBottom: "1rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 16rem), 1fr))", gap: "0.75rem", marginBottom: "1rem" }}>
         <div>
           <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 500, color: "var(--app-text-muted)", marginBottom: "0.25rem" }}>
             Número emisor (el de WhatsApp Business, con indicativo)

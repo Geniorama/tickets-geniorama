@@ -108,7 +108,7 @@ export function ProjectForm({ companies, staffUsers, allUsers = [], project }: P
         />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+      <div className="rg-2" style={{ display: "grid", gap: "1rem" }}>
         <div>
           <label style={labelStyle}>Estado</label>
           <select name="isActive" defaultValue={project?.isActive === false ? "false" : "true"} style={inputStyle}>
@@ -143,7 +143,7 @@ export function ProjectForm({ companies, staffUsers, allUsers = [], project }: P
         </select>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+      <div className="rg-2" style={{ display: "grid", gap: "1rem" }}>
         <div>
           <label style={labelStyle}>Fecha de inicio</label>
           <input name="startDate" type="date" defaultValue={toInputDate(project?.startDate)} style={inputStyle} />

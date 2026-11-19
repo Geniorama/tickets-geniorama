@@ -383,7 +383,7 @@ export function ReportGenerator({
       {report && open && (
         <div style={{ borderTop: "1px solid var(--app-border)", padding: "1rem", backgroundColor: "var(--app-content-bg)", maxHeight: "32rem", overflowY: "auto" }}>
           {/* Header metadata */}
-          <div style={{ backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.5rem", padding: "0.75rem", marginBottom: "1rem", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.375rem 1.25rem" }}>
+          <div style={{ backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.5rem", padding: "0.75rem", marginBottom: "1rem", display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 180px), 1fr))", gap: "0.375rem 1.25rem" }}>
             {headerLines(report.header).map((line, i) => {
               const [label, ...rest] = line.split(": ");
               return (

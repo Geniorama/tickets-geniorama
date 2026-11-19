@@ -264,7 +264,7 @@ export function RecurringTaskForm({
           />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.875rem" }}>
+        <div className="rg-2" style={{ display: "grid", gap: "0.75rem", marginBottom: "0.875rem" }}>
           <div>
             <label style={labelStyle}>Prioridad</label>
             <select value={data.priority} onChange={(e) => update("priority", e.target.value as RecurringFormData["priority"])} style={inputStyle}>
@@ -298,7 +298,7 @@ export function RecurringTaskForm({
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+        <div className="rg-2" style={{ display: "grid", gap: "0.75rem" }}>
           <div>
             <label style={labelStyle}>Proyecto (opcional — vacío = global)</label>
             <select value={data.projectId ?? ""} onChange={(e) => update("projectId", e.target.value || null)} style={inputStyle}>
@@ -319,7 +319,7 @@ export function RecurringTaskForm({
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginTop: "0.875rem" }}>
+        <div className="rg-2" style={{ display: "grid", gap: "0.75rem", marginTop: "0.875rem" }}>
           <div>
             <label style={labelStyle}>Tiempo estimado (opcional)</label>
             <div style={{ display: "flex", gap: "0.375rem", alignItems: "center" }}>

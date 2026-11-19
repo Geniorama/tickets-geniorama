@@ -61,7 +61,7 @@ export function Topbar({
         <GlobalSearch />
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-3">
+      <div className="flex items-center gap-1 sm:gap-3 shrink-0">
         <TourHelpButton />
         <span data-tour-id="notifications" className="flex items-center">
           <NotificationBell initialUnreadCount={unreadCount} />

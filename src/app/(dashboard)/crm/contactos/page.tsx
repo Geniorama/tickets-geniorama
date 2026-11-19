@@ -98,7 +98,7 @@ export default async function ContactsPage({
           {busqueda ? `Nadie coincide con «${busqueda}».` : "Todavía no hay contactos."}
         </p>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(19rem, 1fr))", gap: "0.75rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 19rem), 1fr))", gap: "0.75rem" }}>
           {contactos.map((c) => (
             <Link
               key={c.id}
@@ -143,7 +143,7 @@ export default async function ContactsPage({
 
               <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", marginTop: "0.4rem" }}>
                 {c.email && (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: "#fd1384" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", color: "#fd1384", minWidth: 0, overflowWrap: "anywhere" }}>
                     <Mail style={{ width: "0.75rem", height: "0.75rem" }} />
                     {c.email}
                   </span>

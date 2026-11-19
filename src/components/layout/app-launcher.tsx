@@ -111,7 +111,7 @@ export function AppLauncher({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(15rem, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 15rem), 1fr))",
             gap: "0.75rem",
           }}
         >

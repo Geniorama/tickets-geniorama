@@ -82,7 +82,7 @@ export function PayForm({ token, importe }: { token: string; importe: string }) 
         Datos de quien paga
       </p>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(11rem, 1fr))", gap: "0.85rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 11rem), 1fr))", gap: "0.85rem" }}>
         <div>
           <label htmlFor="pago-nombre" style={label}>Nombre</label>
           <input id="pago-nombre" name="firstName" required autoComplete="given-name" style={input} />
@@ -93,7 +93,7 @@ export function PayForm({ token, importe }: { token: string; importe: string }) 
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(11rem, 1fr))", gap: "0.85rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 11rem), 1fr))", gap: "0.85rem" }}>
         <div>
           <label htmlFor="pago-doc-tipo" style={label}>Tipo de documento</label>
           <select id="pago-doc-tipo" name="docType" defaultValue="NIT" style={input}>
@@ -106,7 +106,7 @@ export function PayForm({ token, importe }: { token: string; importe: string }) 
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(11rem, 1fr))", gap: "0.85rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 11rem), 1fr))", gap: "0.85rem" }}>
         <div>
           <label htmlFor="pago-correo" style={label}>Correo</label>
           <input id="pago-correo" name="email" type="email" required autoComplete="email" style={input} />

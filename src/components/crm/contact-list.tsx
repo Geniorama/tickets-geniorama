@@ -108,7 +108,7 @@ export function ContactList({
 
       {adding && (
         <form action={handleCreate} style={{ marginBottom: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+          <div className="rg-2" style={{ display: "grid", gap: "0.5rem" }}>
             <input name="firstName" placeholder="Nombre" required style={inputStyle} autoFocus />
             <input name="lastName" placeholder="Apellidos (opcional)" style={inputStyle} />
           </div>

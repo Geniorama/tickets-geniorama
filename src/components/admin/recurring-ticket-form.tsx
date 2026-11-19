@@ -294,7 +294,7 @@ export function RecurringTicketForm({
           />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+        <div className="rg-2" style={{ display: "grid", gap: "0.75rem" }}>
           <div>
             <label style={labelStyle}>Prioridad</label>
             <select
@@ -330,7 +330,7 @@ export function RecurringTicketForm({
       <div style={sectionStyle}>
         <h3 style={headingStyle}>Cliente y responsables</h3>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.875rem" }}>
+        <div className="rg-2" style={{ display: "grid", gap: "0.75rem", marginBottom: "0.875rem" }}>
           <div>
             <label style={labelStyle}>Cliente</label>
             <select
@@ -363,7 +363,7 @@ export function RecurringTicketForm({
           </div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.875rem" }}>
+        <div className="rg-2" style={{ display: "grid", gap: "0.75rem", marginBottom: "0.875rem" }}>
           <div>
             <label style={labelStyle}>Plan</label>
             <select

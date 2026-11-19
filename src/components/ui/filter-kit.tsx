@@ -131,7 +131,7 @@ export function FilterBar({
           style={{
             display: "grid",
             gap: "0.75rem",
-            gridTemplateColumns: "repeat(auto-fill, minmax(11.5rem, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 11.5rem), 1fr))",
             alignItems: "end",
           }}
         >

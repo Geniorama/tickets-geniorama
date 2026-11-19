@@ -126,7 +126,7 @@ export default async function CrmAccountsPage({
       {accounts.length === 0 ? (
         <EmptyState hasFilters={!!q || !!stageFilter} />
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(18rem, 1fr))", gap: "0.75rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 18rem), 1fr))", gap: "0.75rem" }}>
           {accounts.map((a) => (
             <Link
               key={a.id}

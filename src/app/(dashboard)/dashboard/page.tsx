@@ -358,7 +358,7 @@ export default async function DashboardPage() {
               Proyectos favoritos
             </h2>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "0.75rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))", gap: "0.75rem" }}>
             {favoriteProjects.map((p) => (
               <Link
                 key={p.id}

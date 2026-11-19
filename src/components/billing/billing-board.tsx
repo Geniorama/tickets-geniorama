@@ -209,7 +209,7 @@ function DraggableItem({
             {...listeners}
             {...attributes}
             style={{
-              cursor: "grab", padding: "0.125rem", borderRadius: "0.25rem",
+              cursor: "grab", touchAction: "none", padding: "0.125rem", borderRadius: "0.25rem",
               color: "var(--app-text-muted)",
             }}
           >

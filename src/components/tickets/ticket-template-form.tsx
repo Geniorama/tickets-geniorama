@@ -121,7 +121,7 @@ export function TicketTemplateForm({ template }: { template?: TicketTemplateData
           />
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+        <div className="rg-2" style={{ display: "grid", gap: "1rem" }}>
           <div>
             <label style={labelStyle}>Prioridad <span style={{ color: "var(--tone-red-fg)" }}>*</span></label>
             <select name="priority" defaultValue={values.priority} style={inputStyle}>

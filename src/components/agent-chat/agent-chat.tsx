@@ -42,7 +42,7 @@ export function AgentChat({
   send: sendMessage = sendAgentChatMessage,
   sendAudio = sendAudioWithSession,
   audio = false,
-  height = "calc(100vh - 11rem)",
+  height = "calc(100dvh - 11rem)",
   rounded = true,
   headerActions,
 }: {

@@ -101,7 +101,7 @@ export function FilterBarSkeleton({ filters = 4 }: { filters?: number }) {
           style={{
             display: "grid",
             gap: "0.75rem",
-            gridTemplateColumns: "repeat(auto-fill, minmax(11.5rem, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 11.5rem), 1fr))",
           }}
         >
           {Array.from({ length: filters }).map((_, i) => (

@@ -65,7 +65,7 @@ export function ServiceForm({
 
   return (
     <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+      <div className="rg-2" style={{ display: "grid", gap: "1rem" }}>
         <div>
           <label style={labelStyle}>Empresa</label>
           <select name="companyId" defaultValue={service?.companyId ?? defaultCompanyId ?? ""} required style={inputStyle}>
@@ -95,7 +95,7 @@ export function ServiceForm({
         />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+      <div className="rg-2" style={{ display: "grid", gap: "1rem" }}>
         <div>
           <label style={labelStyle}>Prestador</label>
           <select

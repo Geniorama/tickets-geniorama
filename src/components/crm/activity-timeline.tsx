@@ -111,7 +111,7 @@ export function ActivityTimeline({
 
       {adding && (
         <form action={handleCreate} style={{ marginBottom: "1.25rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+          <div className="rg-2" style={{ display: "grid", gap: "0.5rem" }}>
             <select name="type" defaultValue="LLAMADA" style={inputStyle} aria-label="Tipo de interacción">
               {ACTIVITY_TYPES.map((t) => <option key={t} value={t}>{ACTIVITY_TYPE_LABELS[t]}</option>)}
             </select>

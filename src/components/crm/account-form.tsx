@@ -67,7 +67,7 @@ export function AccountForm({ owners }: { owners: { id: string; name: string }[]
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+      <div className="rg-2" style={{ display: "grid", gap: "0.75rem" }}>
         <div>
           <label htmlFor="ownerId" style={labelStyle}>
             Responsable <span style={{ fontWeight: 400, color: "var(--app-text-muted)" }}>(opcional)</span>

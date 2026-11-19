@@ -74,12 +74,12 @@ export function ServiceCard({
     >
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", minWidth: 0 }}>
           <div style={{ width: "2rem", height: "2rem", borderRadius: "0.5rem", backgroundColor: `${meta.color}1a`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Icon style={{ width: "1rem", height: "1rem", color: meta.color }} />
           </div>
-          <div>
-            <p style={{ fontWeight: 600, fontSize: "0.9375rem", color: "var(--app-body-text)" }}>{service.name}</p>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontWeight: 600, fontSize: "0.9375rem", color: "var(--app-body-text)", overflowWrap: "anywhere" }}>{service.name}</p>
             <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>{meta.label}</p>
           </div>
         </div>

@@ -391,7 +391,7 @@ function PlannerModal({
                     placeholder="Descripción"
                     className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 resize-y"
                   />
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs text-gray-500 mb-1">Empresa</label>
                       <select

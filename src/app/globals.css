@@ -497,3 +497,40 @@ html.light {
 @media (prefers-reduced-motion: reduce) {
   .skeleton { animation: none; }
 }
+/* ── Responsive helpers ──
+   Grids de formulario que en móvil deben apilarse (los estilos inline no
+   admiten media queries, por eso viven aquí). */
+.rg-2 { grid-template-columns: minmax(0, 1fr); }
+.rg-3 { grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 640px) {
+  .rg-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rg-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+  .rg-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Que nada empuje el ancho de la página en móvil. */
+img, video, canvas, svg { max-width: 100%; }
+pre { overflow-x: auto; }
+.rg-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rg-2a { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 479px) { .rg-4 { grid-template-columns: minmax(0, 1fr); } }
+@media (min-width: 1024px) { .rg-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 640px) { .rg-2a { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; } }
+
+/* Popovers anclados a un botón de la topbar: en móvil ocupan el ancho de la
+   pantalla en vez de salirse por la izquierda. */
+@media (max-width: 639px) {
+  .mobile-popover {
+    position: fixed !important;
+    top: 3.75rem !important;
+    left: 0.75rem !important;
+    right: 0.75rem !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+}
+
+/* Textos largos sin espacios (correos, URLs, nombres) no deben desbordar las tarjetas. */
+main { overflow-wrap: break-word; }

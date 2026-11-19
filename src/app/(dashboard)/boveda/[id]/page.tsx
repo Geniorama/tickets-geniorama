@@ -82,7 +82,7 @@ export default async function VaultEntryPage({ params }: { params: Promise<{ id:
 
       {/* Main card */}
       <div style={{ backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.75rem", padding: "1.5rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", marginBottom: "1rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", marginBottom: "1rem" }}>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--app-body-text)", lineHeight: 1.3 }}>
             {entry.title}
           </h1>

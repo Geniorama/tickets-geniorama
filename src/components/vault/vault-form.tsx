@@ -71,7 +71,7 @@ export function VaultForm({ companies, sites, services, entry, decryptedPassword
         <input name="title" required defaultValue={entry?.title ?? ""} placeholder="Ej: cPanel producción" style={inputStyle} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+      <div className="rg-2" style={{ display: "grid", gap: "1rem" }}>
         <div>
           <label style={labelStyle}>Usuario / Email</label>
           <input name="username" defaultValue={entry?.username ?? ""} placeholder="usuario@ejemplo.com" style={inputStyle} />
@@ -120,7 +120,7 @@ export function VaultForm({ companies, sites, services, entry, decryptedPassword
         </select>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+      <div className="rg-2" style={{ display: "grid", gap: "1rem" }}>
         <div>
           <label style={labelStyle}>Sitio / App</label>
           <select name="siteId" defaultValue={entry?.siteId ?? ""} style={inputStyle}

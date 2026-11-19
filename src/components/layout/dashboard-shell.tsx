@@ -50,7 +50,7 @@ export function DashboardShell({
   }
 
   return (
-    <div className="flex h-screen" style={{ backgroundColor: "var(--app-sidebar-bg)" }}>
+    <div className="flex h-dvh" style={{ backgroundColor: "var(--app-sidebar-bg)" }}>
       {/* Backdrop mobile */}
       {sidebarOpen && (
         <div

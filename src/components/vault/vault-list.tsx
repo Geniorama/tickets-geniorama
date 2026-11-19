@@ -63,7 +63,7 @@ export function VaultList({ entries, currentUserId, searchQuery }: VaultListProp
   return (
     <div style={{
       backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)",
-      borderRadius: "0.75rem", overflow: "hidden",
+      borderRadius: "0.75rem", overflowX: "auto",
     }}>
       <table className="w-full text-sm">
         <thead>

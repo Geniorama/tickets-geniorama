@@ -160,7 +160,7 @@ export function CommentAttachmentsInput({
 
       {/* Enlaces pendientes */}
       {links.map((link, i) => (
-        <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "0.5rem", alignItems: "center" }}>
+        <div key={i} className="rg-2a" style={{ display: "grid", gap: "0.5rem", alignItems: "center" }}>
           <input
             type="url"
             value={link.url}

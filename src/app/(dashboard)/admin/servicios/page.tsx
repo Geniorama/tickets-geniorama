@@ -94,7 +94,7 @@ export default async function ServiciosPage({
               </h2>
 
               {view === "grid" ? (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "0.75rem" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 320px), 1fr))", gap: "0.75rem" }}>
                   {companyServices.map((s) => (
                     <ServiceCard
                       key={s.id}
@@ -107,13 +107,14 @@ export default async function ServiciosPage({
                   ))}
                 </div>
               ) : (
-                <div style={{ backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.75rem", overflow: "hidden" }}>
+                <div style={{ backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.75rem", overflowX: "auto" }}>
                   {/* List header */}
                   <div style={{
                     display: "grid",
                     gridTemplateColumns: "1.5rem 1fr auto auto auto auto",
                     gap: "0 1rem",
                     padding: "0.5rem 1rem",
+                    minWidth: "40rem",
                     backgroundColor: "var(--app-content-bg)",
                     borderBottom: "1px solid var(--app-border)",
                     fontSize: "0.6875rem",

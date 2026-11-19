@@ -156,7 +156,7 @@ function DraggableCard({
       />
       {/* El asa y la papelera comparten esquina, las dos por encima del enlace
           que cubre la tarjeta entera. */}
-      <div className="absolute top-2 right-2 z-20 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="absolute top-2 right-2 z-20 flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
         {canDelete && (
           <CardDeleteButton
             title={`el ticket «${ticket.title}»`}
@@ -171,7 +171,7 @@ function DraggableCard({
         <div
           {...listeners}
           {...attributes}
-          className="cursor-grab active:cursor-grabbing p-0.5 rounded text-gray-400 hover:text-gray-600"
+          className="touch-none cursor-grab active:cursor-grabbing p-1 md:p-0.5 rounded text-gray-400 hover:text-gray-600"
         >
           <GripVertical className="w-4 h-4" />
         </div>

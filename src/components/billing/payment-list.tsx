@@ -302,7 +302,7 @@ export function PaymentList({
 
       {canEdit && facturado && (abriendo ? (
         <form key={editando?.id ?? "nuevo"} ref={formRef} action={enviar} style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+          <div className="rg-2" style={{ display: "grid", gap: "0.5rem" }}>
             <div>
               <label htmlFor="amount" style={{ display: "block", fontSize: "0.75rem", color: "var(--app-text-muted)", marginBottom: "0.2rem" }}>
                 Cuánto entró
@@ -334,7 +334,7 @@ export function PaymentList({
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+          <div className="rg-2" style={{ display: "grid", gap: "0.5rem" }}>
             <input
               name="method" placeholder="Cómo llegó (opcional)" maxLength={80} style={inputStyle}
               defaultValue={editando?.method ?? ""}

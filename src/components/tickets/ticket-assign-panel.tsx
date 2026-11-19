@@ -70,7 +70,7 @@ export function TicketAssignPanel({
 
       {/* Form */}
       <form onSubmit={handleSubmit} style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+        <div className="rg-2" style={{ display: "grid", gap: "0.75rem" }}>
           <div>
             <label style={{ display: "block", fontSize: "0.75rem", fontWeight: 600, color: "var(--app-text-muted)", marginBottom: "0.3rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>
               Asignado a

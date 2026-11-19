@@ -150,7 +150,7 @@ export function RecurrenceFields({
 
   return (
     <>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "0.875rem" }}>
+      <div className="rg-2" style={{ display: "grid", gap: "0.75rem", marginBottom: "0.875rem" }}>
         <div>
           <label style={labelStyle}>Frecuencia</label>
           <select

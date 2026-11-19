@@ -87,7 +87,7 @@ function DraggableDeal({ deal, canEdit }: { deal: BoardDeal; canEdit: boolean })
           {...attributes}
           style={{
             position: "absolute", top: "0.5rem", right: "0.5rem", zIndex: 20,
-            cursor: "grab", padding: "0.125rem", borderRadius: "0.25rem",
+            cursor: "grab", touchAction: "none", padding: "0.125rem", borderRadius: "0.25rem",
             color: "var(--app-text-muted)",
           }}
         >

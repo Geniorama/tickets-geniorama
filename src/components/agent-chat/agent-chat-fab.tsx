@@ -66,7 +66,7 @@ export function AgentChatFab() {
             bottom: "5.5rem",
             zIndex: 9200,
             width: "min(26rem, calc(100vw - 2rem))",
-            height: "min(38rem, calc(100vh - 7.5rem))",
+            height: "min(38rem, calc(100dvh - 7.5rem))",
             display: "flex",
             flexDirection: "column",
             borderRadius: "1rem",

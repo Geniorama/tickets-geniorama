@@ -246,7 +246,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 140px), 1fr))",
           gap: "0.75rem",
           marginBottom: "1.5rem",
         }}
@@ -270,9 +270,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
       {/* Breakdowns */}
       {total > 0 && (
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr 1fr",
+          className="rg-3" style={{ display: "grid",
             gap: "0.75rem",
             marginBottom: "2rem",
           }}

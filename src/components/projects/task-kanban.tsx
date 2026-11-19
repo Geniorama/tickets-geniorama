@@ -172,7 +172,7 @@ function DraggableCard({
           top: "0.5rem",
           right: "0.5rem",
           zIndex: 20,
-          cursor: "grab",
+          cursor: "grab", touchAction: "none",
           padding: "0.125rem",
           borderRadius: "0.25rem",
           color: "var(--app-text-muted)",
@@ -372,7 +372,7 @@ export function TaskKanban({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
           gap: "1rem",
           alignItems: "start",
         }}

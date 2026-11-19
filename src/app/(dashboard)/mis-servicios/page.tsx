@@ -78,7 +78,7 @@ export default async function MisServiciosPage() {
           <p style={{ color: "var(--app-text-muted)" }}>No hay servicios registrados aún.</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "0.75rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 320px), 1fr))", gap: "0.75rem" }}>
           {services.map((s) => (
             <ServiceCard key={s.id} service={s} showCompany={showCompany} showNotes={false} />
           ))}

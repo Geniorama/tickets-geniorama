@@ -167,6 +167,7 @@ export function NotificationBell({ initialUnreadCount }: { initialUnreadCount: n
       {/* Dropdown */}
       {isOpen && (
         <div
+          className="mobile-popover"
           style={{
             position: "absolute",
             top: "calc(100% + 0.625rem)",

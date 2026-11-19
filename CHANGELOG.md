@@ -7,6 +7,17 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ## [Unreleased]
 
+## [1.140.1] — 2026-11-19
+
+### Corrección: responsive en móvil
+- **Formularios**: las rejillas de 2, 3 y 4 columnas (tareas, proyectos, cobros, CRM, bóveda, servicios, tickets, plantillas, usuarios…) se apilan en pantallas estrechas en vez de aplastar los campos.
+- **Tablas** de estadísticas, tareas recurrentes, reportes, bóveda y servicios ahora hacen scroll horizontal en lugar de cortarse.
+- **Notificaciones y ayuda** de la barra superior ocupan el ancho de la pantalla en móvil y ya no se salen por la izquierda.
+- La app usa la altura dinámica del visor (`dvh`): la barra del navegador móvil ya no tapa el pie del contenido ni del chat.
+- Cabeceras de página con botones se acomodan en varias líneas; la barra superior es más compacta.
+- **Tarjetas**: en los tableros de tickets, tareas, oportunidades y facturación el asa de arrastre ahora funciona al tacto (`touch-action: none`) y en tickets deja de depender del hover, que no existe en móvil.
+- Las rejillas de tarjetas (`auto-fill`/`auto-fit`) usan `min(100%, …)` para no desbordar en pantallas de 320–360px; los textos largos sin espacios (correos, nombres) se parten en vez de salirse de la tarjeta.
+
 ---
 
 ## [1.140.0] — 2026-11-18

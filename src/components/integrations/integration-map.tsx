@@ -40,7 +40,7 @@ const TONES = {
 
 export function IntegrationMap({ cards }: { cards: IntegrationCard[] }) {
   return (
-    <nav aria-label="Tipos de integración" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(14rem, 1fr))", gap: "0.75rem" }}>
+    <nav aria-label="Tipos de integración" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 14rem), 1fr))", gap: "0.75rem" }}>
       {cards.map((card) => {
         const dir = DIRECTIONS[card.direction];
         const tone = TONES[card.status.tone];

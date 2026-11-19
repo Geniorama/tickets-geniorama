@@ -66,7 +66,7 @@ export function StandaloneContactForm({
         </select>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+      <div className="rg-2" style={{ display: "grid", gap: "0.75rem" }}>
         <div>
           <label htmlFor="firstName" style={labelStyle}>Nombre</label>
           <input id="firstName" name="firstName" required autoFocus style={inputStyle} placeholder="Ana" />
