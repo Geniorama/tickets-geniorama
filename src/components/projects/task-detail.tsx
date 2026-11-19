@@ -259,8 +259,8 @@ export function TaskDetail({
               padding: "1.5rem",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
-              <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem 1rem", flexWrap: "wrap" }}>
+              <div style={{ minWidth: 0, flex: "1 1 12rem" }}>
                 {task.number > 0 && (
                   <p style={{ margin: "0 0 0.25rem", fontSize: "0.75rem", fontWeight: 600, color: "var(--app-text-muted)", letterSpacing: "0.04em" }}>
                     {taskCode(task.project?.name ?? "GLB", task.number)}
@@ -278,7 +278,7 @@ export function TaskDetail({
                 </h1>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
                 {(admin || staff) && (
                   <div ref={menuRef} style={{ position: "relative" }}>
                     <button

@@ -534,3 +534,21 @@ pre { overflow-x: auto; }
 
 /* Textos largos sin espacios (correos, URLs, nombres) no deben desbordar las tarjetas. */
 main { overflow-wrap: break-word; }
+
+/* Botones de acción en móvil: ancho completo y más altos, fáciles de pulsar.
+   Los de envío de formularios lo hacen solos; el resto, con .btn-m.
+   Se excluyen los chats (botón junto al campo) con data-compact. */
+@media (max-width: 639px) {
+  main form button[type="submit"]:not([data-compact]),
+  .btn-m {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 100% !important;
+    min-height: 2.75rem;
+    text-align: center;
+  }
+  /* Las filas de acciones que envuelven a esos botones los apilan. */
+  .btn-m-row { flex-direction: column; align-items: stretch !important; }
+  .btn-m-row > * { width: 100%; }
+}

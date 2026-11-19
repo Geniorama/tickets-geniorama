@@ -185,6 +185,7 @@ export function BillingNotes({
 
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <label
+              className="btn-m"
               style={{
                 display: "inline-flex", alignItems: "center", gap: "0.35rem",
                 fontSize: "0.8125rem", color: "var(--app-nav-text)", cursor: "pointer",

@@ -162,7 +162,7 @@ function DiagnosisPanel({
     >
       <div
         className="bg-white rounded-2xl shadow-2xl flex flex-col w-full max-w-2xl"
-        style={{ maxHeight: "85vh" }}
+        style={{ maxHeight: "85dvh" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-gray-100 shrink-0">

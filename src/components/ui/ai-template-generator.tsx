@@ -140,7 +140,7 @@ export function AiTemplateGenerator({
             </p>
           )}
 
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "0.75rem" }}>
             <ProviderToggle value={provider} onChange={setProvider} disabled={isPending} />
             <button
               type="button"

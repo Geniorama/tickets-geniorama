@@ -75,7 +75,7 @@ export function AppLauncher({
         style={{
           width: "100%",
           maxWidth: "44rem",
-          maxHeight: "85vh",
+          maxHeight: "85dvh",
           overflowY: "auto",
           padding: "1.5rem",
           borderRadius: "1rem",

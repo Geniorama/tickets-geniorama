@@ -237,7 +237,7 @@ export function ReportView({
   return (
     <div>
       {/* ── Header ── */}
-      <div className="flex items-center justify-between mb-6 no-print">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 no-print">
         <h1 className="text-2xl font-bold text-gray-900">Reportes de tickets</h1>
         <div className="flex items-center gap-2">
           <button

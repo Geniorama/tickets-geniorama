@@ -64,6 +64,7 @@ export function AttachmentUploader({ ticketId }: { ticketId: string }) {
       <div>
         <button
           type="button"
+          className="btn-m"
           onClick={() => inputRef.current?.click()}
           style={{
             display: "inline-flex",

@@ -43,7 +43,7 @@ export default async function EditServicioPage({
         <ServiceForm companies={companies} service={service} />
       </div>
 
-      <div style={{ marginTop: "1.5rem", display: "flex", justifyContent: "space-between" }}>
+      <div style={{ marginTop: "1.5rem", display: "flex", flexWrap: "wrap", justifyContent: "space-between" }}>
         <DuplicateServiceButton serviceId={id} />
         <DeleteServiceButton serviceId={id} />
       </div>

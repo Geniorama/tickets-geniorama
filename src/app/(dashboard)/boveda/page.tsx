@@ -108,7 +108,7 @@ export default async function BovedaPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 data-tour-id="page-title" className="text-2xl font-bold" style={{ color: "var(--app-body-text)" }}>Bóveda</h1>
           <p className="text-sm mt-1" style={{ color: "var(--app-text-muted)" }}>

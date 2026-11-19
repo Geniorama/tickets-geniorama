@@ -233,7 +233,7 @@ export function AgentChat({
           <VoiceRecorder disabled={isPending} onRecorded={sendVoice} onRecordingChange={setRecording} onError={setError} />
         ) : (
         <button
-          type="submit"
+          type="submit" data-compact
           disabled={isPending || !input.trim()}
           aria-label="Enviar"
           style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "2.5rem", height: "2.5rem", borderRadius: "0.75rem", border: "none", backgroundColor: ACCENT, color: "#ffffff", cursor: "pointer", opacity: isPending || !input.trim() ? 0.4 : 1, flexShrink: 0 }}

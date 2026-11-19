@@ -89,7 +89,7 @@ export function OverdueAlert({ items, userId }: OverdueAlertProps) {
           borderRadius: "1rem",
           width: "100%",
           maxWidth: "520px",
-          maxHeight: "90vh",
+          maxHeight: "90dvh",
           display: "flex",
           flexDirection: "column",
           boxShadow: "0 24px 64px rgba(0,0,0,0.5)",

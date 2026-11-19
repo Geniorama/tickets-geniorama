@@ -245,7 +245,7 @@ function PlannerModal({
       style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl flex flex-col w-full max-w-3xl" style={{ maxHeight: "88vh" }}>
+      <div className="bg-white rounded-2xl shadow-2xl flex flex-col w-full max-w-3xl" style={{ maxHeight: "88dvh" }}>
         {/* Header */}
         <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-gray-100 shrink-0">
           <span className="flex items-center gap-2 font-semibold text-gray-900">
@@ -324,7 +324,7 @@ function PlannerModal({
               </div>
 
               <div>
-                <label className="inline-flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-indigo-600">
+                <label className="btn-m inline-flex items-center gap-2 text-sm text-gray-600 cursor-pointer hover:text-indigo-600 max-sm:border max-sm:border-dashed max-sm:border-gray-300 max-sm:rounded-lg">
                   <Upload className="w-4 h-4" />
                   {file ? "Cambiar archivo" : "Subir archivo (PDF, Word, TXT · máx 7 MB)"}
                   <input
@@ -540,7 +540,7 @@ function PlannerModal({
 
         {/* Footer (solo en revisión) */}
         {plan && !result && (
-          <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
             <div className="flex items-center gap-4">
               <button type="button" onClick={() => { setPlan(null); setError(null); }} className="text-sm text-gray-500 hover:text-gray-700">
                 ← Volver

@@ -265,7 +265,7 @@ export function AgentChatSettings({
             placeholder={"https://geniorama.co\nhttps://www.geniorama.co"}
             style={{ ...input, width: "100%", resize: "vertical", fontFamily: "var(--font-mono, monospace)" }}
           />
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginTop: "0.375rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginTop: "0.375rem" }}>
             <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--app-text-muted)", lineHeight: 1.5 }}>
               En cualquier otro sitio el widget muestra «no autorizado». Cuentan el dominio exacto: con y sin «www» son dos.
             </p>

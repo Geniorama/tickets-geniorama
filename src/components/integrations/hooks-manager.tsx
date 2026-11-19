@@ -301,7 +301,7 @@ function HookCard({ hook }: { hook: HookItem }) {
 
   return (
     <div style={cardStyle}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.75rem" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: "0.75rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", minWidth: 0 }}>
           <div style={{ width: "2rem", height: "2rem", borderRadius: "0.5rem", backgroundColor: `${ACCENT}20`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Webhook style={{ width: "1rem", height: "1rem", color: ACCENT }} />
@@ -511,7 +511,7 @@ X-Geniorama-Signature: sha256=<hmac del cuerpo con tu secreto>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1rem 1.25rem", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+        style={{ width: "100%", display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", padding: "1rem 1.25rem", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
       >
         <span style={{ fontWeight: 600, fontSize: "0.9375rem", color: "var(--app-body-text)" }}>
           ¿Qué recibe tu servicio?

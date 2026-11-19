@@ -133,7 +133,7 @@ export function TaskList({
           return (
             <li key={task.id}>
               <MaybeLink readOnly={noLink} href={href} block style={{ display: "block", padding: "0.875rem 1rem", textDecoration: "none" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.375rem" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.375rem" }}>
                   <span style={{ fontWeight: 600, color: "var(--app-body-text)", fontSize: "0.875rem", lineHeight: 1.4 }}>
                     {task.number > 0 && (
                       <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--app-text-muted)", background: "var(--app-content-bg)", border: "1px solid var(--app-border)", borderRadius: "0.25rem", padding: "0.1rem 0.35rem", marginRight: "0.375rem" }}>

@@ -77,7 +77,7 @@ export function ProjectList({
                 href={`/proyectos/${project.id}`}
                 style={{ display: "block", padding: "0.875rem 2.5rem 0.875rem 1rem", textDecoration: "none" }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.375rem" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.375rem" }}>
                   <span style={{ fontWeight: 600, color: "var(--app-body-text)", fontSize: "0.875rem", lineHeight: 1.4, display: "inline-flex", alignItems: "center", gap: "0.375rem" }}>
                     {project.isPrivate && <Lock style={{ width: "0.75rem", height: "0.75rem", color: "#7c3aed" }} />}
                     {project.name}
@@ -216,7 +216,7 @@ export function ProjectList({
           >
             <div
               style={{
-                display: "flex",
+                display: "flex", flexWrap: "wrap",
                 justifyContent: "space-between",
                 alignItems: "flex-start",
                 marginBottom: "0.75rem",

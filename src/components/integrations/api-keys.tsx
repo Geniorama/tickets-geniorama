@@ -127,7 +127,7 @@ function KeyCard({ item }: { item: ApiKeyItem }) {
 
   return (
     <div style={{ ...cardStyle, opacity: live ? 1 : 0.65 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "0.75rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", minWidth: 0 }}>
           <div style={{ width: "2rem", height: "2rem", borderRadius: "0.5rem", backgroundColor: `${ACCENT}20`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <KeyRound style={{ width: "1rem", height: "1rem", color: ACCENT }} />

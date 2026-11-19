@@ -254,7 +254,7 @@ export function ProjectAttachmentsPanel({
       }}
     >
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
         <h3
           style={{
             fontSize: "0.9375rem",

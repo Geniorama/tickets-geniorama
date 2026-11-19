@@ -93,7 +93,7 @@ export function PanelTable({
         {items.map((item) => (
           <li key={`${item.kind}-${item.id}`}>
             <Link href={item.href} style={{ display: "block", padding: "0.875rem 1rem", textDecoration: "none" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.375rem" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.375rem" }}>
                 <span style={{ fontWeight: 600, color: "var(--app-body-text)", fontSize: "0.875rem", lineHeight: 1.4 }}>
                   <span style={{ ...codeChip, marginRight: "0.375rem" }}>{item.code}</span>
                   {item.title}

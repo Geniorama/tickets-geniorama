@@ -219,7 +219,7 @@ export function AssistantChat({ userName }: { userName: string }) {
           className="flex-1 resize-none text-sm text-gray-800 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 max-h-32"
         />
         <button
-          type="submit"
+          type="submit" data-compact
           disabled={isPending || !input.trim()}
           className="flex items-center justify-center w-10 h-10 rounded-xl bg-ai text-white hover:bg-ai-hover disabled:opacity-40 transition-colors shrink-0"
           aria-label="Enviar"

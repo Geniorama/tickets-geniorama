@@ -61,7 +61,7 @@ export function InfoTabs({ tabs, title = "Información" }: { tabs: InfoTab[]; ti
       }}
     >
       <div style={{ padding: "1rem 1.25rem 0" }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.75rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.75rem" }}>
           <h2 style={{ fontSize: "0.9375rem", fontWeight: 600, color: "var(--app-body-text)", margin: 0 }}>{title}</h2>
           <span style={{ fontSize: "0.75rem", color: "var(--app-text-muted)" }}>
             {filled} de {tabs.length} con contenido

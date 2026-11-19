@@ -195,11 +195,12 @@ export function ProjectDetail({
             display: "flex",
             justifyContent: "space-between",
             alignItems: "flex-start",
-            gap: "1rem",
+            gap: "0.75rem 1rem",
+            flexWrap: "wrap",
             marginBottom: "0.75rem",
           }}
         >
-          <div>
+          <div style={{ minWidth: 0, flex: "1 1 14rem" }}>
             <h1
               style={{
                 fontSize: "1.375rem",
@@ -229,7 +230,7 @@ export function ProjectDetail({
               <MarkdownRenderer content={project.description} />
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexShrink: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
             {/* Quien edita el proyecto lo activa o desactiva aquí; un borrador
                 se publica primero */}
             {isAdmin && !project.isDraft
@@ -352,6 +353,8 @@ export function ProjectDetail({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              gap: "0.75rem",
+              flexWrap: "wrap",
               marginBottom: "1rem",
             }}
           >
@@ -360,6 +363,8 @@ export function ProjectDetail({
                 display: "flex",
                 gap: "0.25rem",
                 backgroundColor: "var(--app-card-bg)",
+                maxWidth: "100%",
+                overflowX: "auto",
                 border: "1px solid var(--app-border)",
                 borderRadius: "0.5rem",
                 padding: "0.25rem",
@@ -395,13 +400,14 @@ export function ProjectDetail({
             </div>
 
             {isStaff && (
-              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+              <div className="btn-m-row" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               {/* Un inactivo no recibe trabajo nuevo; un borrador sí (solo lo ve su creador) */}
               {(project.isActive || project.isDraft) && (
                 <PlannerLauncher isAdmin={isAdmin} presetProject={{ id: project.id, name: project.name }} />
               )}
               <Link
                 href={`/proyectos/${project.id}/tareas/new`}
+                className="btn-m"
                 style={{
                   display: "inline-flex",
                   alignItems: "center",

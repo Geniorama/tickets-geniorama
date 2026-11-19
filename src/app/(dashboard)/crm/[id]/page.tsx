@@ -142,7 +142,7 @@ export default async function AccountPage({ params }: { params: Promise<{ id: st
                   key={d.id}
                   href={`/crm/oportunidades/${d.id}`}
                   style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between",
                     gap: "0.75rem", padding: "0.7rem 0.85rem", borderRadius: "0.6rem",
                     border: "1px solid var(--app-border)", textDecoration: "none",
                     opacity: isClosedStage(d.stage) ? 0.65 : 1,

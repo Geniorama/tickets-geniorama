@@ -296,8 +296,8 @@ export function TicketDetail({
         {/* ── Left column ── */}
         <div className="space-y-6">
           <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div>
+            <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
+              <div className="min-w-0 flex-1 basis-48">
                 {ticket.number > 0 && (
                   <span className="inline-block mb-2 px-2 py-0.5 rounded text-xs font-semibold text-gray-500 bg-gray-50 border border-gray-200 tracking-wide">
                     {ticketCode(ticket.prefix, ticket.number)}
@@ -305,7 +305,7 @@ export function TicketDetail({
                 )}
                 <h1 className="text-xl font-bold text-gray-900">{ticket.title}</h1>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                 {isAdmin(role) && (
                   <div ref={menuRef} className="relative">
                     <button
@@ -808,7 +808,7 @@ function CommentForm({ ticketId, isStaff }: { ticketId: string; isStaff: boolean
         </p>
       )}
 
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         {isStaff && (
           <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
             <input

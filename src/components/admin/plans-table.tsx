@@ -89,7 +89,7 @@ export function PlansTable({
       <ul className="md:hidden divide-y" style={{ borderColor: "var(--app-border)" }}>
         {plans.map((plan) => (
           <li key={plan.id} style={{ padding: "0.875rem 1rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.25rem" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.25rem" }}>
               <span style={{ fontWeight: 600, color: "var(--app-body-text)", fontSize: "0.9375rem", display: "inline-flex", alignItems: "center", gap: "0.375rem", flexWrap: "wrap" }}>{plan.name} {plan.prioritySupport && <PriorityBadge />}{plan.aiTools && <AiBadge />}{plan.aiAgent && <AgentBadge />}</span>
               <span style={{ fontSize: "0.75rem", fontWeight: 600, padding: "0.2rem 0.6rem", borderRadius: "9999px", backgroundColor: plan.statusBadge.bg, color: plan.statusBadge.color, flexShrink: 0 }}>
                 {plan.statusBadge.label}

@@ -7,6 +7,19 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ## [Unreleased]
 
+## [1.140.2] — 2026-11-19
+
+### Corrección: encabezado de ticket y tarea en móvil
+- La prioridad y el estado se salían de la tarjeta (y provocaban scroll horizontal) en el detalle de tickets y tareas: ahora bajan a otra línea cuando no caben.
+
+### Corrección: proyectos y barras de acciones en móvil
+- El encabezado del proyecto (título, estado, Editar, Hooks, Eliminar) y la barra de vistas con «Nueva tarea» se acomodan en varias líneas en vez de aplastar el título o desbordar la pantalla; «Nueva tarea» ocupa el ancho completo.
+- Unas 40 filas y cabeceras (listas de proyectos y tareas, tablas de admin, CRM, servicios, paneles, cabeceras de listados) pasan a otra línea cuando no caben.
+- Los modales usan altura dinámica (`dvh`) para no quedar tapados por la barra del navegador móvil.
+
+### Mejora: botones de acción en móvil
+- Los botones de envío de formularios y los de adjuntar archivos/enlaces/comprobantes ocupan todo el ancho y miden al menos 44px de alto en pantallas estrechas (los chats mantienen su botón junto al campo).
+
 ## [1.140.1] — 2026-11-19
 
 ### Corrección: responsive en móvil

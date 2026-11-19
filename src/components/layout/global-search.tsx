@@ -156,7 +156,7 @@ export function GlobalSearch() {
           boxShadow: "0 24px 60px rgba(0,0,0,0.35)",
           overflow: "hidden",
           display: "flex", flexDirection: "column",
-          maxHeight: "70vh",
+          maxHeight: "70dvh",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.85rem 1rem", borderBottom: "1px solid var(--app-border)" }}>

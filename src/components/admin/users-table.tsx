@@ -80,7 +80,7 @@ export function UsersTable({
       <ul className="md:hidden divide-y" style={{ borderColor: "var(--app-border)" }}>
         {displayUsers.map((user) => (
           <li key={user.id} style={{ padding: "0.875rem 1rem", opacity: user.isActive ? 1 : 0.6 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.375rem" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.375rem" }}>
               <Link href={`/admin/users/${user.id}`} style={{ fontWeight: 600, color: "var(--app-body-text)", textDecoration: "none", fontSize: "0.9375rem" }}>
                 {user.name}
               </Link>

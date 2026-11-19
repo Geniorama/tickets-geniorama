@@ -47,7 +47,7 @@ export function SitesTable({
       <ul className="md:hidden divide-y" style={{ borderColor: "var(--app-border)" }}>
         {sites.map((site) => (
           <li key={site.id} style={{ padding: "0.875rem 1rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.25rem" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem", marginBottom: "0.25rem" }}>
               <span style={{ fontWeight: 600, color: "var(--app-body-text)", fontSize: "0.9375rem" }}>{site.name}</span>
               <span style={{ fontSize: "0.75rem", fontWeight: 600, padding: "0.2rem 0.6rem", borderRadius: "9999px", flexShrink: 0,
                 backgroundColor: site.isActive ? "rgba(34,197,94,0.12)" : "rgba(100,116,139,0.12)",

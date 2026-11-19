@@ -73,7 +73,7 @@ export function ServiceCard({
       }}
     >
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", minWidth: 0 }}>
           <div style={{ width: "2rem", height: "2rem", borderRadius: "0.5rem", backgroundColor: `${meta.color}1a`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <Icon style={{ width: "1rem", height: "1rem", color: meta.color }} />
@@ -132,7 +132,7 @@ export function ServiceCard({
 
       {/* Actions */}
       {(editHref || showDuplicate || showDelete) && (
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", gap: "0.375rem" }}>
             {showDuplicate && <DuplicateServiceButton serviceId={service.id} />}
             {showDelete && <DeleteServiceButton serviceId={service.id} />}

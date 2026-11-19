@@ -126,13 +126,13 @@ export function CommentAttachmentsInput({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-        <button type="button" style={triggerBtn} onClick={() => fileInputRef.current?.click()}>
+      <div className="btn-m-row" style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+        <button type="button" className="btn-m" style={triggerBtn} onClick={() => fileInputRef.current?.click()}>
           <Paperclip style={{ width: "0.875rem", height: "0.875rem" }} />
           {files.length > 0 ? "Añadir más" : fileLabel}
         </button>
         {allowLinks && (
-          <button type="button" style={triggerBtn} onClick={() => setLinks((p) => [...p, { url: "", label: "" }])}>
+          <button type="button" className="btn-m" style={triggerBtn} onClick={() => setLinks((p) => [...p, { url: "", label: "" }])}>
             <Link2 style={{ width: "0.875rem", height: "0.875rem" }} />
             Adjuntar enlace
           </button>

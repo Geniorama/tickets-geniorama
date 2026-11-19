@@ -108,7 +108,7 @@ export function ConnectedApps({ mcpUrl, apps }: { mcpUrl: string; apps: Connecte
             <li
               key={app.id}
               style={{
-                display: "flex",
+                display: "flex", flexWrap: "wrap",
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: "0.75rem",

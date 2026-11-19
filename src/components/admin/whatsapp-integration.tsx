@@ -109,7 +109,7 @@ function EventCard({ event, saved, testPhone }: { event: WhatsAppEvent; saved: s
 
   return (
     <div style={{ border: "1px solid var(--app-border)", borderRadius: "0.5rem", padding: "0.75rem" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.5rem" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.5rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
           {saved
             ? <CheckCircle2 style={{ width: "0.875rem", height: "0.875rem", color: WA_GREEN, flexShrink: 0 }} />

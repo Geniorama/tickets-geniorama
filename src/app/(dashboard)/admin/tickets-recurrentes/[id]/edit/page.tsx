@@ -105,7 +105,7 @@ export default async function EditRecurringTicketPage({
           </h3>
           <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
             {tpl.generatedTickets.map((t) => (
-              <li key={t.id} style={{ display: "flex", justifyContent: "space-between", gap: "1rem", fontSize: "0.8125rem" }}>
+              <li key={t.id} style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: "1rem", fontSize: "0.8125rem" }}>
                 <Link
                   href={`/tickets/${t.id}`}
                   style={{ color: "var(--app-body-text)", textDecoration: "none" }}

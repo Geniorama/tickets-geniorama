@@ -120,7 +120,7 @@ export default async function CategoriasPage({
           <div style={{ display: "flex", flexDirection: "column", gap: "0.7rem" }}>
             {filas.map((f) => (
               <div key={f.categoryId ?? "sin"}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem", marginBottom: "0.25rem" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "baseline", gap: "1rem", marginBottom: "0.25rem" }}>
                   <span style={{ fontSize: "0.875rem", color: f.categoryId ? "var(--app-body-text)" : "var(--tone-amber-fg)", fontWeight: 500 }}>
                     {f.nombre}
                     <span style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", fontWeight: 400 }}>

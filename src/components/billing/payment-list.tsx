@@ -270,9 +270,10 @@ export function PaymentList({
 
                 {canEdit && (
                   <label
+                    className="btn-m"
                     style={{
                       display: "inline-flex", alignItems: "center", gap: "0.25rem",
-                      fontSize: "0.7rem", color: "var(--app-text-muted)", cursor: "pointer",
+                      fontSize: "0.75rem", color: "var(--app-text-muted)", cursor: "pointer", border: "1px dashed var(--app-border)", borderRadius: "0.5rem", padding: "0.5rem 0.75rem",
                     }}
                   >
                     <Paperclip style={{ width: "0.65rem", height: "0.65rem" }} />

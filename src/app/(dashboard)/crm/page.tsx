@@ -137,7 +137,7 @@ export default async function CrmAccountsPage({
                 textDecoration: "none",
               }}
             >
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "0.75rem" }}>
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: "0.75rem" }}>
                 <span style={{ fontSize: "0.9375rem", fontWeight: 650, color: "var(--app-body-text)" }}>
                   {a.name}
                 </span>

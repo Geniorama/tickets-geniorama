@@ -105,7 +105,7 @@ export default async function InformesPage() {
                 key={month}
                 style={{ backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)", borderRadius: "0.75rem", padding: "1rem 1.25rem" }}
               >
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem" }}>
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: "0.75rem" }}>
                   <h2 style={{ fontSize: "1rem", fontWeight: 650, color: "var(--app-body-text)", margin: 0, textTransform: "capitalize" }}>
                     {reportMonthLabel(month)}
                   </h2>

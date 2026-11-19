@@ -302,7 +302,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
                 {byProject.slice(0, 6).map((p) => (
-                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div key={p.id} style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
                     <Link
                       href={`/proyectos/${p.id}`}
                       style={{ fontSize: "0.8125rem", color: "var(--app-body-text)", textDecoration: "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
