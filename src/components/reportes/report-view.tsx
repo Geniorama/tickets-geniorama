@@ -249,7 +249,7 @@ export function ReportView({
           </button>
           <button
             onClick={() => window.print()}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-accent text-white hover:bg-accent-dark transition-colors"
+            className="btn-m inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-accent text-white hover:bg-accent-dark transition-colors"
           >
             <Printer className="w-4 h-4" />
             Exportar PDF
@@ -311,7 +311,7 @@ export function ReportView({
 
           <button
             onClick={applyFilter}
-            className="px-4 py-1.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-dark transition-colors"
+            className="btn-m px-4 py-1.5 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-dark transition-colors"
           >
             Aplicar
           </button>

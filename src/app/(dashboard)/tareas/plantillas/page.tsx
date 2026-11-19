@@ -31,7 +31,7 @@ export default async function TaskTemplatesPage() {
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
           Plantillas de tarea
         </h1>
-        <Link
+        <Link className="btn-m"
           href="/tareas/plantillas/new"
           style={{
             display: "inline-flex", alignItems: "center", gap: "0.375rem",

@@ -93,7 +93,7 @@ export default async function BillingPage({
           </p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+        <div className="btn-m-row" style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
           <Link
             href={verArchivo ? "/facturacion" : "/facturacion?archivo=1"}
             style={{
@@ -155,7 +155,7 @@ export default async function BillingPage({
             </Link>
           )}
           {canEdit && (
-            <Link
+            <Link className="btn-m"
               href="/facturacion/nuevo"
               style={{
                 display: "inline-flex", alignItems: "center", gap: "0.4rem",

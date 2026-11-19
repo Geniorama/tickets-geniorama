@@ -50,7 +50,7 @@ export function VaultList({ entries, currentUserId, searchQuery }: VaultListProp
         </p>
         <Link
           href="/boveda/new"
-          className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-lg text-sm font-medium"
+          className="btn-m inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-lg text-sm font-medium"
           style={{ backgroundColor: "#fd1384", color: "#ffffff" }}
         >
           <Plus className="w-4 h-4" />

@@ -81,7 +81,7 @@ export default async function ResultadoPage({
         {orden.billingItem.concept} · {formatAmount(orden.amount)} · orden {orden.id}
       </p>
       {reintentar && (
-        <Link
+        <Link className="btn-m"
           href={`/pagar/${token}`}
           style={{
             display: "inline-block", marginTop: "1.25rem", backgroundColor: "#fd1384", color: "#ffffff",

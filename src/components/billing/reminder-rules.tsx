@@ -207,7 +207,7 @@ export function ReminderRules({
         </div>
       ) : (
         !editando && (
-          <button
+          <button className="btn-m"
             type="button"
             onClick={() => { setCreando(true); setError(null); }}
             style={{

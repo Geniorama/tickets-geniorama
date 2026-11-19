@@ -33,7 +33,7 @@ export default async function RecurringTasksPage() {
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
           Tareas recurrentes
         </h1>
-        <Link
+        <Link className="btn-m"
           href="/admin/tareas-recurrentes/new"
           style={{
             display: "inline-flex",

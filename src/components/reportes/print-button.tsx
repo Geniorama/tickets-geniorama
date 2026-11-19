@@ -4,7 +4,7 @@ import { Printer } from "lucide-react";
 
 export function PrintButton({ label = "Exportar PDF" }: { label?: string }) {
   return (
-    <button
+    <button className="btn-m"
       type="button"
       onClick={() => window.print()}
       style={{

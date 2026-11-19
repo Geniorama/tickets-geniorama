@@ -64,7 +64,7 @@ export default async function RecurringTicketsPage() {
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
           Tickets recurrentes
         </h1>
-        <Link
+        <Link className="btn-m"
           href="/admin/tickets-recurrentes/new"
           style={{
             display: "inline-flex",

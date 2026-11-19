@@ -7,6 +7,13 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ## [Unreleased]
 
+## [1.140.3] — 2026-11-19
+
+### Mejora: botones de acción en móvil (ampliado)
+- Los enlaces «Nueva…» de las cabeceras (tickets, tareas, proyectos, CRM, facturación, bóveda, admin, plantillas), «Exportar PDF», «Aplicar», «Pagar en línea» y similares ocupan el ancho completo y miden al menos 44px; las filas de acciones de las cabeceras se apilan.
+- En los formularios, «Guardar» y «Cancelar» van cada uno en su línea a ancho completo.
+- En el detalle del proyecto, Editar, Hooks y Eliminar también.
+
 ## [1.140.2] — 2026-11-19
 
 ### Corrección: encabezado de ticket y tarea en móvil

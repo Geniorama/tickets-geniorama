@@ -239,6 +239,7 @@ export function ProjectDetail({
             {isAdmin && (
               <>
                 <Link
+                  className="btn-m"
                   href={`/proyectos/${project.id}/edit`}
                   style={{
                     display: "inline-flex",
@@ -257,6 +258,7 @@ export function ProjectDetail({
                   Editar
                 </Link>
                 <Link
+                  className="btn-m"
                   href={`/proyectos/${project.id}/integraciones`}
                   title="Enviar los eventos de este proyecto a un servicio externo"
                   style={{
@@ -276,6 +278,7 @@ export function ProjectDetail({
                   Hooks
                 </Link>
                 <button
+                  className="btn-m"
                   onClick={handleDeleteProject}
                   disabled={isPending}
                   style={{

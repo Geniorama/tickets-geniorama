@@ -75,7 +75,7 @@ export default async function ContactsPage({
         </div>
 
         {canCreate && (
-          <Link
+          <Link className="btn-m"
             href="/crm/contactos/nuevo"
             style={{
               display: "inline-flex", alignItems: "center", gap: "0.4rem",

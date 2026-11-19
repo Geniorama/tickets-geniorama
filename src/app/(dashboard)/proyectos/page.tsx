@@ -161,10 +161,10 @@ export default async function ProyectosPage({
           Proyectos
         </h1>
 
-        <div className="flex flex-wrap items-center gap-2" data-tour-id="page-primary-action">
+        <div className="btn-m-row flex flex-wrap items-center gap-2" data-tour-id="page-primary-action">
           {staff && <PlannerLauncher isAdmin={admin} />}
           {admin && (
-            <Link
+            <Link className="btn-m"
               href="/proyectos/new"
               style={{
                 display: "inline-flex",

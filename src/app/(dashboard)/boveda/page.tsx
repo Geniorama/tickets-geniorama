@@ -118,7 +118,7 @@ export default async function BovedaPage({
         <Link
           href="/boveda/new"
           data-tour-id="page-primary-action"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium"
+          className="btn-m inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium"
           style={{ backgroundColor: "#fd1384", color: "#ffffff" }}
         >
           <Plus className="w-4 h-4" />

@@ -148,7 +148,7 @@ function Factura({ f, conEmpresa }: { f: FacturaDeCliente; conEmpresa: boolean }
 
       {f.linkPago && (
         <div style={{ marginTop: "0.9rem" }}>
-          <a
+          <a className="btn-m"
             href={f.linkPago}
             style={{
               display: "inline-flex", alignItems: "center", gap: "0.4rem",

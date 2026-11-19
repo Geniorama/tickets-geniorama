@@ -138,7 +138,7 @@ export function PayLinkCard({
               {copiado ? "Copiado" : "Copiar"}
             </button>
             {hrefCorreo && (
-              <Link href={hrefCorreo} style={{ ...boton, backgroundColor: "#fd1384", borderColor: "#fd1384", color: "#ffffff" }}>
+              <Link className="btn-m" href={hrefCorreo} style={{ ...boton, backgroundColor: "#fd1384", borderColor: "#fd1384", color: "#ffffff" }}>
                 <Mail style={{ width: "0.85rem", height: "0.85rem" }} />
                 Enviar al cliente
               </Link>

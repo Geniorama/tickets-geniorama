@@ -87,7 +87,7 @@ export default async function DealsPage({
           </p>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+        <div className="btn-m-row" style={{ display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
           <Link
             href={verCerradas ? "/crm/oportunidades" : "/crm/oportunidades?cerradas=1"}
             style={{
@@ -100,7 +100,7 @@ export default async function DealsPage({
               : `Ver cerradas${cerradasOcultas > 0 ? ` (${cerradasOcultas})` : ""}`}
           </Link>
           {canEdit && (
-            <Link
+            <Link className="btn-m"
               href="/crm/oportunidades/nueva"
               style={{
                 display: "inline-flex", alignItems: "center", gap: "0.4rem",

@@ -63,7 +63,7 @@ export default async function ServiciosPage({
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem", gap: "1rem", flexWrap: "wrap" }}>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>Servicios</h1>
-        <Link href="/admin/servicios/new"
+        <Link className="btn-m" href="/admin/servicios/new"
           style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem", backgroundColor: "#fd1384", color: "#ffffff", padding: "0.5rem 1rem", borderRadius: "0.5rem", fontSize: "0.875rem", fontWeight: 500, textDecoration: "none" }}>
           <Plus style={{ width: "1rem", height: "1rem" }} />
           Nuevo servicio

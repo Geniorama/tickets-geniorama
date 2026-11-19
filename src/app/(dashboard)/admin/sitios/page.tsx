@@ -65,7 +65,7 @@ export default async function SitiosPage({
         </div>
         <Link
           href="/admin/sitios/new"
-          className="inline-flex items-center gap-1.5 bg-accent text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent-dark transition-colors"
+          className="btn-m inline-flex items-center gap-1.5 bg-accent text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent-dark transition-colors"
         >
           <Plus className="w-4 h-4" />
           Nuevo sitio
@@ -99,7 +99,7 @@ export default async function SitiosPage({
           </p>
           <Link
             href="/admin/sitios/new"
-            className="inline-flex items-center gap-1.5 mt-4 bg-accent text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent-dark transition-colors"
+            className="btn-m inline-flex items-center gap-1.5 mt-4 bg-accent text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-accent-dark transition-colors"
           >
             <Plus className="w-4 h-4" />
             Crear sitio

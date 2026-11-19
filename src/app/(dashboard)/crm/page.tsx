@@ -76,7 +76,7 @@ export default async function CrmAccountsPage({
             Empresas y prospectos, con su etapa comercial y sus contactos.
           </p>
         </div>
-        <Link
+        <Link className="btn-m"
           href="/crm/nueva"
           data-tour-id="page-primary-action"
           style={{

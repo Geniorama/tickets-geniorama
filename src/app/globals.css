@@ -549,6 +549,22 @@ main { overflow-wrap: break-word; }
     text-align: center;
   }
   /* Las filas de acciones que envuelven a esos botones los apilan. */
-  .btn-m-row { flex-direction: column; align-items: stretch !important; }
-  .btn-m-row > * { width: 100%; }
+  .btn-m-row { flex-direction: column; align-items: stretch !important; width: 100%; }
+  .btn-m-row > a, .btn-m-row > button { display: inline-flex !important; align-items: center; justify-content: center; width: 100%; min-height: 2.75rem; text-align: center; }
+}
+
+/* Fila de acciones de un formulario (Guardar + Cancelar…): en móvil cada
+   botón ocupa su propia línea a ancho completo, sin aplastar a los demás. */
+@media (max-width: 639px) {
+  main form div:has(> button[type="submit"]:not([data-compact])) {
+    flex-wrap: wrap !important;
+  }
+  main form div:has(> button[type="submit"]:not([data-compact])) > :is(a, button):not([data-compact]) {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 100% !important;
+    min-height: 2.75rem;
+    text-align: center;
+  }
 }

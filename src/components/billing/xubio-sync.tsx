@@ -88,7 +88,7 @@ export function XubioSync({ parejas, muestra }: { parejas: Pareja[]; muestra: un
                   </span>
                 </span>
 
-                <button
+                <button className="btn-m"
                   type="button"
                   onClick={() => { setConfirmando(p); setError(null); }}
                   disabled={ocupado !== null}
@@ -234,7 +234,7 @@ export function XubioSync({ parejas, muestra }: { parejas: Pareja[]; muestra: un
             </div>
 
             <div style={{ display: "flex", gap: "0.5rem" }}>
-              <button
+              <button className="btn-m"
                 type="button"
                 onClick={() => {
                   const p = confirmando;

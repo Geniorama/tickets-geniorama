@@ -233,7 +233,7 @@ export function WhatsAppSettings({
       )}
 
       <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-        <button
+        <button className="btn-m"
           type="button"
           onClick={save}
           disabled={isPending}

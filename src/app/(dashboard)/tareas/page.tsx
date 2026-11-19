@@ -171,7 +171,7 @@ export default async function TareasPage({
         <h1 data-tour-id="page-title" style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
           Tareas
         </h1>
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }} data-tour-id="page-primary-action">
+        <div className="btn-m-row" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }} data-tour-id="page-primary-action">
           {admin && (
             <Link
               href="/admin/tareas-recurrentes"
@@ -195,7 +195,7 @@ export default async function TareasPage({
           )}
           {(admin || staff) && <PlannerLauncher isAdmin={admin} />}
           {(admin || staff) && (
-            <Link
+            <Link className="btn-m"
               href="/tareas/new"
               style={{
                 display: "inline-flex",

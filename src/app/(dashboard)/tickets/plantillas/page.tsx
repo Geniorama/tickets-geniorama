@@ -31,7 +31,7 @@ export default async function TicketTemplatesPage() {
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--app-body-text)" }}>
           Plantillas de ticket
         </h1>
-        <Link
+        <Link className="btn-m"
           href="/tickets/plantillas/new"
           style={{
             display: "inline-flex", alignItems: "center", gap: "0.375rem",
