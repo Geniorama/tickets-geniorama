@@ -9,7 +9,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import type { BillingStatus } from "@/generated/prisma";
+import type { BillingDocType, BillingStatus } from "@/generated/prisma";
 import { BILLING_STATUS_LABELS, isInvoiced } from "@/lib/billing/status";
 import { bloqueoDeArchivo, bloqueoDeFactura, sellosPara } from "@/lib/billing/move";
 import { calcularTotales } from "@/lib/billing/totals";
@@ -37,6 +37,9 @@ export type CobroInput = {
   invoiceDueDate: Date | null;
   invoiceNumber?: string;
   ownerId?: string;
+  docType?: BillingDocType;
+  receivedBy?: string;
+  dealId?: string;
   notes?: string;
 };
 
@@ -61,6 +64,22 @@ async function conCategoriasValidas<T extends { categoryId: string | null }>(lin
   );
 
   return lineas.map((l) => (l.categoryId && !existentes.has(l.categoryId) ? { ...l, categoryId: null } : l));
+}
+
+/**
+ * La oportunidad solo se vincula si es de la misma empresa: el id viaja desde
+ * fuera y un cobro de una empresa colgado de la oportunidad de otra falsearía
+ * el cruce de ventas contra pipeline.
+ */
+async function dealValido(dealId: string | undefined, companyId: string): Promise<string | null> {
+  if (!dealId) return null;
+  const deal = await prisma.deal.findUnique({ where: { id: dealId }, select: { companyId: true } });
+  return deal && deal.companyId === companyId ? dealId : null;
+}
+
+/** Solo las cuentas de cobro dicen a quién se consigna el dinero. */
+function receptor(d: CobroInput): string | null {
+  return d.docType === "CUENTA_COBRO" ? d.receivedBy?.trim() || null : null;
 }
 
 function lineasACrear(lineas: LineaInput[]) {
@@ -105,6 +124,9 @@ export async function crearCobro(actor: Actor, d: CobroInput): Promise<Resultado
       invoiceDueDate: isInvoiced(d.status) ? d.invoiceDueDate : null,
       invoiceNumber: isInvoiced(d.status) ? (d.invoiceNumber?.trim() || null) : null,
       ownerId: d.ownerId || null,
+      docType: d.docType ?? "FACTURA",
+      receivedBy: receptor(d),
+      dealId: await dealValido(d.dealId, d.companyId),
       notes: d.notes?.trim() || null,
       createdById: actor.id,
       ...ajuste,
@@ -130,7 +152,7 @@ export async function actualizarCobro(actor: Actor, id: string, d: CobroInput): 
   const actual = await prisma.billingItem.findUnique({
     where: { id },
     select: {
-      amount: true, paidAmount: true, invoicedAt: true, paidAt: true,
+      amount: true, paidAmount: true, invoicedAt: true, paidAt: true, companyId: true,
       // Lo que el historial vigila, para poder decir qué se editó.
       concept: true, status: true, dueDate: true, ownerId: true,
     },
@@ -162,6 +184,9 @@ export async function actualizarCobro(actor: Actor, id: string, d: CobroInput): 
       invoiceDueDate: isInvoiced(d.status) ? d.invoiceDueDate : null,
       invoiceNumber: isInvoiced(d.status) ? (d.invoiceNumber?.trim() || null) : null,
       ownerId: d.ownerId || null,
+      docType: d.docType ?? "FACTURA",
+      receivedBy: receptor(d),
+      dealId: await dealValido(d.dealId, actual.companyId),
       notes: d.notes?.trim() || null,
       ...ajuste,
     },

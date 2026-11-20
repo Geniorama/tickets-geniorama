@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import type { BillingStatus } from "@/generated/prisma";
+import type { BillingDocType, BillingStatus } from "@/generated/prisma";
+import { DOC_NUMBER_LABELS, DOC_TYPES, DOC_TYPE_LABELS } from "@/lib/billing/doc-type";
 import { BILLING_STATUSES, BILLING_STATUS_LABELS, isInvoiced } from "@/lib/billing/status";
 import { createBillingItem, updateBillingItem } from "@/actions/billing.actions";
 import { callAction } from "@/lib/run-action";
@@ -18,8 +19,13 @@ type Initial = {
   invoiceDueDate: string | null;
   invoiceNumber: string | null;
   ownerId: string | null;
+  docType: BillingDocType;
+  receivedBy: string | null;
+  dealId: string | null;
   notes: string | null;
 };
+
+export type DealOption = { id: string; title: string; stage: string; companyId: string };
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "0.55rem 0.75rem", fontSize: "0.875rem",
@@ -36,17 +42,22 @@ export function BillingForm({
   companies,
   owners,
   categorias,
+  deals = [],
   initial,
   fixedCompanyId,
 }: {
   companies: { id: string; name: string }[];
   owners: { id: string; name: string }[];
   categorias: Categoria[];
+  deals?: DealOption[];
   initial?: Initial;
   fixedCompanyId?: string;
 }) {
   const [companyId, setCompanyId] = useState(fixedCompanyId ?? companies[0]?.id ?? "");
   const [status, setStatus] = useState<BillingStatus>(initial?.status ?? "BACKLOG");
+  const [docType, setDocType] = useState<BillingDocType>(initial?.docType ?? "FACTURA");
+  const [dealId, setDealId] = useState(initial?.dealId ?? "");
+  const dealsDeLaEmpresa = deals.filter((d) => d.companyId === companyId);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -104,10 +115,53 @@ export function BillingForm({
             {companies.find((c) => c.id === companyId)?.name ?? "—"}
           </p>
         ) : (
-          <select id="company" value={companyId} style={inputStyle} onChange={(e) => setCompanyId(e.target.value)}>
+          <select
+            id="company" value={companyId} style={inputStyle}
+            onChange={(e) => { setCompanyId(e.target.value); setDealId(""); }}
+          >
             {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         )}
+      </div>
+
+      <div className="rg-2" style={{ display: "grid", gap: "0.75rem" }}>
+        <div>
+          <label htmlFor="docType" style={labelStyle}>Tipo de documento</label>
+          <select
+            id="docType" name="docType" value={docType} style={inputStyle}
+            onChange={(e) => setDocType(e.target.value as BillingDocType)}
+          >
+            {DOC_TYPES.map((t) => <option key={t} value={t}>{DOC_TYPE_LABELS[t]}</option>)}
+          </select>
+          {docType === "CUENTA_COBRO" && (
+            <p style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
+              Cobro que no pasa por la facturación de la agencia (por ejemplo, ventas al exterior).
+            </p>
+          )}
+        </div>
+        {docType === "CUENTA_COBRO" && (
+          <div>
+            <label htmlFor="receivedBy" style={labelStyle}>Quién recibe el dinero {opcional}</label>
+            <input
+              id="receivedBy" name="receivedBy" style={inputStyle} maxLength={120}
+              defaultValue={initial?.receivedBy ?? ""} placeholder="Angel, Oscar…"
+            />
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor="dealId" style={labelStyle}>Oportunidad del CRM {opcional}</label>
+        <select
+          id="dealId" name="dealId" value={dealId} style={inputStyle}
+          onChange={(e) => setDealId(e.target.value)}
+        >
+          <option value="">Sin vincular</option>
+          {dealsDeLaEmpresa.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
+        </select>
+        <p style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
+          Permite cruzar lo vendido en el CRM con lo que realmente se cobra.
+        </p>
       </div>
 
       <LineEditor initial={initial?.lines} categorias={categorias} />
@@ -132,7 +186,7 @@ export function BillingForm({
             defaultValue={initial?.dueDate ?? ""}
           />
           <p style={{ fontSize: "0.7rem", color: "var(--app-text-muted)", marginTop: "0.25rem" }}>
-            Cuándo toca emitir la factura.
+            Cuándo toca emitir {docType === "CUENTA_COBRO" ? "la cuenta de cobro" : "la factura"}.
           </p>
         </div>
         <div>
@@ -149,7 +203,7 @@ export function BillingForm({
       {isInvoiced(status) && (
         <div className="rg-2" style={{ display: "grid", gap: "0.75rem" }}>
           <div>
-            <label htmlFor="invoiceNumber" style={labelStyle}>Número de factura</label>
+            <label htmlFor="invoiceNumber" style={labelStyle}>{DOC_NUMBER_LABELS[docType]}</label>
             <input
               id="invoiceNumber" name="invoiceNumber" style={inputStyle}
               // Solo exigido al pasar a facturado; un cobro antiguo ya facturado sin número se puede seguir editando.

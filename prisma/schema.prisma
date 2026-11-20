@@ -61,6 +61,14 @@ enum ActivityType {
 /// trabajo: el cobro está cerrado y ya no queda nada que hacer con él. Existe
 /// para que «Pagado» no crezca sin fin y siga sirviendo para ver lo que se
 /// acaba de cobrar.
+/// Qué tipo de documento de cobro es. `CUENTA_COBRO` es el cobro que no pasa por
+/// la facturación de la SAS (ventas al exterior, dinero que entra a una cuenta
+/// personal): se lleva en el mismo tablero para ver todas las ventas juntas.
+enum BillingDocType {
+  FACTURA
+  CUENTA_COBRO
+}
+
 enum BillingStatus {
   BACKLOG
   POR_FACTURAR
@@ -333,6 +341,7 @@ model Deal {
   createdBy   User   @relation("DealCreatedBy", fields: [createdById], references: [id])
 
   activities CrmActivity[]
+  billingItems BillingItem[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -1290,6 +1299,15 @@ model BillingItem {
   /// Cuándo vence la factura ya emitida. De aquí cuelgan los recordatorios.
   invoiceDueDate DateTime? @map("invoice_due_date")
   invoiceNumber String?   @map("invoice_number")
+
+  /// Factura de la agencia o cuenta de cobro. Todo lo anterior es FACTURA.
+  docType    BillingDocType @default(FACTURA) @map("doc_type")
+  /// A quién se consigna el dinero cuando no entra a la SAS (solo cuentas de cobro).
+  receivedBy String?        @map("received_by")
+  /// Oportunidad del CRM que originó la venta, para cruzar pipeline y cobros.
+  dealId     String?        @map("deal_id")
+  deal       Deal?          @relation(fields: [dealId], references: [id], onDelete: SetNull)
+
   /// Se sellan al pasar por su estado, y se borran si el cobro retrocede.
   invoicedAt    DateTime? @map("invoiced_at")
   paidAt        DateTime? @map("paid_at")
@@ -1326,6 +1344,8 @@ model BillingItem {
   @@index([companyId])
   @@index([dueDate])
   @@index([invoiceDueDate])
+  @@index([docType])
+  @@index([dealId])
   @@map("billing_items")
 }
 

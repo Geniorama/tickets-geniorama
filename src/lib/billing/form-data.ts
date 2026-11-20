@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
  * también se le puede cobrar un anticipo.
  */
 export async function getBillingFormData() {
-  const [companies, owners, categories] = await Promise.all([
+  const [companies, owners, categories, deals] = await Promise.all([
     prisma.company.findMany({
       where: { isActive: true },
       orderBy: { name: "asc" },
@@ -26,7 +26,14 @@ export async function getBillingFormData() {
       orderBy: { position: "asc" },
       select: { id: true, name: true },
     }),
+    // Para vincular el cobro a la venta que lo originó. Las perdidas no se
+    // ofrecen: nadie cobra una oportunidad que no se ganó.
+    prisma.deal.findMany({
+      where: { stage: { not: "PERDIDA" } },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, title: true, stage: true, companyId: true },
+    }),
   ]);
 
-  return { companies, owners, categories };
+  return { companies, owners, categories, deals };
 }

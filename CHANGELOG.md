@@ -14,6 +14,15 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.141.0] — 2026-11-20
+
+### Cuentas de cobro junto a las facturas
+- Cada cobro ahora tiene **tipo de documento**: factura o cuenta de cobro (ventas que no pasan por la facturación de la agencia, p. ej. clientes del exterior). Todo lo existente queda como factura.
+- Las cuentas de cobro indican **quién recibe el dinero** y se distinguen con una etiqueta en el tablero, que además se puede filtrar por tipo.
+- Un cobro se puede **vincular a una oportunidad del CRM** (de la misma empresa); aparece como enlace en el detalle y se copia al duplicar.
+- Nueva página **Facturación → Ventas**: totales por periodo, tendencia de los últimos 6 meses, ventas por empresa (facturas vs cuentas de cobro, cobrado y por cobrar) y oportunidades ganadas contra lo realmente cobrado.
+- Migración aditiva `20261120150000_billing_doc_type`.
+
 ## [1.140.6] — 2026-11-20
 
 ### Corrección: empresas faltantes al crear proyectos

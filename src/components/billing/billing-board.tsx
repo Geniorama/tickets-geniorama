@@ -8,7 +8,8 @@ import {
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Building2, CalendarClock, Hash, Paperclip, Copy, Trash2, MoveRight } from "lucide-react";
-import type { BillingStatus } from "@/generated/prisma";
+import type { BillingDocType, BillingStatus } from "@/generated/prisma";
+import { DOC_TYPES, DOC_TYPE_LABELS } from "@/lib/billing/doc-type";
 import {
   BILLING_STATUS_COLORS, BILLING_STATUS_DESCRIPTIONS, BILLING_STATUS_LABELS, isClosed, isInvoiced, pendiente,
 } from "@/lib/billing/status";
@@ -36,6 +37,7 @@ export type BoardItem = {
   createdAt: Date | string;
   updatedAt: Date | string;
   invoiceNumber: string | null;
+  docType: BillingDocType;
   company: { id: string; name: string };
   owner: { name: string } | null;
   labels: { id: string; name: string; color: string }[];
@@ -106,8 +108,20 @@ function ItemCard({ item, isDragging = false }: { item: BoardItem; isDragging?: 
         opacity: isDragging ? 0.4 : 1,
       }}
     >
-      {item.labels.length > 0 && (
+      {(item.docType === "CUENTA_COBRO" || item.labels.length > 0) && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.25rem", marginBottom: "0.4rem", paddingRight: "3.25rem" }}>
+          {/* Se distingue de un vistazo: no es una factura de la agencia. */}
+          {item.docType === "CUENTA_COBRO" && (
+            <span
+              style={{
+                fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.02em",
+                padding: "0.1rem 0.4rem", borderRadius: "9999px",
+                border: "1px solid var(--app-border)", color: "var(--app-text-muted)",
+              }}
+            >
+              {DOC_TYPE_LABELS.CUENTA_COBRO}
+            </span>
+          )}
           {item.labels.map((l) => (
             <span
               key={l.id}
@@ -457,6 +471,7 @@ export function BillingBoard({
   const fEtiqueta = filters.get("etiqueta");
   const fEmpresa = filters.get("empresa");
   const fResponsable = filters.get("responsable");
+  const fTipo = filters.get("tipo");
   const fVencimientoRaw = filters.get("vencimiento");
   const fVencimiento: "" | "vencidos" | "sinFecha" | "conFecha" =
     fVencimientoRaw === "vencidos" || fVencimientoRaw === "sinFecha" || fVencimientoRaw === "conFecha"
@@ -480,10 +495,10 @@ export function BillingBoard({
     };
   }, [items]);
 
-  const hayFiltros = !!(busca || fEtiqueta || fEmpresa || fResponsable || fVencimiento);
+  const hayFiltros = !!(busca || fEtiqueta || fEmpresa || fResponsable || fVencimiento || fTipo);
   function limpiarFiltros() {
     const next = new URLSearchParams(filters.params.toString());
-    ["q", "etiqueta", "empresa", "responsable", "vencimiento"].forEach((k) => next.delete(k));
+    ["q", "etiqueta", "empresa", "responsable", "vencimiento", "tipo"].forEach((k) => next.delete(k));
     filters.push(next);
   }
 
@@ -494,6 +509,7 @@ export function BillingBoard({
       if (q && !`${i.concept} ${i.company.name} ${i.invoiceNumber ?? ""}`.toLowerCase().includes(q)) return false;
       if (fEtiqueta && !i.labels.some((l) => l.id === fEtiqueta)) return false;
       if (fEmpresa && i.company.id !== fEmpresa) return false;
+      if (fTipo && i.docType !== fTipo) return false;
       if (fResponsable === "__none") { if (i.owner) return false; }
       else if (fResponsable && i.owner?.name !== fResponsable) return false;
       if (fVencimiento === "sinFecha" && i.dueDate) return false;
@@ -505,7 +521,7 @@ export function BillingBoard({
       return true;
     });
     return sortItems(filtrados, sortKey, sortDir);
-  }, [items, sortKey, sortDir, busca, fEtiqueta, fEmpresa, fResponsable, fVencimiento]);
+  }, [items, sortKey, sortDir, busca, fEtiqueta, fEmpresa, fResponsable, fVencimiento, fTipo]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const activo = activeId ? items.find((i) => i.id === activeId) ?? null : null;
@@ -630,6 +646,16 @@ export function BillingBoard({
             filters={filters}
             param="etiqueta"
             options={[{ value: "", label: "Todas" }, ...opciones.etiquetas.map(([id, n]) => ({ value: id, label: n }))]}
+          />
+        </FilterField>
+        <FilterField label="Tipo">
+          <FilterSelect
+            filters={filters}
+            param="tipo"
+            options={[
+              { value: "", label: "Todos" },
+              ...DOC_TYPES.map((t) => ({ value: t, label: DOC_TYPE_LABELS[t] })),
+            ]}
           />
         </FilterField>
         <FilterField label="Empresa">

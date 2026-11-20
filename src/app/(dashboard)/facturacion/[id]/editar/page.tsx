@@ -36,6 +36,7 @@ export default async function EditarCobroPage({ params }: { params: Promise<{ id
     select: {
       id: true, concept: true, status: true, companyId: true, ownerId: true, notes: true,
       dueDate: true, invoiceDueDate: true, invoiceNumber: true,
+      docType: true, receivedBy: true, dealId: true,
       lines: {
         orderBy: { position: "asc" },
         select: {
@@ -47,7 +48,7 @@ export default async function EditarCobroPage({ params }: { params: Promise<{ id
   });
   if (!cobro) notFound();
 
-  const { companies, owners, categories } = await getBillingFormData();
+  const { companies, owners, categories, deals } = await getBillingFormData();
 
   return (
     <div>
@@ -64,6 +65,7 @@ export default async function EditarCobroPage({ params }: { params: Promise<{ id
           companies={companies}
           owners={owners}
           categorias={categories}
+          deals={deals}
           fixedCompanyId={cobro.companyId}
           initial={{
             id: cobro.id,
@@ -77,6 +79,9 @@ export default async function EditarCobroPage({ params }: { params: Promise<{ id
             invoiceDueDate: asDateInput(cobro.invoiceDueDate),
             invoiceNumber: cobro.invoiceNumber,
             ownerId: cobro.ownerId,
+            docType: cobro.docType,
+            receivedBy: cobro.receivedBy,
+            dealId: cobro.dealId,
             notes: cobro.notes,
           }}
         />

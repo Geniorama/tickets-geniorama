@@ -5,6 +5,7 @@ import {
   BILLING_STATUS_COLORS, BILLING_STATUS_LABELS, pendiente, isInvoiced,
 } from "@/lib/billing/status";
 import { formatAmount } from "@/lib/money";
+import { DOC_TYPE_LABELS } from "@/lib/billing/doc-type";
 import { ActivityPanel } from "@/components/ui/activity-panel";
 import { BackButton } from "@/components/ui/back-button";
 import Link from "next/link";
@@ -50,6 +51,7 @@ export default async function BillingItemPage({
       id: true, concept: true, status: true, amount: true, subtotal: true,
       taxAmount: true, paidAmount: true,
       dueDate: true, invoiceDueDate: true, invoiceNumber: true, invoicedAt: true, paidAt: true, notes: true,
+      docType: true, receivedBy: true, deal: { select: { id: true, title: true } },
       remindersOff: true, payToken: true,
       gatewayOrders: {
         orderBy: { createdAt: "desc" },
@@ -215,10 +217,18 @@ export default async function BillingItemPage({
           <p style={{ fontSize: "0.875rem", color: "var(--app-text-muted)", marginTop: "0.3rem" }}>
             {[
               cobro.company.name,
-              cobro.invoiceNumber ? `Factura ${cobro.invoiceNumber}` : null,
+              cobro.invoiceNumber ? `${DOC_TYPE_LABELS[cobro.docType]} ${cobro.invoiceNumber}` : DOC_TYPE_LABELS[cobro.docType],
+              cobro.receivedBy ? `Recibe: ${cobro.receivedBy}` : null,
               cobro.owner ? `Responsable: ${cobro.owner.name}` : null,
             ].filter(Boolean).join(" · ")}
           </p>
+          {cobro.deal && (
+            <p style={{ fontSize: "0.8125rem", marginTop: "0.25rem" }}>
+              <Link href={`/crm/oportunidades/${cobro.deal.id}`} style={{ color: "#fd1384", textDecoration: "none" }}>
+                Oportunidad: {cobro.deal.title}
+              </Link>
+            </p>
+          )}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "1.25rem" }}>

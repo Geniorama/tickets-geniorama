@@ -12,6 +12,7 @@ import { BILLING_STATUSES } from "@/lib/billing/status";
 import { moveBillingStatus } from "@/lib/billing/move";
 import { parseAmount } from "@/lib/money";
 import { actualizarCobro, crearCobro } from "@/lib/billing/items";
+import { parseDocType } from "@/lib/billing/doc-type";
 import { recordActivity } from "@/lib/activity/record";
 import { entityLabel } from "@/lib/activity/label";
 
@@ -38,6 +39,9 @@ const cobroSchema = z.object({
   invoiceDueDate: z.date().nullable(),
   invoiceNumber: z.string().max(60).optional(),
   ownerId:   z.string().optional(),
+  docType:   z.enum(["FACTURA", "CUENTA_COBRO"]).default("FACTURA"),
+  receivedBy: z.string().max(120).optional(),
+  dealId:    z.string().optional(),
   notes:     z.string().max(4000).optional(),
 });
 
@@ -78,6 +82,9 @@ function leer(formData: FormData) {
     invoiceDueDate: parseDate(formData.get("invoiceDueDate")),
     invoiceNumber: formData.get("invoiceNumber") || undefined,
     ownerId:   formData.get("ownerId") || undefined,
+    docType:   parseDocType(formData.get("docType")),
+    receivedBy: formData.get("receivedBy") || undefined,
+    dealId:    formData.get("dealId") || undefined,
     notes:     formData.get("notes") || undefined,
   });
 }
@@ -122,6 +129,7 @@ export async function duplicateBillingItem(id: string) {
     where: { id },
     select: {
       concept: true, companyId: true, dueDate: true, ownerId: true, notes: true,
+      docType: true, receivedBy: true, dealId: true,
       labels: { select: { id: true } },
       lines: {
         orderBy: { position: "asc" },
@@ -140,6 +148,9 @@ export async function duplicateBillingItem(id: string) {
     dueDate: origen.dueDate,
     invoiceDueDate: null,
     ownerId: origen.ownerId ?? undefined,
+    docType: origen.docType,
+    receivedBy: origen.receivedBy ?? undefined,
+    dealId: origen.dealId ?? undefined,
     notes: origen.notes ?? undefined,
   });
   if (!r.ok) return { error: r.error };
