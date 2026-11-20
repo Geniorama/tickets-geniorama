@@ -1,5 +1,5 @@
 import { getRequiredSession, isStaff } from "@/lib/auth-helpers";
-import { operationalCompanyWhere } from "@/lib/crm/accounts";
+import { activeCompanyWhere } from "@/lib/crm/accounts";
 import { visibleProjectWhere } from "@/lib/search/scopes";
 import { PROJECT_STATES, projectStateWhere, type ProjectState } from "@/lib/project-state";
 import { isAdmin } from "@/lib/roles";
@@ -138,7 +138,7 @@ export default async function ProyectosPage({
     // Solo admins y staff ven el filtro de empresa
     admin || staff
       ? prisma.company.findMany({
-          where: operationalCompanyWhere,
+          where: activeCompanyWhere,
           select: { id: true, name: true },
           orderBy: { name: "asc" },
         })

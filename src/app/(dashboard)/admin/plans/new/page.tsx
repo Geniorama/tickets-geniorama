@@ -1,5 +1,5 @@
 import { requireCan } from "@/lib/access/can";
-import { operationalCompanyWhere } from "@/lib/crm/accounts";
+import { activeCompanyWhere } from "@/lib/crm/accounts";
 import { prisma } from "@/lib/prisma";
 import { PlanForm } from "@/components/admin/plan-form";
 
@@ -9,7 +9,7 @@ export default async function NewPlanPage() {
   await requireCan("ADMIN");
 
   const companies = await prisma.company.findMany({
-    where: operationalCompanyWhere,
+    where: activeCompanyWhere,
     orderBy: { name: "asc" },
     select: { id: true, name: true },
   });

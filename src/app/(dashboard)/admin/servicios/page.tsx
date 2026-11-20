@@ -1,5 +1,5 @@
 import { requireCan } from "@/lib/access/can";
-import { operationalCompanyWhere } from "@/lib/crm/accounts";
+import { activeCompanyWhere } from "@/lib/crm/accounts";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { Plus } from "lucide-react";
@@ -45,7 +45,7 @@ export default async function ServiciosPage({
       orderBy: [{ company: { name: "asc" } }, serviceOrderBy],
     }),
     prisma.company.findMany({
-      where: operationalCompanyWhere,
+      where: activeCompanyWhere,
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),

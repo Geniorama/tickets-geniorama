@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { operationalCompanyWhere } from "@/lib/crm/accounts";
+import { activeCompanyWhere } from "@/lib/crm/accounts";
 import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { ProjectForm } from "@/components/projects/project-form";
@@ -25,7 +25,7 @@ export default async function EditProjectPage({
       include: { members: { select: { userId: true } } },
     }),
     prisma.company.findMany({
-      where: operationalCompanyWhere,
+      where: activeCompanyWhere,
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),

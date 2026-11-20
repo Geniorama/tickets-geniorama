@@ -1,5 +1,5 @@
 import { requireCan } from "@/lib/access/can";
-import { operationalCompanyWhere } from "@/lib/crm/accounts";
+import { activeCompanyWhere } from "@/lib/crm/accounts";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { ServiceForm } from "@/components/services/service-form";
@@ -26,7 +26,7 @@ export default async function EditServicioPage({
       include: { company: { select: { id: true, name: true } } },
     }),
     prisma.company.findMany({
-      where: operationalCompanyWhere,
+      where: activeCompanyWhere,
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),

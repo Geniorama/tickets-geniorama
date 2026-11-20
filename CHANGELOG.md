@@ -14,6 +14,11 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.140.6] — 2026-11-20
+
+### Corrección: empresas faltantes al crear proyectos
+- Proyectos, planes, sitios, servicios y reportes ahora listan todas las empresas activas (incluidos leads y prospectos), igual que usuarios y Bóveda.
+
 ## [1.140.5] — 2026-11-20
 
 ### Corrección: empresas faltantes en selectores de usuarios y Bóveda
