@@ -49,3 +49,12 @@ export const operationalCompanyWhere: Prisma.CompanyWhereInput = {
   isActive: true,
   stage: "CLIENTE",
 };
+
+/**
+ * Empresas activas en cualquier etapa (incluye leads y prospectos). Para
+ * selectores donde también se registra información de cuentas que aún no son
+ * clientes: crear usuarios y entradas de la Bóveda.
+ */
+export const activeCompanyWhere: Prisma.CompanyWhereInput = {
+  isActive: true,
+};

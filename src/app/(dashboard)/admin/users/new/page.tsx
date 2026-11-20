@@ -1,5 +1,5 @@
 import { requireCan } from "@/lib/access/can";
-import { operationalCompanyWhere } from "@/lib/crm/accounts";
+import { activeCompanyWhere } from "@/lib/crm/accounts";
 import { prisma } from "@/lib/prisma";
 import { UserForm } from "@/components/admin/user-form";
 import { listAccessProfiles } from "@/lib/access/profiles";
@@ -11,7 +11,7 @@ export default async function NewUserPage() {
 
   const [companies, profiles] = await Promise.all([
     prisma.company.findMany({
-      where: operationalCompanyWhere,
+      where: activeCompanyWhere,
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),

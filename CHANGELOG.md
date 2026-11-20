@@ -14,6 +14,11 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.140.5] — 2026-11-20
+
+### Corrección: empresas faltantes en selectores de usuarios y Bóveda
+- Al crear/editar usuarios y entradas de la Bóveda ahora aparecen todas las empresas activas, incluidas las que están como lead o prospecto en el CRM (antes solo salían las de etapa Cliente).
+
 ## [1.140.4] — 2026-11-19
 
 ### Corrección: widget de feedback tapado por el Chat IA
