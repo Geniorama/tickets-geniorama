@@ -3,6 +3,13 @@
 Todas las entregas notables de este proyecto. Formato basado en [Keep a Changelog](https://keepachangelog.com/es/1.0.0/).
 Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINOR, correcciones incrementan PATCH.
 
+**Cuándo subir MAJOR (2.0, 3.0…):** solo ante un cambio que rompe compatibilidad o marca un hito de plataforma, por ejemplo:
+- Cambio incompatible en la API v1 consumida por n8n, agentes e integraciones (en lo posible, preferir publicar una API v2 y mantener la v1).
+- Migración o rediseño de gran alcance que obligue a los usuarios a reaprender el producto o a migrar datos de forma no reversible.
+- Cambio de infraestructura base (base de datos, autenticación, almacenamiento) con impacto visible para usuarios o integraciones.
+
+Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
+
 ---
 
 ## [Unreleased]
