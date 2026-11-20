@@ -7,6 +7,11 @@ Versionado semántico: `MAJOR.MINOR.PATCH` — funciones nuevas incrementan MINO
 
 ## [Unreleased]
 
+## [1.140.4] — 2026-11-19
+
+### Corrección: widget de feedback tapado por el Chat IA
+- El botón de feedback quedaba debajo del botón flotante del Chat IA; ahora se ubica a su izquierda, en la misma fila.
+
 ## [1.140.3] — 2026-11-19
 
 ### Mejora: botones de acción en móvil (ampliado)
