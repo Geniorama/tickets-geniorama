@@ -21,7 +21,8 @@ import { notify } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { sendTicketAssignedEmail } from "@/lib/email";
 import { emitTicketHook } from "@/lib/hooks/dispatch";
-import { format } from "date-fns";
+import { format, startOfDay, startOfMonth, startOfWeek } from "date-fns";
+import { recordActivity } from "@/lib/activity/record";
 import { es } from "date-fns/locale";
 
 const APP_URL = process.env.AUTH_URL ?? "http://localhost:3000";
@@ -90,7 +91,17 @@ export function avanzarProgramacion(tpl: RecurringTicketTemplate, ahora: Date): 
   return next;
 }
 
-export type TicketGenerado = { id: string; title: string; url: string };
+/**
+ * Cuándo empieza el periodo en el que cae `ahora`, según la frecuencia:
+ * día, semana (desde el lunes) o mes calendario.
+ */
+export function inicioDelPeriodo(tpl: Pick<RecurringTicketTemplate, "frequency">, ahora: Date): Date {
+  if (tpl.frequency === "DIARIA") return startOfDay(ahora);
+  if (tpl.frequency === "MENSUAL") return startOfMonth(ahora);
+  return startOfWeek(ahora, { weekStartsOn: 1 });
+}
+
+export type TicketGenerado ={ id: string; title: string; url: string };
 
 /**
  * Crea el ticket y adelanta la programación, todo en una transacción.
@@ -105,9 +116,36 @@ export type TicketGenerado = { id: string; title: string; url: string };
 export async function generarTicketRecurrente(
   tpl: RecurringTicketTemplate,
   actorId: string,
-  opciones: { ahora?: Date; avanzar?: boolean } = {},
-): Promise<TicketGenerado> {
+  opciones: { ahora?: Date; avanzar?: boolean; forzar?: boolean } = {},
+): Promise<TicketGenerado | null> {
   const ahora = opciones.ahora ?? new Date();
+
+  // Un periodo, una instancia. Una semanal con varios días marcados (mar y mié)
+  // «tocaba» dos veces por semana y abría HS-22 y HS-23 seguidos. Si ya hay una
+  // instancia abierta de este periodo no se abre otra, pero la programación sí
+  // avanza: si no, el barrido volvería a intentarlo cada día.
+  // `forzar` (el botón «Generar ahora») salta la guarda: ahí es una persona
+  // quien decide abrir otra, y sabe lo que hace.
+  if (!opciones.forzar) {
+    const existente = await prisma.ticket.findFirst({
+      where: {
+        recurringTemplateId: tpl.id,
+        status: { not: "CERRADO" },
+        createdAt: { gte: inicioDelPeriodo(tpl, ahora) },
+      },
+      select: { id: true },
+    });
+    if (existente) {
+      if (opciones.avanzar !== false) {
+        await prisma.recurringTicketTemplate.updateMany({
+          where: { id: tpl.id, nextRunAt: tpl.nextRunAt },
+          data: { nextRunAt: avanzarProgramacion(tpl, ahora) },
+        });
+      }
+      return null;
+    }
+  }
+
   const prefix = await resolverPrefijo(tpl);
 
   const dueDate =
@@ -127,6 +165,17 @@ export async function generarTicketRecurrente(
       : [];
 
   const ticket = await prisma.$transaction(async (tx) => {
+    // Reclamar la ejecución antes de crear: dos barridos simultáneos (reintento
+    // del workflow, doble disparo) leen la misma plantilla, pero solo uno logra
+    // mover `nextRunAt` desde el valor que leyó. El otro no crea nada.
+    if (opciones.avanzar !== false) {
+      const reclamada = await tx.recurringTicketTemplate.updateMany({
+        where: { id: tpl.id, nextRunAt: tpl.nextRunAt },
+        data: { lastRunAt: ahora, nextRunAt: avanzarProgramacion(tpl, ahora) },
+      });
+      if (reclamada.count === 0) return null;
+    }
+
     const created = await tx.ticket.create({
       data: {
         title: tpl.title,
@@ -156,15 +205,10 @@ export async function generarTicketRecurrente(
       tx,
     );
 
-    if (opciones.avanzar !== false) {
-      await tx.recurringTicketTemplate.update({
-        where: { id: tpl.id },
-        data: { lastRunAt: ahora, nextRunAt: avanzarProgramacion(tpl, ahora) },
-      });
-    }
-
     return created;
   });
+
+  if (!ticket) return null;
 
   return { id: ticket.id, title: ticket.title, url: `/tickets/${ticket.id}` };
 }
@@ -225,6 +269,17 @@ export async function avisarTicketRecurrente(
 
   // El canal externo, que además deja la entrada en el historial del ticket.
   emitTicketHook("ticket.created", ticket.id, {
+    actor: { id: tpl.createdById, name: autorNombre },
+  });
+
+  // Y la marca de origen: sin ella «creado por Angel» no distingue el ticket
+  // que salió de la recurrencia del que abrió una persona.
+  recordActivity({
+    entityType: "TICKET",
+    entityId: ticket.id,
+    action: "ticket.recurrence_generated",
+    label: ticket.title,
+    meta: { templateId: tpl.id },
     actor: { id: tpl.createdById, name: autorNombre },
   });
 }

@@ -244,7 +244,8 @@ export const ACTIVITY_ACTIONS: readonly ActivityAction[] = [
   // aparte, son la programación de un ticket. Como esa ficha no vive en
   // /tickets/<id>, cada entrada lleva su propio enlace en `meta.href`.
   { key: "ticket.recurrence_created", entity: "TICKET", label: "programó un ticket recurrente", tone: "create" },
-  { key: "ticket.recurrence_updated", entity: "TICKET", label: "editó una recurrencia",         tone: "update" },
+  { key: "ticket.recurrence_generated", entity: "TICKET", label: "lo generó una recurrencia",    tone: "create" },
+  { key: "ticket.recurrence_updated",entity: "TICKET", label: "editó una recurrencia",         tone: "update" },
   { key: "ticket.recurrence_paused",  entity: "TICKET", label: "pausó una recurrencia",         tone: "move" },
   { key: "ticket.recurrence_resumed", entity: "TICKET", label: "reanudó una recurrencia",       tone: "move" },
   { key: "ticket.recurrence_deleted", entity: "TICKET", label: "eliminó una recurrencia",       tone: "destroy" },

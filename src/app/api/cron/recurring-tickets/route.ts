@@ -43,11 +43,16 @@ export async function POST(req: NextRequest) {
   });
 
   let generated = 0;
+  let skipped = 0;
   const errors: { id: string; message: string }[] = [];
 
   for (const tpl of templates) {
     try {
       const ticket = await generarTicketRecurrente(tpl, tpl.createdById, { ahora: now });
+      if (!ticket) {
+        skipped++;
+        continue;
+      }
       generated++;
 
       // Los avisos van después de que la transacción confirme y no tumban el
@@ -63,5 +68,5 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, candidates: templates.length, generated, errors });
+  return NextResponse.json({ ok: true, candidates: templates.length, generated, skipped, errors });
 }

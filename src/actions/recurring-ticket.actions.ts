@@ -268,7 +268,8 @@ export async function runRecurringTicketNow(id: string) {
   if (!tpl) return { error: "Recurrencia no encontrada" };
   if (!tpl.isActive) return { error: "La recurrencia está pausada" };
 
-  const ticket = await generarTicketRecurrente(tpl, session.user.id);
+  const ticket = await generarTicketRecurrente(tpl, session.user.id, { forzar: true });
+  if (!ticket) return { error: "Otra ejecución ya generó este ticket. Recarga la lista." };
   await avisarTicketRecurrente(tpl, ticket, session.user.name ?? "Alguien del equipo");
 
   revalidatePath(LISTA);

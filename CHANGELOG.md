@@ -14,6 +14,14 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.141.1] — 2026-11-23
+
+### Corrección: tickets recurrentes duplicados en el mismo periodo
+- Una recurrencia semanal con varios días marcados abría una instancia por día (HS-22 y HS-23). Ahora, si ya hay una instancia abierta del periodo (día, semana o mes), no se crea otra; la programación avanza igual.
+- Dos barridos simultáneos ya no pueden generar el mismo ticket: la ejecución se reclama de forma atómica.
+- «Generar ahora» sigue permitiendo abrir una instancia extra a propósito.
+- El historial del ticket indica «lo generó una recurrencia» cuando no lo abrió una persona.
+
 ## [1.141.0] — 2026-11-20
 
 ### Cuentas de cobro junto a las facturas
