@@ -43,7 +43,9 @@ import { registerAdminTools } from "@/lib/mcp/admin-tools";
 
 const PRIORITY = z.enum(["BAJA", "MEDIA", "ALTA", "CRITICA"]);
 const TASK_STATUS = z.enum(["PENDIENTE", "EN_PROGRESO", "EN_REVISION", "COMPLETADO"]);
-const TICKET_STATUS = z.enum(["POR_ASIGNAR", "ABIERTO", "EN_PROGRESO", "EN_REVISION", "CERRADO"]);
+const TICKET_STATUS = z.enum([
+  "POR_ASIGNAR", "ABIERTO", "EN_PROGRESO", "EN_REVISION", "CERRADO", "ESPERA_CLIENTE", "ANULADO",
+]);
 
 const date = z
   .string()
@@ -476,6 +478,13 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
           title: z.string().trim().min(1).max(200).optional(),
           description: z.string().trim().min(1).optional(),
           status: TICKET_STATUS.optional(),
+          statusReason: z
+            .string()
+            .trim()
+            .max(500)
+            .nullable()
+            .optional()
+            .describe("Motivo; obligatorio al pasar a ESPERA_CLIENTE (qué se espera del cliente) o ANULADO"),
           priority: PRIORITY.optional(),
           category: z.string().trim().max(80).nullable().optional(),
           assignedToId: z.string().nullable().optional().describe('Id de usuario del equipo, "me" o null'),

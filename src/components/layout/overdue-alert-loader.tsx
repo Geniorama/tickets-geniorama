@@ -15,7 +15,7 @@ export async function OverdueAlertLoader({ userId }: { userId: string }) {
       where: {
         isDraft: false,
         assignedToId: userId,
-        status: { not: "CERRADO" },
+        status: { notIn: ["CERRADO", "ANULADO", "ESPERA_CLIENTE"] },
         dueDate: { lt: today },
       },
       take: 50,

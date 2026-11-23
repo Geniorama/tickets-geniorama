@@ -14,6 +14,8 @@ const STATUS_OPTIONS = [
   { value: "EN_PROGRESO", label: "En progreso" },
   { value: "EN_REVISION", label: "En revisión" },
   { value: "CERRADO",     label: "Cerrado" },
+  { value: "ESPERA_CLIENTE", label: "En espera del cliente" },
+  { value: "ANULADO",     label: "Anulado" },
 ];
 
 const SORT_OPTIONS = [

@@ -89,9 +89,9 @@ export default async function PanelPage({
   ticketAnd.push({ isDraft: false }); // los borradores no aparecen en el panel
   if (overdueOnly) {
     ticketAnd.push({ dueDate: { lt: now } });
-    ticketAnd.push({ status: { not: "CERRADO" } });
+    ticketAnd.push({ status: { notIn: ["CERRADO", "ANULADO"] } });
   } else if (!includeDone) {
-    ticketAnd.push({ status: { not: "CERRADO" } });
+    ticketAnd.push({ status: { notIn: ["CERRADO", "ANULADO"] } });
   }
   const ticketWhere: Prisma.TicketWhereInput = ticketAnd.length ? { AND: ticketAnd } : {};
 

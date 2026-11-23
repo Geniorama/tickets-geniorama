@@ -89,6 +89,10 @@ enum TicketStatus {
   EN_PROGRESO
   EN_REVISION
   CERRADO
+  /// Bloqueado esperando algo del cliente; no cuenta como vencido ni inactivo.
+  ESPERA_CLIENTE
+  /// Cancelado sin llegar a resolverse; se distingue de Cerrado en filtros y reportes.
+  ANULADO
 }
 
 enum Priority {
@@ -490,6 +494,8 @@ model Ticket {
   title       String
   description String
   status      TicketStatus @default(ABIERTO)
+  /// Por qué está en espera del cliente o anulado. Se vacía al salir de esos estados.
+  statusReason String?     @map("status_reason") @db.Text
   priority    Priority     @default(MEDIA)
   category    String?
   isDraft     Boolean      @default(false) @map("is_draft")

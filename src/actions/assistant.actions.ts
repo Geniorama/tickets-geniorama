@@ -52,6 +52,8 @@ const TICKET_STATUS_LABELS: Record<TicketStatus, string> = {
   EN_PROGRESO: "En progreso",
   EN_REVISION: "En revisión",
   CERRADO: "Cerrado",
+  ESPERA_CLIENTE: "En espera del cliente",
+  ANULADO: "Anulado",
 };
 const PRIORITY_LABELS: Record<Priority, string> = {
   BAJA: "Baja", MEDIA: "Media", ALTA: "Alta", CRITICA: "Crítica",
@@ -137,7 +139,7 @@ async function buildContext(userId: string): Promise<AssistantContext> {
       where: {
         assignedToId: userId,
         isDraft: false,
-        status: { not: "CERRADO" },
+        status: { notIn: ["CERRADO", "ANULADO"] },
       },
       select: {
         id: true,

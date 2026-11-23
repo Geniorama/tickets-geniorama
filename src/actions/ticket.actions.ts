@@ -12,6 +12,7 @@ import { notify, notifyMany } from "@/lib/notify";
 import { sendGChatNotification } from "@/lib/gchat";
 import { afterTicketStatusChange } from "@/lib/status-change";
 import type { TicketStatus } from "@/generated/prisma";
+import { resolverMotivo } from "@/lib/ticket-status";
 import { sendTicketAssignedEmail, sendTicketClosedEmail, sendTicketStatusChangedEmail } from "@/lib/email";
 import { ticketPrefix } from "@/lib/ticket-code";
 import { parseChecklistGroups } from "@/lib/checklist";
@@ -480,13 +481,18 @@ const ticketStatusLabels: Record<string, string> = {
   EN_PROGRESO: "En progreso",
   EN_REVISION: "En revisión",
   CERRADO: "Cerrado",
+  ESPERA_CLIENTE: "En espera del cliente",
+  ANULADO: "Anulado",
 };
 
-export async function updateTicketStatus(ticketId: string, status: string) {
+const TICKET_STATUS_VALUES = ["POR_ASIGNAR", "ABIERTO", "EN_PROGRESO", "EN_REVISION", "CERRADO", "ESPERA_CLIENTE", "ANULADO"];
+
+export async function updateTicketStatus(ticketId: string, status: string, reason?: string) {
   const session = await getRequiredSession();
   if (!isStaff(session.user.role)) {
     return { error: "Sin permisos" };
   }
+  if (!TICKET_STATUS_VALUES.includes(status)) return { error: "Estado inválido" };
 
   const ticket = await prisma.ticket.findUnique({
     where: { id: ticketId },
@@ -500,9 +506,16 @@ export async function updateTicketStatus(ticketId: string, status: string) {
     },
   });
 
+  // En espera del cliente y Anulado piden motivo; los demás estados lo vacían
+  const motivo = resolverMotivo(status, ticket?.status, reason);
+  if ("error" in motivo) return { error: motivo.error };
+
   await prisma.ticket.update({
     where: { id: ticketId },
-    data: { status: status as never },
+    data: {
+      status: status as never,
+      ...(motivo.value !== undefined ? { statusReason: motivo.value } : {}),
+    },
   });
 
   // Cronómetros y avisos (campana, Google Chat, revisores, correo al cliente):
@@ -519,6 +532,7 @@ export async function updateTicketStatus(ticketId: string, status: string) {
       assignedToId: ticket.assignedToId,
       client: ticket.client,
       autoStartTimer: true,
+      reason: motivo.value ?? null,
     });
   }
 
@@ -588,7 +602,8 @@ export async function updateTicket(ticketId: string, formData: FormData) {
   const schema = z.object({
     title: z.string().min(1, "El título es requerido").max(200),
     description: z.string().min(1, "La descripción es requerida"),
-    status: z.enum(["POR_ASIGNAR", "ABIERTO", "EN_PROGRESO", "EN_REVISION", "CERRADO"]),
+    status: z.enum(["POR_ASIGNAR", "ABIERTO", "EN_PROGRESO", "EN_REVISION", "CERRADO", "ESPERA_CLIENTE", "ANULADO"]),
+    statusReason: z.string().optional(),
     priority: z.enum(["BAJA", "MEDIA", "ALTA", "CRITICA"]),
     category: z.string().optional(),
     assignedToId: z.string().optional(),
@@ -602,6 +617,7 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     title: formData.get("title"),
     description: formData.get("description"),
     status: formData.get("status"),
+    statusReason: formData.get("statusReason") || undefined,
     priority: formData.get("priority"),
     category: formData.get("category") || undefined,
     assignedToId: formData.get("assignedToId") || undefined,
@@ -641,6 +657,9 @@ export async function updateTicket(ticketId: string, formData: FormData) {
 
   const newDueDate = parsed.data.dueDate ? new Date(parsed.data.dueDate) : null;
 
+  const motivo = resolverMotivo(parsed.data.status, oldTicket?.status, parsed.data.statusReason);
+  if ("error" in motivo) return { error: motivo.error };
+
   // Revisores: si quedan vacíos, por defecto el creador del ticket
   const reviewerIds = await resolveReviewerIds(
     parseReviewerIds(formData),
@@ -653,6 +672,7 @@ export async function updateTicket(ticketId: string, formData: FormData) {
       title: parsed.data.title,
       description: parsed.data.description,
       status: parsed.data.status as never,
+      ...(motivo.value !== undefined ? { statusReason: motivo.value } : {}),
       priority: parsed.data.priority as never,
       category: parsed.data.category ?? null,
       assignedToId: parsed.data.assignedToId ?? null,
@@ -690,7 +710,8 @@ export async function updateTicket(ticketId: string, formData: FormData) {
     if (parsed.data.status === "CERRADO") {
       void sendTicketClosedEmail(oldTicket.client, parsed.data.title, url).catch(console.error);
     } else {
-      const label = ticketStatusLabels[parsed.data.status] ?? parsed.data.status;
+      const base = ticketStatusLabels[parsed.data.status] ?? parsed.data.status;
+      const label = motivo.value ? `${base} — ${motivo.value}` : base;
       void sendTicketStatusChangedEmail(oldTicket.client, parsed.data.title, label, url).catch(console.error);
     }
   }
@@ -749,7 +770,7 @@ export async function configureTicket(ticketId: string, formData: FormData) {
   const status = (formData.get("status") as string) || "ABIERTO";
 
   const validPriorities = ["BAJA", "MEDIA", "ALTA", "CRITICA"];
-  const validStatuses = ["POR_ASIGNAR", "ABIERTO", "EN_PROGRESO", "EN_REVISION", "CERRADO"];
+  const validStatuses = TICKET_STATUS_VALUES;
   if (!validPriorities.includes(priority)) return { error: "Prioridad inválida" };
   if (!validStatuses.includes(status)) return { error: "Estado inválido" };
 
@@ -778,6 +799,9 @@ export async function configureTicket(ticketId: string, formData: FormData) {
 
   const newDueDate = dueDateStr ? new Date(dueDateStr) : null;
 
+  const motivo = resolverMotivo(status, ticket?.status, (formData.get("statusReason") as string) || undefined);
+  if ("error" in motivo) return { error: motivo.error };
+
   await prisma.ticket.update({
     where: { id: ticketId },
     data: {
@@ -785,6 +809,7 @@ export async function configureTicket(ticketId: string, formData: FormData) {
       assignedToId,
       priority: priority as never,
       status: status as never,
+      ...(motivo.value !== undefined ? { statusReason: motivo.value } : {}),
     },
   });
 
@@ -810,7 +835,8 @@ export async function configureTicket(ticketId: string, formData: FormData) {
     if (status === "CERRADO") {
       void sendTicketClosedEmail(ticket.client, ticket.title, ticketUrl).catch(console.error);
     } else if (!assignedEmailSent) {
-      const label = ticketStatusLabels[status] ?? status;
+      const base = ticketStatusLabels[status] ?? status;
+      const label = motivo.value ? `${base} — ${motivo.value}` : base;
       void sendTicketStatusChangedEmail(ticket.client, ticket.title, label, ticketUrl).catch(console.error);
     }
   }

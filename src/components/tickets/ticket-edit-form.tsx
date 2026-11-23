@@ -13,7 +13,7 @@ interface Plan { id: string; name: string; type: string; companyId: string; comp
 interface Site { id: string; name: string; domain: string; companyId: string; }
 interface Ticket {
   id: string; title: string; description: string;
-  status: string; priority: string; category: string | null;
+  status: string; statusReason?: string | null; priority: string; category: string | null;
   assignedToId: string | null; clientId: string | null; planId: string | null; siteId: string | null;
   dueDate: string | null;
   reviewerIds?: string[];
@@ -87,7 +87,17 @@ export function TicketEditForm({
             <option value="EN_PROGRESO">En progreso</option>
             <option value="EN_REVISION">En revisión</option>
             <option value="CERRADO">Cerrado</option>
+            <option value="ESPERA_CLIENTE">En espera del cliente</option>
+            <option value="ANULADO">Anulado</option>
           </select>
+          <input
+            name="statusReason"
+            type="text"
+            maxLength={500}
+            defaultValue={ticket.statusReason ?? ""}
+            placeholder="Motivo (obligatorio para En espera del cliente y Anulado)"
+            className={`${inputClass} mt-2`}
+          />
         </div>
 
         <div>

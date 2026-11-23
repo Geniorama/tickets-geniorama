@@ -31,7 +31,7 @@ const createSchema = z.object({
   title: z.string().trim().min(1, "title es requerido").max(200),
   description: z.string().trim().min(1, "description es requerida"),
   priority: z.enum(["BAJA", "MEDIA", "ALTA", "CRITICA"]).optional(),
-  status: z.enum(["POR_ASIGNAR", "ABIERTO", "EN_PROGRESO", "EN_REVISION", "CERRADO"]).optional(),
+  status: z.enum(["POR_ASIGNAR", "ABIERTO", "EN_PROGRESO", "EN_REVISION", "CERRADO", "ESPERA_CLIENTE", "ANULADO"]).optional(),
   category: z.string().trim().max(80).optional(),
   assignedToId: z.string().optional(),
   siteId: z.string().optional(),

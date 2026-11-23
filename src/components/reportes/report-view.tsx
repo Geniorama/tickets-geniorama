@@ -45,6 +45,8 @@ const STATUS_LABELS: Record<string, string> = {
   EN_PROGRESO:"En progreso",
   EN_REVISION:"En revisión",
   CERRADO:    "Cerrado",
+  ESPERA_CLIENTE: "En espera del cliente",
+  ANULADO:    "Anulado",
 };
 
 const PRIORITY_LABELS: Record<string, string> = {
@@ -200,8 +202,10 @@ export function ReportView({
   const [planId,    setPlanId]    = useState(initialPlanId);
 
   const totalMs     = tickets.reduce((s, t) => s + t.totalMs, 0);
-  const openCount   = tickets.filter((t) => t.status !== "CERRADO").length;
+  // Anulado no es abierto ni cerrado: se cuenta aparte para no inflar ninguno
+  const openCount   = tickets.filter((t) => t.status !== "CERRADO" && t.status !== "ANULADO").length;
   const closedCount = tickets.filter((t) => t.status === "CERRADO").length;
+  const canceledCount = tickets.filter((t) => t.status === "ANULADO").length;
 
   // Plans available in the plan dropdown (filtered by selected company)
   const filteredPlanOptions = companyId
@@ -361,6 +365,9 @@ export function ReportView({
         <SummaryCard icon={<Clock className="w-5 h-5" />}        label="Tiempo total"  value={msToHHMM(totalMs)}      color="purple" />
         <SummaryCard icon={<AlertCircle className="w-5 h-5" />}  label="Abiertos"      value={String(openCount)}      color="amber"  />
         <SummaryCard icon={<CheckCircle2 className="w-5 h-5" />} label="Cerrados"      value={String(closedCount)}    color="green"  />
+        {canceledCount > 0 && (
+          <SummaryCard icon={<AlertCircle className="w-5 h-5" />} label="Anulados" value={String(canceledCount)} color="indigo" />
+        )}
       </div>
 
       {/* ── Plans ── */}
@@ -538,6 +545,8 @@ function StatusBadge({ status }: { status: string }) {
     EN_PROGRESO: "bg-amber-50 text-amber-700",
     EN_REVISION: "bg-purple-50 text-purple-700",
     CERRADO:     "bg-green-50 text-green-700",
+    ESPERA_CLIENTE: "bg-orange-50 text-orange-700",
+    ANULADO:     "bg-slate-100 text-slate-600",
   };
   return (
     <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${map[status] ?? "bg-gray-100 text-gray-600"}`}>

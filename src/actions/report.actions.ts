@@ -51,6 +51,7 @@ const priorityLabel: Record<string, string> = {
 const statusLabel: Record<string, string> = {
   PENDIENTE: "Pendiente", EN_PROGRESO: "En progreso", EN_REVISION: "En revisión",
   COMPLETADO: "Completado", POR_ASIGNAR: "Por asignar", ABIERTO: "Abierto", CERRADO: "Cerrado",
+  ESPERA_CLIENTE: "En espera del cliente", ANULADO: "Anulado",
 };
 
 function today() {

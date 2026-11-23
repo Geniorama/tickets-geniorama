@@ -20,7 +20,8 @@ export const dynamic = "force-dynamic";
 const patchSchema = z.object({
   title: z.string().trim().min(1).max(200).optional(),
   description: z.string().trim().min(1).optional(),
-  status: z.enum(["POR_ASIGNAR", "ABIERTO", "EN_PROGRESO", "EN_REVISION", "CERRADO"]).optional(),
+  status: z.enum(["POR_ASIGNAR", "ABIERTO", "EN_PROGRESO", "EN_REVISION", "CERRADO", "ESPERA_CLIENTE", "ANULADO"]).optional(),
+  statusReason: z.string().trim().max(500).nullable().optional(),
   priority: z.enum(["BAJA", "MEDIA", "ALTA", "CRITICA"]).optional(),
   category: z.string().trim().max(80).nullable().optional(),
   assignedToId: z.string().nullable().optional(),

@@ -15,7 +15,8 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Circle, Clock, Eye, CheckCircle2, GripVertical, Inbox } from "lucide-react";
+import { Circle, Clock, Eye, CheckCircle2, GripVertical, Inbox, Hourglass, Ban } from "lucide-react";
+import { requiereMotivo } from "@/lib/ticket-status";
 import type { Ticket, TicketStatus, Priority } from "@/generated/prisma";
 import { PriorityBadge } from "./ticket-status-badge";
 import { formatDateTime } from "@/lib/format-date";
@@ -82,6 +83,24 @@ const columns: {
     countClass: "bg-green-100 text-green-700",
     dropClass: "bg-white",
     dropActiveClass: "bg-green-50 ring-2 ring-green-300",
+  },
+  {
+    status: "ESPERA_CLIENTE",
+    label: "En espera del cliente",
+    icon: Hourglass,
+    topBorder: "border-t-orange-400",
+    countClass: "bg-orange-100 text-orange-700",
+    dropClass: "bg-white",
+    dropActiveClass: "bg-orange-50 ring-2 ring-orange-300",
+  },
+  {
+    status: "ANULADO",
+    label: "Anulado",
+    icon: Ban,
+    topBorder: "border-t-slate-400",
+    countClass: "bg-slate-100 text-slate-700",
+    dropClass: "bg-white",
+    dropActiveClass: "bg-slate-50 ring-2 ring-slate-300",
   },
 ];
 
@@ -312,13 +331,27 @@ export function TicketKanban({
     const ticket = tickets.find((t) => t.id === active.id);
     if (!ticket || ticket.status === newStatus) return;
 
+    // En espera del cliente y Anulado piden motivo: sin él la tarjeta no se mueve
+    let reason: string | undefined;
+    if (requiereMotivo(newStatus)) {
+      const texto = window
+        .prompt(
+          newStatus === "ESPERA_CLIENTE"
+            ? "¿Qué se espera del cliente? (se le avisará)"
+            : "¿Por qué se anula este ticket?",
+        )
+        ?.trim();
+      if (!texto) return;
+      reason = texto;
+    }
+
     // Optimistic update
     setTickets((prev) =>
       prev.map((t) => (t.id === ticket.id ? { ...t, status: newStatus } : t))
     );
 
     startTransition(async () => {
-      const r = await runAction(() => updateTicketStatus(ticket.id, newStatus));
+      const r = await runAction(() => updateTicketStatus(ticket.id, newStatus, reason));
       // Si no respondió o devolvió error, la tarjeta vuelve a su columna.
       if (!r.ok || r.data?.error) {
         // Revert on error
@@ -337,7 +370,7 @@ export function TicketKanban({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 items-start">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-7 gap-4 items-start">
         {columns.map((col) => (
           <KanbanColumn
             key={col.status}

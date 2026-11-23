@@ -12,6 +12,8 @@ export const STATUS_LABELS: Record<string, string> = {
   POR_ASIGNAR:    "Por asignar",
   ABIERTO:        "Abierto",
   CERRADO:        "Cerrado",
+  ESPERA_CLIENTE: "En espera del cliente",
+  ANULADO:        "Anulado",
   // Tareas y tickets
   PENDIENTE:      "Pendiente",
   EN_PROGRESO:    "En progreso",

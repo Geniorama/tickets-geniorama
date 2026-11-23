@@ -3,7 +3,8 @@ export function isOverdue(
   status?: string
 ): boolean {
   if (!dueDate) return false;
-  if (status === "COMPLETADO" || status === "CERRADO") return false;
+  // Finalizado, anulado o esperando al cliente: no hay nada que el equipo esté atrasando
+  if (status === "COMPLETADO" || status === "CERRADO" || status === "ANULADO" || status === "ESPERA_CLIENTE") return false;
   const due = typeof dueDate === "string" ? new Date(dueDate) : dueDate;
   return due.getTime() < Date.now();
 }

@@ -140,7 +140,7 @@ export async function registerInfraTools(server: McpServer, user: ApiUser, canWr
           select: serviceSelect,
           orderBy: { dueDate: "asc" },
         }),
-        prisma.ticket.count({ where: { siteId, status: { not: "CERRADO" } } }),
+        prisma.ticket.count({ where: { siteId, status: { notIn: ["CERRADO", "ANULADO"] } } }),
       ]);
       return ok({
         site: {

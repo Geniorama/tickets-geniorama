@@ -244,7 +244,7 @@ async function ticketsOf(client: AgentClient) {
   const since = new Date(Date.now() - 30 * DAY);
   const [open, closed] = await Promise.all([
     prisma.ticket.findMany({
-      where: { AND: [scope, { status: { not: "CERRADO" } }] },
+      where: { AND: [scope, { status: { notIn: ["CERRADO", "ANULADO"] } }] },
       select: ticketSelect, orderBy: { updatedAt: "desc" }, take: 30,
     }),
     prisma.ticket.findMany({
@@ -441,7 +441,7 @@ export async function agentSiteDiagnosis(client: AgentClient, siteId: string) {
     checkSite(site.domain),
     servicesOf([site.companyId]),
     prisma.ticket.findMany({
-      where: { AND: [await ticketScopeWhere(client), { siteId: site.id, status: { not: "CERRADO" } }] },
+      where: { AND: [await ticketScopeWhere(client), { siteId: site.id, status: { notIn: ["CERRADO", "ANULADO"] } }] },
       select: ticketSelect,
       orderBy: { updatedAt: "desc" },
       take: 5,

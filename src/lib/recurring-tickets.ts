@@ -130,7 +130,7 @@ export async function generarTicketRecurrente(
     const existente = await prisma.ticket.findFirst({
       where: {
         recurringTemplateId: tpl.id,
-        status: { not: "CERRADO" },
+        status: { notIn: ["CERRADO", "ANULADO"] },
         createdAt: { gte: inicioDelPeriodo(tpl, ahora) },
       },
       select: { id: true },

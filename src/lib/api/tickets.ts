@@ -25,6 +25,7 @@ import { canAccessTicket } from "@/lib/ticket-access";
 import { canOpenModule } from "@/lib/access/can";
 import { emitTicketHook } from "@/lib/hooks/dispatch";
 import { afterTicketStatusChange } from "@/lib/status-change";
+import { requiereMotivo, resolverMotivo } from "@/lib/ticket-status";
 import { serializeTicket, ticketSelect } from "@/lib/hooks/payload";
 import type { ApiUser } from "@/lib/api/respond";
 
@@ -290,6 +291,15 @@ export async function createTicketViaApi(
   if (isClient && input.status && input.status !== "POR_ASIGNAR") {
     return { ok: false, status: 403, error: "Un cliente no puede elegir el estado del ticket." };
   }
+  // En espera del cliente y Anulado piden motivo: se llega a ellos desde un
+  // ticket que ya existe, con update_ticket y statusReason
+  if (input.status && requiereMotivo(input.status)) {
+    return {
+      ok: false,
+      status: 422,
+      error: `Un ticket no nace en ${input.status}: créalo y luego cámbialo con update_ticket indicando statusReason.`,
+    };
+  }
   const status: TicketStatus = isClient ? "POR_ASIGNAR" : (input.status ?? "POR_ASIGNAR");
 
   if (input.assignedToId) {
@@ -433,6 +443,8 @@ export type UpdateTicketInput = {
   title?: string;
   description?: string;
   status?: TicketStatus;
+  /** Obligatorio al pasar a ESPERA_CLIENTE o ANULADO; en los demás estados se ignora. */
+  statusReason?: string | null;
   priority?: Priority;
   category?: string | null;
   assignedToId?: string | null;
@@ -460,6 +472,7 @@ export async function updateTicketViaApi(
       assignedToId: true,
       createdById: true,
       clientId: true,
+      statusReason: true,
       client: { select: { name: true, email: true, companies: { select: { id: true }, take: 1 } } },
       plan: { select: { companyId: true } },
     },
@@ -499,9 +512,18 @@ export async function updateTicketViaApi(
     }
   }
 
+  // Motivo de «En espera del cliente» / «Anulado»; al salir de ellos se vacía
+  let motivo: string | null | undefined;
+  if (input.status !== undefined) {
+    const r = resolverMotivo(input.status, before.status, input.statusReason);
+    if ("error" in r) return { ok: false, status: 422, error: r.error };
+    motivo = r.value;
+  }
+
   const updated = await prisma.ticket.update({
     where: { id: ticketId },
     data: {
+      ...(motivo !== undefined ? { statusReason: motivo } : {}),
       ...(input.siteId !== undefined ? { siteId: input.siteId } : {}),
       ...(links.value.clientId !== undefined ? { clientId: links.value.clientId } : {}),
       ...(links.value.planId !== undefined ? { planId: links.value.planId } : {}),
@@ -534,6 +556,7 @@ export async function updateTicketViaApi(
       client: before.client,
       // Un asistente que cambia un estado no debe dejar un reloj corriendo
       autoStartTimer: false,
+      reason: motivo ?? null,
     });
     emitTicketHook("ticket.status_changed", ticketId, {
       actor,

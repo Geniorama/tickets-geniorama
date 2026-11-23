@@ -291,7 +291,7 @@ export async function registerAdminTools(server: McpServer, user: ApiUser, canWr
       if (!plan) return fail("Plan no encontrado");
       const [tickets, openTickets] = await Promise.all([
         prisma.ticket.count({ where: { planId } }),
-        prisma.ticket.count({ where: { planId, status: { not: "CERRADO" } } }),
+        prisma.ticket.count({ where: { planId, status: { notIn: ["CERRADO", "ANULADO"] } } }),
       ]);
       return ok({ plan: { ...(await serializePlan(plan)), tickets, openTickets } });
     },

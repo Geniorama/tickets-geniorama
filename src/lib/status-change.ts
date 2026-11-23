@@ -18,6 +18,7 @@ import { notifyReviewers } from "@/lib/reviewers";
 import { sendTicketClosedEmail, sendTicketStatusChangedEmail } from "@/lib/email";
 import { startTimer, stopRunningForEntity } from "@/lib/time-entries";
 import { STATUS_LABELS } from "@/lib/status-labels";
+import { ESTADOS_FINALES } from "@/lib/ticket-status";
 
 // ─── Tareas ──────────────────────────────────────────────────────────────────
 
@@ -97,6 +98,8 @@ export async function afterTicketStatusChange(input: {
   client: { name: string; email: string } | null;
   /** Arrancar el cronómetro al pasar a En progreso; mismo criterio que en tareas. */
   autoStartTimer: boolean;
+  /** El motivo de «En espera del cliente» o «Anulado»; va en el aviso al cliente. */
+  reason?: string | null;
 }): Promise<void> {
   const { ticketId, title, from, to, actorId } = input;
   if (from === to) return;
@@ -108,14 +111,22 @@ export async function afterTicketStatusChange(input: {
     await startTimer({ entityType: "TICKET", entityId: ticketId }, actorId);
   }
 
-  if (to === "EN_REVISION" || to === "CERRADO") {
+  // En espera del cliente o anulado, nadie del equipo está trabajando en él
+  if (to === "EN_REVISION" || to === "ESPERA_CLIENTE" || (ESTADOS_FINALES as string[]).includes(to)) {
     await stopRunningForEntity({ entityType: "TICKET", entityId: ticketId });
   }
 
+  const motivo = input.reason?.trim();
   const recipients = [input.clientId, input.createdById, input.assignedToId].filter(
     (id): id is string => !!id && id !== actorId,
   );
-  await notifyMany(recipients, "ticket_status", "Ticket actualizado", `"${title}" cambió a: ${label}`, link);
+  await notifyMany(
+    recipients,
+    "ticket_status",
+    "Ticket actualizado",
+    `"${title}" cambió a: ${label}${motivo ? ` — ${motivo}` : ""}`,
+    link,
+  );
 
   if (to === "EN_REVISION") {
     await notifyReviewers("ticket", ticketId, title, link, actorId, true);
@@ -127,7 +138,12 @@ export async function afterTicketStatusChange(input: {
     if (to === "CERRADO") {
       void sendTicketClosedEmail(input.client, title, url).catch(console.error);
     } else {
-      void sendTicketStatusChangedEmail(input.client, title, label, url).catch(console.error);
+      void sendTicketStatusChangedEmail(
+        input.client,
+        title,
+        motivo && (to === "ESPERA_CLIENTE" || to === "ANULADO") ? `${label} — ${motivo}` : label,
+        url,
+      ).catch(console.error);
     }
   }
 

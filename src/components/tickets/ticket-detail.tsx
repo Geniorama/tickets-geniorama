@@ -13,6 +13,7 @@ import { TicketAiAssistant } from "./ticket-ai-assistant";
 import { StatusBadge, PriorityBadge } from "./ticket-status-badge";
 import { ReviewDecision } from "./review-decision";
 import { updateTicketStatus, deleteTicket, publishTicket } from "@/actions/ticket.actions";
+import { requiereMotivo, esFinal } from "@/lib/ticket-status";
 import { DuplicateTicketButton } from "./duplicate-ticket-button";
 import { addComment, deleteComment, editComment, getTicketComments } from "@/actions/comment.actions";
 import { runAction, fireAction, MSG_NETWORK } from "@/lib/run-action";
@@ -62,6 +63,8 @@ const statusOptions: { value: TicketStatus; label: string }[] = [
   { value: "EN_PROGRESO", label: "En progreso" },
   { value: "EN_REVISION", label: "En revisión" },
   { value: "CERRADO", label: "Cerrado" },
+  { value: "ESPERA_CLIENTE", label: "En espera del cliente" },
+  { value: "ANULADO", label: "Anulado" },
 ];
 
 interface VaultEntry {
@@ -131,8 +134,24 @@ export function TicketDetail({
 
   function handleStatusChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const status = e.target.value;
+
+    // En espera del cliente y Anulado piden motivo: sin él no se cambia
+    let reason: string | undefined;
+    if (requiereMotivo(status)) {
+      const pregunta =
+        status === "ESPERA_CLIENTE"
+          ? "¿Qué se espera del cliente? (se le avisará)"
+          : "¿Por qué se anula este ticket?";
+      const texto = window.prompt(pregunta)?.trim();
+      if (!texto) {
+        e.target.value = ticket.status;
+        return;
+      }
+      reason = texto;
+    }
+
     startTransition(async () => {
-      const r = await runAction(() => updateTicketStatus(ticket.id, status));
+      const r = await runAction(() => updateTicketStatus(ticket.id, status, reason));
       const error = !r.ok ? r.error : (r.data as { error?: string } | undefined)?.error;
       if (error) {
         window.alert(error);
@@ -259,7 +278,23 @@ export function TicketDetail({
 
       {/* Un ticket abierto sin empresa, plan o sitio daña el consumo de horas y los
           reportes por sitio (AG·P-4): se avisa al equipo mientras siga abierto. */}
-      {staff && !ticket.isDraft && ticket.status !== "CERRADO" && (() => {
+      {/* El motivo de un ticket en espera del cliente o anulado: lo ve también el cliente */}
+      {!ticket.isDraft && requiereMotivo(ticket.status) && ticket.statusReason && (
+        <div
+          className={`mb-6 rounded-xl border px-4 py-3 ${
+            ticket.status === "ESPERA_CLIENTE"
+              ? "border-orange-200 bg-orange-50 text-orange-800"
+              : "border-slate-200 bg-slate-50 text-slate-700"
+          }`}
+        >
+          <p className="text-sm">
+            <strong>{ticket.status === "ESPERA_CLIENTE" ? "En espera del cliente:" : "Anulado:"}</strong>{" "}
+            {ticket.statusReason}
+          </p>
+        </div>
+      )}
+
+      {staff && !ticket.isDraft && !esFinal(ticket.status) && (() => {
         const missing: string[] = [];
         if (!ticket.plan && !ticket.client?.companies.length) missing.push("empresa");
         if (!ticket.plan) missing.push("plan");

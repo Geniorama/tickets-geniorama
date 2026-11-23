@@ -14,6 +14,15 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.143.0] — 2026-11-23
+
+### Estados de ticket «En espera del cliente» y «Anulado»
+- Nuevo estado **En espera del cliente**: pide el motivo (qué se espera del cliente), avisa al cliente por campana y correo con ese motivo, detiene el cronómetro y **no cuenta como vencido** ni entra en las alertas de vencimiento o de «sin movimiento».
+- Nuevo estado **Anulado**: pide el motivo y se distingue de Cerrado. Deja de contar como ticket abierto (panel, MCP, agente, plan y sitio) y los reportes lo cuentan aparte.
+- El motivo se guarda en el ticket (`statusReason`), se muestra en un aviso en la ficha —también al cliente— y se vacía al salir de esos estados.
+- Disponibles en la ficha, el tablero (con motivo al soltar la tarjeta), el formulario de edición, los filtros, la API v1 y el MCP (`update_ticket` con `statusReason`). `create_ticket` no permite nacer en esos estados.
+- Migración aditiva `20261123230000_ticket_estados_espera_anulado` (dos valores de enum y la columna `status_reason`).
+
 ## [1.142.0] — 2026-11-23
 
 ### MCP: sitio, plan y categoría al crear tickets

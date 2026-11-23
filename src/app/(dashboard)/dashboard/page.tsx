@@ -32,6 +32,8 @@ const TICKET_STATUS_LABEL: Record<string, string> = {
   EN_PROGRESO: "En progreso",
   EN_REVISION: "En revisión",
   CERRADO:     "Cerrado",
+  ESPERA_CLIENTE: "En espera del cliente",
+  ANULADO:     "Anulado",
 };
 
 const TICKET_STATUS_COLOR: Record<string, string> = {
@@ -39,6 +41,8 @@ const TICKET_STATUS_COLOR: Record<string, string> = {
   EN_PROGRESO: "#3b82f6",
   EN_REVISION: "#8b5cf6",
   CERRADO:     "#22c55e",
+  ESPERA_CLIENTE: "#f97316",
+  ANULADO:     "#94a3b8",
 };
 
 const TASK_STATUS_COLOR: Record<TaskStatus, string> = {

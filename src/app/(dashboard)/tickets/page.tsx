@@ -25,6 +25,8 @@ const TICKET_STATUS_LABELS: Record<string, string> = {
   EN_PROGRESO: "En progreso",
   EN_REVISION: "En revisión",
   CERRADO: "Cerrado",
+  ESPERA_CLIENTE: "En espera del cliente",
+  ANULADO: "Anulado",
 };
 
 export const metadata = { title: "Tickets" };

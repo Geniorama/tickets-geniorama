@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     prisma.ticket.findMany({
       where: {
         isDraft: false,
-        status: { notIn: ["CERRADO", "EN_REVISION"] },
+        status: { notIn: ["CERRADO", "ANULADO", "ESPERA_CLIENTE", "EN_REVISION"] },
         dueDate: { lt: today },
       },
       take: 50,

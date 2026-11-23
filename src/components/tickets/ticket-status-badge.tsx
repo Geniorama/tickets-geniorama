@@ -1,5 +1,5 @@
 import type { TicketStatus, Priority } from "@/generated/prisma";
-import { Circle, Clock, Eye, CheckCircle2, ArrowDown, Minus, ArrowUp, Zap, Inbox } from "lucide-react";
+import { Circle, Clock, Eye, CheckCircle2, ArrowDown, Minus, ArrowUp, Zap, Inbox, Hourglass, Ban } from "lucide-react";
 
 const statusConfig: Record<TicketStatus, { label: string; className: string; icon: React.ElementType }> = {
   POR_ASIGNAR: { label: "Por asignar",  className: "bg-[var(--tone-gray-bg)] text-[var(--tone-gray-fg)] border-[var(--tone-gray-bd)]",       icon: Inbox },
@@ -7,6 +7,8 @@ const statusConfig: Record<TicketStatus, { label: string; className: string; ico
   EN_PROGRESO: { label: "En progreso",  className: "bg-[var(--tone-blue-bg)] text-[var(--tone-blue-fg)] border-[var(--tone-blue-bd)]",        icon: Clock },
   EN_REVISION: { label: "En revisión",  className: "bg-[var(--tone-purple-bg)] text-[var(--tone-purple-fg)] border-[var(--tone-purple-bd)]", icon: Eye },
   CERRADO:     { label: "Cerrado",      className: "bg-[var(--tone-green-bg)] text-[var(--tone-green-fg)] border-[var(--tone-green-bd)]",    icon: CheckCircle2 },
+  ESPERA_CLIENTE: { label: "En espera del cliente", className: "bg-[var(--tone-orange-bg)] text-[var(--tone-orange-fg)] border-[var(--tone-orange-bd)]", icon: Hourglass },
+  ANULADO:     { label: "Anulado",      className: "bg-[var(--tone-slate-bg)] text-[var(--tone-slate-fg)] border-[var(--tone-slate-bd)]",      icon: Ban },
 };
 
 /* Prioridad = escala de intensidad (neutro → naranja → rojo), sin repetir los
