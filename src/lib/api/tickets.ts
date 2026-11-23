@@ -154,7 +154,13 @@ export async function activePlansOfCompany(companyId: string) {
  * contradicen entre sí.
  */
 async function resolveTicketLinks(input: TicketLinksInput): Promise<
-  WriteResult<{ clientId: string | null | undefined; planId: string | null | undefined; companyName: string | null }>
+  WriteResult<{
+    clientId: string | null | undefined;
+    planId: string | null | undefined;
+    companyName: string | null;
+    /** La empresa de la que sale el vínculo, para validar o sugerir el sitio. */
+    companyId: string | null;
+  }>
 > {
   let company: { id: string; name: string } | null = null;
   if (input.companyId) {
@@ -167,6 +173,7 @@ async function resolveTicketLinks(input: TicketLinksInput): Promise<
 
   let planId = input.planId;
   let planCompanyName: string | null = null;
+  let planCompanyId: string | null = null;
   if (typeof planId === "string") {
     const plan = await prisma.plan.findUnique({
       where: { id: planId },
@@ -177,9 +184,11 @@ async function resolveTicketLinks(input: TicketLinksInput): Promise<
       return { ok: false, status: 422, error: `Ese plan no es de «${company.name}».` };
     }
     planCompanyName = plan.company.name;
+    planCompanyId = plan.companyId;
   }
 
   let clientCompanyName: string | null = null;
+  let clientCompanyId: string | null = null;
   if (typeof input.clientId === "string") {
     const client = await prisma.user.findFirst({
       where: { id: input.clientId, role: "CLIENTE", isActive: true },
@@ -192,6 +201,7 @@ async function resolveTicketLinks(input: TicketLinksInput): Promise<
       return { ok: false, status: 422, error: `Ese cliente no pertenece a «${company.name}».` };
     }
     clientCompanyName = client.companies[0]?.name ?? null;
+    clientCompanyId = client.companies[0]?.id ?? null;
   }
 
   // Empresa sin plan explícito: el que tenga vigente, si no hay duda de cuál
@@ -227,6 +237,7 @@ async function resolveTicketLinks(input: TicketLinksInput): Promise<
       clientId: input.clientId,
       planId,
       companyName: planCompanyName ?? clientCompanyName ?? company?.name ?? null,
+      companyId: planCompanyId ?? clientCompanyId ?? company?.id ?? null,
     },
   };
 }
@@ -296,6 +307,7 @@ export async function createTicketViaApi(
 
   let clientId: string | null = isClient ? author.id : null;
   let companyName: string | null = null;
+  let linkedCompanyId: string | null = null;
 
   if (input.clientId || input.planId || input.companyId) {
     if (isClient) {
@@ -310,6 +322,31 @@ export async function createTicketViaApi(
     clientId = links.value.clientId ?? null;
     planId = links.value.planId ?? null;
     companyName = links.value.companyName;
+    linkedCompanyId = links.value.companyId;
+  }
+
+  // Sitio: solo el equipo lo elige. Uno explícito debe existir, estar activo y
+  // ser de la empresa del ticket; sin él, si la empresa tiene un único sitio
+  // activo se toma ese, porque ahí no hay nada que decidir.
+  let siteId: string | null = null;
+  if (input.siteId) {
+    if (isClient) return { ok: false, status: 403, error: "Un cliente no puede elegir el sitio del ticket." };
+    const site = await prisma.site.findFirst({
+      where: { id: input.siteId, isActive: true },
+      select: { id: true, companyId: true, name: true },
+    });
+    if (!site) return { ok: false, status: 404, error: "El sitio no existe o está inactivo." };
+    if (linkedCompanyId && site.companyId !== linkedCompanyId) {
+      return { ok: false, status: 422, error: `El sitio «${site.name}» no es de la empresa del ticket.` };
+    }
+    siteId = site.id;
+  } else if (!isClient && linkedCompanyId) {
+    const sites = await prisma.site.findMany({
+      where: { companyId: linkedCompanyId, isActive: true },
+      select: { id: true },
+      take: 2,
+    });
+    if (sites.length === 1) siteId = sites[0].id;
   }
 
   // El prefijo sale de la empresa dueña del plan; si no hay plan, de la del
@@ -346,7 +383,7 @@ export async function createTicketViaApi(
         clientId,
         createdById: author.id,
         assignedToId: input.assignedToId ?? null,
-        siteId: input.siteId ?? null,
+        siteId,
         dueDate: isClient ? null : (input.dueDate ?? null),
         planId,
         prefix,
@@ -400,6 +437,8 @@ export type UpdateTicketInput = {
   category?: string | null;
   assignedToId?: string | null;
   dueDate?: Date | null;
+  /** `null` lo quita; ausente lo deja. Debe ser un sitio activo de la empresa del ticket. */
+  siteId?: string | null;
 } & TicketLinksInput;
 
 export async function updateTicketViaApi(
@@ -421,7 +460,8 @@ export async function updateTicketViaApi(
       assignedToId: true,
       createdById: true,
       clientId: true,
-      client: { select: { name: true, email: true } },
+      client: { select: { name: true, email: true, companies: { select: { id: true }, take: 1 } } },
+      plan: { select: { companyId: true } },
     },
   });
   if (!before) return { ok: false, status: 404, error: "Ticket no encontrado" };
@@ -444,9 +484,25 @@ export async function updateTicketViaApi(
   });
   if (!links.ok) return links;
 
+  if (typeof input.siteId === "string") {
+    const site = await prisma.site.findFirst({
+      where: { id: input.siteId, isActive: true },
+      select: { id: true, companyId: true, name: true },
+    });
+    if (!site) return { ok: false, status: 404, error: "El sitio no existe o está inactivo." };
+    // La empresa del ticket, tras este cambio: la que dicen los vínculos nuevos
+    // y, si no se tocaron, la que ya tenía (plan primero, luego cliente).
+    const companyId =
+      links.value.companyId ?? before.plan?.companyId ?? before.client?.companies[0]?.id ?? null;
+    if (companyId && site.companyId !== companyId) {
+      return { ok: false, status: 422, error: `El sitio «${site.name}» no es de la empresa del ticket.` };
+    }
+  }
+
   const updated = await prisma.ticket.update({
     where: { id: ticketId },
     data: {
+      ...(input.siteId !== undefined ? { siteId: input.siteId } : {}),
       ...(links.value.clientId !== undefined ? { clientId: links.value.clientId } : {}),
       ...(links.value.planId !== undefined ? { planId: links.value.planId } : {}),
       ...(input.title !== undefined ? { title: input.title.slice(0, 200) } : {}),

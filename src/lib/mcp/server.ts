@@ -34,6 +34,7 @@ import {
   listActivityViaApi,
   updateChecklistItemViaApi,
 } from "@/lib/api/panels";
+import { TICKET_CATEGORIES } from "@/lib/ticket-categories";
 import type { OAuthActor } from "@/lib/oauth/server";
 import { registerCrmTools } from "@/lib/mcp/crm-tools";
 import { registerBillingTools } from "@/lib/mcp/billing-tools";
@@ -61,7 +62,8 @@ const LINKS_NOTE =
   "Cliente, plan y empresa: el ticket guarda clientId y planId; su empresa es la del plan y, sin plan, la del " +
   "cliente. companyId comprueba que el cliente y el plan sean de esa empresa y, si no se indica planId, toma su " +
   "plan vigente (si hay varios pide elegir; si no hay ninguno hace falta un clientId de esa empresa). " +
-  "get_company_ticket_options da los clientes y planes de una empresa.";
+  "get_company_ticket_options da los clientes, planes, sitios y categorías de una empresa. " +
+  "Sitio: siteId debe ser de esa empresa; si no se indica y la empresa tiene un único sitio activo, se toma ese.";
 
 const page = {
   limit: z.number().int().min(1).max(100).optional().describe("Máximo de resultados (1–100, por defecto 25)"),
@@ -298,9 +300,10 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
     server.registerTool(
       "get_company_ticket_options",
       {
-        title: "Clientes y planes de una empresa",
+        title: "Clientes, planes, sitios y categorías de una empresa",
         description:
-          "Los usuarios cliente activos de una empresa y sus planes, para elegir el clientId y el planId de un ticket. " +
+          "Los usuarios cliente activos de una empresa, sus planes y sitios activos, y las categorías disponibles, " +
+          "para elegir clientId, planId, siteId y category de un ticket. " +
           "`vigente` dice si contra ese plan se puede abrir trabajo hoy (activo, sin vencer y con horas).",
         inputSchema: { companyId: z.string() },
         annotations: readOnly,
@@ -321,6 +324,11 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
               select: { id: true, name: true, type: true },
               orderBy: { startedAt: "desc" },
             },
+            sites: {
+              where: { isActive: true },
+              select: { id: true, name: true, domain: true },
+              orderBy: { name: "asc" },
+            },
           },
         });
         if (!company) return fail("Empresa no encontrada");
@@ -329,6 +337,8 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
           company: { id: company.id, name: company.name },
           clients: company.users,
           plans: company.plans.map((p) => ({ ...p, vigente: vigentes.has(p.id) })),
+          sites: company.sites,
+          categories: TICKET_CATEGORIES,
         });
       },
     );
@@ -461,6 +471,7 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
           ticketId: z.string(),
           clientId: z.string().nullable().optional().describe("Id de un usuario CLIENTE, o null para quitarlo"),
           planId: z.string().nullable().optional().describe("Id de un plan, o null para quitarlo"),
+          siteId: z.string().nullable().optional().describe("Id de un sitio de la empresa, o null para quitarlo"),
           companyId: z.string().optional().describe("Id de empresa, de list_companies"),
           title: z.string().trim().min(1).max(200).optional(),
           description: z.string().trim().min(1).optional(),
@@ -519,6 +530,7 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
               assignedToId: z.string().optional().describe('Id de usuario del equipo, o "me"'),
               clientId: z.string().optional().describe("Id de un usuario CLIENTE"),
               planId: z.string().optional().describe("Id de un plan"),
+              siteId: z.string().optional().describe("Id de un sitio de la empresa, de get_company_ticket_options"),
               companyId: z.string().optional().describe("Id de empresa, de list_companies"),
             }
           : {}),
@@ -532,6 +544,7 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
         assignedToId?: string;
         clientId?: string;
         planId?: string;
+        siteId?: string;
         companyId?: string;
       };
       const result = await createTicketViaApi(user, source, {
@@ -544,9 +557,29 @@ export async function buildMcpServer(actor: OAuthActor): Promise<McpServer> {
         dueDate: toDate(a.dueDate) ?? null,
         clientId: a.clientId,
         planId: a.planId,
+        siteId: a.siteId,
         companyId: a.companyId,
       });
-      return fromWrite(result, "ticket");
+      if (!result.ok) return fail(result.error);
+
+      // Lo que quedó vacío, dicho en la respuesta: así quien llama (una IA) puede
+      // completarlo en lugar de dejar nacer el ticket sin sitio, plan o categoría.
+      const t = result.value;
+      const vacios: string[] = [];
+      if (!t.site) vacios.push("sitio (siteId)");
+      if (!t.plan) vacios.push("plan (planId)");
+      if (!t.category) vacios.push("categoría (category)");
+      return ok({
+        ticket: t,
+        ...(vacios.length > 0 && staff
+          ? {
+              camposVacios: vacios,
+              aviso:
+                `El ticket quedó sin ${vacios.join(", ")}. get_company_ticket_options (companyId) ` +
+                "lista los sitios, planes y categorías disponibles; complétalos con update_ticket.",
+            }
+          : {}),
+      });
     },
   );
 

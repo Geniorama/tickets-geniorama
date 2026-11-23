@@ -14,6 +14,14 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.142.0] — 2026-11-23
+
+### MCP: sitio, plan y categoría al crear tickets
+- `create_ticket` acepta `siteId` (solo equipo). Debe ser un sitio activo de la empresa del ticket; si no se indica y la empresa tiene un único sitio activo, se toma ese. El plan ya se tomaba por defecto cuando la empresa tiene un solo plan vigente.
+- `update_ticket` acepta `siteId` (o `null` para quitarlo), con la misma validación de empresa.
+- `get_company_ticket_options` devuelve además los **sitios** activos y las **categorías** disponibles.
+- La respuesta de `create_ticket` incluye `camposVacios` y un `aviso` cuando el ticket nació sin sitio, plan o categoría, para que quien llama (una IA) lo complete.
+
 ## [1.141.1] — 2026-11-23
 
 ### Corrección: tickets recurrentes duplicados en el mismo periodo
