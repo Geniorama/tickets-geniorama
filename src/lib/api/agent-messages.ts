@@ -31,6 +31,7 @@ export async function recentHistory(phone: string, limit = HISTORY_DEFAULT) {
 
 export async function saveMessage(input: {
   phone: string; direction: "IN" | "OUT"; content: string; waMessageId?: string | null; clientId?: string | null;
+  error?: string | null;
 }) {
   const data = {
     channel: "WHATSAPP" as const,
@@ -39,6 +40,7 @@ export async function saveMessage(input: {
     content: input.content,
     waMessageId: input.waMessageId || null,
     clientId: input.clientId ?? null,
+    error: input.error || null,
   };
   // Meta reintenta los webhooks: el mismo wamid no se guarda dos veces.
   if (data.waMessageId) {

@@ -2080,6 +2080,8 @@ model AgentMessage {
   /// Cliente reconocido en ese momento; nulo si el número no estaba registrado.
   clientId    String?               @map("client_id")
   client      User?                 @relation("AgentMessageClient", fields: [clientId], references: [id], onDelete: SetNull)
+  /// Si el agente falló al responder: qué pasó. El cliente recibió el mensaje de respaldo.
+  error       String?               @db.Text
 
   createdAt DateTime @default(now()) @map("created_at")
 

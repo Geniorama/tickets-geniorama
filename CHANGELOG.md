@@ -14,6 +14,17 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.148.0] — 2026-11-24
+
+### Conversaciones del agente (`/admin/conversaciones`)
+- Nueva página en Administración (nivel gestor) con el historial de lo que hablan clientes y equipo con el agente, en los dos canales: **WhatsApp** (por teléfono) y el **chat de la plataforma** (GENIA, por conversación).
+- Lista con canal, cliente, último mensaje y número de mensajes; filtros por canal, por conversaciones con fallas y búsqueda por nombre o teléfono. El detalle muestra el hilo con burbujas, hora de cada mensaje y las notas de voz transcritas.
+- Los números de WhatsApp que no son de ningún cliente también aparecen, marcados «sin cliente».
+
+### Agente · aviso de fallas en WhatsApp
+- `POST /api/v1/agent/messages` acepta `error` en los mensajes `assistant`: el agente falló y el cliente recibió el mensaje de respaldo. Se guarda y se avisa a los administradores (notificación, push y los demás canales de siempre) con enlace a la conversación.
+- Migración aditiva `20261124210000_agent_message_error` (columna `error` en `agent_messages`).
+
 ## [1.147.0] — 2026-11-24
 
 ### Agente · canal WhatsApp (GEN-7)

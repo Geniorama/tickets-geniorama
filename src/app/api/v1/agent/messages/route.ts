@@ -3,6 +3,7 @@ import { z } from "zod";
 import { apiError, apiOk, readJson, requireAgentActor } from "@/lib/api/respond";
 import { phoneToE164, recentHistory, saveMessage } from "@/lib/api/agent-messages";
 import { prisma } from "@/lib/prisma";
+import { notifyMany } from "@/lib/notify";
 
 /**
  * Agente · guardar un mensaje de la conversación.
@@ -14,6 +15,10 @@ import { prisma } from "@/lib/prisma";
  * el agente (saliente). Con `waMessageId` es idempotente: si Meta reintenta el
  * webhook responde `duplicate: true` sin guardar de nuevo. Con `history` > 0
  * devuelve además los últimos mensajes.
+ *
+ * `error` (solo con `assistant`) marca que el agente falló y el cliente recibió
+ * el mensaje de respaldo: se guarda y se avisa a los administradores con un
+ * enlace a la conversación.
  */
 
 export const dynamic = "force-dynamic";
@@ -24,6 +29,7 @@ const schema = z.object({
   content: z.string().trim().min(1, "content es requerido").max(8000),
   waMessageId: z.string().trim().max(200).optional(),
   history: z.number().int().min(0).max(50).default(0),
+  error: z.string().trim().max(2000).optional(),
 });
 
 export async function POST(req: Request) {
@@ -49,7 +55,12 @@ export async function POST(req: Request) {
     content: parsed.data.content,
     waMessageId: parsed.data.waMessageId,
     clientId: owners.length === 1 ? owners[0].id : null,
+    error: parsed.data.role === "assistant" ? parsed.data.error : null,
   });
+
+  if (parsed.data.role === "assistant" && parsed.data.error && !saved.duplicate) {
+    void avisarFalla(p.e164, owners.length === 1 ? owners[0].id : null, parsed.data.error);
+  }
 
   return apiOk(
     {
@@ -59,4 +70,24 @@ export async function POST(req: Request) {
     },
     saved.duplicate ? 200 : 201,
   );
+}
+
+/** Avisa a los administradores; no frena la respuesta al flujo de n8n. */
+async function avisarFalla(phone: string, clientId: string | null, error: string) {
+  try {
+    const [admins, client] = await Promise.all([
+      prisma.user.findMany({ where: { role: "ADMINISTRADOR", isActive: true }, select: { id: true } }),
+      clientId ? prisma.user.findUnique({ where: { id: clientId }, select: { name: true } }) : null,
+    ]);
+    const quien = client?.name ? `${client.name} (${phone})` : phone;
+    await notifyMany(
+      admins.map((a) => a.id),
+      "agent_failure",
+      "El agente de WhatsApp no pudo responder",
+      `${quien} recibió el mensaje de respaldo. Motivo: ${error.slice(0, 300)}`,
+      `/admin/conversaciones?c=${encodeURIComponent(`wa:${phone}`)}`,
+    );
+  } catch {
+    // El aviso no debe tumbar el guardado.
+  }
 }

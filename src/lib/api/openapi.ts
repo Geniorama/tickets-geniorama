@@ -466,6 +466,7 @@ function agentPaths() {
                   content: { type: "string", maxLength: 8000 },
                   waMessageId: { type: "string" },
                   history: { type: "integer", minimum: 0, maximum: 50, default: 0 },
+                  error: { type: "string", maxLength: 2000, description: "Solo con `assistant`: el agente falló y se envió el mensaje de respaldo. Se guarda y avisa a los administradores." },
                 },
               },
             },
