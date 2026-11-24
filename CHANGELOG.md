@@ -14,6 +14,15 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.144.0] — 2026-11-24
+
+### Tablero gerencial (`/facturacion/gerencial`)
+- Nueva página para gestores de Facturación, con selector de periodo, en cuatro bloques: **A. Resumen ejecutivo** (ventas ganadas, facturación emitida, recaudo, cartera pendiente y vencida, pipeline), **B. Control financiero** (facturado vs. recaudado por mes, anticipos, facturación pendiente, mayores cobros vencidos, ingresos por cliente y categoría), **C. Rendimiento comercial** (ventas por mes, ganadas/perdidas, conversión, valor promedio, ventas por cliente y responsable, proyección de cierre a 30 días ponderada por etapa) y **D. Rentabilidad** (ingresos por servicio, costos, margen bruto y utilidad operativa).
+- Nuevo libro de **costos** (`/facturacion/gerencial/costos`): personal, proveedores y operación. Sin él no había de dónde sacar margen ni utilidad. Margen bruto = ingresos sin IVA − personal − proveedores; utilidad operativa = margen − operación.
+- Anticipo = dinero abonado a cobros que aún no están facturados. La cartera y el pipeline se miden a hoy; el resto, dentro del periodo.
+- Gráficos SVG propios (sin librerías) con tooltip: áreas facturado vs. recaudado, columnas, donas, embudo, anillo de conversión, barra de cartera y cascada de ingresos a utilidad.
+- Migración aditiva `20261124120000_expenses` (enum `ExpenseKind` y tabla `expenses`).
+
 ## [1.143.0] — 2026-11-23
 
 ### Estados de ticket «En espera del cliente» y «Anulado»

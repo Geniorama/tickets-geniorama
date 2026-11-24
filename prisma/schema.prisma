@@ -389,6 +389,7 @@ model CrmActivity {
 }
 
 model User {
+  expensesCreated Expense[] @relation("ExpenseCreatedBy")
   id                String   @id @default(cuid())
   name              String
   email             String   @unique
@@ -1658,6 +1659,38 @@ model BillingGatewayOrder {
 ///
 /// Filas y no un enumerado, por lo mismo que las etiquetas: el día que se
 /// venda algo nuevo, darlo de alta no puede depender de un despliegue.
+/// Qué clase de costo es: separa lo que se paga a personas, a proveedores y lo
+/// que cuesta mantener la operación. El tablero gerencial resta cada grupo en
+/// un punto distinto del estado de resultados.
+enum ExpenseKind {
+  PERSONAL
+  PROVEEDOR
+  OPERACION
+}
+
+/// Un costo de la agencia. Libro manual y simple: sin él no hay margen ni
+/// utilidad que mostrar, porque la app solo conocía los ingresos.
+model Expense {
+  id         String      @id @default(cuid())
+  concept    String
+  kind       ExpenseKind
+  amount     Float
+  /// Cuándo se causó el gasto; el periodo del tablero se mide por esta fecha.
+  incurredOn DateTime    @map("incurred_on")
+  supplier   String?
+  notes      String?     @db.Text
+
+  createdById String @map("created_by_id")
+  createdBy   User   @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([incurredOn])
+  @@index([kind])
+  @@map("expenses")
+}
+
 model BillingCategory {
   id    String @id @default(cuid())
   name  String @unique

@@ -105,6 +105,19 @@ export default async function BillingPage({
               ? "Ocultar archivo"
               : `Ver archivo${archivadosOcultos > 0 ? ` (${archivadosOcultos})` : ""}`}
           </Link>
+          {canManage && (
+            <Link
+              href="/facturacion/gerencial"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: "0.4rem",
+                fontSize: "0.8125rem", padding: "0.45rem 0.85rem", borderRadius: "0.5rem",
+                border: "1px solid var(--app-border)", color: "var(--app-nav-text)", textDecoration: "none",
+              }}
+            >
+              <PieChart style={{ width: "0.9rem", height: "0.9rem" }} />
+              Tablero gerencial
+            </Link>
+          )}
           <Link
             href="/facturacion/ventas"
             style={{
