@@ -107,7 +107,7 @@ export default async function BillingPage({
           </Link>
           {canManage && (
             <Link
-              href="/facturacion/gerencial"
+              href="/gerencial"
               style={{
                 display: "inline-flex", alignItems: "center", gap: "0.4rem",
                 fontSize: "0.8125rem", padding: "0.45rem 0.85rem", borderRadius: "0.5rem",

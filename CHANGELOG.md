@@ -14,6 +14,13 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.145.0] — 2026-11-24
+
+### Tablero gerencial: sube a «Gerencia» y suma Tickets, Proyectos, Infraestructura y CRM
+- Ahora vive en `/gerencial` (costos en `/gerencial/costos`) con su propia entrada en el menú, justo debajo de Inicio, para administradores con Facturación. Los enlaces antiguos de `/facturacion/gerencial` redirigen.
+- Franja de **atención** arriba, que cruza módulos: cartera vencida, tickets vencidos y sin asignar, tareas vencidas, servicios vencidos y oportunidades sin fecha, cada una enlazada a su módulo.
+- Secciones nuevas: **E** soporte (abiertos, vencidos, críticos, creados por mes, estado, prioridad, carga por responsable, horas), **F** proyectos y tareas (activos, vencidos, estado, carga, horas) y **G** infraestructura y cuentas (servicios vencidos o por vencer, renovaciones en juego, cuentas por etapa).
+
 ## [1.144.1] — 2026-11-24
 
 ### Corrección: error al abrir el tablero gerencial

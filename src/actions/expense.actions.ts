@@ -31,7 +31,7 @@ export async function createExpense(input: {
     },
   });
 
-  revalidatePath("/facturacion/gerencial", "layout");
+  revalidatePath("/gerencial", "layout");
   return { success: true };
 }
 
@@ -39,6 +39,6 @@ export async function deleteExpense(id: string) {
   await requireCan("FACTURACION", "gestionar");
   const { count } = await prisma.expense.deleteMany({ where: { id } });
   if (count === 0) return { error: "Costo no encontrado" };
-  revalidatePath("/facturacion/gerencial", "layout");
+  revalidatePath("/gerencial", "layout");
   return { success: true };
 }

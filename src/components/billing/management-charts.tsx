@@ -135,7 +135,9 @@ export function AreaCompare({ datos }: { datos: { mes: string; a: number; b: num
 }
 
 // ─── Columnas: una serie por mes ─────────────────────────────────────────────
-export function Columnas({ datos, color = C.indigo, nombre }: { datos: { mes: string; v: number }[]; color?: string; nombre: string }) {
+export function Columnas({ datos, color = C.indigo, nombre, cantidad = false }: { datos: { mes: string; v: number }[]; color?: string; nombre: string; cantidad?: boolean }) {
+  const fmtC = (n: number) => (cantidad ? String(n) : corto(n));
+  const fmtT = (n: number) => (cantidad ? String(n) : completo(n));
   const [hover, setHover] = useState<number | null>(null);
   const W = 560, H = 200, L = 44, R = 8, T = 12, B = 26;
   const { top, vals } = ticks(Math.max(...datos.map((d) => d.v), 1));
@@ -147,7 +149,7 @@ export function Columnas({ datos, color = C.indigo, nombre }: { datos: { mes: st
         {vals.map((v) => (
           <g key={v}>
             <line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="var(--app-border)" />
-            <text x={L - 6} y={y(v) + 3} textAnchor="end" fontSize="9.5" style={{ fill: "currentColor", color: suave }}>{corto(v)}</text>
+            <text x={L - 6} y={y(v) + 3} textAnchor="end" fontSize="9.5" style={{ fill: "currentColor", color: suave }}>{fmtC(v)}</text>
           </g>
         ))}
         {datos.map((d, i) => {
@@ -162,16 +164,17 @@ export function Columnas({ datos, color = C.indigo, nombre }: { datos: { mes: st
         })}
       </svg>
       {hover !== null && (
-        <Tip x={((L + ancho * hover + ancho / 2) / W) * 100} y={25}><strong>{mesCorto(datos[hover].mes)}</strong><br />{completo(datos[hover].v)}</Tip>
+        <Tip x={((L + ancho * hover + ancho / 2) / W) * 100} y={25}><strong>{mesCorto(datos[hover].mes)}</strong><br />{fmtT(datos[hover].v)}</Tip>
       )}
     </div>
   );
 }
 
 // ─── Barras horizontales (ranking) ──────────────────────────────────────────
-export function BarrasH({ filas, color = C.rosa, formato = completo }: {
-  filas: { nombre: string; v: number; extra?: string }[]; color?: string; formato?: (n: number) => string;
+export function BarrasH({ filas, color = C.rosa, formato: modo = "pesos" }: {
+  filas: { nombre: string; v: number; extra?: string }[]; color?: string; formato?: "pesos" | "numero";
 }) {
+  const formato = modo === "numero" ? (n: number) => String(n) : completo;
   const max = Math.max(...filas.map((f) => f.v), 1);
   if (filas.length === 0) return <p style={{ fontSize: "0.8rem", color: suave }}>Sin datos en el periodo.</p>;
   return (
@@ -192,7 +195,8 @@ export function BarrasH({ filas, color = C.rosa, formato = completo }: {
 }
 
 // ─── Dona ────────────────────────────────────────────────────────────────────
-export function Dona({ filas, centro }: { filas: { nombre: string; v: number }[]; centro: string }) {
+export function Dona({ filas, centro, cantidad = false }: { filas: { nombre: string; v: number }[]; centro: string; cantidad?: boolean }) {
+  const fmt = (n: number) => (cantidad ? String(n) : corto(n));
   const [hover, setHover] = useState<number | null>(null);
   const total = filas.reduce((s, f) => s + f.v, 0);
   if (total <= 0) return <p style={{ fontSize: "0.8rem", color: suave }}>Sin datos en el periodo.</p>;
@@ -211,8 +215,8 @@ export function Dona({ filas, centro }: { filas: { nombre: string; v: number }[]
           <path key={a.f.nombre} d={a.d} fill={a.color} stroke="var(--app-card-bg)" strokeWidth="2" onMouseEnter={() => setHover(i)}
             opacity={hover === null || hover === i ? 1 : 0.4} />
         ))}
-        <text x={cx} y={cy - 2} textAnchor="middle" fontSize="15" fontWeight="700" style={{ fill: "currentColor", color: tinta }}>{act ? `${((act.v / total) * 100).toFixed(0)} %` : corto(total)}</text>
-        <text x={cx} y={cy + 14} textAnchor="middle" fontSize="9.5" style={{ fill: "currentColor", color: suave }}>{act ? corto(act.v) : centro}</text>
+        <text x={cx} y={cy - 2} textAnchor="middle" fontSize="15" fontWeight="700" style={{ fill: "currentColor", color: tinta }}>{act ? `${((act.v / total) * 100).toFixed(0)} %` : fmt(total)}</text>
+        <text x={cx} y={cy + 14} textAnchor="middle" fontSize="9.5" style={{ fill: "currentColor", color: suave }}>{act ? fmt(act.v) : centro}</text>
       </svg>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", flex: "1 1 8rem", minWidth: 0 }}>
         {filas.map((f, i) => (
