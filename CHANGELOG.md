@@ -14,6 +14,13 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.147.0] — 2026-11-24
+
+### Agente · canal WhatsApp (GEN-7)
+- `GET /api/v1/agent/clients/by-phone?phone=&history=`: identifica al cliente por su teléfono (E.164, con o sin «+»), devuelve `client`, `clientToken` y `history` (role user/assistant). 404 si el teléfono no es de ningún cliente.
+- `POST /api/v1/agent/messages`: guarda cada mensaje entrante o saliente por teléfono con canal WhatsApp. Idempotente por `waMessageId` (Meta reintenta los webhooks).
+- Tabla nueva `agent_messages` (migración aditiva). Ambos endpoints usan la misma llave con permiso `agent` y están en el OpenAPI.
+
 ## [1.146.0] — 2026-11-24
 
 ### Nómina vinculada a costos (`/gerencial/nomina`)

@@ -391,6 +391,7 @@ model CrmActivity {
 model User {
   expensesCreated Expense[] @relation("ExpenseCreatedBy")
   payrollCreated  PayrollEntry[] @relation("PayrollCreatedBy")
+  agentMessages  AgentMessage[] @relation("AgentMessageClient")
   id                String   @id @default(cuid())
   name              String
   email             String   @unique
@@ -2054,4 +2055,34 @@ model Feedback {
   @@index([companyId])
   @@index([userId])
   @@map("feedback")
+}
+
+enum AgentChannel {
+  WHATSAPP
+}
+
+enum AgentMessageDirection {
+  IN
+  OUT
+}
+
+/// Conversación del agente por canal externo (hoy WhatsApp), guardada por
+/// teléfono. Da al agente el `history` de la charla y deja registro de lo que
+/// se dijo. `waMessageId` evita duplicados cuando Meta reintenta un webhook.
+model AgentMessage {
+  id          String                @id @default(cuid())
+  channel     AgentChannel
+  direction   AgentMessageDirection
+  /// Teléfono del cliente en E.164 (+573001234567).
+  phone       String
+  content     String                @db.Text
+  waMessageId String?               @unique @map("wa_message_id")
+  /// Cliente reconocido en ese momento; nulo si el número no estaba registrado.
+  clientId    String?               @map("client_id")
+  client      User?                 @relation("AgentMessageClient", fields: [clientId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([channel, phone, createdAt])
+  @@map("agent_messages")
 }

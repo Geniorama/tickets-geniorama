@@ -427,6 +427,57 @@ function agentPaths() {
         },
       },
     },
+    "/agent/clients/by-phone": {
+      get: {
+        operationId: "agentClientByPhone",
+        tags: ["Agente"],
+        summary: "Identificar al cliente por su WhatsApp, con historial",
+        description:
+          "Igual que `/agent/client?phone=` más `history`: los últimos mensajes de la conversación de WhatsApp (`role` user/assistant, del más viejo al más nuevo; `history` en la consulta, 20 por defecto, máx. 50). 404 = teléfono sin cuenta; 409 = número repetido. Sin agente en el plan, `history` va vacío y `clientToken` es null. Requiere `agent`.",
+        parameters: [
+          { name: "phone", in: "query", required: true, schema: { type: "string" }, example: "573118364663" },
+          { name: "history", in: "query", schema: { type: "integer", minimum: 0, maximum: 50, default: 20 } },
+        ],
+        responses: {
+          "200": { description: "Cliente, `clientToken` e `history`.", content: { "application/json": { schema: { type: "object" } } } },
+          ...commonErrors(AGENT_ERRORS),
+          ...notFound("El cliente"),
+          "409": { description: "Varias cuentas de cliente tienen ese número.", content: { "application/json": { schema: errorRef } } },
+        },
+      },
+    },
+    "/agent/messages": {
+      post: {
+        operationId: "agentSaveMessage",
+        tags: ["Agente"],
+        summary: "Guardar un mensaje de WhatsApp",
+        description:
+          "`role: user` = entrante (lo escribió el cliente), `assistant` = saliente (lo contestó el agente). Idempotente por `waMessageId`: un reintento de Meta responde `duplicate: true` sin guardar otra vez. Con `history` > 0 devuelve también los últimos mensajes. Acepta teléfonos aún sin cuenta. Requiere `agent`.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["phone", "role", "content"],
+                properties: {
+                  phone: { type: "string", example: "573118364663" },
+                  role: { type: "string", enum: ["user", "assistant"] },
+                  content: { type: "string", maxLength: 8000 },
+                  waMessageId: { type: "string" },
+                  history: { type: "integer", minimum: 0, maximum: 50, default: 0 },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Guardado.", content: { "application/json": { schema: { type: "object" } } } },
+          "200": { description: "Ya existía ese `waMessageId` (duplicate: true).", content: { "application/json": { schema: { type: "object" } } } },
+          ...commonErrors(AGENT_ERRORS),
+        },
+      },
+    },
     "/agent/context": {
       get: {
         operationId: "agentContext",
