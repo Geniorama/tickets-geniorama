@@ -4,8 +4,8 @@ import { requireCan } from "@/lib/access/can";
 import { formatAmount } from "@/lib/money";
 import { formatDate } from "@/lib/format-date";
 import { periodoDesdeParams } from "@/lib/billing/categories";
-import { corto } from "@/components/billing/management-charts";
-import { AreaCompare, Columnas, BarrasH, Dona, Embudo, Anillo, Segmentada, Cascada, Panel, C } from "@/components/billing/management-charts";
+import { C, corto } from "@/components/billing/chart-utils";
+import { AreaCompare, Columnas, BarrasH, Dona, Embudo, Anillo, Segmentada, Cascada, Panel } from "@/components/billing/management-charts";
 import { cargarTableroGerencial } from "@/lib/management/dashboard";
 import { cargarOperacion } from "@/lib/management/operations";
 

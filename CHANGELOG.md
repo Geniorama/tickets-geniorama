@@ -14,6 +14,11 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.145.1] — 2026-11-24
+
+### Corrección: el tablero gerencial seguía fallando al abrir
+- La página (servidor) importaba colores y formato desde el archivo de gráficos (cliente), y un Server Component no puede leer ni ejecutar lo que exporta un módulo de cliente. Se movieron a `chart-utils.ts`.
+
 ## [1.145.0] — 2026-11-24
 
 ### Tablero gerencial: sube a «Gerencia» y suma Tickets, Proyectos, Infraestructura y CRM
