@@ -121,7 +121,7 @@ export default async function GerencialPage({
             <Segmentada partes={[{ nombre: "Vigente", v: r.carteraPendiente - r.carteraVencida, color: C.verde }, { nombre: "Vencida", v: r.carteraVencida, color: C.rojo }]} />
           </Panel>
           <Panel titulo="Del pipeline al dinero" nota="Pipeline abierto → ventas ganadas → facturado → recaudado">
-            <BarrasH formato={$} filas={[
+            <BarrasH filas={[
               { nombre: "Pipeline abierto", v: r.pipelineValor },
               { nombre: "Ventas ganadas", v: r.ventasGanadas },
               { nombre: "Facturación emitida", v: r.facturacionEmitida },

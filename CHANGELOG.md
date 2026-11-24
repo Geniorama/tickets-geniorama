@@ -14,6 +14,11 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.144.1] — 2026-11-24
+
+### Corrección: error al abrir el tablero gerencial
+- La página pasaba una función a un componente de cliente, lo que React rechaza en producción; ahora no se pasa.
+
 ## [1.144.0] — 2026-11-24
 
 ### Tablero gerencial (`/facturacion/gerencial`)
