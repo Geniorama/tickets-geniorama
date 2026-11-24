@@ -14,6 +14,14 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.146.0] — 2026-11-24
+
+### Nómina vinculada a costos (`/gerencial/nomina`)
+- Nómina mensual por persona: salario base, bonos y extras, y aportes y prestaciones a cargo de la empresa. El costo total de cada registro crea su costo de tipo **Personal** en Costos, en la misma transacción, así que el margen bruto y la utilidad del tablero la incluyen sin doble captura.
+- Botón «Copiar mes anterior» y selector de mes. Borrar un registro borra su costo; los costos que vienen de nómina se marcan en Costos y solo se quitan desde la nómina.
+- El tablero indica cuánto del costo de personal viene de la nómina.
+- Migración aditiva `20261124180000_payroll` (tabla `payroll_entries`).
+
 ## [1.145.1] — 2026-11-24
 
 ### Corrección: el tablero gerencial seguía fallando al abrir

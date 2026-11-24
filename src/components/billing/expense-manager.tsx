@@ -6,7 +6,7 @@ import { createExpense, deleteExpense } from "@/actions/expense.actions";
 import { callAction } from "@/lib/run-action";
 
 export type CostoFila = {
-  id: string; concept: string; kind: string; amount: number; fecha: string; supplier: string | null;
+  id: string; concept: string; kind: string; amount: number; fecha: string; supplier: string | null; nomina: boolean;
 };
 
 const TIPOS: Record<string, string> = { PERSONAL: "Personal", PROVEEDOR: "Proveedores", OPERACION: "Operación" };
@@ -70,14 +70,16 @@ export function ExpenseManager({ costos, hoy }: { costos: CostoFila[]; hoy: stri
               <tr key={c.id} style={{ borderBottom: "1px solid var(--app-border)" }}>
                 <td style={{ ...celda, color: "var(--app-text-muted)", whiteSpace: "nowrap" }}>{c.fecha}</td>
                 <td style={{ ...celda, color: "var(--app-body-text)", fontWeight: 500 }}>
-                  {c.concept}{c.supplier ? <span style={{ color: "var(--app-text-muted)", fontWeight: 400 }}> · {c.supplier}</span> : null}
+                  {c.concept}{c.nomina ? <span style={{ color: "#fd1384", fontWeight: 400 }}> · Nómina</span> : null}{c.supplier ? <span style={{ color: "var(--app-text-muted)", fontWeight: 400 }}> · {c.supplier}</span> : null}
                 </td>
                 <td style={{ ...celda, color: "var(--app-text-muted)" }}>{TIPOS[c.kind]}</td>
                 <td style={{ ...celda, textAlign: "right", fontVariantNumeric: "tabular-nums", color: "var(--app-body-text)" }}>{pesos.format(c.amount)}</td>
                 <td style={{ ...celda, width: "2rem" }}>
-                  <button type="button" aria-label="Borrar costo" onClick={() => borrar(c.id)} disabled={isPending} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--app-text-muted)" }}>
-                    <Trash2 style={{ width: "0.9rem", height: "0.9rem" }} />
-                  </button>
+                  {!c.nomina && (
+                    <button type="button" aria-label="Borrar costo" onClick={() => borrar(c.id)} disabled={isPending} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--app-text-muted)" }}>
+                      <Trash2 style={{ width: "0.9rem", height: "0.9rem" }} />
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

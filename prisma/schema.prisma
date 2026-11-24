@@ -390,6 +390,7 @@ model CrmActivity {
 
 model User {
   expensesCreated Expense[] @relation("ExpenseCreatedBy")
+  payrollCreated  PayrollEntry[] @relation("PayrollCreatedBy")
   id                String   @id @default(cuid())
   name              String
   email             String   @unique
@@ -1683,12 +1684,46 @@ model Expense {
   createdById String @map("created_by_id")
   createdBy   User   @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
 
+  /// Si el costo nace de una nómina, de cuál. Esos costos solo se tocan desde la nómina.
+  payroll PayrollEntry?
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([incurredOn])
   @@index([kind])
   @@map("expenses")
+}
+
+/// Lo que cuesta una persona de la nómina en un mes.
+///
+/// Cada registro mantiene su propio costo de tipo PERSONAL en `expenses` (por
+/// `expenseId`): así el tablero gerencial suma la nómina sin doble captura.
+model PayrollEntry {
+  id         String   @id @default(cuid())
+  personName String   @map("person_name")
+  /// Primer día del mes que se paga.
+  period     DateTime
+  baseSalary Float    @map("base_salary")
+  /// Bonos, horas extra, auxilios.
+  extras     Float    @default(0)
+  /// Aportes y prestaciones a cargo de la empresa.
+  contributions Float @default(0)
+  /// Costo total para la empresa: la suma de las tres. Es lo que pasa a costos.
+  total      Float
+  notes      String?  @db.Text
+
+  expenseId String?  @unique @map("expense_id")
+  expense   Expense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+
+  createdById String @map("created_by_id")
+  createdBy   User   @relation("PayrollCreatedBy", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([period])
+  @@map("payroll_entries")
 }
 
 model BillingCategory {

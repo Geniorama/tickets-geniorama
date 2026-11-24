@@ -37,6 +37,9 @@ export async function createExpense(input: {
 
 export async function deleteExpense(id: string) {
   await requireCan("FACTURACION", "gestionar");
+  // Los costos que vienen de la nómina se manejan desde la nómina.
+  const deNomina = await prisma.payrollEntry.findUnique({ where: { expenseId: id }, select: { id: true } });
+  if (deNomina) return { error: "Este costo viene de la nómina; quítalo desde allí" };
   const { count } = await prisma.expense.deleteMany({ where: { id } });
   if (count === 0) return { error: "Costo no encontrado" };
   revalidatePath("/gerencial", "layout");

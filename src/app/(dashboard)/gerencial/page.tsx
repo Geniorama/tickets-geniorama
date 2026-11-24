@@ -109,9 +109,14 @@ export default async function GerencialPage({
             Periodo: {formatDate(periodo.desde)} al {formatDate(periodo.hasta)}. La cartera y el pipeline se muestran a hoy.
           </p>
         </div>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
         <Link href="/gerencial/costos" style={{ fontSize: "0.8125rem", padding: "0.45rem 0.85rem", borderRadius: "0.5rem", border: "1px solid var(--app-border)", color: "var(--app-nav-text)", textDecoration: "none" }}>
           Registrar costos
         </Link>
+        <Link href="/gerencial/nomina" style={{ fontSize: "0.8125rem", padding: "0.45rem 0.85rem", borderRadius: "0.5rem", border: "1px solid var(--app-border)", color: "var(--app-nav-text)", textDecoration: "none" }}>
+          Nómina
+        </Link>
+        </div>
       </div>
 
       <form method="get" style={{ display: "flex", alignItems: "flex-end", gap: "0.6rem", flexWrap: "wrap", marginBottom: "1.75rem" }}>
@@ -218,6 +223,11 @@ export default async function GerencialPage({
             <Dona centro="facturado" filas={g.porServicio.map((x) => ({ nombre: x.nombre, v: x.base }))} />
           </Panel>
         </div>
+        {g.costoPersonal > 0 && (
+          <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", marginTop: "0.6rem" }}>
+            Del costo de personal, {$(g.costoNomina)} viene de la <Link href="/gerencial/nomina" style={{ color: "#fd1384" }}>nómina</Link> ({g.personasNomina} registros).
+          </p>
+        )}
         {g.costoTotal === 0 && (
           <p style={{ fontSize: "0.8125rem", color: "var(--app-text-muted)", marginTop: "0.6rem" }}>
             No hay costos registrados en este periodo, así que el margen y la utilidad equivalen a los ingresos. <Link href="/gerencial/costos" style={{ color: "#fd1384" }}>Regístralos aquí</Link>.

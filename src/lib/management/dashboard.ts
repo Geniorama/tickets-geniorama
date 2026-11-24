@@ -46,7 +46,7 @@ export async function cargarTableroGerencial(periodo: Periodo) {
   const [
     ganadas, perdidas, abiertas, facturadoPeriodo, abonosPeriodo, cartera,
     sinEmitir, anticipos, facturadoSerie, abonosSerie, ganadasSerie, gastos,
-    porCategoria, porEmpresa,
+    porCategoria, porEmpresa, nomina,
   ] = await Promise.all([
     prisma.deal.findMany({
       where: { stage: "GANADA", closedAt: enPeriodo },
@@ -101,6 +101,7 @@ export async function cargarTableroGerencial(periodo: Periodo) {
     }),
     ventasPorCategoria(periodo),
     ventasPorEmpresa(periodo),
+    prisma.expense.aggregate({ where: { incurredOn: enPeriodo, payroll: { isNot: null } }, _sum: { amount: true }, _count: { _all: true } }),
   ]);
 
   // ─── Series por mes ────────────────────────────────────────────────────────
@@ -181,6 +182,7 @@ export async function cargarTableroGerencial(periodo: Periodo) {
     rentabilidad: {
       ingresosBase, porServicio: porCategoria,
       costoPersonal, costoProveedores, costoOperacion,
+      costoNomina: nomina._sum.amount ?? 0, personasNomina: nomina._count._all,
       costoTotal: costoPersonal + costoProveedores + costoOperacion,
       margenBruto, margenBrutoPct: ingresosBase > 0 ? (margenBruto / ingresosBase) * 100 : null,
       utilidadOperativa, utilidadPct: ingresosBase > 0 ? (utilidadOperativa / ingresosBase) * 100 : null,
