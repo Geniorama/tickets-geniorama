@@ -5,16 +5,17 @@ import type { Role } from "@/generated/prisma";
 /**
  * Acceso de clientes al detalle de una tarea.
  *
- * El detalle de tarea es de uso interno (v1.39.0): los clientes solo ven el
- * listado de solo lectura dentro del proyecto. La excepción es cuando el staff
- * los involucra de forma deliberada — los menciona en un comentario o los pone
- * como revisores. En ese caso ya reciben notificación y correo con un enlace al
- * detalle, así que también deben poder abrirlo.
+ * Un cliente puede abrir el detalle de cualquier tarea publicada de un proyecto
+ * que ya puede ver (misma regla que `canClientAccessProject`): proyecto público
+ * de una de sus empresas, o proyecto privado del que es miembro.
  *
- * Se exige además que la tarea pertenezca a un proyecto de una de sus empresas,
- * para que una mención accidental en el proyecto de otro cliente no filtre nada.
- * Un proyecto privado NO bloquea: la mención pesa más, pero el acceso se limita
- * a esa tarea (no al proyecto).
+ * Se conserva la excepción anterior: si el staff lo menciona en un comentario o
+ * lo pone como revisor, puede abrir esa tarea aunque el proyecto sea privado y
+ * no sea miembro (ya recibe notificación y correo con el enlace). Esa excepción
+ * sigue exigiendo que el proyecto sea de una de sus empresas, para que una
+ * mención accidental en el proyecto de otro cliente no filtre nada.
+ *
+ * Nunca se abren borradores: ni tareas ni proyectos sin publicar.
  */
 
 /**
@@ -68,12 +69,6 @@ export async function canClientAccessTask(
 /**
  * Versión por lotes para el listado de tareas del proyecto: devuelve el
  * subconjunto de `taskIds` cuyo detalle puede abrir el cliente.
- *
- * Se resuelve en dos pasos: primero las tareas del lote que están dentro del
- * alcance del cliente (no borrador, proyecto de una de sus empresas) y si es
- * revisor de alguna; después, cuáles de esas lo mencionan. El alcance se aplica
- * antes que la mención, de modo que una mención en el proyecto de otro cliente
- * nunca concede acceso.
  */
 export async function getClientAccessibleTaskIds(
   taskIds: string[],
@@ -82,40 +77,64 @@ export async function getClientAccessibleTaskIds(
   if (taskIds.length === 0) return new Set();
 
   const companyIds = await getCompanyIds(userId);
-  if (companyIds.length === 0) return new Set();
 
-  const inScope = await prisma.task.findMany({
+  const candidates = await prisma.task.findMany({
     where: {
       id: { in: taskIds },
       isDraft: false,
       // Un proyecto en borrador no se abre a clientes hasta publicarse
-      project: { companyId: { in: companyIds }, isDraft: false },
+      project: {
+        isDraft: false,
+        OR: [
+          // Visible por la regla general: público de su empresa…
+          { isPrivate: false, companyId: { in: companyIds } },
+          // …o privado donde es miembro
+          { isPrivate: true, members: { some: { userId } } },
+          // Posible excepción por mención/revisión: privado de su empresa
+          { isPrivate: true, companyId: { in: companyIds } },
+        ],
+      },
     },
     select: {
       id: true,
       reviewers: { where: { id: userId }, select: { id: true } },
+      project: {
+        select: {
+          isPrivate: true,
+          members: { where: { userId }, select: { userId: true } },
+        },
+      },
     },
   });
 
-  if (inScope.length === 0) return new Set();
+  // Las tareas visibles por la regla general entran directo; las de un proyecto
+  // privado donde no es miembro necesitan mención o ser revisor.
+  const visible = new Set<string>();
+  const needInvolvement: typeof candidates = [];
+  for (const t of candidates) {
+    const p = t.project;
+    if (p && (!p.isPrivate || p.members.length > 0)) visible.add(t.id);
+    else needInvolvement.push(t);
+  }
 
-  const mentioned = await mentionedTaskIds(
-    inScope.map((t) => t.id),
-    userId,
-  );
+  if (needInvolvement.length > 0) {
+    const mentioned = await mentionedTaskIds(
+      needInvolvement.map((t) => t.id),
+      userId,
+    );
+    for (const t of needInvolvement) {
+      if (t.reviewers.length > 0 || mentioned.has(t.id)) visible.add(t.id);
+    }
+  }
 
-  return new Set(
-    inScope
-      .filter((t) => t.reviewers.length > 0 || mentioned.has(t.id))
-      .map((t) => t.id),
-  );
+  return visible;
 }
 
 /**
  * Guardia para Server Actions que operan sobre una tarea (comentar, reaccionar).
- * El staff conserva su acceso actual; el cliente debe estar mencionado o ser
- * revisor. Evita que las acciones abiertas queden invocables por cualquier
- * usuario autenticado que adivine un `taskId`.
+ * El staff conserva su acceso actual; el cliente debe poder abrir la tarea.
+ * Evita que las acciones abiertas queden invocables por cualquier usuario
+ * autenticado que adivine un `taskId`.
  */
 export async function canInteractWithTask(
   taskId: string,

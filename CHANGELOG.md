@@ -14,6 +14,13 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.149.0] — 2026-11-25
+
+### Detalle de tarea abierto a los clientes
+- Un cliente ya puede abrir el detalle de **cualquier tarea publicada** de un proyecto que puede ver (público de su empresa, o privado del que es miembro). Antes solo podía abrir las tareas donde lo mencionaban o era revisor.
+- La excepción por mención/revisor se mantiene para proyectos privados de su empresa donde no es miembro. Los borradores (tarea o proyecto) siguen cerrados.
+- Como la guardia de acciones usa la misma regla, el cliente con acceso a una tarea también puede comentar y reaccionar en ella; en pantalla el checklist sigue siendo solo lectura y el registro de tiempo solo para el equipo.
+
 ## [1.148.0] — 2026-11-24
 
 ### Conversaciones del agente (`/admin/conversaciones`)

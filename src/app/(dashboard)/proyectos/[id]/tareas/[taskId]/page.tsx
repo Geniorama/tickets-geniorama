@@ -73,8 +73,8 @@ export default async function TaskPage({
       project?.managerId === userId || task.assignedToId === userId;
     if (!hasAccess) notFound();
   } else {
-    // CLIENTE: solo si el staff lo involucró — mencionado en un comentario o
-    // revisor de la tarea — y la tarea es de un proyecto de su empresa.
+    // CLIENTE: cualquier tarea publicada de un proyecto que puede ver, o si lo
+    // involucraron (mención o revisor) en un proyecto de su empresa.
     const hasAccess = await canClientAccessTask(taskId, userId);
     if (!hasAccess) redirect(`/proyectos/${projectId}`);
   }

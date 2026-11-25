@@ -113,7 +113,7 @@ export default async function ProjectPage({
     if (!(await canClientAccessProject(projectId, userId))) notFound();
   }
 
-  // El cliente enlaza al detalle solo de las tareas donde lo involucraron
+  // El cliente enlaza al detalle de las tareas que puede abrir
   const isClient = !staff && !admin;
   const accessibleTaskIds = isClient
     ? [...(await getClientAccessibleTaskIds(project.tasks.map((t) => t.id), userId))]
