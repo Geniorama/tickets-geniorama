@@ -14,6 +14,14 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.150.0] — 2026-11-26
+
+### Anular facturas y cuentas de cobro, y su cementerio
+- En la ficha de un cobro facturado, «Anular» (nivel Gestor) pide el motivo y qué pasa con el cobro: volver a «Por facturar» para reemitir, o darlo de baja.
+- Nueva página «Cementerio» en Facturación: cada documento anulado con su número, empresa, importe, motivo, fecha y quién lo anuló, con buscador y filtro por tipo. Se conserva aunque el cobro se elimine.
+- Un cobro dado de baja sale del tablero y de las cifras por cobrar, ya no se mueve, edita ni admite pagos, y su link de pago deja de cobrar.
+- Con abonos registrados no se puede anular. Al anular se cancelan los correos programados del cobro.
+
 ## [1.149.3] — 2026-11-25
 
 ### Informes con IA: fallos intermitentes

@@ -24,6 +24,7 @@ export const BILLING_STATUS_LABELS: Record<BillingStatus, string> = {
   ABONADO:      "Abonado",
   PAGADO:       "Pagado",
   ARCHIVADO:    "Archivo",
+  ANULADO:      "Anulado",
 };
 
 export const BILLING_STATUS_DESCRIPTIONS: Record<BillingStatus, string> = {
@@ -33,6 +34,7 @@ export const BILLING_STATUS_DESCRIPTIONS: Record<BillingStatus, string> = {
   ABONADO:      "Entró una parte del dinero, falta el resto.",
   PAGADO:       "Cobrado por completo. Sigue a la vista mientras haya algo que hacer con él.",
   ARCHIVADO:    "Cerrado y guardado. Ya no queda nada que hacer con este cobro.",
+  ANULADO:      "Dado de baja al anular su documento. No se cobra ni suma en ninguna cifra.",
 };
 
 /** De frío a cobrado. El abonado es ámbar: hay dinero, pero no todo. */
@@ -44,6 +46,7 @@ export const BILLING_STATUS_COLORS: Record<BillingStatus, string> = {
   PAGADO:       "#22c55e",
   // Apagado a propósito: el archivo es lo que ya no reclama atención.
   ARCHIVADO:    "#94a3b8",
+  ANULADO:      "#dc2626",
 };
 
 /**
@@ -56,6 +59,16 @@ export const BILLING_STATUS_COLORS: Record<BillingStatus, string> = {
 export const CLOSED_BILLING_STATUSES: BillingStatus[] = ["PAGADO", "ARCHIVADO"];
 
 export const isClosed = (s: BillingStatus) => CLOSED_BILLING_STATUSES.includes(s);
+
+/**
+ * Lo que todavía está vivo: ni cobrado ni anulado.
+ *
+ * `ANULADO` no está en `BILLING_STATUSES` a propósito —no se elige ni se
+ * arrastra, solo se llega anulando—, así que filtrar desde esa lista ya lo
+ * deja fuera. Para «qué falta por cobrar» se usa esta y no «todo menos lo
+ * cerrado», que lo colaría.
+ */
+export const OPEN_BILLING_STATUSES: BillingStatus[] = BILLING_STATUSES.filter((s) => !isClosed(s));
 
 /**
  * Las columnas del tablero del día a día: todas menos el archivo.

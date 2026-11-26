@@ -158,6 +158,7 @@ export async function actualizarCobro(actor: Actor, id: string, d: CobroInput): 
     },
   });
   if (!actual) return { ok: false, error: "Cobro no encontrado" };
+  if (actual.status === "ANULADO") return { ok: false, error: "Este cobro está anulado y ya no se edita." };
 
   // El archivo tiene la misma puerta desde aquí que desde el tablero.
   const bloqueo = bloqueoDeArchivo(d.status, actual.status);

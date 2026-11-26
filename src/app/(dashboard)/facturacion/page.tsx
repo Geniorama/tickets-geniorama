@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Bell, PieChart, Link2, Mail, TrendingUp } from "lucide-react";
+import { Plus, Bell, PieChart, Link2, Mail, TrendingUp, Skull } from "lucide-react";
 import { requireCan, can } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { BILLING_STATUSES, BOARD_BILLING_STATUSES, isClosed, pendiente } from "@/lib/billing/status";
@@ -28,7 +28,7 @@ export default async function BillingPage({
   const verArchivo = archivo === "1";
   const statuses = verArchivo ? BILLING_STATUSES : BOARD_BILLING_STATUSES;
 
-  const [items, archivadosOcultos] = await Promise.all([
+  const [items, archivadosOcultos, anulados] = await Promise.all([
     prisma.billingItem.findMany({
       where: { status: { in: statuses } },
       orderBy: [{ dueDate: "asc" }, { createdAt: "desc" }],
@@ -41,6 +41,7 @@ export default async function BillingPage({
       },
     }),
     prisma.billingItem.count({ where: { status: "ARCHIVADO" } }),
+    prisma.billingVoid.count(),
   ]);
 
   // Novedades y soportes viven en las tablas compartidas: dos consultas
@@ -104,6 +105,18 @@ export default async function BillingPage({
             {verArchivo
               ? "Ocultar archivo"
               : `Ver archivo${archivadosOcultos > 0 ? ` (${archivadosOcultos})` : ""}`}
+          </Link>
+          {/* Sin condición: consultar lo anulado es de todo el que ve el módulo. */}
+          <Link
+            href="/facturacion/cementerio"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: "0.4rem",
+              fontSize: "0.8125rem", padding: "0.45rem 0.85rem", borderRadius: "0.5rem",
+              border: "1px solid var(--app-border)", color: "var(--app-nav-text)", textDecoration: "none",
+            }}
+          >
+            <Skull style={{ width: "0.9rem", height: "0.9rem" }} />
+            Cementerio{anulados > 0 ? ` (${anulados})` : ""}
           </Link>
           {canManage && (
             <Link

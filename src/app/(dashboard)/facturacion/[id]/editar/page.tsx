@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireCan } from "@/lib/access/can";
 import { prisma } from "@/lib/prisma";
 import { getBillingFormData } from "@/lib/billing/form-data";
@@ -47,6 +47,7 @@ export default async function EditarCobroPage({ params }: { params: Promise<{ id
     },
   });
   if (!cobro) notFound();
+  if (cobro.status === "ANULADO") redirect(`/facturacion/${id}`);
 
   const { companies, owners, categories, deals } = await getBillingFormData();
 

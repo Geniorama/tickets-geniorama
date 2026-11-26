@@ -111,7 +111,7 @@ export async function oportunidadesGanadas(periodo: Periodo): Promise<FilaOportu
     select: {
       id: true, title: true, amount: true,
       company: { select: { name: true } },
-      billingItems: { select: { amount: true, paidAmount: true } },
+      billingItems: { where: { status: { not: "ANULADO" } }, select: { amount: true, paidAmount: true } },
     },
   });
 

@@ -47,7 +47,9 @@ export default async function PagarPage({ params }: { params: Promise<{ token: s
 
       {motivo ? (
         <p style={{ fontSize: "0.9375rem", color: "var(--app-body-text)", margin: "1.5rem 0 0" }}>
-          {falta <= 0
+          {cobro.status === "ANULADO"
+            ? "Este cobro fue anulado y no hay nada que pagar. Escríbenos si necesitas ayuda."
+            : falta <= 0
             ? "Esta factura ya está pagada. ¡Gracias!"
             : "Esta factura todavía no está disponible para pago en línea. Escríbenos si necesitas ayuda."}
         </p>

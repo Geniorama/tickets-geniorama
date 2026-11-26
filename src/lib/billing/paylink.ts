@@ -45,6 +45,7 @@ export const urlDePago = (token: string) => `${baseUrl()}/pagar/${token}`;
  * facturado —no se cobra lo que el cliente aún no recibió— y que deba algo.
  */
 export function motivoNoPagable(cobro: { status: Parameters<typeof isInvoiced>[0]; amount: number; paidAmount: number }): string | null {
+  if (cobro.status === "ANULADO") return "El cobro está anulado";
   if (!isInvoiced(cobro.status)) return "El cobro todavía no está facturado";
   if (pendiente(cobro.amount, cobro.paidAmount) <= 0) return "El cobro ya no tiene saldo pendiente";
   return null;

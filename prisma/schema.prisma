@@ -76,6 +76,9 @@ enum BillingStatus {
   ABONADO
   PAGADO
   ARCHIVADO
+  /// Dado de baja al anular su documento. No es una columna del tablero ni se
+  /// llega arrastrando: solo anulando, y de ahí no se sale.
+  ANULADO
 }
 
 enum PlanType {
@@ -1348,6 +1351,7 @@ model BillingItem {
   payments  BillingPayment[]
   emails    BillingEmail[]
   gatewayOrders BillingGatewayOrder[]
+  voids     BillingVoid[]
 
   @@index([status])
   @@index([companyId])
@@ -1356,6 +1360,37 @@ model BillingItem {
   @@index([docType])
   @@index([dealId])
   @@map("billing_items")
+}
+
+/// El cementerio: una fila por cada factura o cuenta de cobro anulada.
+///
+/// Guarda una copia de lo que decía el documento, porque el cobro sigue vivo
+/// —puede reemitirse con otro número y otro importe— y hasta se puede borrar.
+/// El cementerio tiene que seguir contando lo mismo.
+model BillingVoid {
+  id            String       @id @default(cuid())
+  billingItemId String?      @map("billing_item_id")
+  billingItem   BillingItem? @relation(fields: [billingItemId], references: [id], onDelete: SetNull)
+
+  docType        BillingDocType @map("doc_type")
+  invoiceNumber  String?        @map("invoice_number")
+  concept        String
+  companyName    String         @map("company_name")
+  amount         Float
+  invoicedAt     DateTime?      @map("invoiced_at")
+  invoiceDueDate DateTime?      @map("invoice_due_date")
+
+  reason String @db.Text
+  /// `true`: el cobro volvió a «Por facturar». `false`: se dio de baja.
+  reissue Boolean
+
+  voidedById   String   @map("voided_by_id")
+  voidedByName String   @map("voided_by_name")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@index([billingItemId])
+  @@map("billing_voids")
 }
 
 /// Una etiqueta de facturación: «Por revisar», «Por cobrar»…

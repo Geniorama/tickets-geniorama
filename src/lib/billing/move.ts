@@ -145,6 +145,7 @@ export async function moveBillingStatus(
     },
   });
   if (!actual) return { ok: false, error: "Cobro no encontrado" };
+  if (actual.status === "ANULADO") return { ok: false, error: "Este cobro está anulado y ya no se mueve." };
 
   const bloqueo = bloqueoDeArchivo(status, actual.status);
   if (bloqueo) return { ok: false, error: bloqueo };

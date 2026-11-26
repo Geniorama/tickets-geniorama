@@ -10,7 +10,7 @@ import { ActivityPanel } from "@/components/ui/activity-panel";
 import { BackButton } from "@/components/ui/back-button";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
-import { formatDate } from "@/lib/format-date";
+import { formatDate, formatDateTime } from "@/lib/format-date";
 import { describirImpuesto, repartoPorCategoria } from "@/lib/billing/totals";
 import { listComments } from "@/lib/comments";
 import { listAttachments } from "@/lib/attachments";
@@ -22,6 +22,8 @@ import { PaymentList } from "@/components/billing/payment-list";
 import { destinatarioDe } from "@/lib/billing/reminders/plan";
 import { EmailPanel } from "@/components/billing/email-panel";
 import { PayLinkCard } from "@/components/billing/pay-link-card";
+import { VoidDocumentButton } from "@/components/billing/void-document-button";
+import { bloqueoDeAnulacion } from "@/lib/billing/void";
 import { motivoNoPagable, pasarelaLista, urlDePago } from "@/lib/billing/paylink";
 import { canalDisponible } from "@/lib/billing/reminders/channels";
 import {
@@ -53,6 +55,10 @@ export default async function BillingItemPage({
       dueDate: true, invoiceDueDate: true, invoiceNumber: true, invoicedAt: true, paidAt: true, notes: true,
       docType: true, receivedBy: true, deal: { select: { id: true, title: true } },
       remindersOff: true, payToken: true,
+      voids: {
+        orderBy: { createdAt: "desc" },
+        select: { id: true, docType: true, invoiceNumber: true, amount: true, reason: true, voidedByName: true, createdAt: true },
+      },
       gatewayOrders: {
         orderBy: { createdAt: "desc" },
         take: 5,
@@ -166,6 +172,7 @@ export default async function BillingItemPage({
 
   const color = BILLING_STATUS_COLORS[cobro.status];
   const falta = pendiente(cobro.amount, cobro.paidAmount);
+  const anulado = cobro.status === "ANULADO";
 
   // El link de pago en línea. La plantilla que lo manda se busca por la marca
   // y no por su nombre: alguien puede haberla renombrado o escrito la suya.
@@ -233,14 +240,21 @@ export default async function BillingItemPage({
 
         <div style={{ display: "flex", alignItems: "center", gap: "1.25rem" }}>
           <div style={{ textAlign: "right" }}>
-            <p style={{ fontSize: "1.5rem", fontWeight: 700, fontVariantNumeric: "tabular-nums", margin: 0, color: falta === 0 ? "#16a34a" : "#dc2626" }}>
-              {formatAmount(falta === 0 ? cobro.amount : falta)}
+            <p style={{ fontSize: "1.5rem", fontWeight: 700, fontVariantNumeric: "tabular-nums", margin: 0, color: anulado ? "var(--app-text-muted)" : falta === 0 ? "#16a34a" : "#dc2626", textDecoration: anulado ? "line-through" : "none" }}>
+              {formatAmount(anulado || falta === 0 ? cobro.amount : falta)}
             </p>
             <p style={{ fontSize: "0.75rem", color: "var(--app-text-muted)", margin: 0 }}>
-              {falta === 0 ? "cobrado" : `por cobrar de ${formatAmount(cobro.amount)}`}
+              {anulado ? "anulado" : falta === 0 ? "cobrado" : `por cobrar de ${formatAmount(cobro.amount)}`}
             </p>
           </div>
-          {canEdit && (
+          {canManage && isInvoiced(cobro.status) && (
+            <VoidDocumentButton
+              billingItemId={cobro.id}
+              documento={[DOC_TYPE_LABELS[cobro.docType], cobro.invoiceNumber].filter(Boolean).join(" ")}
+              bloqueo={bloqueoDeAnulacion(cobro.status, cobro.payments.length)}
+            />
+          )}
+          {canEdit && !anulado && (
             <Link
               href={`/facturacion/${cobro.id}/editar`}
               style={{
@@ -306,12 +320,14 @@ export default async function BillingItemPage({
             {cobro.paidAmount > 0 && (
               <Fila etiqueta="Abonado" valor={formatAmount(cobro.paidAmount)} color="#f59e0b" />
             )}
-            <Fila
-              etiqueta={falta === 0 ? "Cobrado" : "Falta por cobrar"}
-              valor={falta === 0 ? formatAmount(cobro.amount) : formatAmount(falta)}
-              color={falta === 0 ? "#16a34a" : "#dc2626"}
-              destacada
-            />
+            {!anulado && (
+              <Fila
+                etiqueta={falta === 0 ? "Cobrado" : "Falta por cobrar"}
+                valor={falta === 0 ? formatAmount(cobro.amount) : formatAmount(falta)}
+                color={falta === 0 ? "#16a34a" : "#dc2626"}
+                destacada
+              />
+            )}
           </div>
 
           {/* Solo con más de una categoría: repartir algo entre una sola parte
@@ -340,25 +356,60 @@ export default async function BillingItemPage({
 
         </div>
 
-        <PaymentList
-          billingItemId={cobro.id}
-          abonos={cobro.payments.map((p) => ({ ...p, soportes: soportesPorAbono.get(p.id) ?? [] }))}
-          total={cobro.amount}
-          cobrado={cobro.paidAmount}
-          facturado={isInvoiced(cobro.status)}
-          canEdit={canEdit}
-          canManage={canManage}
-        />
+        {cobro.voids.length > 0 && (
+          <div
+            style={{
+              backgroundColor: "var(--app-card-bg)", border: "1px solid var(--app-border)",
+              borderRadius: "0.75rem", padding: "1.25rem",
+              display: "flex", flexDirection: "column", gap: "0.75rem",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "1rem" }}>
+              <p style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--app-text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Documentos anulados
+              </p>
+              <Link href="/facturacion/cementerio" style={{ fontSize: "0.8125rem", color: "#fd1384", textDecoration: "none" }}>
+                Ver cementerio
+              </Link>
+            </div>
+            {cobro.voids.map((v) => (
+              <div key={v.id} style={{ fontSize: "0.8125rem", color: "var(--app-nav-text)" }}>
+                <p style={{ margin: 0 }}>
+                  <strong>{[DOC_TYPE_LABELS[v.docType], v.invoiceNumber].filter(Boolean).join(" ")}</strong>
+                  {" · "}{formatAmount(v.amount)}
+                </p>
+                <p style={{ margin: 0, color: "var(--app-text-muted)", fontSize: "0.75rem" }}>
+                  Anulado el {formatDateTime(v.createdAt)} por {v.voidedByName}
+                </p>
+                <p style={{ margin: "0.2rem 0 0", whiteSpace: "pre-wrap" }}>{v.reason}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
-        <PayLinkCard
-          billingItemId={cobro.id}
-          url={linkPago}
-          motivo={motivoSinPago}
-          falta={falta}
-          canEdit={canEdit}
-          hrefCorreo={plantillaLink ? `/facturacion/${cobro.id}?correo=link-pago#correos` : null}
-          intentos={cobro.gatewayOrders}
-        />
+        {!anulado && (
+          <>
+            <PaymentList
+              billingItemId={cobro.id}
+              abonos={cobro.payments.map((p) => ({ ...p, soportes: soportesPorAbono.get(p.id) ?? [] }))}
+              total={cobro.amount}
+              cobrado={cobro.paidAmount}
+              facturado={isInvoiced(cobro.status)}
+              canEdit={canEdit}
+              canManage={canManage}
+            />
+
+            <PayLinkCard
+              billingItemId={cobro.id}
+              url={linkPago}
+              motivo={motivoSinPago}
+              falta={falta}
+              canEdit={canEdit}
+              hrefCorreo={plantillaLink ? `/facturacion/${cobro.id}?correo=link-pago#correos` : null}
+              intentos={cobro.gatewayOrders}
+            />
+          </>
+        )}
 
         {/* Sin `canEdit`: escribirle al cliente lo puede hacer cualquiera con
             acceso al módulo, también quien no puede tocar el cobro. */}
@@ -426,7 +477,7 @@ export default async function BillingItemPage({
             </div>
           )}
 
-          {canEdit && (
+          {canEdit && !anulado && (
             <ReminderPanel
               billingItemId={cobro.id}
               off={cobro.remindersOff}

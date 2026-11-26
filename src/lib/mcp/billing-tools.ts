@@ -21,7 +21,7 @@ import { can } from "@/lib/access/can";
 import type { ApiUser } from "@/lib/api/respond";
 import {
   BILLING_STATUSES, BILLING_STATUS_LABELS, BILLING_STATUS_DESCRIPTIONS,
-  CLOSED_BILLING_STATUSES, INVOICED_STATUSES, pendiente,
+  BOARD_BILLING_STATUSES, CLOSED_BILLING_STATUSES, INVOICED_STATUSES, pendiente,
 } from "@/lib/billing/status";
 import { moveBillingStatus } from "@/lib/billing/move";
 import { abonar, actualizarCobro, crearCobro, type CobroInput } from "@/lib/billing/items";
@@ -171,7 +171,7 @@ export async function registerBillingTools(server: McpServer, user: ApiUser, can
     {
       title: "Facturación: listar cobros",
       description:
-        "Cobros, del más reciente al más antiguo. Sin filtro de estado deja fuera el archivo. " +
+        "Cobros, del más reciente al más antiguo. Sin filtro de estado deja fuera el archivo y los anulados. " +
         "overdue=true devuelve solo facturas vencidas sin cobrar del todo. Estados: " + STATUS_HELP,
       inputSchema: {
         status: z.array(STATUS).optional(),
@@ -188,7 +188,7 @@ export async function registerBillingTools(server: McpServer, user: ApiUser, can
       const take = limit ?? 25;
       const where: Prisma.BillingItemWhereInput = {
         AND: [
-          status?.length ? { status: { in: status } } : { status: { not: "ARCHIVADO" } },
+          status?.length ? { status: { in: status } } : { status: { in: BOARD_BILLING_STATUSES } },
           ...(companyId ? [{ companyId }] : []),
           ...(overdue ? [overdueWhere(new Date())] : []),
           ...(q

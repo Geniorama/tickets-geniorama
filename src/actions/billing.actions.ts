@@ -10,6 +10,7 @@ import { deleteAttachmentsFor } from "@/lib/attachments";
 import type { BillingStatus } from "@/generated/prisma";
 import { BILLING_STATUSES } from "@/lib/billing/status";
 import { moveBillingStatus } from "@/lib/billing/move";
+import { anularDocumento } from "@/lib/billing/void";
 import { parseAmount } from "@/lib/money";
 import { actualizarCobro, crearCobro } from "@/lib/billing/items";
 import { parseDocType } from "@/lib/billing/doc-type";
@@ -215,6 +216,23 @@ export async function moveBillingItems(ids: string[], status: BillingStatus) {
     omitidos: unicos.length - movidos,
     motivos: [...fallos].map(([error, n]) => `${n} · ${error}`),
   };
+}
+
+/**
+ * Anula la factura o cuenta de cobro de un cobro y la manda al cementerio.
+ * `reissue` decide si el cobro vuelve a «Por facturar» o se da de baja.
+ */
+export async function voidBillingDocument(id: string, reason: string, reissue: boolean) {
+  // Sacar dinero facturado de las cuentas pide GESTOR, como borrar.
+  const session = await requireCan("FACTURACION", "gestionar");
+
+  const r = await anularDocumento(session.user, id, { reason: String(reason ?? ""), reissue: reissue === true });
+  if (!r.ok) return { error: r.error };
+
+  revalidatePath("/facturacion");
+  revalidatePath(`/facturacion/${id}`);
+  revalidatePath("/facturacion/cementerio");
+  return { success: true };
 }
 
 /**

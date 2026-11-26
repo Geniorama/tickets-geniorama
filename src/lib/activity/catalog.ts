@@ -276,6 +276,7 @@ export const ACTIVITY_ACTIONS: readonly ActivityAction[] = [
   { key: "billing.updated",          entity: "BILLING", label: "editó el cobro",             tone: "update" },
   { key: "billing.status_changed",   entity: "BILLING", label: "cambió el estado del cobro", tone: "move" },
   { key: "billing.deleted",          entity: "BILLING", label: "eliminó el cobro",           tone: "destroy" },
+  { key: "billing.voided",           entity: "BILLING", label: "anuló el documento",         tone: "destroy" },
   { key: "billing.payment_added",    entity: "BILLING", label: "registró un abono",          tone: "create" },
   { key: "billing.payment_updated",  entity: "BILLING", label: "corrigió un abono",          tone: "update" },
   { key: "billing.payment_deleted",  entity: "BILLING", label: "eliminó un abono",           tone: "destroy" },
