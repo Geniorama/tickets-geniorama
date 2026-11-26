@@ -14,6 +14,14 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.149.3] — 2026-11-25
+
+### Informes con IA: fallos intermitentes
+- El error real del proveedor ahora se registra en los logs del servidor (`[informe IA]`); antes el `catch` lo descartaba y no quedaba rastro.
+- Se reintenta una vez ante fallos transitorios (límite de peticiones, 5xx, red) o respuesta vacía.
+- El tiempo máximo de espera sube de 30 s a 90 s.
+- El mensaje al usuario distingue timeout, límite de uso del proveedor y credenciales rechazadas.
+
 ## [1.149.2] — 2026-11-26
 
 ### Rastro de los correos por mención

@@ -60,13 +60,63 @@ function today() {
   });
 }
 
+const AI_TIMEOUT_MS = 90_000;
+
+class AiTimeoutError extends Error {}
+
+async function callOnce(prompt: string, provider: AiProvider): Promise<string> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      runTextCompletion({ provider, prompt }),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new AiTimeoutError(`AI timeout (${AI_TIMEOUT_MS / 1000}s)`)),
+          AI_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Errores que suelen resolverse reintentando: límite de peticiones, 5xx, red. */
+function isTransient(err: unknown): boolean {
+  if (err instanceof AiTimeoutError) return false;
+  const status = (err as { status?: number })?.status;
+  if (typeof status === "number") return status === 408 || status === 409 || status === 429 || status >= 500;
+  // Sin status: fallo de red (ECONNRESET, fetch failed…)
+  return true;
+}
+
 async function callAi(prompt: string, provider: AiProvider): Promise<string> {
-  return Promise.race([
-    runTextCompletion({ provider, prompt }),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("AI timeout (30s)")), 30000),
-    ),
-  ]);
+  try {
+    const text = await callOnce(prompt, provider);
+    if (!text.trim()) throw new Error("Respuesta vacía del modelo");
+    return text;
+  } catch (err) {
+    if (!isTransient(err)) throw err;
+    console.warn(`[informe IA] fallo transitorio con ${provider}, reintentando:`, err);
+    await new Promise((r) => setTimeout(r, 1500));
+    return callOnce(prompt, provider);
+  }
+}
+
+/** Registra el error real en el servidor y devuelve un mensaje que dice qué pasó. */
+function aiFailure(err: unknown, provider: AiProvider): { error: string } {
+  console.error(`[informe IA] error con ${provider}:`, err);
+  const status = (err as { status?: number })?.status;
+  if (err instanceof AiTimeoutError) {
+    return { error: "La IA tardó demasiado en responder. Inténtalo de nuevo o acota el periodo del informe." };
+  }
+  if (status === 429) {
+    return { error: "El proveedor de IA alcanzó su límite de uso. Espera un momento e inténtalo de nuevo, o cambia de proveedor." };
+  }
+  if (status === 401 || status === 403) {
+    return { error: "El proveedor de IA rechazó las credenciales. Avisa al administrador." };
+  }
+  return { error: "Error al generar el informe con IA. Inténtalo de nuevo o cambia de proveedor." };
 }
 
 // ─── Tarea ────────────────────────────────────────────────────────────────────
@@ -173,8 +223,8 @@ ${ctx}`;
   try {
     const body = await callAi(prompt, provider);
     return { report: { header, body } };
-  } catch {
-    return { error: "Error al generar el informe con IA." };
+  } catch (err) {
+    return aiFailure(err, provider);
   }
 }
 
@@ -480,8 +530,8 @@ ${period ? `RECORDATORIO FINAL: el informe habla únicamente del ${period.label}
   try {
     const body = await callAi(prompt, provider);
     return { report: { header, body } };
-  } catch {
-    return { error: "Error al generar el informe con IA." };
+  } catch (err) {
+    return aiFailure(err, provider);
   }
 }
 
@@ -571,7 +621,7 @@ ${ctx}`;
   try {
     const body = await callAi(prompt, provider);
     return { report: { header, body } };
-  } catch {
-    return { error: "Error al generar el informe con IA." };
+  } catch (err) {
+    return aiFailure(err, provider);
   }
 }
