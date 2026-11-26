@@ -14,6 +14,13 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.149.2] — 2026-11-26
+
+### Rastro de los correos por mención
+- Cada comentario deja en el log del servidor cuántas menciones se detectaron y qué pasó con cada correo: aceptado (con su `request_id`), error (con su código) o sin respuesta en 30 s. Solo ids y códigos.
+- La acción «Ver errores de correo» muestra esas líneas.
+- Es diagnóstico: no cambia a quién ni cuándo se envía.
+
 ## [1.149.1] — 2026-11-26
 
 ### Diagnóstico de correos desde GitHub Actions

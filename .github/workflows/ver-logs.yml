@@ -42,6 +42,13 @@ jobs:
               echo "${hallados:-  (ninguno)}"
             }
 
+            # Estas líneas las escribe la app (lib/mentions) y solo llevan ids y
+            # códigos. El patrón corta en cualquier carácter fuera de esa forma.
+            echo "== Avisos por mención (los 100 más recientes, hora UTC) =="
+            avisos=$(cat ~/.pm2/logs/tickets-geniorama-out*.log 2>/dev/null \
+              | grep -a -o -E '\[correo:mencion\] [A-Za-z0-9_=:. -]+' | sort -k2 | tail -n 100)
+            echo "${avisos:-  (ninguno)}"
+
             echo "== Códigos de ZeptoMail =="
             contar '\b(TM|SM|LE|SERR)_[0-9]+\b'
 

@@ -16,6 +16,21 @@ import { notifyMany } from "@/lib/notify";
 import { sendMentionEmail } from "@/lib/email";
 import { can } from "@/lib/access/can";
 
+/**
+ * Rastro de cada aviso en el log del servidor. Solo ids y códigos, nunca
+ * nombres, correos ni texto: la acción «Ver errores de correo» publica estas
+ * líneas, y el repositorio es público.
+ */
+function trace(detail: string) {
+  console.log(`[correo:mencion] ${new Date().toISOString()} ${detail}`);
+}
+
+/** Código del rechazo de ZeptoMail o, si no llegó a responder, el del fallo. */
+function errorCode(err: unknown): string {
+  const e = err as { error?: { code?: string }; code?: string; name?: string } | null;
+  return e?.error?.code ?? e?.code ?? e?.name ?? "desconocido";
+}
+
 export async function notifyMentions(input: {
   author: { id: string; name?: string | null };
   entityType: "TASK" | "TICKET" | "BILLING";
@@ -23,6 +38,8 @@ export async function notifyMentions(input: {
   body: string;
 }): Promise<void> {
   let mentionedIds = extractMentionIds(input.body).filter((id) => id !== input.author.id);
+  const target = `entidad=${input.entityType} id=${input.entityId}`;
+  trace(`${target} menciones=${mentionedIds.length}`);
   if (mentionedIds.length === 0) return;
 
   // La facturación es interna: avisar a alguien sin acceso al módulo le
@@ -81,15 +98,25 @@ export async function notifyMentions(input: {
   const appUrl = process.env.AUTH_URL ?? "http://localhost:3000";
   const mentionedUsers = await prisma.user.findMany({
     where: { id: { in: mentionedIds }, isActive: true },
-    select: { name: true, email: true },
+    select: { id: true, name: true, email: true },
   });
+  trace(`${target} destinatarios=${mentionedUsers.length}`);
   for (const mentioned of mentionedUsers) {
+    const who = `${target} usuario=${mentioned.id}`;
+    // Una petición colgada no resuelve ni falla: sin esto no dejaría rastro
+    const slow = setTimeout(() => trace(`${who} resultado=sin_respuesta_30s`), 30_000);
     void sendMentionEmail(
       { name: mentioned.name, email: mentioned.email },
       authorName,
       contextLabel,
       title,
       `${appUrl}${path}`,
-    ).catch(console.error);
+    )
+      .then((res) => trace(`${who} resultado=aceptado request_id=${res?.request_id ?? "sin_id"}`))
+      .catch((err) => {
+        trace(`${who} resultado=error codigo=${errorCode(err)}`);
+        console.error(err);
+      })
+      .finally(() => clearTimeout(slow));
   }
 }

@@ -187,8 +187,8 @@ export async function sendMentionEmail(
   contextLabel: string,
   contextTitle: string,
   url: string
-) {
-  await client.sendMail({
+): Promise<{ request_id?: string } | undefined> {
+  const response = await client.sendMail({
     from: FROM,
     to: [{ email_address: { address: to.email, name: to.name } }],
     subject: `${mentionedBy} te mencionó en ${contextLabel}`,
@@ -216,6 +216,7 @@ export async function sendMentionEmail(
       </div>
     `,
   });
+  return response as { request_id?: string } | undefined;
 }
 
 export async function sendPasswordResetEmail(to: Recipient, resetUrl: string) {
