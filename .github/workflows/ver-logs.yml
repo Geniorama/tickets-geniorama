@@ -1,0 +1,52 @@
+name: Ver errores de correo
+
+# Solo a mano (pestaña Actions > "Run workflow"). Lee el log de errores de PM2
+# en el servidor y muestra lo relacionado con el envío de correo, para
+# diagnosticar sin tener que entrar a la instancia. No cambia nada allí.
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  errores-de-correo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Leer el log de errores
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            shopt -s nullglob
+            archivos=(~/.pm2/logs/tickets-geniorama-error*.log)
+            if [ ${#archivos[@]} -eq 0 ]; then
+              echo "No encuentro el log de errores. Archivos en ~/.pm2/logs:"
+              ls ~/.pm2/logs
+              exit 1
+            fi
+
+            echo "== Archivos (tamaño y última escritura, hora del servidor) =="
+            ls -l --time-style=long-iso "${archivos[@]}"
+            date
+
+            # El repositorio es público y con él la salida de esta acción: aquí
+            # NUNCA se imprimen líneas del log, solo los códigos que se extraen
+            # de ellas y cuántas veces aparece cada uno.
+            contar() {
+              local hallados
+              hallados=$(cat "${archivos[@]}" | grep -a -h -o -E "$1" | sort | uniq -c | sort -rn)
+              echo "${hallados:-  (ninguno)}"
+            }
+
+            echo "== Códigos de ZeptoMail =="
+            contar '\b(TM|SM|LE|SERR)_[0-9]+\b'
+
+            echo "== Fallos de red hacia la API de correo =="
+            contar 'api\.zeptomail\.com[^ ]* failed, reason: [^ ]+( E[A-Z_]+)?'
+
+            echo "== Errores de conexión en todo el log (de cualquier servicio) =="
+            contar '\b(ETIMEDOUT|ECONNRESET|ECONNREFUSED|ENOTFOUND|EAI_AGAIN)\b'

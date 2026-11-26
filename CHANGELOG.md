@@ -14,6 +14,12 @@ Las funciones nuevas, aunque sean grandes, siguen siendo MINOR.
 
 ## [Unreleased]
 
+## [1.149.1] — 2026-11-26
+
+### Diagnóstico de correos desde GitHub Actions
+- Nueva acción manual «Ver errores de correo»: lee el log de errores de PM2 en el servidor y muestra solo códigos de error de ZeptoMail y fallos de conexión, sin líneas del log.
+- No cambia la aplicación.
+
 ## [1.149.0] — 2026-11-25
 
 ### Detalle de tarea abierto a los clientes
